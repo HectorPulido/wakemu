@@ -92,7 +92,49 @@ def native_delivery_boundary(operation):
         # This boundary already supplies the same preview/adopt transaction.
         candidate._area_atomic_depth = True
         packets = operation(candidate, *args, **kwargs)
-        delivery = candidate.prepare_delivery(packets) if packets else packets
+        from .combat_death import newly_registered_death_messages
+
+        # Turn reactions can kill an NPC even when the AI deadline forces a
+        # direct end-turn fallback. Finalize those deaths at the shared native
+        # boundary, independent of which caller drove the turn. Keep raw death
+        # packets inside this preview so allocation failure rolls everything back.
+        deaths = newly_registered_death_messages(
+            candidate, after_sequence=runtime.fight.sequence, prepare_delivery=False
+        )
+        # The client must retire a defeated actor before closing its turn or
+        # restoring/starting its successor. The queued next-turn batch itself
+        # remains behind the real ACK and is not drained here.
+        turn_frame = (
+            next(
+                (
+                    index
+                    for index, (opcode, _) in enumerate(packets)
+                    if opcode in (12502, 12053, 13337, 13482)
+                ),
+                len(packets),
+            )
+            if deaths
+            else 0
+        )
+        if deaths and isinstance(packets, NativeDelivery):
+            if turn_frame < len(packets):
+                raise ValueError(
+                    "Prepared turn transition precedes new death allocation"
+                )
+            tail = candidate.prepare_delivery(deaths)
+            delivery = NativeDelivery(
+                tuple(packets) + tuple(tail),
+                fight_id=candidate.fight.id,
+                actions=packets.native_actions + tail.native_actions,
+            )
+        else:
+            if deaths:
+                packets = (
+                    tuple(packets[:turn_frame])
+                    + tuple(deaths)
+                    + tuple(packets[turn_frame:])
+                )
+            delivery = candidate.prepare_delivery(packets) if packets else packets
         candidate.__dict__.pop("_native_delivery_depth", None)
         adopt_runtime(runtime, candidate)
         return delivery

@@ -38,7 +38,13 @@ def commit_spell_transaction(
     stage("validate_source", started)
     expected = struct.pack(">iii", runtime.fight.id, transaction.action_id, -1)
     for opcode, payload in transaction.packets:
-        if not isinstance(payload, bytes) or payload[:12] != expected:
+        if opcode == 13420:
+            valid = isinstance(payload, bytes) and payload == struct.pack(
+                ">i", runtime.fight.id
+            )
+        else:
+            valid = isinstance(payload, bytes) and payload[:12] == expected
+        if not valid:
             raise ValueError("Effect packet belongs to another combat action")
     packets = list(transaction.packets)
     packets.append(runtime._flush())

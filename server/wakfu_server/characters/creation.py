@@ -23,6 +23,7 @@ def create(store, account_id, generation, body):
             request["character_name"],
             breed=request["breed_id"],
             appearance=request["appearance"],
+            selection_generation=generation,
         )
     except ValueError as error:
         status = {

@@ -51,6 +51,8 @@ def _loots(rows):
 
 
 def _player(actor, metadata):
+    from wakfu_server.breed_resources import playable_breeds
+
     name = metadata.get("name")
     account = metadata.get("account_id")
     breed = metadata.get("breed")
@@ -60,7 +62,7 @@ def _player(actor, metadata):
         or type(account) is not int
         or account <= 0
         or type(breed) is not int
-        or not 1 <= breed <= 18
+        or breed not in playable_breeds()
         or type(metadata.get("is_male")) is not bool
     ):
         raise ValueError("Invalid own player report identity")

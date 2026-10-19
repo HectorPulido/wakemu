@@ -203,43 +203,50 @@ def _eligible(db, identity):
     return result
 
 
+def _entrance_target(db, revision, source):
+    """Prefer native interaction cells: object height need not equal floor height."""
+    for point in source.get("approach_positions", []):
+        coordinates = _coordinates(
+            source["map_id"], point.get("x"), point.get("y"), point.get("z")
+        )
+        if coordinates is None:
+            continue
+        target = _target(db, revision, *coordinates)
+        if target is not None:
+            return target
+    return _target(
+        db,
+        revision,
+        source["map_id"],
+        source["x"],
+        source["y"],
+        source["z"],
+        nearby=True,
+    )
+
+
 def actions(db, identity, action_key=None):
-    """Return eligible actions, resolving only one destination when requested."""
-    if action_key is not None and not action_key.startswith("travel.dungeon."):
-        return []
+    """Resolve authored dungeon entrances independently of public transport stops."""
+    requested_dungeon = None
+    if action_key is not None:
+        match = re.fullmatch(r"travel\.dungeon\.([1-9][0-9]*)", action_key)
+        if match is None:
+            return []
+        requested_dungeon = int(match[1])
     configured = db.execute(
         "SELECT value FROM settings WHERE name='objectives_travel_cost_kamas'"
     ).fetchone()
     cost_kamas = configured["value"] if configured else 500
     if type(cost_kamas) is not int or not 1 <= cost_kamas <= 2147483647:
         raise ValueError("Invalid objective travel cost")
-    requested_map = None
-    requested_dungeon = None
-    if action_key is not None:
-        match = re.fullmatch(
-            r"travel\.(map|region|dungeon)\.([1-9][0-9]*)(?:\.([1-9][0-9]*))?",
-            action_key,
-        )
-        if match is None or (match[1] == "region") != (match[3] is not None):
-            return []
-        if match[1] == "dungeon":
-            requested_dungeon = int(match[2])
-        else:
-            requested_map = int(match[2])
     rules = _eligible(db, identity)
     routes = db.execute(
         "SELECT c.configuration->'route' AS route FROM dungeon_runtime_configurations c "
         "JOIN dungeon_runtime_active_configurations a USING(route_key,policy_version) ORDER BY c.route_key"
     ).fetchall()
-    if requested_dungeon is not None:
-        routes = [
-            row for row in routes if row["route"]["definition_id"] == requested_dungeon
-        ]
-        if not routes:
-            return []
-        requested_maps = {row["route"]["entry_map_id"] for row in routes}
-    else:
-        requested_maps = None if requested_map is None else {requested_map}
+    # A route can start inside another dungeon. Such an entrance is not a public
+    # destination and must not create a new instance-zero copy of a private map.
+    private_maps = {row["route"]["start_map_id"] for row in routes}
     active = db.execute(
         "SELECT a.revision FROM native_catalog_active a JOIN native_catalog_releases r USING(revision) "
         "WHERE a.id=1 AND r.complete"
@@ -247,183 +254,42 @@ def actions(db, identity, action_key=None):
     if active is None:
         raise ValueError("Published native travel catalog unavailable")
     revision = active["revision"]
-    transports = _document(db, revision, "native-transports.json")
-    objects = _document(db, revision, "native-transport-objects.json")
-    if not isinstance(transports, list) or not isinstance(objects, list):
-        raise ValueError("Native public transport catalog unavailable")
-    objects = {row["id"]: row for row in objects}
-    sources = {}
-    if action_key is None or requested_dungeon is not None:
-        sources = {
-            (row["map_id"], row["id"]): row
-            for row in (
-                _document(db, revision, "native-generic-teleporters.json") or []
-            )
-        }
-    # Prime every requested immutable arrival together by map. Later public
-    # assembly reads only small target-cache entries, even when large geometry
-    # indexes are evicted. Never load the same map twice during a cold overview.
-    requests = {}
-    public_maps = set()
-    for row in transports:
-        obj = objects.get(row["id"])
-        if (
-            row.get("kind") not in (1, 2)
-            or row.get("condition")
-            or obj is None
-            or len(obj.get("arrival_heights", [])) != 1
-            or ("map_id" in row and row["map_id"] != obj["map_id"])
-        ):
-            continue
-        map_id = obj["map_id"]
-        if f"content-v1.map.{map_id}" not in rules or (
-            requested_maps is not None and map_id not in requested_maps
-        ):
-            continue
-        public_maps.add(map_id)
-        point = _coordinates(map_id, row["x"], row["y"], obj["arrival_heights"][0])
-        if point is not None:
-            requests.setdefault(map_id, set()).add((*point, False))
-    for row in routes:
-        route = row["route"]
-        if (
-            f"content-v1.dungeon.{route['definition_id']}" not in rules
-            or route["entry_map_id"] not in public_maps
-        ):
-            continue
-        source = sources.get((route["entry_map_id"], route["entry_object_id"]))
-        if source is None or not any(
-            d["destination_id"] == route["destination_id"]
-            and d["map_id"] == route["start_map_id"]
-            for d in source["destinations"]
-        ):
-            continue
-        point = _coordinates(source["map_id"], source["x"], source["y"], source["z"])
-        if point is not None:
-            requests.setdefault(source["map_id"], set()).add((*point, True))
-    for map_id in sorted(requests):
-        for m, x, y, z, nearby in sorted(requests[map_id]):
-            _target(db, revision, m, x, y, z, nearby=nearby)
-    destinations = {}
-    for row in sorted(
-        transports,
-        key=lambda value: (objects.get(value["id"], {}).get("map_id", -1), value["id"]),
-    ):
-        obj = objects.get(row["id"])
-        if (
-            row.get("kind") not in (1, 2)
-            or row.get("condition")
-            or obj is None
-            or len(obj.get("arrival_heights", [])) != 1
-            or ("map_id" in row and row["map_id"] != obj["map_id"])
-        ):
-            continue
-        map_id = obj["map_id"]
-        if requested_maps is not None and map_id not in requested_maps:
-            continue
-        # Only the explicitly authored map collection admits public destinations.
-        if f"content-v1.map.{map_id}" not in rules:
-            continue
-        target = _target(
-            db, revision, map_id, row["x"], row["y"], obj["arrival_heights"][0]
-        )
-        if target is not None:
-            destinations.setdefault(map_id, []).append(target)
+    sources = {
+        (row["map_id"], row["id"]): row
+        for row in (_document(db, revision, "native-generic-teleporters.json") or [])
+    }
     result = []
-
-    def append(key, rule, target, label, **internal):
-        if not key.startswith("travel.dungeon.") or (
-            action_key is not None and key != action_key
-        ):
-            return
-        result.append(
-            dict(
-                action_key=key,
-                label=label,
-                description="Travel to a verified public entrance. Native access requirements remain in force.",
-                cost_kamas=cost_kamas,
-                target=dict(target),
-                objective_key=rule["key"],
-                **internal,
-            )
-        )
-
-    for map_id, targets in sorted(destinations.items()):
-        rule = rules[f"content-v1.map.{map_id}"]
-        append(f"travel.map.{map_id}", rule, targets[0], "Travel: " + rule["title"])
-    territories = None
-    for key, rule in rules.items():
-        if not key.startswith("content-v1.region."):
-            continue
-        if (
-            action_key is not None
-            and "travel." + key[len("content-v1.") :] != action_key
-        ):
-            continue
-        parts = key.split(".")
-        if len(parts) != 4 or not all(p.isdigit() for p in parts[-2:]):
-            continue
-        map_id, region_id = map(int, parts[-2:])
-        if map_id not in destinations:
-            continue
-        if territories is None:
-            territories = _document(db, revision, "territory-map-cells.json") or {}
-        regions = next(
-            (
-                row.get("regions", [])
-                for row in territories.get("maps", [])
-                if row["map_id"] == map_id
-            ),
-            [],
-        )
-        region = next((row for row in regions if row["region_id"] == region_id), None)
-        if region is None:
-            continue
-        cells = {tuple(cell) for cell in region["cells"]}
-        target = next(
-            (t for t in destinations[map_id] if (t["x"] // 18, t["y"] // 18) in cells),
-            None,
-        )
-        if target:
-            append(
-                f"travel.region.{map_id}.{region_id}",
-                rule,
-                target,
-                "Travel: " + rule["title"],
-            )
-    if action_key is not None and requested_dungeon is None:
-        return result
     for row in sorted(
         routes,
         key=lambda value: (value["route"]["entry_map_id"], value["route"]["key"]),
     ):
         route = row["route"]
-        rule = rules.get(f"content-v1.dungeon.{route['definition_id']}")
-        source = sources.get((route["entry_map_id"], route["entry_object_id"]))
-        if rule is None or source is None or route["entry_map_id"] not in destinations:
-            continue
-        # Validate the active route against the same native exterior object.
-        if not any(
-            d["destination_id"] == route["destination_id"]
-            and d["map_id"] == route["start_map_id"]
-            for d in source["destinations"]
+        if (
+            requested_dungeon is not None
+            and route["definition_id"] != requested_dungeon
         ):
             continue
-        target = _target(
-            db,
-            revision,
-            source["map_id"],
-            source["x"],
-            source["y"],
-            source["z"],
-            nearby=True,
-        )
-        if target:
-            append(
-                f"travel.dungeon.{route['definition_id']}",
-                rule,
-                target,
-                "Go to entrance: " + rule["title"],
+        rule = rules.get(f"content-v1.dungeon.{route['definition_id']}")
+        source = sources.get((route["entry_map_id"], route["entry_object_id"]))
+        if rule is None or source is None or route["entry_map_id"] in private_maps:
+            continue
+        if not any(
+            destination["destination_id"] == route["destination_id"]
+            and destination["map_id"] == route["start_map_id"]
+            for destination in source["destinations"]
+        ):
+            continue
+        target = _entrance_target(db, revision, source)
+        if target is None:
+            continue
+        result.append(
+            dict(
+                action_key=f"travel.dungeon.{route['definition_id']}",
+                label="Go to entrance: " + rule["title"],
+                description="Travel to a verified public entrance. Native access requirements remain in force.",
+                cost_kamas=cost_kamas,
+                target=dict(target),
+                objective_key=rule["key"],
                 source_object=dict(
                     map_id=source["map_id"],
                     object_id=source["id"],
@@ -435,10 +301,10 @@ def actions(db, identity, action_key=None):
                     catalog_revision=revision,
                     route_key=route["key"],
                     destination_id=route["destination_id"],
-                    floor_policy="native_single_height_entrance_distance_4_height_1",
+                    floor_policy="native_approach_or_single_height_distance_4_height_1",
                 ),
             )
-    # Multiple native routes to one definition share a stable authored action.
+        )
     return list({row["action_key"]: row for row in result}.values())
 
 

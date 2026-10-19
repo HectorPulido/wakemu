@@ -43,12 +43,21 @@ def registered_ordinary_death(fight, actor):
         return False
     if actor.hp != 0 or fight.actors.get(actor.id) is not actor:
         raise ValueError("Invalid owned ordinary death actor")
+    return _registered_death_event(fight, actor.id)
+
+
+def _registered_death_event(fight, actor_id, *, sequence=None):
+    """Verify one actual historical causal death, including owner relations."""
     events = getattr(fight, "events", None)
     if not isinstance(events, list):
         raise ValueError("Missing owned ordinary death registration")
     for index in range(len(events) - 1, -1, -1):
         event = events[index]
-        if event.get("kind") != "death" or event.get("actor_id") != actor.id:
+        if (
+            event.get("kind") != "death"
+            or event.get("actor_id") != actor_id
+            or (sequence is not None and event.get("sequence") != sequence)
+        ):
             continue
         previous = events[index - 1] if index else {}
         damage = previous.get("kind") == "damage"
@@ -99,6 +108,11 @@ def registered_ordinary_death(fight, actor):
             and previous["hp_before"] > 0
             and previous.get("minimum") == 0
         )
+        owner_death = False
+        if previous.get("kind") == "owner_death_hp_minimum_update":
+            from .combat_summon_owner_death import verify_transition
+
+            owner_death = verify_transition(fight, previous, event)
         if (
             (
                 damage
@@ -106,8 +120,9 @@ def registered_ordinary_death(fight, actor):
                 or kill_minimum
                 or hp_minimum
                 or summon_recall_minimum
+                or owner_death
             )
-            and previous.get("target_id") == actor.id
+            and previous.get("target_id") == actor_id
             and previous.get("hp") == 0
             and previous.get("source_id") in fight.actors
             and previous.get("sequence", -2) + 1 == event.get("sequence", -1)

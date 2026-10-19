@@ -21,6 +21,64 @@ TIMELINE_SECONDS = 5
 ARTIFACT_CHUNK_BYTES = 64 * 1024
 
 
+def validate_speedscope_artifact(path):
+    """Return a diagnostic for an invalid Speedscope JSON file, or None."""
+    try:
+        document = json.loads(path.read_bytes().decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        return f"artifact is not valid UTF-8 at byte {exc.start}"
+    except json.JSONDecodeError as exc:
+        return f"artifact is not valid JSON at line {exc.lineno} column {exc.colno}"
+    except OSError as exc:
+        return f"artifact could not be read: {type(exc).__name__}"
+
+    if not isinstance(document, dict):
+        return "artifact root must be an object"
+    if document.get("$schema") != "https://www.speedscope.app/file-format-schema.json":
+        return "artifact has an unrecognized Speedscope schema identifier"
+    shared = document.get("shared")
+    frames = shared.get("frames") if isinstance(shared, dict) else None
+    if not isinstance(frames, list) or not all(
+        isinstance(frame, dict) for frame in frames
+    ):
+        return "artifact shared.frames must be an array of frame objects"
+    profiles = document.get("profiles")
+    if not isinstance(profiles, list) or not profiles:
+        return "artifact profiles must be a non-empty array"
+
+    for profile in profiles:
+        if not isinstance(profile, dict):
+            return "artifact profile entries must be objects"
+        if profile.get("type") != "sampled":
+            return "artifact profile type must be sampled"
+        if not isinstance(profile.get("name"), str) or not isinstance(
+            profile.get("unit"), str
+        ):
+            return "artifact profile is missing its name or unit"
+        samples = profile.get("samples")
+        weights = profile.get("weights")
+        if not isinstance(samples, list) or not isinstance(weights, list):
+            return "sampled profile must contain samples and weights arrays"
+        if len(samples) != len(weights):
+            return "sampled profile sample and weight counts differ"
+        for sample in samples:
+            if not isinstance(sample, list) or any(
+                isinstance(frame_index, bool)
+                or not isinstance(frame_index, int)
+                or not 0 <= frame_index < len(frames)
+                for frame_index in sample
+            ):
+                return "sampled profile contains an invalid frame index"
+        if any(
+            isinstance(weight, bool)
+            or not isinstance(weight, (int, float))
+            or weight < 0
+            for weight in weights
+        ):
+            return "sampled profile contains an invalid sample weight"
+    return None
+
+
 def world_pid(proc_root=Path("/proc")):
     matches = []
     for entry in proc_root.iterdir():
@@ -177,6 +235,8 @@ class Profiler:
                     row
                     for row in metadata
                     if row.get("return_code") == 0
+                    and row.get("artifact_valid") is not False
+                    and not row.get("validation_error")
                     and (self.output / row.get("artifact", "")).is_file()
                 ),
                 key=lambda row: row["started_at"],
@@ -314,65 +374,82 @@ class Profiler:
         if mode not in ("cpu", "waits"):
             raise ValueError("mode must be cpu or waits")
         with self.lock:
-            if self.process is not None:
-                if self.enabled and not continuous:
-                    return dict(
-                        self.current,
-                        continuous_enabled=True,
-                        note="Continuous recording already covers this interval",
-                    )
-                raise RuntimeError("A capture is already running")
-            pid = world_pid()
-            capture_id = "capture-" + str(time.time_ns())
-            destination = self.output / (capture_id + ".speedscope.json")
-            log_path = self.output / (capture_id + ".log")
-            command = [
-                "py-spy",
-                "record",
-                "--pid",
-                str(pid),
-                "--duration",
-                str(seconds),
-                "--rate",
-                str(RATE),
-                "--threads",
-                "--nonblocking",
-                "--format",
-                "speedscope",
-                "--output",
-                str(destination),
-            ]
-            if mode == "waits":
-                command.append("--idle")
-            log = open(log_path, "xb")
-            os.chmod(log_path, 0o600)
-            try:
-                process = subprocess.Popen(
-                    command,
-                    stdout=log,
-                    stderr=subprocess.STDOUT,
-                    start_new_session=True,
+            return self._capture_locked(seconds, mode, continuous)
+
+    def _capture_locked(self, seconds, mode, continuous):
+        """Start or join a capture while holding the state lock."""
+        if continuous and not self.enabled:
+            return None
+        if self.process is not None:
+            if self.enabled and self.current is not None:
+                return dict(
+                    self.current,
+                    continuous_enabled=True,
+                    note="An active capture already covers this interval",
                 )
-            except Exception:
-                log.close()
-                raise
-            self.process = process
-            self.current = {
-                "capture_id": capture_id,
-                "mode": mode,
-                "seconds": seconds,
-                "started_at": time.time(),
-                "artifact": destination.name,
-                "continuous": continuous,
-                "world": process_metrics(),
-                "interpretation": "sampled active stacks"
-                if mode == "cpu"
-                else "sampled stacks including idle threads",
-            }
-            threading.Thread(
-                target=self.finish, args=(process, log, destination), daemon=True
-            ).start()
-            return dict(self.current)
+            raise RuntimeError("A capture is already running")
+        pid = world_pid()
+        capture_id = "capture-" + str(time.time_ns())
+        destination = self.output / (capture_id + ".speedscope.json")
+        log_path = self.output / (capture_id + ".log")
+        command = [
+            "py-spy",
+            "record",
+            "--pid",
+            str(pid),
+            "--duration",
+            str(seconds),
+            "--rate",
+            str(RATE),
+            "--threads",
+            "--nonblocking",
+            "--format",
+            "speedscope",
+            "--output",
+            str(destination),
+        ]
+        if mode == "waits":
+            command.append("--idle")
+        log = open(log_path, "xb")
+        os.chmod(log_path, 0o600)
+        try:
+            process = subprocess.Popen(
+                command,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        except Exception:
+            log.close()
+            raise
+        self.process = process
+        self.current = {
+            "capture_id": capture_id,
+            "mode": mode,
+            "seconds": seconds,
+            "started_at": time.time(),
+            "artifact": destination.name,
+            "continuous": continuous,
+            "world": process_metrics(),
+            "interpretation": "sampled active stacks"
+            if mode == "cpu"
+            else "sampled stacks including idle threads",
+        }
+        threading.Thread(
+            target=self.finish, args=(process, log, destination), daemon=True
+        ).start()
+        return dict(self.current)
+
+    def _resume_continuous_capture(self):
+        """Restart only if still enabled, atomically with duplicate-start checks."""
+        try:
+            with self.lock:
+                if not self.enabled or self.process is not None:
+                    return
+                self._capture_locked(CHUNK_SECONDS, "waits", continuous=True)
+        except (RuntimeError, OSError) as exc:
+            with self.lock:
+                self.last_error = str(exc)
 
     def finish(self, process, log, destination):
         try:
@@ -384,29 +461,32 @@ class Profiler:
             log.close()
         if destination.exists():
             os.chmod(destination, 0o600)
+        validation_error = None
+        if return_code == 0:
+            validation_error = validate_speedscope_artifact(destination)
         with self.lock:
             self.last = dict(
                 self.current, return_code=return_code, finished_at=time.time()
             )
+            if return_code == 0:
+                self.last["artifact_valid"] = validation_error is None
+                if validation_error:
+                    self.last["validation_error"] = validation_error
             metadata = self.output / (self.current["capture_id"] + ".meta.json")
             metadata.write_text(json.dumps(self.last))
             os.chmod(metadata, 0o600)
             self.current = None
             self.process = None
             self.prune()
-            resume = self.enabled and return_code == 0
-            self.last_error = (
-                None
-                if return_code == 0
-                else "Sampler exited with code " + str(return_code)
-            )
+            resume = self.enabled and return_code == 0 and validation_error is None
+            if return_code != 0:
+                self.last_error = "Sampler exited with code " + str(return_code)
+            elif validation_error:
+                self.last_error = "Invalid Speedscope artifact: " + validation_error
+            else:
+                self.last_error = None
         if resume:
-            try:
-                self.capture(
-                    {"seconds": CHUNK_SECONDS, "mode": "waits"}, continuous=True
-                )
-            except (RuntimeError, OSError) as exc:
-                self.last_error = str(exc)
+            self._resume_continuous_capture()
 
     def stop(self):
         with self.lock:

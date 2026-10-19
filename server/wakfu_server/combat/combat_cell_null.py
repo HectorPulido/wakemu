@@ -9,6 +9,7 @@ from .combat_displacement import position_payload
 from .combat_stat_effects import null_execution_status
 from .combat_stat_handler import StatExecutionContext
 from .combat_effect_removal import running_effect_removal
+from .combat_observation_delivery import evaluated_application_from_observation
 
 
 def cell_null_payload(
@@ -106,7 +107,14 @@ class NativeCellNullHandler:
                 state_uid=invocation.state_uid,
                 timer=None if context.timer is None else dict(vars(context.timer)),
             )
-        self.packets.append((13497, packet))
+        # Instant cell effects own graphical scripts too. Native aTR (13497)
+        # only observes their payload; aVo (12613) selects eVn.cbx and executes
+        # the already evaluated null runner without inventing an actor target.
+        opcode = 13497
+        if not context.retained:
+            packet = evaluated_application_from_observation(packet, execute=True)
+            opcode = 12613
+        self.packets.append((opcode, packet))
         return True
 
 

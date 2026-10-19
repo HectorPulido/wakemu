@@ -209,21 +209,54 @@ def return_to_world(
     # already persisted abort. Accept either native boolean after validating
     # the fight ID and owned abort; this also recovers old reversed-list ends.
     combat_results.continuation(runtime.fight.id, body)
-    result = combat_health.persist_owned(
-        store, account_id, generation, character, runtime.fight, reason="abort"
-    )
-    if runtime.abandon_returned:
-        return dict(character=result["character"], packets=[], applied=False)
-    saved = result["character"]
-    packets = combat_results.outside_fight_updates(runtime.fight)
-    packets.extend(
-        [
-            outside_progression(saved, wp=wp, ap=ap, mp=mp),
-            (
-                12436,
-                health.packet(saved["id"], saved["hp"], 1 if saved["hp"] > 0 else 0),
-            ),
-        ]
-    )
+    from .combat_abandon_health_return import complete
+
+    with store.connection() as db:
+        # Use fight-first locking, as in shared settlement and disconnect.
+        db.execute(
+            "SELECT id FROM combat_fights WHERE id=%s FOR UPDATE", (runtime.fight.id,)
+        )
+        result = combat_health.persist_owned(
+            store,
+            account_id,
+            generation,
+            character,
+            runtime.fight,
+            reason="abort",
+            db=db,
+        )
+        withdrawal = db.execute(
+            "SELECT character_id FROM combat_pve_withdrawals WHERE fight_id=%s "
+            "AND account_id=%s AND character_id=%s AND session_generation=%s",
+            (runtime.fight.id, account_id, character["id"], generation),
+        ).fetchone()
+        # Private individual/shared withdrawals have a different durable ACK
+        # owner. Their caller completes health and formats after this teardown.
+        if withdrawal is None:
+            result = complete(
+                store, db, account_id, generation, character, runtime.fight
+            )
+        duplicate = runtime.abandon_returned or (
+            withdrawal is None and not result["applied"]
+        )
+        saved = result["character"]
+        packets = []
+        if not duplicate:
+            packets = combat_results.outside_fight_updates(runtime.fight)
+            packets.extend(
+                [
+                    outside_progression(saved, wp=wp, ap=ap, mp=mp),
+                    (
+                        12436,
+                        health.packet(
+                            saved["id"],
+                            saved["hp"],
+                            health.exploration_coefficient(
+                                saved["max_hp"], saved["hp"]
+                            ),
+                        ),
+                    ),
+                ]
+            )
     runtime.abandon_returned = True
-    return dict(character=saved, packets=packets, applied=True)
+    return dict(character=saved, packets=packets, applied=not duplicate)

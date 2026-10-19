@@ -1,5 +1,6 @@
 """Two actual owned dials; repeated paid hostile attacks retire only one dial."""
 import json
+from copy import deepcopy
 import random
 import struct
 import unittest
@@ -132,6 +133,7 @@ class XelorForeignDialDeathTests(unittest.TestCase):
                     json.loads(json.dumps(row)),
                 )
         deaths = []
+        lethal = None
         for action in range(256):
             if runtime.fight.actors[born[7]].hp == 0:
                 break
@@ -144,6 +146,24 @@ class XelorForeignDialDeathTests(unittest.TestCase):
             source = snapshot(runtime.fight)
             hp = victim.hp
             sequence = runtime.fight.sequence
+            clock_states = {
+                owner: deepcopy(
+                    [
+                        entry
+                        for entry in runtime.fight.actors[owner].state_ledger.entries
+                        if entry.reference in (6758, 6759)
+                    ]
+                )
+                for owner in (7, 8)
+            }
+            current_hours = {
+                owner: {
+                    uid: dict(row)
+                    for uid, row in runtime.fight.native_effect_areas.items()
+                    if row["owner_id"] == owner and 1546 <= row["reference"] <= 1558
+                }
+                for owner in (7, 8)
+            }
             tx = prepare_npc_spell(
                 runtime.fight,
                 dict(
@@ -162,6 +182,8 @@ class XelorForeignDialDeathTests(unittest.TestCase):
             self.assertEqual(snapshot(runtime.fight), source)
             runtime.fight = tx.fight
             self.assertLess(runtime.fight.actors[victim.id].hp, hp)
+            if runtime.fight.actors[victim.id].hp == 0:
+                lethal = (tuple(tx.packets), clock_states, current_hours)
             deaths.extend(
                 struct.unpack(">iiiqB", body)[3:]
                 for op, body in newly_registered_death_messages(
@@ -172,6 +194,88 @@ class XelorForeignDialDeathTests(unittest.TestCase):
             if runtime.fight.actors[victim.id].hp > 0:
                 advance_actual_turn(runtime)
         self.assertEqual(runtime.fight.actors[born[7]].hp, 0)
+        self.assertIsNotNone(lethal)
+        lethal_packets, clock_states, current_hours = lethal
+        from wakfu_server.combat_effect_removal import _identity_fields
+        from wakfu_server.combat_global_pv_collections import global_area_order
+        from wakfu_server.combat_spectator_snapshot import _retained_carrier_packets
+
+        removed_hours = []
+        for opcode, body in lethal_packets:
+            if opcode != 12613 or len(body) < 19:
+                continue
+            effect_class, length = struct.unpack_from(">ih", body, 13)
+            if effect_class != 843:
+                continue
+            self.assertEqual(body[12], 1)
+            fields = _identity_fields(body[19 : 19 + length])
+            self.assertEqual(fields[3], 313314)
+            removed_hours.append(fields[7])
+        self.assertCountEqual(removed_hours, current_hours[7])
+        self.assertTrue(set(removed_hours).isdisjoint(current_hours[8]))
+        self.assertTrue(
+            set(current_hours[7]).isdisjoint(global_area_order(runtime.fight))
+        )
+        for owner in (7, 8):
+            self.assertEqual(
+                [
+                    entry
+                    for entry in runtime.fight.actors[owner].state_ledger.entries
+                    if entry.reference == 6758
+                ],
+                [entry for entry in clock_states[owner] if entry.reference == 6758],
+            )
+        own_hour = [entry for entry in clock_states[7] if entry.reference == 6759]
+        foreign_hour = [entry for entry in clock_states[8] if entry.reference == 6759]
+        self.assertEqual(len(own_hour), 1)
+        self.assertEqual(len(foreign_hour), 1)
+        self.assertFalse(
+            any(
+                entry.reference == 6759
+                for entry in runtime.fight.actors[7].state_ledger.entries
+            )
+        )
+        self.assertEqual(
+            [
+                entry
+                for entry in runtime.fight.actors[8].state_ledger.entries
+                if entry.reference == 6759
+            ],
+            foreign_hour,
+        )
+        removals = {
+            struct.unpack(">qq", body[-16:])
+            for opcode, body in lethal_packets
+            if opcode == 13560
+        }
+        self.assertIn((7, own_hour[0].uid), removals)
+        self.assertNotIn((8, foreign_hour[0].uid), removals)
+
+        # Qf may keep retired creators, but reconnect must not execute their
+        # visual construction. Current foreign creators remain rehydratable.
+        before_projection = snapshot(runtime.fight)
+        replayed_creators = set()
+        for opcode, body in _retained_carrier_packets(runtime.fight, 999):
+            if opcode != 12613 or len(body) < 19:
+                continue
+            _, length = struct.unpack_from(">ih", body, 13)
+            replayed_creators.add(_identity_fields(body[19 : 19 + length])[1])
+        creator_ids = {
+            owner: {row["effect_uid"] for row in current_hours[owner].values()}
+            for owner in (7, 8)
+        }
+        self.assertTrue(creator_ids[7].isdisjoint(replayed_creators))
+        # Ordinary HOUR315 creation can be immediate/nonretained. Only its
+        # actual current Qf creators belong in the retained-carrier projection.
+        foreign_retained_creators = creator_ids[8] & set(
+            runtime.fight.native_retained_records
+        )
+        self.assertTrue(foreign_retained_creators <= replayed_creators)
+        self.assertIn(foreign_hour[0].uid, replayed_creators)
+        self.assertTrue(set(current_hours[8]) <= set(global_area_order(runtime.fight)))
+        for uid, row in current_hours[8].items():
+            self.assertEqual(runtime.fight.native_effect_areas[uid], row)
+        self.assertEqual(snapshot(runtime.fight), before_projection)
         self.assertIn((born[7], 2), deaths)
         self.assertFalse(any(identity in (7, 8, born[8]) for identity, _ in deaths))
         self.assertEqual(runtime.fight.actors[born[7]].native_obstacle_id, -1)

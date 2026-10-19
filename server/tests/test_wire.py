@@ -5,11 +5,13 @@ from wakfu_server import wire
 
 
 class WireTests(unittest.TestCase):
-    def test_owned_account_information_projects_only_authoritative_admin_chat_bit(self):
+    def test_owned_account_information_projects_only_authoritative_admin_rights(self):
         import hashlib
         from unittest.mock import patch
 
-        section = struct.pack(">H4I", 4, 7, 8, 9, 0x80004001) + b"native-account-tail"
+        # Native ordinals 110 and 115 are both derived from the trusted role.
+        # Ordinary accounts must lose both inherited administrator bits.
+        section = struct.pack(">H4I", 4, 7, 8, 9, 0x80084001) + b"native-account-tail"
         body = bytes([10]) + b"prefix" + section + b"entity-tail"
         layout = {
             "template_sha256": hashlib.sha256(body).hexdigest(),
@@ -23,7 +25,7 @@ class WireTests(unittest.TestCase):
                 character["account_is_admin"] = role
             with self.subTest(role=role), patch.dict(wire.ENTITY_LAYOUTS, {10: layout}):
                 actual = wire.minimal_entity(body, character)
-            word = 0x80004001 if role else 0x80000001
+            word = 0x80084001 if role else 0x80000001
             expected = (
                 body[:7]
                 + struct.pack(">H4I", 4, 7, 8, 9, word)

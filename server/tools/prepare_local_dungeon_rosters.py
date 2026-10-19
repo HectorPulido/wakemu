@@ -44,8 +44,6 @@ def prepare(
             kind = definition.get("type", "")
             if kind == "ULTIMATE_BOSS":
                 local_count = 1
-            elif kind == "DUNGEON_3_PLAYERS":
-                local_count = 3
         try:
             result = draft(
                 plan,

@@ -111,7 +111,7 @@ def renew_periodic_aptitudes(dispatcher, *, actor_id):
     fight = dispatcher.native_retention.fight
     if fight.current is None or fight.current.id != actor_id or fight.phase != "active":
         raise ValueError("Periodic aptitude renewal requires the actual owner turn")
-    state = fight.native_class_initializations.get(actor_id)
+    state = getattr(fight, "native_class_initializations", {}).get(actor_id)
     if state is None or not state.get("aptitude_periodic_recipes"):
         return ()
     if state.get("aptitude_periodic_turn") == fight.turn_id:

@@ -22,22 +22,22 @@ No verified native entry level; kept separately from the level-sorted list.
 
 - [ ] **Märine Pälace** — Bilbiza `!tp 458 -64 -32 0`. Seasonal encounter; check event/quest access. **Notes:**
 
-- [ ] **Witch's Lair** — Astrub `!tp 527 56 63 0`. Seasonal encounter; check event/quest access. **Notes:**
+- [ ] **Witch's Lair** — Astrub `!tp 527 56 63 0`. Seasonal encounter; check event/quest access. **Notes:** Not selectable
 
 
 ### Level 12
 
-- [ ] **Gobball Pastures** (ID 90) — Astrub `!tp 527 -245 -90 2`. 3-room dungeon. **Notes:**
+- [x] **Gobball Pastures** (ID 90) — Astrub `!tp 527 -245 -90 2`. 3-room dungeon. **Notes:**
 
-- [ ] **Larventura** (ID 65) — Astrub Sewers `!tp 546 -50 16 -1`. 4-room dungeon. **Notes:**
+- [x] **Larventura** (ID 65) — Astrub Sewers `!tp 546 -50 16 -1`. 4-room dungeon. **Notes:**
 
 - [ ] **Neo Gobball Pastures** (ID 207) — Astrub `!tp 527 -245 -90 2`. 3-room dungeon. Neo variant; shared entrance, check server availability.  **Notes:**
 
-- [ ] **The Tofuhouse** (ID 27) — Astrub `!tp 527 -128 -34 0`. 3-room dungeon. **Notes:**
+- [x] **The Tofuhouse** (ID 27) — Astrub `!tp 527 -128 -34 0`. 3-room dungeon. **Notes:** Check the dungeon boss
 
 ### Level 21
 
-- [ ] **Hoola Hoopiwi** (ID 26) — Astrub `!tp 527 -1 -161 40`. 3-room dungeon. **Notes:**
+- [x] **Hoola Hoopiwi** (ID 26) — Astrub `!tp 527 -1 -161 40`. 3-room dungeon. **Notes:** 
 
 - [ ] **Neo Hoola Hoopiwi** (ID 208) — Astrub `!tp 527 -1 -161 40`. 3-room dungeon. Neo variant; shared entrance, check server availability.  **Notes:**
 

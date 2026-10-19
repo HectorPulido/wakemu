@@ -57,8 +57,6 @@ def resolve_request(entry_map_id, body):
         or destination["map_id"] != configured.start_map_id
     ):
         raise ValueError("Configured dungeon route no longer matches native catalog")
-    if destination.get("cyW", 0) > 0 and destination.get("item_reference", 0) > 0:
-        raise ValueError("Dungeon entry requires an authoritative item transaction")
     if destination.get("cyX", 0) != 0:
         raise ValueError("Dungeon entry requires an authoritative kama transaction")
     if not destination["native_altitude_walkable"]:
@@ -80,7 +78,7 @@ def resolve_request(entry_map_id, body):
     }
 
 
-def enter(
+def _enter(
     store,
     account_id,
     generation,
@@ -92,6 +90,7 @@ def enter(
     source_allowed,
     initialize_instance=None,
     resolve_destination=None,
+    allowed_position_accounts=None,
 ):
     """Authorize and atomically create/reuse a party run plus move its roster.
 
@@ -133,6 +132,21 @@ def enter(
                 stasis_level=max(2, native["minimum_stasis"]), competitive=False
             )
 
+    def initialize_paid_instance(db, session):
+        native = resolved["native_destination"]
+        if (
+            not session["reused"]
+            and native.get("cyW", 0) > 0
+            and native.get("item_reference", 0) > 0
+        ):
+            from .dungeon_entry_payment import consume
+
+            session["entry_item_payment"] = consume(
+                db, session["members"], native["item_reference"], native["cyW"]
+            )
+        if initialize_instance is not None:
+            initialize_instance(db, session)
+
     session = dungeon_instances.create_or_reuse(
         store,
         account_id,
@@ -141,11 +155,12 @@ def enter(
         route.key,
         authorize_entry=authorize,
         difficulty_selection=difficulty_selection,
-        initialize_instance=initialize_instance,
+        initialize_instance=initialize_paid_instance,
         resolve_destination=resolve_destination,
         transition_destination={
             key: resolved["destination"][key] for key in ("map_id", "x", "y", "z")
         },
+        allowed_position_accounts=allowed_position_accounts,
     )
     return {
         **session,
@@ -157,3 +172,47 @@ def enter(
         "criterion": route.criterion,
         "template_id": route.template_id,
     }
+
+
+def enter(
+    store,
+    account_id,
+    generation,
+    character_id,
+    entry_map_id,
+    body,
+    *,
+    criterion_allowed,
+    source_allowed,
+    initialize_instance=None,
+    resolve_destination=None,
+    positions=None,
+):
+    """Enter with a party-wide position barrier when a live buffer is supplied."""
+
+    def transition(allowed_accounts=None):
+        return _enter(
+            store,
+            account_id,
+            generation,
+            character_id,
+            entry_map_id,
+            body,
+            criterion_allowed=criterion_allowed,
+            source_allowed=source_allowed,
+            initialize_instance=initialize_instance,
+            resolve_destination=resolve_destination,
+            allowed_position_accounts=allowed_accounts,
+        )
+
+    if positions is None:
+        return transition()
+    from .dungeon_position_barrier import run_party_entry
+
+    return run_party_entry(
+        store,
+        positions,
+        account_id,
+        character_id,
+        transition=transition,
+    )

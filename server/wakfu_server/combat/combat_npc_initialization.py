@@ -62,6 +62,36 @@ def initial_plans(fight, monsters):
     return result
 
 
+def initial_property_counts(monsters):
+    """Preflight native creation properties independently of state activation."""
+    if not monsters:
+        return {}
+    from .combat_ordinary_authority import native_property_catalog
+    from .combat_property_stack import add_property
+
+    profiles = native_property_catalog()["npc"]
+    result = {}
+    for identity, monster in monsters.items():
+        profile = profiles.get(str(monster["ref"]))
+        if profile is None:
+            raise ValueError("Missing native ordinary NPC creation properties")
+        result[identity] = {}
+        for kind in ("fight", "world"):
+            counts = {}
+            for prop in profile[kind + "_properties"]:
+                add_property(counts, prop)
+            result[identity][kind] = counts
+    return result
+
+
+def install_initial_properties(actor, properties):
+    """Install already preflighted fresh counters, without executing states."""
+    for kind in ("fight", "world"):
+        counts = dict(properties[kind])
+        setattr(actor, "native_" + kind + "_property_counts", counts)
+        setattr(actor, "native_" + kind + "_properties", frozenset(counts))
+
+
 def constructor_stat_context(fight, invocation):
     """Only actual detached SELF constructors may execute without a turn."""
     from .combat_summon_initialization import detached_actor
@@ -101,12 +131,14 @@ def _runtime(monsters, actor_id):
     from .combat_npc_attack import npc_runtime_catalog
     from .combat_random_group import RandomGroupAuthority
     from .combat_relative_probability import RelativeGroupAuthority
+    from .combat_npc_spellbook import ordinary_npc_spellbook
 
     actors = OrdinaryActorAuthority(
         characters={},
         monsters=monsters,
         decks={},
         excluded_decks={},
+        npc_spellbook=ordinary_npc_spellbook,
     )
     from .combat_summon import RegisteredSummonAuthority
 

@@ -200,6 +200,7 @@ class NativeOracle:
             ordinary_cast_authority,
         )
         from wakfu_server.combat_summon import RegisteredSummonAuthority
+        from wakfu_server.combat_npc_spellbook import ordinary_npc_spellbook
         from wakfu_server.combat_native_timing_context import NativeEffectTimingProvider
         from wakfu_server.spell_audit import states_catalog
         from wakfu_server.combat_runtime_adapter import NativeServerRuntimeAdapter
@@ -231,6 +232,9 @@ class NativeOracle:
                     i: d["level_cap"] if d["level_cap"] >= 0 else None
                     for i, d in selected.items()
                 },
+                # Live turn boundaries retain this factory after AI publication.
+                # NPC listeners need the same owned book as ordinary player casts.
+                npc_spellbook=ordinary_npc_spellbook,
             )
         )
         states = states_catalog()
@@ -254,7 +258,10 @@ class NativeOracle:
                 contexts, damage=observe(contexts.damage, damage_observations)
             )
         if compiled is None:
-            compiled = npc_runtime_catalog(imported=False)
+            # Shared turn/player boundaries can react through any owned NPC's
+            # initial states, including imported internal helper definitions.
+            # Explicit NPC casts still pass their per-ability qualified catalog.
+            compiled = npc_runtime_catalog(imported=bool(monsters))
         factory = NativeEffectRuntimeFactory(
             effects=compiled.source_effects,
             state_catalog=states,
@@ -264,6 +271,7 @@ class NativeOracle:
             contexts=contexts,
             displacement_authority=actors,
             summon_authority=actors,
+            transaction_rng=rng,
         )
         factory.native_rail_movement_authority = actors
         factory.relative_group_children = RelativeGroupAuthority(
@@ -278,7 +286,11 @@ class NativeOracle:
             condition_context=adapter.condition,
             draw_integer=lambda total: rng.randrange(total),
         )
-        return factory, adapter
+        from wakfu_server.combat_owned_equipment_factory import (
+            OwnedEquipmentRuntimeFactory,
+        )
+
+        return OwnedEquipmentRuntimeFactory(factory, compiled), adapter
 
     def fork(self, fight=None, *, runtime=None):
         private = deepcopy(runtime or self.runtime)
@@ -293,6 +305,7 @@ class NativeOracle:
             self.end_boundary if private.turn_end_provider is not None else None
         )
         private.stats_serializer = None
+        private.runtime_stats_serializer = None
         return private
 
     def _rng(self, fight, action):
@@ -357,6 +370,11 @@ class NativeOracle:
         )
         with private.effect_resolution():
             if self.flags.get("native_start_events", True):
+                from wakfu_server.combat_periodic_aptitude import (
+                    renew_periodic_aptitudes,
+                )
+
+                renew_periodic_aptitudes(dispatcher, actor_id=actor_id)
                 deliver_turn_start(dispatcher, actor_id=actor_id)
             if (
                 self.flags.get("native_area_callbacks", False)
@@ -366,7 +384,10 @@ class NativeOracle:
         return private, tuple(packets)
 
     def end_boundary(self, fight, *, actor_id, action_id, forecast=True):
-        from wakfu_server.combat_turn_events import deliver_turn_end
+        from wakfu_server.combat_turn_events import (
+            deliver_turn_end,
+            deliver_turn_regeneration,
+        )
 
         private = deepcopy(fight)
         rng = (
@@ -382,6 +403,8 @@ class NativeOracle:
         )
         with private.effect_resolution():
             deliver_turn_end(dispatcher, actor_id=actor_id)
+            if private.phase == "active" and private.current is not None:
+                deliver_turn_regeneration(dispatcher, actor_id=actor_id)
         return private, tuple(packets)
 
     def live_start_boundary(self, fight, **boundary):
@@ -967,6 +990,7 @@ class NativeOracle:
                     actor.id,
                     [origin, *path],
                     actor.direction,
+                    on_rails=event.get("on_rails") is True,
                 )
             ]
             if callbacks:
@@ -993,16 +1017,20 @@ class NativeOracle:
             return private, tuple(packets), None
         raise ValueError("Unsupported native oracle action")
 
-    def commit(self, action, *, stats_serializer):
+    def commit(self, action, *, stats_serializer, defensive_facing=None):
         from wakfu_server.combat_npc_reproduction import npc_commit_scope
 
         with npc_commit_scope(self, action, stats_serializer) as capture:
-            packets = self._commit(action, stats_serializer=stats_serializer)
+            packets = self._commit(
+                action,
+                stats_serializer=stats_serializer,
+                defensive_facing=defensive_facing,
+            )
             if capture is not None:
                 capture.packets(packets)
             return packets
 
-    def _commit(self, action, *, stats_serializer):
+    def _commit(self, action, *, stats_serializer, defensive_facing=None):
         """Stage all native packets before adopting the selected live action.
 
         This runs only on the encounter owner thread. End-turn ACKs remain
@@ -1040,7 +1068,17 @@ class NativeOracle:
         )
         if isinstance(stats_serializer, NativeStats):
             candidate.stats_serializer = stats_serializer.for_fight(candidate.fight)
+            candidate.runtime_stats_serializer = candidate.stats_serializer
         kind = action.get("type")
+        if defensive_facing is not None and (
+            kind != "end_turn"
+            or not isinstance(defensive_facing, dict)
+            or runtime.fight.current is None
+            or defensive_facing.get("actorId") != runtime.fight.current.id
+            or defensive_facing.get("turnId") != runtime.fight.turn_id
+            or defensive_facing.get("stateRevision") != runtime.fight.sequence
+        ):
+            raise ValueError("Stale defensive facing evidence")
         if kind == "end_turn":
             if set(action) != {"type"} or candidate.fight.current is None:
                 raise ValueError("Invalid native end-turn commit")
@@ -1052,7 +1090,11 @@ class NativeOracle:
                     actor.turn_count,
                 )
                 if not effective_server_controlled(candidate.fight, actor)
-                else candidate.end_server_turn(actor.id, candidate.fight.turn_id)
+                else candidate.end_server_turn(
+                    actor.id,
+                    candidate.fight.turn_id,
+                    defensive_facing=defensive_facing,
+                )
             )
         elif kind == "cast":
             transaction = self.cast(candidate, action, forecast=False)

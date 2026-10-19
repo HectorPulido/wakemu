@@ -26,6 +26,10 @@ def packets(exchange_id, revision, current, previous=None):
         for row in snapshot.get("items", []):
             uid, actor, quantity = row["uid"], row["character_id"], row["quantity"]
             unit = row.get("unit")
+            if isinstance(unit, dict):
+                from .inventory_shards import item_from_json
+
+                unit = item_from_json(unit)
             if (
                 uid in result
                 or actor not in participants
@@ -37,7 +41,7 @@ def packets(exchange_id, revision, current, previous=None):
                 or unit.get("quantity") != quantity
             ):
                 raise ValueError("Invalid hydrated exchange offer")
-            result[uid] = row
+            result[uid] = dict(row, unit=unit)
         return result
 
     before, after = offers(previous or {}), offers(current)

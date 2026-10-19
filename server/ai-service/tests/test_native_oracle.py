@@ -19,6 +19,184 @@ from wakfu_server.combat_state import Actor, Fight
 
 
 class NativeOracleTests(unittest.TestCase):
+    def test_live_boundary_executes_injured_tofu_owned_internal_trigger(self):
+        self._assert_injured_tofu_owned_internal_trigger(704, 14)
+
+    def test_live_boundary_executes_dominant_tofu_owned_internal_trigger(self):
+        self._assert_injured_tofu_owned_internal_trigger(4092, 18)
+
+    def _assert_injured_tofu_owned_internal_trigger(self, reference, level):
+        import struct
+        from wakfu_server.combat_triggered_spell import (
+            triggered_spell_plan,
+            consume_triggered_costs,
+        )
+        from wakfu_server.combat_hp_raw import set_hp_raw_current
+        from wakfu_server.combat_server_spell import prepare_server_initialization
+        from wakfu_server.spells import default_deck
+
+        fixture = self.wonejo_fixture(monster_ref=reference, monster_level=level)
+        # wonejo_fixture already runs initialize_fight_snapshots, including
+        # the real ordinary NPC constructor and initial-state installation.
+        self.assertTrue(
+            fixture.fight.native_npc_initialization_receipts[fixture.npc.id][
+                "initialized"
+            ]
+        )
+        self.assertTrue(
+            any(entry.reference == 4412 for entry in fixture.npc.state_ledger.entries)
+        )
+        deck = default_deck(fixture.character)
+        # Complete actual class/equipment/start lifecycle before delivering a
+        # turn callback; constructor installation alone is not fight start.
+        fixture.fight, _ = prepare_server_initialization(
+            fixture.character,
+            {fixture.npc.id: fixture.monster},
+            fixture.fight,
+            fixture.character["account_id"],
+            deck,
+            action_id=1,
+            fight_start=True,
+        )
+        fixture.pc = fixture.fight.actors[fixture.pc.id]
+        fixture.npc = fixture.fight.actors[fixture.npc.id]
+        self.assertTrue(fixture.fight.native_start_event_delivered)
+        # Reconstruct the incident's native start-boundary prerequisites: alive,
+        # below half HP, at least two AP and an adjacent hostile fighter.
+        set_hp_raw_current(fixture.npc, min(49, fixture.npc.max_hp // 2))
+        fixture.fight.order = [fixture.npc.id, fixture.pc.id]
+        fixture.fight.turn_index = 0
+        fixture.npc.turn_count = 1
+        runtime = RuntimeMessages(fixture.fight)
+        oracle = self.oracle_for(
+            runtime,
+            fixture.character,
+            fixture.monster,
+            deck,
+        )
+        before = self.effects(fixture.fight)
+        # Importing dependency definitions does not grant helper ownership to
+        # ordinary NPC casts; this spell remains reachable only by its state.
+        with self.assertRaisesRegex(ValueError, "does not own requested spell"):
+            oracle.cast(
+                runtime,
+                dict(
+                    type="cast",
+                    spellId=5795,
+                    level=level,
+                    targetId=fixture.pc.id,
+                    target=list(fixture.pc.position),
+                ),
+            )
+        plans, payments = [], []
+
+        def observe_plan(*args, **kwargs):
+            plan = triggered_spell_plan(*args, **kwargs)
+            plans.append(copy.deepcopy(plan))
+            return plan
+
+        def observe_payment(actor, plan, **kwargs):
+            prior = (actor.ap, actor.mp, actor.effect_stats[4])
+            result = consume_triggered_costs(actor, plan, **kwargs)
+            after = (actor.ap, actor.mp, actor.effect_stats[4])
+            payments.append((prior, after, copy.deepcopy(plan["costs"])))
+            return result
+
+        # Observe real producers; execute their original implementations and
+        # native data, without substituting a book, rule, cost or effect.
+        with patch(
+            "wakfu_server.combat_triggered_spell.triggered_spell_plan",
+            side_effect=observe_plan,
+        ), patch(
+            "wakfu_server.combat_triggered_spell.consume_triggered_costs",
+            side_effect=observe_payment,
+        ):
+            candidate, packets = oracle.live_start_boundary(
+                fixture.fight, actor_id=fixture.npc.id, action_id=7
+            )
+        self.assertEqual(len(plans), 1)
+        self.assertEqual(plans[0]["spell_id"], 5795)
+        self.assertEqual(plans[0]["evaluation_level"], level)
+        self.assertEqual(plans[0]["effect_ids"], (183331,))
+        self.assertEqual(len(payments), 1)
+        prior, after, costs = payments[0]
+        self.assertEqual(
+            tuple(a - b for a, b in zip(prior, after)),
+            (costs["ap"], costs["mp"], costs["wp"]),
+        )
+        self.assertNotEqual(
+            candidate.actors[fixture.npc.id].position, fixture.npc.position
+        )
+        self.assertEqual(candidate.actors[fixture.pc.id].hp, fixture.pc.hp)
+        # Native state4412/root183304 invokes eYZ183305 -> spell5795. The
+        # resulting movement/cost/packet proves the reaction actually executed.
+        self.assertNotEqual(self.effects(candidate), before)
+        self.assertTrue(packets)
+        self.assertTrue(
+            any(
+                opcode == 12613
+                and len(payload) >= 19
+                and struct.unpack(">iiiBih", payload[:19])[4] == 426
+                for opcode, payload in packets
+            )
+        )
+        self.assertEqual(self.effects(fixture.fight), before)
+
+    def test_factory_preserves_owned_npc_books_for_published_turn_boundaries(self):
+        import random
+        from wakfu_server.combat_npc_spellbook import ordinary_npc_spellbook
+        from wakfu_server.combat_spell_level import NativeSpellBook
+        from wakfu_server.combat_triggered_spell import (
+            InternalTriggeredAbility,
+            NativeTriggeredSpellRequest,
+            triggered_spell_level,
+        )
+        from wakfu_server.spells import default_deck
+
+        # The live tofu incident and a different NPC both use the same provider.
+        for reference, level in ((704, 14), (5525, 1)):
+            with self.subTest(reference=reference):
+                fixture = self.wonejo_fixture(
+                    monster_ref=reference, monster_level=level
+                )
+                runtime = RuntimeMessages(fixture.fight)
+                oracle = self.oracle_for(
+                    runtime,
+                    fixture.character,
+                    fixture.monster,
+                    default_deck(fixture.character),
+                )
+                factory, adapter = oracle.factory(fixture.fight, 1, random.Random(7))
+                self.assertIs(
+                    adapter.actor_authority.ordinary.npc_spellbook,
+                    ordinary_npc_spellbook,
+                )
+                with patch(
+                    "wakfu_server.monsters.native_abilities",
+                    return_value=[dict(spell_id=123, spell_level=level)],
+                ) as abilities:
+                    native = factory.displacement_authority(fixture.fight, fixture.npc)
+                    self.assertIsInstance(native.native_spellbook, NativeSpellBook)
+                    self.assertIs(native.native_spellbook.player_character, False)
+                    self.assertEqual(native.native_spellbook.level(123), level)
+                    request = NativeTriggeredSpellRequest(
+                        123, fixture.npc.id, fixture.npc.position, False
+                    )
+                    self.assertEqual(triggered_spell_level(request, native), level)
+                    helper = NativeTriggeredSpellRequest(
+                        124, fixture.npc.id, fixture.npc.position, False
+                    )
+                    self.assertEqual(
+                        triggered_spell_level(
+                            helper, native, InternalTriggeredAbility(183305, 124, 100)
+                        ),
+                        level,
+                    )
+                    abilities.assert_called_once_with(reference, level)
+                    player = factory.displacement_authority(fixture.fight, fixture.pc)
+                    self.assertIs(player.native_spellbook.player_character, True)
+                    abilities.assert_called_once()
+
     def test_lethal_npc_commit_delivers_death_and_failed_delivery_is_atomic(self):
         import struct
         from wakfu_ai.context.native_context import encode
@@ -1034,13 +1212,26 @@ class NativeOracleTests(unittest.TestCase):
         runtime.turn_start_provider = obsolete_single_viewer
         runtime.turn_end_provider = obsolete_single_viewer
         runtime.stats_serializer = obsolete_single_viewer
+        runtime.runtime_stats_serializer = obsolete_single_viewer
 
         serializer = NativeStats(
             characters=oracle.characters,
             monsters=oracle.monsters,
             fight_id=runtime.fight.id,
         )
-        packets = oracle.commit({"type": "end_turn"}, stats_serializer=serializer)
+        from wakfu_server.combat_actor import (
+            actual_actor_stats,
+            actual_monster_actor_stats,
+        )
+
+        with patch(
+            "wakfu_server.combat_actor.actual_actor_stats",
+            wraps=actual_actor_stats,
+        ) as character_encoder, patch(
+            "wakfu_server.combat_actor.actual_monster_actor_stats",
+            wraps=actual_monster_actor_stats,
+        ) as monster_encoder:
+            packets = oracle.commit({"type": "end_turn"}, stats_serializer=serializer)
 
         self.assertTrue(packets)
         self.assertEqual(runtime.awaiting_ack, 1)
@@ -1048,6 +1239,73 @@ class NativeOracleTests(unittest.TestCase):
         self.assertIsNotNone(runtime.turn_start_provider)
         self.assertIsNotNone(runtime.turn_end_provider)
         self.assertEqual(runtime.fight.current.id, fixture.npc.id)
+        calls = character_encoder.call_args_list + monster_encoder.call_args_list
+        self.assertTrue(calls)
+        for call in calls:
+            actor = call.args[1]
+            fight = call.kwargs.get("fight")
+            self.assertIsNotNone(fight)
+            self.assertEqual(fight.id, runtime.fight.id)
+            self.assertIs(fight.actors[actor.id], actor)
+
+    def test_defensive_facing_commit_rejects_stale_revision_then_publishes_cardinal(
+        self,
+    ):
+        from wakfu_server.spells import default_deck
+        from wakfu_ai.native.native_stats import NativeStats
+        from wakfu_server.combat_displacement_geometry import cardinal_vector
+
+        fixture = self.wonejo_fixture()
+        fixture.fight.order = [fixture.npc.id, fixture.pc.id]
+        fixture.fight.turn_index = 0
+        fixture.fight.turn_id = 1
+        fixture.fight.native_start_event_delivered = True
+        fixture.npc.turn_count = 1
+        runtime = RuntimeMessages(fixture.fight)
+        oracle = self.oracle_for(
+            runtime, fixture.character, fixture.monster, default_deck(fixture.character)
+        )
+        npc, target = runtime.fight.current, runtime.fight.actors[fixture.pc.id]
+        vector = cardinal_vector(
+            target.position[0] - npc.position[0], target.position[1] - npc.position[1]
+        )
+        direction = {(1, 0): 1, (0, 1): 3, (-1, 0): 5, (0, -1): 7}[vector]
+        npc.direction = (direction + 2) % 8
+        evidence = dict(
+            actorId=npc.id,
+            turnId=runtime.fight.turn_id,
+            stateRevision=runtime.fight.sequence - 1,
+            actors=[
+                dict(id=actor.id, position=actor.position)
+                for actor in runtime.fight.actors.values()
+            ],
+            visibleActorIds=list(runtime.fight.actors),
+            rivals=[],
+        )
+        before = self.effects(runtime.fight)
+        serializer = NativeStats(
+            characters=oracle.characters,
+            monsters=oracle.monsters,
+            fight_id=runtime.fight.id,
+        )
+
+        with self.assertRaisesRegex(ValueError, "Stale defensive facing evidence"):
+            oracle.commit(
+                {"type": "end_turn"},
+                stats_serializer=serializer,
+                defensive_facing=evidence,
+            )
+        self.assertEqual(self.effects(runtime.fight), before)
+        evidence["stateRevision"] = runtime.fight.sequence
+        packets = oracle.commit(
+            {"type": "end_turn"},
+            stats_serializer=serializer,
+            defensive_facing=evidence,
+        )
+
+        opcodes = [packet[0] for packet in packets]
+        self.assertLess(opcodes.index(13494), opcodes.index(12502))
+        self.assertEqual(runtime.fight.actors[npc.id].direction, direction)
 
     def test_native_movement_direction_edges_and_authoritative_los(self):
         from wakfu_server.combat_los import authoritative_visible

@@ -1,8 +1,11 @@
 """Joined owned fighters enter the existing native PV/QI population."""
 import ast
+from collections import deque
 import struct
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 from wakfu_server.combat_global_pv_collections import (
     global_fighter_guards,
@@ -14,12 +17,136 @@ from wakfu_server.combat_qi_fight import (
     install_fresh_actor_slots,
     prepare_fresh_actor_slots,
 )
-from wakfu_server.combat_shared import Registry, Session
+from wakfu_server.combat_shared import Batch, Registry, Session
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.placement_deadline import Deadline
 
 
 class JoinedNativeFighterRegistrationTests(unittest.TestCase):
+    @staticmethod
+    def dispatch_join(namespace):
+        source = Path(__file__).resolve().parents[1] / "local_game_server.py"
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        branch = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.If)
+            and ast.unparse(node.test) == "opcode == 13241 and loaded and COMBAT_TEST"
+        )
+        program = ast.Module(body=branch.body, type_ignores=[])
+        exec(compile(program, str(source), "exec"), namespace)
+
+    def dispatch_fixture(self):
+        registry, shared, first, joiner, actor = self.fixture()
+        shared.join_context.update(
+            monsters={-7: {"id": -7, "ref": 1}},
+            group_key=None,
+            fight_started_at=10.0,
+            duration_ms=1000,
+        )
+        adapter = SimpleNamespace(
+            registry=registry,
+            session=Mock(return_value=joiner),
+            player_actor=Mock(return_value=actor),
+            join=lambda session, body, joined, **kwargs: registry.join(
+                session,
+                body,
+                joined,
+                actor_payload=lambda *_: (b"joined-stats", b"joined-effects"),
+                bootstrap_packets=lambda *_: [(12847, b"placement")],
+                **kwargs,
+            ),
+        )
+        namespace = dict(
+            fight=None,
+            fight_messages=None,
+            combat_session=None,
+            bag_session=None,
+            account_id=2,
+            generation="joiner",
+            character={"id": 8},
+            COMBAT_SESSIONS=adapter,
+            body=struct.pack(">qB", 7, 0),
+            placement_deadline=Deadline(),
+            checkpoint_fight=Mock(),
+            drain_shared_combat=Mock(),
+            record=Mock(),
+            send=Mock(),
+            connection=None,
+            service="world",
+            wire=SimpleNamespace(chat=lambda *_: b"rejection"),
+        )
+        return namespace, registry, shared, first, joiner
+
+    def test_real_join_rejection_preserves_existing_shared_owner_and_outboxes(self):
+        for phase in ("active", "finished"):
+            with self.subTest(phase=phase):
+                namespace, registry, shared, first, _ = self.dispatch_fixture()
+                shared.fight.phase = phase
+                runtime = object()
+                shared.runtime = runtime
+                queued_batches = (
+                    Batch(41, ((12847, b"queued-first"),)),
+                    Batch(42, ((12847, b"queued-second"),)),
+                )
+                shared.outboxes[first.account_id] = deque(queued_batches)
+                namespace.update(
+                    fight=shared.fight, fight_messages=runtime, combat_session=first
+                )
+                before = (dict(registry.by_character), dict(shared.participants))
+                self.dispatch_join(namespace)
+                self.assertIs(namespace["combat_session"], first)
+                self.assertIs(namespace["fight"], shared.fight)
+                self.assertIs(namespace["fight_messages"], runtime)
+                self.assertEqual(before, (registry.by_character, shared.participants))
+                self.assertEqual(
+                    list(shared.outboxes[first.account_id]), list(queued_batches)
+                )
+                for actual, expected in zip(
+                    shared.outboxes[first.account_id], queued_batches
+                ):
+                    self.assertIs(actual, expected)
+                namespace["COMBAT_SESSIONS"].session.assert_not_called()
+                namespace["drain_shared_combat"].assert_not_called()
+                self.assertEqual(
+                    namespace["record"].call_args.kwargs["event"],
+                    "combat_test_join_rejected",
+                )
+
+    def test_real_failed_new_join_does_not_adopt_uncommitted_session(self):
+        namespace, registry, shared, _, _ = self.dispatch_fixture()
+        shared.fight.phase = "active"
+        self.dispatch_join(namespace)
+        self.assertIsNone(namespace["combat_session"])
+        self.assertIsNone(namespace["fight"])
+        self.assertIsNone(namespace["fight_messages"])
+        self.assertNotIn(8, registry.by_character)
+        self.assertNotIn(2, shared.participants)
+        namespace["checkpoint_fight"].assert_not_called()
+
+    def test_real_successful_join_adopts_committed_registry_membership(self):
+        namespace, registry, shared, _, joiner = self.dispatch_fixture()
+        self.dispatch_join(namespace)
+        self.assertIs(namespace["combat_session"], joiner)
+        self.assertIs(namespace["fight"], shared.fight)
+        self.assertIs(namespace["fight_messages"], shared.runtime)
+        self.assertEqual(registry.by_character[8], shared.fight.id)
+        self.assertEqual(shared.participants[2], joiner)
+        namespace["checkpoint_fight"].assert_called_once_with()
+        namespace["drain_shared_combat"].assert_called_once_with()
+
+    def test_post_commit_checkpoint_error_keeps_successful_join_session(self):
+        namespace, registry, shared, _, joiner = self.dispatch_fixture()
+        namespace["checkpoint_fight"].side_effect = ValueError("checkpoint unavailable")
+        self.dispatch_join(namespace)
+        self.assertIs(namespace["combat_session"], joiner)
+        self.assertIs(namespace["fight"], shared.fight)
+        self.assertEqual(registry.by_character[8], shared.fight.id)
+        self.assertEqual(shared.participants[2], joiner)
+        self.assertEqual(
+            namespace["record"].call_args.kwargs["event"], "combat_test_join_rejected"
+        )
+
     def fixture(self):
         first = Actor(7, 0, (0, 0, 0), 60, 6, 3, 100, 1, 1, True)
         monster = Actor(-7, 1, (4, 0, 0), 40, 4, 2, 10, 1)

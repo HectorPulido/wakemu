@@ -253,6 +253,9 @@ def prepare_server_weapon(
         notify_resource_pa(preview, caster, 2, before_current=before_ap)
         caster.mp -= costs["mp"]
     caster.effect_stats.update({2: caster.ap, 3: caster.mp, 4: stats[4] - costs["wp"]})
+    from .combat_cast_facing import begin_cast_facing
+
+    facing_packets = begin_cast_facing(caster, plan, fight=preview, action_id=action_id)
     dispatcher, packets = factory(preview, plan)
     outcomes = execute_entry_roots(
         preview,
@@ -280,7 +283,7 @@ def prepare_server_weapon(
         plan,
         caster.effect_stats[4],
         outcomes,
-        ((13509, packet), *packets),
+        (*facing_packets, (13509, packet), *packets),
         start,
         source,
         action_id,

@@ -114,8 +114,8 @@ class RailMovementTests(unittest.TestCase):
 
     def actual_fight(self, properties=(), networks=True):
         player = Actor(7, 0, (0, 0, 0), 60, 6, 6, 20, 200, 3, True)
-        enemy = Actor(-7, 1, (11, 0, 0), 4500, 6, 3, 1, 133)
-        cells = {(x, 0, 0) for x in range(12)}
+        enemy = Actor(-7, 1, (13, 0, 0), 4500, 6, 3, 1, 133)
+        cells = {(x, 0, 0) for x in range(14)}
         edges = {(a, b) for a in cells for b in cells if abs(a[0] - b[0]) == 1}
         fight = Fight(
             2,
@@ -155,10 +155,90 @@ class RailMovementTests(unittest.TestCase):
                 self.assertEqual(
                     [number for number, _ in packets], [13624, 13420, 12873]
                 )
+                self.assertEqual(packets[0][1][21], 4)
                 self.assertEqual(packets[-1][1][-4:], struct.pack(">i", 6 - cost))
                 saved = snapshot(runtime.fight)
                 self.assertEqual(saved["actors"]["7"]["mp"], 6 - cost)
                 self.assertNotIn("native_rail_movement_authority", saved)
+
+    def test_client_step_callback_uses_prepared_rail_event_for_animation(self):
+        runtime = self.actual_fight()
+        body = struct.pack(">q", 7) + b"".join(
+            struct.pack(">iih", x, 0, 0) for x in (1, 2, 3)
+        )
+        packets, event = apply_client(
+            runtime,
+            3,
+            body,
+            lambda actor: struct.pack(">i", actor.mp),
+            _step_callback=lambda current, actor, origin, cell: None,
+        )
+        self.assertTrue(event["on_rails"])
+        self.assertEqual(packets[0][1][21], 4)
+
+    def test_ai_uses_prepared_rail_event_with_and_without_step_callback(self):
+        from unittest.mock import patch
+        from wakfu_server.combat_movement_runtime import apply_ai
+
+        for callback in (None, lambda current, actor, origin, cell: None):
+            with self.subTest(callback=callback is not None):
+                runtime = self.actual_fight()
+                runtime.fight.actors[7].controlled = False
+                with patch(
+                    "wakfu_server.combat_ai.plan",
+                    return_value={
+                        "path": [(1, 0, 0), (2, 0, 0), (3, 0, 0)],
+                        "attack": None,
+                        "target_id": None,
+                    },
+                ):
+                    packets, result = apply_ai(
+                        runtime,
+                        lambda actor: struct.pack(">i", actor.mp),
+                        direction=2,
+                        _step_callback=callback,
+                    )
+                event = result["event"]
+                self.assertTrue(event["on_rails"])
+                self.assertEqual(packets[0][1][21], 4)
+
+    def test_tactical_ai_preview_serializes_the_fsm_rail_decision(self):
+        from wakfu_server.combat_tactical_ai import NativeProvider
+
+        cases = (
+            (self.actual_fight(), [(1, 0, 0), (2, 0, 0), (3, 0, 0)], 4),
+            (self.actual_fight(networks=False), [(1, 0, 0), (2, 0, 0), (3, 0, 0)], 0),
+        )
+        mixed = self.actual_fight()
+        mixed.fight.native_microbot_networks[7] = dict(
+            source=SOURCE,
+            segments=[[[0, 0, 0], [3, 0, 0]]],
+            cells=[(x, 0, 0) for x in range(4)],
+        )
+        cases += ((mixed, [(x, 0, 0) for x in range(1, 7)], 0),)
+
+        for runtime, path, animation in cases:
+            with self.subTest(animation=animation, length=len(path)):
+                runtime.fight.actors[7].controlled = False
+                original = snapshot(runtime.fight)
+                provider = NativeProvider({"id": 7, "map_id": 0}, {}, b"")
+                result = provider.preview(
+                    runtime.fight,
+                    {"type": "move", "path": [list(cell) for cell in path]},
+                    3,
+                    forecast=True,
+                )
+                self.assertEqual(result.packets[0][0], 13624)
+                self.assertEqual(result.packets[0][1][21], animation)
+                self.assertEqual(result.fight.actors[7].position, path[-1])
+                self.assertEqual(snapshot(runtime.fight), original)
+
+    def test_movement_animation_rail_flag_requires_boolean(self):
+        from wakfu_server.combat_movement import movement
+
+        with self.assertRaisesRegex(ValueError, "Invalid native rail movement mode"):
+            movement(2, 1, 7, [(0, 0, 0), (1, 0, 0)], 1, on_rails=1)
+        self.assertEqual(movement(2, 1, 7, [(0, 0, 0), (1, 0, 0)], 1)[1][21], 0)
 
     def test_real_fsm_ordinary_and_rejected_paths_preserve_resources(self):
         runtime = self.actual_fight(networks=False)
@@ -166,6 +246,33 @@ class RailMovementTests(unittest.TestCase):
         self.assertEqual(event["cost"], 3)
         self.assertNotIn("on_rails", event)
         self.assertEqual(runtime.fight.actors[7].mp, 3)
+
+        ordinary = self.actual_fight(networks=False)
+        ordinary_packets, _ = apply_client(
+            ordinary,
+            3,
+            struct.pack(">q", 7)
+            + b"".join(struct.pack(">iih", x, 0, 0) for x in (1, 2, 3)),
+            lambda actor: struct.pack(">i", actor.mp),
+        )
+        self.assertEqual(ordinary_packets[0][1][21], 0)
+
+        mixed = self.actual_fight()
+        mixed.fight.native_microbot_networks[7] = dict(
+            source=SOURCE,
+            segments=[[[0, 0, 0], [3, 0, 0]]],
+            cells=[(x, 0, 0) for x in range(4)],
+        )
+        mixed_packets, mixed_event = apply_client(
+            mixed,
+            3,
+            struct.pack(">q", 7)
+            + b"".join(struct.pack(">iih", x, 0, 0) for x in range(1, 7)),
+            lambda actor: struct.pack(">i", actor.mp),
+        )
+        self.assertFalse(mixed_event.get("on_rails", False))
+        self.assertEqual(mixed_event["cost"], 6)
+        self.assertEqual(mixed_packets[0][1][21], 0)
         rail = self.actual_fight({98})
         before = snapshot(rail.fight)
         with self.assertRaisesRegex(ValueError, "Invalid combat movement path"):

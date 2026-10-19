@@ -185,8 +185,20 @@ def run_turn(
                 record_stage("source_guard", stage_started)
                 stage = "commit"
                 stage_started = clock()
+                facing = decision.get("defensiveFacing")
+                extras = {}
+                if decision["action"]["type"] == "end_turn" and facing is not None:
+                    if (
+                        not isinstance(facing, dict)
+                        or facing.get("sourceKey") != decision.get("sourceKey")
+                        or facing.get("rootState") != decision.get("rootState")
+                    ):
+                        raise ValueError(
+                            "Defensive facing evidence is not source bound"
+                        )
+                    extras["defensive_facing"] = facing
                 packets = oracle.commit(
-                    decision["action"], stats_serializer=stats_serializer
+                    decision["action"], stats_serializer=stats_serializer, **extras
                 )
                 record_stage("commit", stage_started)
                 decision["stageElapsedMs"] = dict(stage_elapsed_ms)

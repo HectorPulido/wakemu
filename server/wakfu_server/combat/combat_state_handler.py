@@ -560,6 +560,11 @@ class NativeStateHandler:
                                 native_context_hex="0801100020ffffffffffffffffff0128013000380040004800",
                                 native_value_scope=None,
                                 native_explicit_target=False,
+                                # eZk.c calls child.g(bfs) before bal() for
+                                # subscribed children too; defer their effects,
+                                # not the already selected carrier recipient.
+                                native_preselected_target=True,
+                                wakemu_fresh_child_selection=False,
                             )
                         )
                     continue  # Unbound legacy paths retain subscriptions only in ledger.effect_ids.

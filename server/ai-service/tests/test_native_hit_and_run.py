@@ -8,7 +8,10 @@ from types import SimpleNamespace
 import unittest
 
 from wakfu_ai.context.native_context import NativeGraph, encode
-from wakfu_ai.planning.turn_memory import attacked_this_turn
+from wakfu_ai.planning.turn_memory import (
+    attacked_this_turn,
+    damaged_targets_this_turn,
+)
 from wakfu_ai.planning.query_search import _metrics, _movement_orders
 from wakfu_ai.planning.scoring import evaluate
 from wakfu_ai.planning.tactical import DEFAULT_WEIGHTS
@@ -55,6 +58,38 @@ class NativeHitAndRunMemoryCharacterizationTests(unittest.TestCase):
         self.assertIsNone(restored["target_id"])
         self.assertNotIn("damage", restored)
         self.assertNotIn("outcomes", restored)
+
+    def target_memory(self, events, *, turn=7):
+        graph, fight = native_turn_memory(events, turn=turn)
+        return damaged_targets_this_turn(graph, fight, 41)
+
+    def test_damaged_target_requires_committed_positive_current_turn_damage(self):
+        damage = dict(kind="damage", source_id=41, target_id=92, amount=5)
+        cast = dict(kind="npc_cast", actor_id=41, turn_id=7, target_id=92)
+        self.assertEqual(self.target_memory([damage, cast]), frozenset({92}))
+        for events in (
+            [damage],
+            [dict(damage, amount=0), cast],
+            [dict(damage, source_id=42), cast],
+            [damage, dict(cast, actor_id=42)],
+            [damage, dict(cast, turn_id=6)],
+            [dict(damage, target_id=None), cast],
+            [dict(damage, target_id="92"), cast],
+        ):
+            with self.subTest(events=events):
+                self.assertEqual(self.target_memory(events), frozenset())
+
+    def test_turn_boundary_and_foreign_cast_clear_pending_target_damage(self):
+        damage = dict(kind="damage", source_id=41, target_id=92, amount=5)
+        own_cast = dict(kind="npc_cast", actor_id=41, turn_id=7, target_id=92)
+        foreign_cast = dict(kind="npc_cast", actor_id=42, turn_id=7, target_id=92)
+        for events in (
+            [damage, dict(kind="turn_started"), own_cast],
+            [damage, dict(kind="turn_ended"), own_cast],
+            [damage, foreign_cast, own_cast],
+        ):
+            with self.subTest(events=events):
+                self.assertEqual(self.target_memory(events), frozenset())
 
 
 class NativeHitAndRunPolicyTests(unittest.TestCase):

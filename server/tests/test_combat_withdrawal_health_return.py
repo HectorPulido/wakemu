@@ -4,7 +4,7 @@ import struct
 from unittest.mock import patch
 from postgres_case import PostgresCase
 import test_combat_pve_withdraw as withdrawal_fixture
-from wakfu_server import health_store, health_policy
+from wakfu_server import health_store, health_policy, health
 from wakfu_server.combat_state import Actor
 from wakfu_server.fight_checkpoint_store import snapshot
 from wakfu_server.combat_pve_withdraw_store import acknowledge, recover_pending
@@ -131,7 +131,17 @@ class WithdrawalHealthReturnTests(PostgresCase):
         hp_packets = [
             payload for opcode, payload in returned["packets"] if opcode == 12436
         ]
-        self.assertEqual(hp_packets, [struct.pack(">qii", character["id"], 1, 1)])
+        self.assertEqual(
+            hp_packets,
+            [
+                struct.pack(
+                    ">qii",
+                    character["id"],
+                    1,
+                    health.exploration_coefficient(returned["character"]["max_hp"], 1),
+                )
+            ],
+        )
         self.assertIs(shared.fight.actors[character["id"]], corpse)
         self.assertIs(corpse.state_ledger, ledger)
         self.assertEqual(snapshot(shared.fight), before)
@@ -151,8 +161,11 @@ class WithdrawalHealthReturnTests(PostgresCase):
                 ).fetchone()["health_returned_at"]
             )
         store.clock = lambda: 1005
+        maximum = store.character(account, character["id"])["max_hp"]
+        coefficient = health.exploration_coefficient(maximum, 1)
         self.assertEqual(
-            health_store.tick(store, account, generation, character["id"], 1)["hp"], 2
+            health_store.tick(store, account, generation, character["id"], 1)["hp"],
+            health.regenerated(1, maximum, 5000, coefficient),
         )
 
     def test_duplicate_ack_does_not_reverse_later_world_death_or_restart_regeneration(

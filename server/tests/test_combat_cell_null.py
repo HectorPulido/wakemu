@@ -61,6 +61,21 @@ class CellNullTests(unittest.TestCase):
         self.assertEqual([opcode for opcode, _ in self.packets], [13497, 13560])
         self.assertEqual(self.fight.actors[7].hp, 60)
 
+    def test_instant_cell_null_executes_without_fabricating_actor_target(self):
+        self.assertTrue(self.handler(retained=False)(self.effect, [], self.inv))
+        self.assertEqual(len(self.packets), 1)
+        opcode, body = self.packets[0]
+        self.assertEqual(opcode, 12613)
+        self.assertEqual(body[12], 1)
+        size = int.from_bytes(body[17:19], "big", signed=True)
+        fields = _identity_fields(body[19 : 19 + size])
+        self.assertEqual(fields[3], 123)
+        self.assertEqual(fields[6], 7)
+        self.assertNotIn(7, fields)
+        self.assertEqual(self.fight.native_effect_uid_next, 901)
+        self.assertFalse(self.fight.owned_stat_effects)
+        self.assertEqual(self.fight.actors[7].hp, 60)
+
     def test_actor_target_or_clone_rejected_before_uid(self):
         from dataclasses import replace
 
@@ -124,7 +139,14 @@ class CellNullTests(unittest.TestCase):
         from dataclasses import replace
 
         selected = resolver(effect, replace(self.inv, target_id=-7))
-        self.assertEqual(selected, (self.inv,))
+        expected = replace(
+            self.inv,
+            target_id=None,
+            native_target_cell_argument=True,
+        )
+        self.assertEqual(selected, (expected,))
+        self.assertIsNone(selected[0].target_id)
+        self.assertTrue(selected[0].native_target_cell_argument)
         self.assertTrue(self.handler()(effect, [], selected[0]))
         self.assertEqual(self.fight.native_effect_uid_next, 901)
         self.assertEqual(len(self.packets), 1)

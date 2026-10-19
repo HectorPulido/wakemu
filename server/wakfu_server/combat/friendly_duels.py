@@ -607,6 +607,7 @@ def settle(
             raise ValueError("Friendly duel roster differs from its consent")
         from wakfu_server.equipment_stats import effective_character
         from wakfu_server.health_policy import visible
+        from wakfu_server.health import exploration_coefficient
 
         from .combat_terminal_metadata import registered_summon_actor_ids
 
@@ -675,10 +676,16 @@ def settle(
             now = store.now()
             db.execute(
                 "INSERT INTO character_regeneration(character_id,initial_hp,initial_damage,started_at,coefficient,last_at) "
-                "VALUES(%s,%s,0,%s,1,%s) ON CONFLICT(character_id) DO UPDATE SET "
+                "VALUES(%s,%s,0,%s,%s,%s) ON CONFLICT(character_id) DO UPDATE SET "
                 "initial_hp=excluded.initial_hp,initial_damage=0,started_at=excluded.started_at,"
                 "coefficient=excluded.coefficient,last_at=excluded.last_at",
-                (actor_id, maximum, now, now),
+                (
+                    actor_id,
+                    maximum,
+                    now,
+                    exploration_coefficient(maximum, maximum),
+                    now,
+                ),
             )
             saved = store.character(owner, actor_id, db)
             positions[actor_id] = tuple(
@@ -747,7 +754,7 @@ def return_packets(
 ):
     """Publish the already-committed full-health duel exit after native12925."""
     from .combat_results import continuation
-    from wakfu_server.health import packet as health_packet
+    from wakfu_server.health import packet as health_packet, exploration_coefficient
     from wakfu_server.wire import account_kamas
     import struct
 
@@ -793,7 +800,14 @@ def return_packets(
         "applied": True,
         "packets": [
             duel_progression(saved, wp=wp),
-            (12436, health_packet(saved["id"], saved["hp"], 0)),
+            (
+                12436,
+                health_packet(
+                    saved["id"],
+                    saved["hp"],
+                    exploration_coefficient(saved["max_hp"], saved["hp"]),
+                ),
+            ),
             (13021, struct.pack(">q", saved["kamas"])),
             (13873, account_kamas(saved["kamas"])),
         ],

@@ -228,8 +228,8 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
     from .combat_effect_dispatch import EffectInvocation
     from .combat_active_spell import active_spell_scope
     from .combat_cast_facing import (
+        begin_cast_facing,
         finish_mirrored_cast_facing,
-        mirror_cast_facing,
     )
     from .combat_spells import cast_animation, cast_notification
 
@@ -256,7 +256,7 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
         caster.mp -= rule["costs"]["mp"]
     caster.effect_stats[4] -= rule["costs"]["wp"]
     preview._sync_resources(caster)
-    mirror_cast_facing(caster, plan, fight=preview)
+    facing_packets = begin_cast_facing(caster, plan, fight=preview, action_id=action_id)
     from .combat_ai_cast_history import record_authorized_cast
 
     record_authorized_cast(preview, caster.id, spell)
@@ -289,22 +289,26 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
         target_id=plan["target_id"],
         turn_id=fight.turn_id,
     )
-    packets = tuple(
-        (
-            opcode,
-            encoder(
-                fight.id,
-                action_id,
-                descriptor,
-                spell,
-                plan["target"],
-                native_uid=spell,
-                native_level=level,
-                critical=False,
-            ),
+    packets = (
+        facing_packets
+        + tuple(
+            (
+                opcode,
+                encoder(
+                    fight.id,
+                    action_id,
+                    descriptor,
+                    spell,
+                    plan["target"],
+                    native_uid=spell,
+                    native_level=level,
+                    critical=False,
+                ),
+            )
+            for opcode, encoder in ((12588, cast_animation), (12678, cast_notification))
         )
-        for opcode, encoder in ((12588, cast_animation), (12678, cast_notification))
-    ) + tuple(effect_packets)
+        + tuple(effect_packets)
+    )
     return seal_entry_transaction(
         preview,
         plan,

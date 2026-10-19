@@ -13,14 +13,27 @@ from .combat_definitions import effect_profile, state_profile
 
 def compiled_with_sources(compiled, sources):
     """Extend definitions before factory construction, preserving shared catalogs."""
-    from .combat_static_catalogs import CompiledEffects
     from .combat_effect_runtime import _merge_effects
 
-    merged = dict(compiled.source_effects)
+    additional = {}
     for source in sources:
-        # _merge_effects checks every execution-identity field on collisions.
-        merged = _merge_effects(merged, {"effects": source["effects"]})
-    return CompiledEffects(merged, compiled.source_states)
+        for reference, effect in source["effects"].items():
+            if reference in additional:
+                previous = additional[reference]
+            elif reference in compiled.source_effects:
+                previous = compiled.source_effects[reference]
+            else:
+                additional[reference] = effect
+                continue
+            # Reuse every ordinary execution-identity collision check, even
+            # when all supplied definitions already exist in the base.
+            _merge_effects({reference: previous}, {"effects": {reference: effect}})
+    states = compiled.source_states["effects"]
+    collisions = {
+        reference: states[reference] for reference in additional if reference in states
+    }
+    _merge_effects(additional, {"effects": collisions})
+    return compiled.with_effect_delta(additional)
 
 
 def immediate_scalar_contract(source, compiled, registry):

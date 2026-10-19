@@ -125,6 +125,7 @@ class NativeStatsTests(unittest.TestCase):
             8: {"id": 8, "future": b"second"},
         }
         stats = NativeStats(characters=characters, monsters={}, fight_id=41)
+        fight = SimpleNamespace(id=41)
         with patch(
             "wakfu_server.combat_actor.actual_actor_stats", return_value=b"native"
         ) as encoder:
@@ -135,10 +136,11 @@ class NativeStatsTests(unittest.TestCase):
                     effect_stats={4: identity},
                     effect_maxima={4: 12},
                 )
-                self.assertEqual(stats(actor, SimpleNamespace(id=41)), b"native")
+                self.assertEqual(stats(actor, fight), b"native")
                 self.assertEqual(encoder.call_args.args[0], characters[identity])
                 self.assertEqual(
-                    encoder.call_args.kwargs, {"wp_current": identity, "wp_maximum": 12}
+                    encoder.call_args.kwargs,
+                    {"wp_current": identity, "wp_maximum": 12, "fight": fight},
                 )
 
     def test_unknown_actor_missing_resources_and_foreign_encounter_rejected(self):

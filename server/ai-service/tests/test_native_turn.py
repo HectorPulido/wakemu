@@ -1,5 +1,6 @@
 """Owner-thread native turn driver: commit barriers, budgets and fallback."""
 from pathlib import Path
+from copy import deepcopy
 import sys
 from types import SimpleNamespace
 import unittest
@@ -43,8 +44,8 @@ class FakeOracle:
         self.ack_on_action = ack_on_action
         self.commits = []
 
-    def commit(self, action, *, stats_serializer):
-        self.commits.append(dict(action=action, serializer=stats_serializer))
+    def commit(self, action, *, stats_serializer, **kwargs):
+        self.commits.append(dict(action=action, serializer=stats_serializer, **kwargs))
         if action["type"] == "end_turn":
             self.runtime.fight.phase = "complete"
             self.runtime.fight.current = None
@@ -73,6 +74,8 @@ class FakeSession:
         value = type(self).decisions.pop(0)
         if isinstance(value, BaseException):
             raise value
+        if isinstance(value, dict) and "action" in value:
+            return deepcopy(value)
         return dict(action=value, source="certified-native-test")
 
     def guard(self):
@@ -169,6 +172,68 @@ class NativeTurnDriverTests(unittest.TestCase):
         )
         self.assertEqual(len(deliveries), 2)
         self.assertEqual(FakeSession.certification_modes, [False, False])
+
+    def test_source_bound_defensive_facing_is_forwarded_only_for_end_turn(self):
+        evidence = dict(
+            sourceKey="source-bound",
+            rootState="root-state",
+            actorId=-9,
+            turnId=4,
+            stateRevision=10,
+            actors=[],
+            visibleActorIds=[],
+            rivals=[],
+        )
+        FakeSession.decisions = [
+            dict(
+                action={"type": "end_turn"},
+                sourceKey="source-bound",
+                rootState="root-state",
+                defensiveFacing=evidence,
+            )
+        ]
+
+        packets, decision = next(self.run_turn())
+
+        self.assertEqual(packets, [("committed", "end_turn")])
+        self.assertEqual(decision["action"], {"type": "end_turn"})
+        self.assertEqual(self.oracle.commits[0]["defensive_facing"], evidence)
+
+    def test_facing_metadata_is_not_forwarded_for_an_action(self):
+        FakeSession.decisions = [
+            dict(
+                action={"type": "cast", "spellId": 12},
+                sourceKey="source-bound",
+                rootState="root-state",
+                defensiveFacing=dict(sourceKey="source-bound", rootState="root-state"),
+            )
+        ]
+
+        packets, decision = next(self.run_turn())
+
+        self.assertEqual(packets, [("committed", "cast")])
+        self.assertEqual(decision["action"]["type"], "cast")
+        self.assertNotIn("defensive_facing", self.oracle.commits[0])
+
+    def test_foreign_source_facing_evidence_does_not_reach_commit(self):
+        FakeSession.decisions = [
+            dict(
+                action={"type": "end_turn"},
+                sourceKey="source-bound",
+                rootState="root-state",
+                defensiveFacing=dict(sourceKey="foreign", rootState="root-state"),
+            )
+        ]
+
+        deliveries = list(self.run_turn())
+
+        self.assertEqual(deliveries[0][0], [])
+        self.assertEqual(
+            deliveries[0][1]["reason"], "native_ai_query_or_commit_rejected"
+        )
+        self.assertEqual(deliveries[1][0], [("committed", "end_turn")])
+        self.assertEqual(len(self.oracle.commits), 1)
+        self.assertNotIn("defensive_facing", self.oracle.commits[0])
 
     def test_deadline_falls_back_to_end_turn_without_query(self):
         now = [10.0]

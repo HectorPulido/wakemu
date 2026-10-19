@@ -56,11 +56,15 @@ def learn(store, account_id, generation, character_id, body):
             or native.get("use_has_criteria") is not False
         ):
             raise ValueError("Unverified native emote learning action")
-        if not db.execute(
-            "SELECT 1 FROM native_emote_definitions WHERE emote_id=%s",
-            (rule["emote_id"],),
-        ).fetchone():
-            raise ValueError("Emote definition is not verified")
+        definition_available = (
+            db.execute(
+                "SELECT 1 FROM native_emote_definitions WHERE emote_id=%s",
+                (rule["emote_id"],),
+            ).fetchone()
+            is not None
+        )
+        # Original fbs stores exact native learning outputs independently of
+        # executable definitions. Only defined IDs support bdn.AM incremental UI.
         if db.execute(
             "SELECT 1 FROM account_emote_knowledge WHERE account_id=%s AND emote_id=%s",
             (account_id, rule["emote_id"]),
@@ -108,7 +112,11 @@ def learn(store, account_id, generation, character_id, body):
             "applied": True,
             "packets": [
                 (12470, struct.pack(">qh", source_uid, -1)),
-                (12266, struct.pack(">iB", rule["emote_id"], 1)),
+                *(
+                    [(12266, struct.pack(">iB", rule["emote_id"], 1))]
+                    if definition_available
+                    else []
+                ),
                 emotes.snapshot(db, account_id),
             ],
         }

@@ -217,6 +217,8 @@
     } else copy.append(node('p', 'lede', 'The next rare creature will appear when players are connected.'));
     banner.append(copy);
     panel.append(banner);
+    const seasonal = (data.actions || []).filter(action => action.kind === 'seasonal_entry' && !action.definition_key);
+    if (seasonal.length) panel.append(actionList(seasonal));
     const recovery = (data.recovery_actions || []).filter(action => ['weekly.return', 'weekly.abandon'].includes(action.key));
     if (recovery.length) {
       const recoveryBox = node('div', 'recovery');

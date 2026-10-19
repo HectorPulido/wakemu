@@ -88,6 +88,7 @@ def _outbox(store, db, exchange, event, *, canceled_by=None, previous_state=None
     ]
     if exchange["state"] == "active":
         from .inventory_items import load
+        from .inventory_shards import json_safe_item
 
         units = {}
         for account, character, generation in _owners(exchange):
@@ -96,7 +97,7 @@ def _outbox(store, db, exchange, event, *, canceled_by=None, previous_state=None
             unit = units.get(offer["uid"])
             if unit is None or unit["character_id"] != offer["character_id"]:
                 raise ValueError("Offered exchange unit disappeared before publication")
-            offer["unit"] = dict(unit, quantity=offer["quantity"])
+            offer["unit"] = json_safe_item(dict(unit, quantity=offer["quantity"]))
     for account, character, generation in _owners(exchange):
         db.execute(
             "INSERT INTO player_exchange_outbox(exchange_id,revision,character_id,"
@@ -522,6 +523,64 @@ def offer_item(
                 (exchange_id, character_id, uid, quantity),
             )
         return _changed(store, db, exchange_id)
+
+
+def offer_items(store, account_id, generation, character_id, exchange_id, uids):
+    """Atomically offer each selected owned stack at its current full quantity.
+
+    Native12510 carries selected item identities only; quantity is not part of
+    its wire payload. Validate the entire selection before changing any offer,
+    then publish one revision for the batch.
+    """
+    if not isinstance(uids, (list, tuple)) or not uids or len(uids) > 128:
+        raise ValueError("Invalid bulk exchange offer identities")
+    if any(type(uid) is not int or not 0 < uid < 2**63 for uid in uids):
+        raise ValueError("Invalid bulk exchange offer identities")
+    if len(set(uids)) != len(uids):
+        raise ValueError("Duplicate bulk exchange offer identity")
+    from .inventory_items import load
+
+    with store.connection() as db:
+        exchange, wallets = _active(
+            store, db, account_id, generation, character_id, exchange_id
+        )
+        units = {unit["uid"]: unit for unit in load(db, character_id)}
+        if any(uid not in units for uid in uids):
+            raise ValueError("Bulk offer contains unavailable or foreign units")
+
+        existing = {
+            row["uid"]: row["quantity"]
+            for row in db.execute(
+                "SELECT uid,quantity FROM player_exchange_items "
+                "WHERE exchange_id=%s AND character_id=%s",
+                (exchange_id, character_id),
+            )
+        }
+        if len(set(existing) | set(uids)) > _policy(db)["maximum_offer_items"]:
+            raise ValueError("Exchange item offer is full")
+
+        # Do all policy and equipment validation before the first offer write.
+        validated = []
+        for uid in uids:
+            unit = units[uid]
+            quantity = unit.get("quantity")
+            if type(quantity) is not int or not 1 <= quantity <= 32767:
+                raise ValueError("Invalid owned stack quantity for bulk exchange")
+            _offered_item(store, db, account_id, character_id, uid, quantity)
+            validated.append((uid, quantity))
+
+        changed = False
+        for uid, quantity in validated:
+            if existing.get(uid) == quantity:
+                continue
+            db.execute(
+                "INSERT INTO player_exchange_items(exchange_id,character_id,uid,quantity) "
+                "VALUES(%s,%s,%s,%s) ON CONFLICT(exchange_id,uid) "
+                "DO UPDATE SET quantity=EXCLUDED.quantity",
+                (exchange_id, character_id, uid, quantity),
+            )
+            changed = True
+        return dict(exchange) if not changed else _changed(store, db, exchange_id)
 
 
 def confirm(store, account_id, generation, character_id, exchange_id):

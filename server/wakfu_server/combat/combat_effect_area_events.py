@@ -15,8 +15,21 @@ SUPPORTED_AREA_EVENTS = frozenset({10000, 10001, 10002, 10006, 10008, 10011})
 
 
 class NativeAreaEventRuntime:
-    def __init__(self, fight, dispatcher, *, definitions):
+    def __init__(
+        self,
+        fight,
+        dispatcher,
+        *,
+        definitions,
+        target_authority=None,
+        area_affiliation=None,
+    ):
         self.fight, self.dispatcher, self.definitions = fight, dispatcher, definitions
+        self.target_authority = target_authority
+        self.area_affiliation = area_affiliation
+        self.microbot_network_changed = None
+        self.microbot_rail_removed = None
+        self.area_removed = None
 
     def _definition(self, row):
         definition = self.definitions.get(str(row["reference"]))
@@ -78,16 +91,19 @@ class NativeAreaEventRuntime:
         elif getattr(target, "native_is_amO", None) is True:
             value = getattr(target, "native_fight_affiliation", None)
         else:
-            provider = getattr(
-                getattr(self.dispatcher, "contexts", None), "area_affiliation", None
-            )
-            if not callable(provider) or self.fight.actors.get(target.id) is not target:
+            provider = self.area_affiliation
+            if (
+                not callable(provider)
+                or not callable(self.target_authority)
+                or self.fight.actors.get(target.id) is not target
+            ):
                 raise ValueError("Missing native activation target amO authority")
-            adapter = getattr(provider, "__self__", None)
-            actor_authority = getattr(adapter, "_actor", None)
-            if not callable(actor_authority):
+            from .combat_runtime_adapter import NativeActorAuthority
+
+            metadata = self.target_authority(self.fight, target)
+            if not isinstance(metadata, NativeActorAuthority):
                 raise ValueError("Missing native activation target amO type authority")
-            targeting = actor_authority(self.fight, target).targeting
+            targeting = metadata.targeting
             is_amO = targeting.get("is_amO")
             if type(is_amO) is not bool:
                 raise ValueError("Missing native activation target amO type authority")
@@ -102,7 +118,9 @@ class NativeAreaEventRuntime:
             raise ValueError("Missing native activation target bcM authority")
         return value
 
-    def _activate(self, row, definition, target, *, trigger=None):
+    def _activate(
+        self, row, definition, target, *, trigger=None, allow_ally_contact=False
+    ):
         from .combat_observation_scope import area_is_unobserved
 
         if area_is_unobserved(row["uid"]):
@@ -150,7 +168,14 @@ class NativeAreaEventRuntime:
                         "Missing native area captured activation affiliation"
                     )
                 if captured == affiliation:
-                    return False
+                    from .combat_area_contact_policy import (
+                        permits_ally_contact_consumption,
+                    )
+
+                    if not allow_ally_contact or not permits_ally_contact_consumption(
+                        row, definition, getattr(self.dispatcher, "effects", {})
+                    ):
+                        return False
         remaining = row["remaining_activations"]
         if remaining == 0:
             return False
@@ -160,10 +185,12 @@ class NativeAreaEventRuntime:
         if definition["type"] == "SIMPLE":
             # Qq.a has consumed the charge; fbb.c(amP) is always null.
             # bcW.a(x,y,z,Qe) is also empty: no child effects are executed.
+            self._complete_q_if_exhausted(row)
             return True
         if target is None and row.get("native_area_contract") != "fbc":
             # faY.e(null) true, faY.c(null) null: consumes a finite charge but
             # supplies no coordinates to execute child definitions.
+            self._complete_q_if_exhausted(row)
             return True
         border = row.get("native_area_contract") == "faP"
         environment = row.get("native_environment_source") is not None
@@ -242,6 +269,36 @@ class NativeAreaEventRuntime:
             from .combat_trap_area import retire_exhausted_trap
 
             retire_exhausted_trap(self.fight, row, callbacks=self)
+        else:
+            self._complete_q_if_exhausted(row)
+        return True
+
+    def _complete_q_if_exhausted(self, row):
+        """Retire a successfully completed finite Qq from the server Qs set.
+
+        The client callback marks Qq.bhi after activation, but client Qs keeps
+        that object for its own lifecycle. Wakemu must also stop selecting a
+        spent finite area as a live server query target. Use the ordinary Qs
+        removal callback only after children and retention bookkeeping finish.
+        Traps, hours, and walls retain their distinct lifecycle contracts.
+        """
+        contract = row.get("native_area_contract")
+        if contract in ("fbc", "faZ", "fbd"):
+            return False
+        if row.get("remaining_activations") != 0:
+            return False
+        if row.get("native_qq_bhi") is True:
+            return False
+        if (
+            row.get("native_qq_bhi") is not False
+            or row.get("native_qq_guard_source") != "Qq.constructor"
+        ):
+            raise ValueError("Missing native Qq completion-state authority")
+        row["native_qq_bhi"] = True
+        row["native_qq_guard_source"] = "Qq.b"
+        from .combat_effect_area import remove_owned_hour_area
+
+        remove_owned_hour_area(self.fight, row["uid"], callbacks=self)
         return True
 
     def _exit(self, row, target):
@@ -331,7 +388,9 @@ class NativeAreaEventRuntime:
             result.extend(self._deliver_event(row, definition, target, event_id))
         return tuple(result)
 
-    def _deliver_event(self, row, definition, target, event_id):
+    def _deliver_event(
+        self, row, definition, target, event_id, *, movement_contact=False
+    ):
         from .combat_observation_scope import area_is_unobserved
 
         if area_is_unobserved(row["uid"]):
@@ -356,7 +415,20 @@ class NativeAreaEventRuntime:
             return ()  # faN suppresses its owner's entire movement delivery.
         result = []
         if event_id in definition["entry_masks"]:
-            result.append(self._activate(row, definition, target))
+            from .combat_area_contact_policy import permits_ally_contact_consumption
+
+            contact = (
+                movement_contact
+                and event_id == 10001
+                and permits_ally_contact_consumption(
+                    row, definition, getattr(self.dispatcher, "effects", {})
+                )
+            )
+            result.append(
+                self._activate(row, definition, target, allow_ally_contact=True)
+                if contact
+                else self._activate(row, definition, target)
+            )
         if event_id in definition["exit_masks"]:
             result.append(self._exit(row, target))
         if removal_mask_matches(definition, (event_id,)):
@@ -366,6 +438,9 @@ class NativeAreaEventRuntime:
     def created(self, row):
         """Register only: native Qs.a -> Qq.bcH does not activate glyphs."""
         self._definition(row)
+        if row.get("native_faw_constructor", {}).get("kind") == 4:
+            if callable(self.microbot_network_changed):
+                self.microbot_network_changed(row["owner_id"])
         return ()
 
     def turn_start(self, target_id):
@@ -398,11 +473,25 @@ class NativeAreaEventRuntime:
             from_cell=from_cell,
             to_cell=to_cell,
         )
-        return deliver_area_movement(plan, target, self._deliver_event)
+        return deliver_area_movement(
+            plan,
+            target,
+            lambda row, definition, entrant, event_id: self._deliver_event(
+                row, definition, entrant, event_id, movement_contact=True
+            ),
+        )
 
     def removed(self, row, *, target_id=None):
         """Qs unregisters first, then faV entry/exit and rLR event10011."""
         definition = self._definition(row)
+        from .combat_microbot_rails import SOURCE as RAIL_SOURCE
+
+        if callable(self.area_removed):
+            self.area_removed(row["uid"])
+        elif row.get("native_microbot_rail_source") == RAIL_SOURCE:
+            if not callable(self.microbot_rail_removed):
+                raise ValueError("Missing native rail retirement delivery provider")
+            self.microbot_rail_removed(row["uid"])
         result = []
         target = None if target_id is None else self.fight.actors.get(target_id)
         if target_id is not None and target is None:
@@ -425,6 +514,9 @@ class NativeAreaEventRuntime:
                     result.append(self._exit(row, target))
         if removal_mask_matches(definition, (10011,)):
             result.append(self._remove_on_masks(row, definition, (10011,)))
+        if row.get("native_faw_constructor", {}).get("kind") == 4:
+            if callable(self.microbot_network_changed):
+                self.microbot_network_changed(row["owner_id"])
         return tuple(result)
 
     def running_source(

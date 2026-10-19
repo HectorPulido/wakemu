@@ -78,6 +78,7 @@ def placement_messages(
                 effective_level=a.effective_level,
             )
             for a in actors
+            if 114 not in getattr(a, "native_fight_properties", ())
         ],
     )
     participants = []

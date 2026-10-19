@@ -4,6 +4,7 @@ import unittest
 from postgres_case import PostgresCase
 
 from wakfu_server.combat_drops import (
+    ALGORITHM,
     DRAW_DENOMINATOR,
     delivery_items,
     native_drop_catalog,
@@ -123,7 +124,7 @@ class CombatDropMathTests(unittest.TestCase):
         self.assertTrue(guaranteed.success)
         self.assertEqual(guaranteed.effective_probability, Decimal(1))
 
-    def test_native_point_eight_percent_is_decimal_exact_with_dofus_baseline_factors(
+    def test_native_point_eight_percent_is_decimal_exact_with_neutral_wakfu_baseline(
         self,
     ):
         rng = Draws(0, 0)
@@ -136,10 +137,9 @@ class CombatDropMathTests(unittest.TestCase):
             catalog=catalog_for(drop_row("0.008")),
             rng=rng,
         )[0]
-        # Dofus Fight.java's challenge setup floors a missing challenge bonus
-        # to 1 before adding it as percent, so the reference baseline is 1.01.
+        # A character without PP or other bonuses retains native base odds.
         self.assertEqual(result.base_probability, Decimal("0.008"))
-        self.assertEqual(result.raw_probability, Decimal("0.00808"))
+        self.assertEqual(result.raw_probability, Decimal("0.008"))
         boundary = int(
             (result.raw_probability * DRAW_DENOMINATOR).to_integral_value(
                 rounding=ROUND_CEILING
@@ -181,14 +181,48 @@ class CombatDropMathTests(unittest.TestCase):
         second = plan_player_drops(
             **args, character_id=8, prospecting_bonus=50, rng=Draws(0, 0)
         )[0]
-        self.assertEqual(first.raw_probability, Decimal("0.00808"))
-        self.assertEqual(second.raw_probability, Decimal("0.01212"))
+        self.assertEqual(first.raw_probability, Decimal("0.008"))
+        self.assertEqual(second.raw_probability, Decimal("0.012"))
         self.assertTrue(first.success)
         self.assertTrue(second.success)
         below_baseline = plan_player_drops(
             **args, character_id=9, prospecting_bonus=-50, rng=Draws(0, 0)
         )[0]
-        self.assertEqual(below_baseline.raw_probability, Decimal("0.00808"))
+        self.assertEqual(below_baseline.raw_probability, Decimal("0.008"))
+
+    def test_prospection_probability_is_capped_without_changing_native_gate(self):
+        common = dict(
+            monsters=[{"actor_id": -11, "reference": 1}],
+            character_id=7,
+            can_loot=True,
+            fight_context={},
+            catalog=catalog_for(drop_row("0.01")),
+        )
+        for pp, factor in (
+            (-50, "1"),
+            (0, "1"),
+            (50, "1.5"),
+            (200, "3"),
+            (201, "3"),
+            (1000, "3"),
+        ):
+            with self.subTest(pp=pp):
+                draws = Draws(DRAW_DENOMINATOR - 1)
+                decision = plan_player_drops(**common, prospecting_bonus=pp, rng=draws)[
+                    0
+                ]
+                self.assertEqual(
+                    decision.raw_probability, Decimal("0.01") * Decimal(factor)
+                )
+                self.assertEqual(draws.bounds, [DRAW_DENOMINATOR])
+        common["catalog"] = catalog_for(drop_row("0.01", native_csF=400))
+        self.assertEqual(
+            plan_player_drops(**common, prospecting_bonus=200, rng=Draws()), ()
+        )
+        allowed = plan_player_drops(
+            **common, prospecting_bonus=1000, rng=Draws(DRAW_DENOMINATOR - 1)
+        )
+        self.assertEqual(allowed[0].raw_probability, Decimal("0.03"))
 
     def test_native_prospection_input_requires_actor_stat_snapshot(self):
         class Actor:
@@ -230,7 +264,7 @@ class CombatDropMathTests(unittest.TestCase):
             catalog=catalog_for(drop_row("0.01")),
             rng=Draws(0, 0),
         )[0]
-        self.assertEqual(above_100x.raw_probability, Decimal("1.01000101"))
+        self.assertEqual(above_100x.raw_probability, Decimal("1.000001"))
         self.assertEqual(above_100x.effective_probability, Decimal(1))
         self.assertTrue(above_100x.success)
 
@@ -246,7 +280,7 @@ class CombatDropMathTests(unittest.TestCase):
             catalog=catalog_for(drop_row("0.5")),
             rng=draws,
         )[0]
-        self.assertEqual(at_maximum.raw_probability, Decimal("5049999.9999495"))
+        self.assertEqual(at_maximum.raw_probability, Decimal("4999999.99995"))
         self.assertEqual(at_maximum.effective_probability, Decimal(1))
         self.assertTrue(at_maximum.success)
         self.assertEqual(draws.bounds, [DRAW_DENOMINATOR, 1])
@@ -628,6 +662,11 @@ class CombatDropPostgresTests(PostgresCase):
             first = self._resolve(db, rng=lambda upper: 0)
             self.assertFalse(first.replayed)
             self.assertEqual(first.policy_version, 1)
+            self.assertEqual(first.snapshot["algorithm"], ALGORITHM)
+            self.assertEqual(first.snapshot["prospection_bonus"], 0)
+            self.assertEqual(first.snapshot["applied_prospection_bonus"], 0)
+            self.assertEqual(first.snapshot["effective_prospection"], 100)
+            self.assertEqual(first.snapshot["native_gate_prospection"], 100)
             self.assertEqual(first.snapshot["modifiers"]["drop_rate_bp"], 10000)
             self.assertTrue(first.decisions)
             self.assertEqual(

@@ -84,6 +84,254 @@ class SharedFightStorageTests(PostgresCase):
         self.store.select_character(account, generation, character)
         return account, character, generation
 
+    def _settled_levelup_peer(self, *, wound=38, combat_damage=12):
+        """Return a shared peer with an actual level-up reward and frozen entry HP."""
+        from copy import deepcopy
+        from wakfu_server import health_policy, health_store
+        from wakfu_server.combat_rewards import Policy, award_shared_member
+        from wakfu_server.fight_store import settle_shared
+        from wakfu_server.progression import level_xp
+
+        with self.store.connection() as db:
+            db.execute("UPDATE characters SET level=18 WHERE id=%s", (self.right_char,))
+            db.execute(
+                "UPDATE character_progression SET xp=%s WHERE character_id=%s",
+                (level_xp(18), self.right_char),
+            )
+        current = health_store.initialize(
+            self.store, self.right_account, self.right_gen, self.right_char
+        )
+        if wound is None:
+            wound = current["max_hp"] + 5
+        entry_hp = max(1, current["max_hp"] - wound)
+        with self.store.connection() as db:
+            if wound < current["max_hp"]:
+                health_policy.apply(db, current, entry_hp)
+            else:
+                health_policy.apply_damage(db, current, wound, False)
+            current = self.store.character(self.right_account, self.right_char, db)
+            db.execute(
+                "UPDATE combat_fight_participants SET entry_hp=%s,entry_max_hp=%s,"
+                "entry_hp_damage=%s,entry_health_dead=%s "
+                "WHERE fight_id=%s AND character_id=%s",
+                (
+                    current["hp"],
+                    current["max_hp"],
+                    current["hp_damage"],
+                    current["health_dead"],
+                    self.fight_id,
+                    self.right_char,
+                ),
+            )
+        entry_character = deepcopy(current)
+        actor = self.fight.actors[self.right_char]
+        actor.max_hp = current["max_hp"]
+        actor.hp = current["hp"]
+        actor.hp -= combat_damage
+        self.fight.phase = "finished"
+        self.fight.winner = 0
+
+        def settle(db, members, fight):
+            results = []
+            for member in members:
+                xp = (
+                    level_xp(20) - level_xp(18)
+                    if member["character_id"] == self.right_char
+                    else 0
+                )
+                results.append(
+                    award_shared_member(
+                        self.store,
+                        db,
+                        member["account_id"],
+                        member["session_generation"],
+                        member["character_id"],
+                        fight,
+                        Policy(xp=xp),
+                    )
+                )
+            return results
+
+        rewards = settle_shared(
+            self.store,
+            self.left_account,
+            self.left_gen,
+            self.left_char,
+            self.fight,
+            settle,
+        )
+        self.assertEqual(len(rewards), 2)
+        with self.store.connection() as db:
+            receipt = db.execute(
+                "SELECT start_level,end_level FROM fight_rewards "
+                "WHERE fight_id=%s AND character_id=%s",
+                (self.fight_id, self.right_char),
+            ).fetchone()
+        self.assertEqual((receipt["start_level"], receipt["end_level"]), (18, 20))
+        return entry_character
+
+    def test_settled_peer_levelup_accepts_frozen_entry_health_on_return(self):
+        from wakfu_server.combat_health import persist
+
+        entry = self._settled_levelup_peer()
+        result = persist(
+            self.store, self.right_account, self.right_gen, entry, self.fight
+        )
+        self.assertTrue(result["applied"])
+        self.assertEqual(result["character"]["level"], 20)
+        self.assertEqual(result["character"]["hp_damage"], entry["hp_damage"] + 12)
+        self.assertEqual(
+            result["character"]["hp"],
+            result["character"]["max_hp"] - entry["hp_damage"] - 12,
+        )
+
+    def test_settled_peer_levelup_accepts_fresh_canonical_health_on_return(self):
+        from wakfu_server.combat_health import persist
+
+        self._settled_levelup_peer()
+        canonical = self.store.character(self.right_account, self.right_char)
+        result = persist(
+            self.store, self.right_account, self.right_gen, canonical, self.fight
+        )
+        self.assertTrue(result["applied"])
+        self.assertEqual(result["character"]["level"], 20)
+        self.assertEqual(result["character"]["hp_damage"], canonical["hp_damage"] + 12)
+
+    def test_settled_peer_levelup_preserves_hidden_wounds_across_maximum_change(self):
+        from wakfu_server.combat_health import persist
+
+        entry = self._settled_levelup_peer(wound=None, combat_damage=0)
+        result = persist(
+            self.store, self.right_account, self.right_gen, entry, self.fight
+        )
+        self.assertTrue(result["applied"])
+        self.assertGreater(result["character"]["max_hp"], entry["max_hp"])
+        self.assertEqual(result["character"]["hp_damage"], entry["hp_damage"])
+
+    def test_settled_peer_levelup_rejects_unattested_health_and_stale_lease(self):
+        from copy import deepcopy
+        from wakfu_server.combat_health import persist
+
+        entry = self._settled_levelup_peer()
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET hp_damage=hp_damage+1 WHERE id=%s",
+                (self.right_char,),
+            )
+        with self.assertRaisesRegex(ValueError, "Stale fight exit HP"):
+            persist(self.store, self.right_account, self.right_gen, entry, self.fight)
+
+        # Restore the attested values, then demonstrate that a replacement
+        # owner lease cannot reuse the old participant's health receipt.
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET hp_damage=hp_damage-1 WHERE id=%s",
+                (self.right_char,),
+            )
+            db.execute("SAVEPOINT missing_reward_receipt")
+            db.execute(
+                "DELETE FROM fight_rewards WHERE fight_id=%s AND character_id=%s",
+                (self.fight_id, self.right_char),
+            )
+            with self.assertRaisesRegex(ValueError, "Stale fight exit HP"):
+                persist(
+                    self.store,
+                    self.right_account,
+                    self.right_gen,
+                    entry,
+                    self.fight,
+                    db=db,
+                )
+            db.execute("ROLLBACK TO SAVEPOINT missing_reward_receipt")
+            db.execute("RELEASE SAVEPOINT missing_reward_receipt")
+        replacement = self.store.begin_session(self.right_account)
+        self.store.select_character(self.right_account, replacement, self.right_char)
+        with self.assertRaisesRegex(ValueError, "Sesión o personaje inválidos"):
+            persist(
+                self.store,
+                self.right_account,
+                self.right_gen,
+                deepcopy(entry),
+                self.fight,
+            )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_health_exits "
+                    "WHERE fight_id=%s AND character_id=%s",
+                    (self.fight_id, self.right_char),
+                ).fetchone()["n"],
+                0,
+            )
+
+    def test_settled_peer_levelup_encoder_failure_rolls_back_and_duplicate_is_idempotent(
+        self,
+    ):
+        import struct
+        from unittest.mock import patch
+        from wakfu_server.combat_lifecycle import return_to_world
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+
+        entry = self._settled_levelup_peer()
+        body = struct.pack(">iB", self.fight_id, 0)
+        runtime = RuntimeMessages(self.fight)
+        before = self.store.character(self.right_account, self.right_char)
+        with patch(
+            "wakfu_server.combat_lifecycle.outside_progression",
+            side_effect=ValueError("injected progression encoder failure"),
+        ):
+            with self.assertRaisesRegex(
+                ValueError, "injected progression encoder failure"
+            ):
+                return_to_world(
+                    self.store,
+                    self.right_account,
+                    self.right_gen,
+                    entry,
+                    runtime,
+                    body,
+                    wp=6,
+                )
+        self.assertEqual(
+            self.store.character(self.right_account, self.right_char)["hp"],
+            before["hp"],
+        )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_health_exits "
+                    "WHERE fight_id=%s AND character_id=%s",
+                    (self.fight_id, self.right_char),
+                ).fetchone()["n"],
+                0,
+            )
+        result = return_to_world(
+            self.store,
+            self.right_account,
+            self.right_gen,
+            entry,
+            runtime,
+            body,
+            wp=6,
+        )
+        self.assertTrue(result["applied"])
+        current = self.store.character(self.right_account, self.right_char)
+        with self.store.connection() as db:
+            from wakfu_server import health_policy
+
+            health_policy.apply(db, current, 7)
+        duplicate = return_to_world(
+            self.store,
+            self.right_account,
+            self.right_gen,
+            entry,
+            runtime,
+            body,
+            wp=6,
+        )
+        self.assertFalse(duplicate["applied"])
+        self.assertEqual(duplicate["character"]["hp"], 7)
+
     def test_join_is_transactional_same_team_placement_only_and_idempotent(self):
         with self.store.connection() as db:
             self.assertFalse(
@@ -1183,8 +1431,10 @@ class SharedFightStorageTests(PostgresCase):
         adapter.publish(left, self.fight_id, [(12502, b"shared-turn")])
         left_batches = adapter.drain(left, self.fight_id)
         right_batches = adapter.drain(right, self.fight_id)
+        # Placement publishes authoritative coordinates (13652); 13026 is
+        # the distinct combat roster refresh, not this admission snapshot.
         self.assertEqual(
-            [packet[0] for packet in left_batches[0].packets], [12436, 13091, 13026]
+            [packet[0] for packet in left_batches[0].packets], [12436, 13091, 13652]
         )
         # Admission freezes regeneration for the actual joining actor on both
         # transports before publishing its appearance/placement.

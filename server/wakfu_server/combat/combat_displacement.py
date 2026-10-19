@@ -911,29 +911,50 @@ class NativeDisplacementHandler:
             and self.event_lifecycle is not None
         ):
             self.event_lifecycle.register_applied(effect, invocation, uid)
-        if self.area_events is not None:
-            # Forced relocation must notify Qs just like walking and throwing.
-            # Freeze the committed transitions before callbacks: a trap may
-            # displace another fighter recursively. Include carried partners
-            # moved by the shared QI relocation, without replaying their moves.
-            transitions = tuple(
-                (identity, before, tuple(self.fight.actors[identity].position))
-                for identity, before in positions_before.items()
-                if before != tuple(self.fight.actors[identity].position)
-            )
-            for identity, before, after in transitions:
-                self.area_events.movement(identity, from_cell=before, to_cell=after)
+        collision_scope = None
         if collision is not None:
-            displaced, collider, loss_ap = collision
-            self.collision_executor(
-                effect,
-                invocation,
-                uid=uid,
-                value=value,
-                displaced_id=displaced,
-                collider_id=collider,
-                loss_ap=loss_ap,
-            )
+            collider = collision[1]
+            if (
+                self.area_events is not None
+                and collider is not None
+                and collider not in self.fight.actors
+                and collider in getattr(self.fight, "native_effect_areas", {})
+            ):
+                # Qs movement callbacks can unregister and prune the actual Qq
+                # selected as the collision PV. Preserve that validated pointer
+                # through eVI execution, while its spatial membership remains
+                # removed and all later lookups still fail closed.
+                from .combat_state_managers import selected_area_pv_scope
+
+                collision_scope = selected_area_pv_scope(self.fight, (collider,))
+        if collision_scope is None:
+            from contextlib import nullcontext
+
+            collision_scope = nullcontext()
+        with collision_scope:
+            if self.area_events is not None:
+                # Forced relocation must notify Qs just like walking and
+                # throwing. Freeze committed transitions before callbacks: a
+                # trap may displace another fighter recursively. Include
+                # carried partners moved by the shared QI relocation.
+                transitions = tuple(
+                    (identity, before, tuple(self.fight.actors[identity].position))
+                    for identity, before in positions_before.items()
+                    if before != tuple(self.fight.actors[identity].position)
+                )
+                for identity, before, after in transitions:
+                    self.area_events.movement(identity, from_cell=before, to_cell=after)
+            if collision is not None:
+                displaced, collider, loss_ap = collision
+                self.collision_executor(
+                    effect,
+                    invocation,
+                    uid=uid,
+                    value=value,
+                    displaced_id=displaced,
+                    collider_id=collider,
+                    loss_ap=loss_ap,
+                )
         self._finish_events(effect, invocation, uid, value)
         if moved and self.event_lifecycle is not None:
             self.event_lifecycle.displacement_completed(

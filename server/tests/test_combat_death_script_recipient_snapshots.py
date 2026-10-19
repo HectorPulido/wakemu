@@ -54,7 +54,7 @@ class DeathScriptRecipientSnapshotTests(unittest.TestCase):
         owner = owned_snapshot(
             fight,
             shared,
-            SimpleNamespace(account_id=1),
+            SimpleNamespace(account_id=1, character_id=5),
             actor_payload=lambda state, actor, session: spectator_fixture.actor_payload(
                 state, actor
             ),

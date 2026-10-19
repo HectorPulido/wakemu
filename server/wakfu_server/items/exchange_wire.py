@@ -49,6 +49,16 @@ def request(opcode, body):
         if len(set(uids)) != count:
             raise ValueError("Duplicate exchange withdrawal identity")
         return {"exchange_id": _identity(exchange_id), "uids": uids}
+    if opcode == 12510:
+        if len(body) < 12:
+            raise ValueError("Invalid bulk exchange offer length")
+        exchange_id, count = struct.unpack_from(">qi", body)
+        if count <= 0 or count > 128 or len(body) != 12 + count * 8:
+            raise ValueError("Invalid bulk exchange offer count")
+        uids = [_identity(entry[0]) for entry in struct.iter_unpack(">q", body[12:])]
+        if len(set(uids)) != count:
+            raise ValueError("Duplicate bulk exchange offer identity")
+        return {"exchange_id": _identity(exchange_id), "uids": uids}
     if opcode == 12997:
         if len(body) != 9:
             raise ValueError("Invalid exchange result request length")

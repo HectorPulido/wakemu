@@ -593,11 +593,18 @@ class NativeProvider:
         actor = preview.current
         origin = actor.position
         path = [tuple(c) for c in action["path"]]
-        preview.server_move(actor.id, path)
+        event = preview.server_move(actor.id, path)
         before = origin if len(path) == 1 else path[-2]
         actor.direction = DIRECTIONS[(path[-1][0] - before[0], path[-1][1] - before[1])]
         packets = (
-            movement(fight.id, action_id, actor.id, [origin, *path], actor.direction),
+            movement(
+                fight.id,
+                action_id,
+                actor.id,
+                [origin, *path],
+                actor.direction,
+                on_rails=event.get("on_rails") is True,
+            ),
         )
         if self.area_provider is not None:
             preview, callbacks = self.area_provider(

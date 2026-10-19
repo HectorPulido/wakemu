@@ -116,7 +116,7 @@ def enter(
     source_allowed,
     resolve_destination,
     seed=None,
-    allowed_accounts=None
+    allowed_accounts=None,
 ):
     """Return run and moved session rows; map packet delivery remains caller-owned."""
     if not callable(source_allowed) or not callable(resolve_destination):
@@ -138,13 +138,20 @@ def enter(
             raise ValueError("Party changed outside the position barrier scope")
         owner = next(r for r in rows if r["id"] == character_id)
         for row in rows:
-            if (
-                row["map_id"] != map_id
-                or row["instance_id"] != owner["instance_id"]
-                or row["level"] < selected["level"]
-                or source_allowed(row, dict(source)) is not True
-            ):
-                raise ValueError("Rift member is not eligible at the native portal")
+            member = f"{row.get('name') or row['id']} (id {row['id']})"
+            if row["map_id"] != map_id or row["instance_id"] != owner["instance_id"]:
+                raise ValueError(
+                    f"Rift member {member} is not eligible: different portal map or instance"
+                )
+            if row["level"] < selected["level"]:
+                raise ValueError(
+                    f"Rift member {member} is not eligible: level {row['level']}; "
+                    f"requires level {selected['level']}"
+                )
+            if source_allowed(row, dict(source)) is not True:
+                raise ValueError(
+                    f"Rift member {member} is not eligible: move closer to the native portal"
+                )
         run = rift_runtime.enter(
             db,
             selected["wave_id"],

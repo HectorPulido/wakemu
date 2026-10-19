@@ -14,7 +14,14 @@ _CATALOG = protocol_catalog.load(DATA_ROOT / "native-generic-teleporters.json")
 _SOURCES = {(row["map_id"], row["id"]): row for row in _CATALOG}
 
 
-def resolve(character, body, *, source_allowed):
+def resolve(
+    character,
+    body,
+    *,
+    source_allowed,
+    criterion_evaluator=None,
+    allow_item_payment=False
+):
     """Resolve cpJ12296; source_allowed(character,source) is mandatory.
 
     No arbitrary interaction radius is introduced here. The callback must check
@@ -37,9 +44,18 @@ def resolve(character, body, *, source_allowed):
     if destination is None:
         raise ValueError("Unknown native teleporter destination")
     if destination["criterion"].strip():
-        raise ValueError("Unsupported native teleporter access criterion")
+        if criterion_evaluator is None:
+            raise ValueError("Unsupported native teleporter access criterion")
+        if (
+            criterion_evaluator(
+                destination["criterion"], character, destination["map_id"]
+            )
+            is not True
+        ):
+            raise ValueError("Native teleporter access criterion is not met")
     if destination["cyW"] > 0 and destination["item_reference"] > 0:
-        raise ValueError("Native teleporter requires item transaction")
+        if allow_item_payment is not True:
+            raise ValueError("Native teleporter requires item transaction")
     if destination["cyX"] != 0:
         raise ValueError("Native teleporter requires kama transaction")
     # cvd/cyY map to flF.gev/gew: cXI.bxQ uses them only to hide
@@ -49,7 +65,7 @@ def resolve(character, body, *, source_allowed):
         raise ValueError("Unsupported native special teleporter context")
     if not destination["native_altitude_walkable"]:
         raise ValueError("Native destination altitude is not verified walkable")
-    return {
+    result = {
         "source_map": source["map_id"],
         "interactive_element_id": identity,
         "destination_id": destination_id,
@@ -60,7 +76,13 @@ def resolve(character, body, *, source_allowed):
         },
         "direction": destination["direction"],
         "native_definition_id": source["definition_id"],
+        "criterion": destination["criterion"],
     }
+    if destination["cyW"] > 0 and destination["item_reference"] > 0:
+        result["item_payment"] = dict(
+            reference=destination["item_reference"], quantity=destination["cyW"]
+        )
+    return result
 
 
 def source(map_id, identity):

@@ -139,6 +139,112 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
                 self.native,
             )
 
+    def test_generated_native_boss_is_reserved_only_for_final_room(self):
+        pool = (123, 124, 125, 785, 2157)
+        native = [
+            {
+                "ref": ref,
+                "name": str(ref),
+                "min_level": 8,
+                "max_level": 28,
+                "raw_visual_arrays": {"csc": [43] if ref == 2157 else []},
+            }
+            for ref in pool
+        ]
+        definition = {
+            **self.definition,
+            "type": "DUNGEON_4_ROOMS",
+            "raw_cno": list(pool),
+        }
+        result = draft(self.plan, definition, native)
+        self.assertEqual(result["boss_references"], [2157])
+        self.assertEqual(len(result["rooms"]), 4)
+        for room in result["rooms"][:-1]:
+            self.assertNotIn(2157, [row["ref_id"] for row in room["monsters"]])
+            self.assertTrue(all(row["role"] == "monster" for row in room["monsters"]))
+        final = result["rooms"][-1]["monsters"]
+        self.assertEqual(sum(row["count"] for row in final if row["ref_id"] == 2157), 1)
+        self.assertEqual(
+            sum(row["role"] == "boss" for row in final),
+            1,
+        )
+
+    def test_malformed_boolean_native_boss_flag_is_not_inferred(self):
+        native = [
+            {
+                "ref": 123,
+                "name": "123",
+                "min_level": 8,
+                "max_level": 18,
+                "raw_visual_arrays": {"csc": [43, True]},
+            }
+        ]
+        result = draft(
+            self.plan,
+            {**self.definition, "type": "DUNGEON_2_ROOMS", "raw_cno": [123]},
+            native,
+        )
+        self.assertEqual(result["boss_references"], [])
+        self.assertTrue(
+            all(
+                row["role"] == "monster"
+                for room in result["rooms"]
+                for row in room["monsters"]
+            )
+        )
+
+    def test_explicit_boss_selection_excludes_other_native_bosses_from_slots(self):
+        pool = (123, 124, 2157)
+        native = [
+            {
+                "ref": ref,
+                "name": str(ref),
+                "min_level": 8,
+                "max_level": 28,
+                "raw_visual_arrays": {"csc": [43] if ref in (123, 2157) else []},
+            }
+            for ref in pool
+        ]
+        result = draft(
+            self.plan,
+            {**self.definition, "type": "DUNGEON_3_ROOMS", "raw_cno": list(pool)},
+            native,
+            boss_references=(123,),
+        )
+        self.assertEqual(result["boss_references"], [123])
+        self.assertTrue(
+            all(
+                2157 not in [row["ref_id"] for row in room["monsters"]]
+                for room in result["rooms"]
+            )
+        )
+        self.assertEqual(
+            sum(
+                row["count"]
+                for row in result["rooms"][-1]["monsters"]
+                if row["ref_id"] == 123
+            ),
+            1,
+        )
+
+    def test_multiple_native_bosses_require_explicit_final_boss(self):
+        native = [
+            {
+                "ref": ref,
+                "name": str(ref),
+                "min_level": 8,
+                "max_level": 28,
+                "raw_visual_arrays": {"csc": [43]},
+            }
+            for ref in (123, 2157)
+        ]
+        with self.assertRaisesRegex(ValueError, "Multiple native bosses"):
+            draft(
+                self.plan,
+                {**self.definition, "type": "DUNGEON_2_ROOMS", "raw_cno": [123, 2157]},
+                native,
+            )
+
     def test_known_ultimate_quantity_is_preserved_without_synthetic_padding(self):
         room = {
             "order": 1,
@@ -231,3 +337,115 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
             )
             self.assertEqual(result["transport_npc_capacity"], 121)
             self.assertEqual(result["generation_target"], 8)
+
+    def test_native_arch_and_dominant_roles_never_fill_ordinary_generated_slots(self):
+        native = [
+            {"ref": 123, "name": "regular", "min_level": 1, "max_level": 10},
+            {
+                "ref": 124,
+                "name": "arch",
+                "min_level": 1,
+                "max_level": 10,
+                "raw_visual_arrays": {"csc": [45]},
+            },
+            {
+                "ref": 125,
+                "name": "dominant",
+                "min_level": 1,
+                "max_level": 10,
+                "raw_visual_arrays": {"csc": [115]},
+            },
+        ]
+        result = draft(
+            self.plan,
+            {**self.definition, "type": "DUNGEON_2_ROOMS", "raw_cno": [123, 124, 125]},
+            native,
+        )
+        self.assertEqual(result["boss_references"], [])
+        self.assertTrue(
+            all(
+                row["ref_id"] == 123
+                for room in result["rooms"]
+                for row in room["monsters"]
+            )
+        )
+        with self.assertRaisesRegex(ValueError, "non-boss species"):
+            draft(
+                self.plan,
+                {**self.definition, "type": "DUNGEON_2_ROOMS", "raw_cno": [124, 125]},
+                native,
+            )
+
+    def test_per_room_generation_targets_preserve_unequal_room_counts(self):
+        result = draft(
+            self.plan,
+            {**self.definition, "type": "DUNGEON_3_ROOMS"},
+            self.native,
+            generation_targets={1: 2, 2: 5, 3: 7},
+        )
+        self.assertEqual(
+            [sum(row["count"] for row in room["monsters"]) for room in result["rooms"]],
+            [2, 5, 7],
+        )
+        for invalid in ({True: 2}, {1: True}, {4: 2}, {1: 0}):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                draft(
+                    self.plan,
+                    {**self.definition, "type": "DUNGEON_3_ROOMS"},
+                    self.native,
+                    generation_targets=invalid,
+                )
+
+    def test_multiple_native_bosses_infer_only_unique_ordinary_family_match(self):
+        native = [
+            {
+                "ref": 123,
+                "name": "regular",
+                "family_id": 1,
+                "min_level": 1,
+                "max_level": 10,
+                "raw_visual_arrays": {"csc": []},
+            },
+            {
+                "ref": 124,
+                "name": "matching boss",
+                "family_id": 1,
+                "min_level": 1,
+                "max_level": 10,
+                "raw_visual_arrays": {"csc": [43]},
+            },
+            {
+                "ref": 125,
+                "name": "guest boss",
+                "family_id": 2,
+                "min_level": 1,
+                "max_level": 10,
+                "raw_visual_arrays": {"csc": [43]},
+            },
+        ]
+        definition = {
+            **self.definition,
+            "type": "DUNGEON_2_ROOMS",
+            "raw_cno": [123, 124, 125],
+        }
+        result = draft(self.plan, definition, native)
+        self.assertEqual(result["boss_references"], [124])
+        self.assertNotIn(
+            125, [row["ref_id"] for room in result["rooms"] for row in room["monsters"]]
+        )
+        with self.assertRaisesRegex(ValueError, "Multiple native bosses"):
+            draft(
+                self.plan,
+                definition,
+                [native[0], native[1], {**native[2], "family_id": 1}],
+            )
+        with self.assertRaisesRegex(ValueError, "Multiple native bosses"):
+            draft(
+                self.plan,
+                definition,
+                [
+                    {**native[0], "family_id": None},
+                    native[1],
+                    {**native[2], "family_id": 3},
+                ],
+            )

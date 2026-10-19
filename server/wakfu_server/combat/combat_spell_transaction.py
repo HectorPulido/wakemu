@@ -18,8 +18,8 @@ from .combat_spells import cast_animation, cast_notification
 from .combat_geometry_snapshot import source_snapshot
 from .combat_active_spell import active_spell_scope
 from .combat_cast_facing import (
+    begin_cast_facing,
     finish_mirrored_cast_facing,
-    mirror_cast_facing,
 )
 from .combat_transaction_rng import transactional_spell_rng
 from .combat_cast_events import cast_event_scope
@@ -115,33 +115,63 @@ def _prepare_spell_transaction(
         normal_execution_origin,
     )
 
-    wp_remaining = wp_current - plan["costs"]["wp"]
-    if caster.effect_stats is not None and 4 in caster.effect_stats:
-        if caster.effect_stats[4] != wp_current:
-            raise ValueError("WP snapshot disagrees with authoritative resource")
-        caster.effect_stats[4] = wp_remaining
-    from .combat_resource_pa_notifications import notify_resource_pa
+    if (
+        caster.effect_stats is not None
+        and 4 in caster.effect_stats
+        and caster.effect_stats[4] != wp_current
+    ):
+        raise ValueError("WP snapshot disagrees with authoritative resource")
+    wp_remaining = wp_current
+    payment_done = False
 
-    if getattr(caster, "effect_resource_raw_currents", None) is not None:
-        from .combat_resource_pa_notifications import shift_resource_current
+    def pay_resources():
+        nonlocal wp_remaining, payment_done
+        if payment_done:
+            raise ValueError("Owned spell resources were already paid")
+        # Admission uses the original snapshot;1024 subscriptions may then
+        # change live resources. Pay the admitted cost once from that balance.
+        available_wp = (
+            caster.effect_stats[4]
+            if caster.effect_stats is not None and 4 in caster.effect_stats
+            else wp_current
+        )
+        if (
+            caster.ap < plan["costs"]["ap"]
+            or caster.mp < plan["costs"]["mp"]
+            or available_wp < plan["costs"]["wp"]
+        ):
+            raise ValueError("Spell resources changed before owned payment")
+        wp_remaining = available_wp - plan["costs"]["wp"]
+        if caster.effect_stats is not None and 4 in caster.effect_stats:
+            caster.effect_stats[4] = wp_remaining
+        from .combat_resource_pa_notifications import notify_resource_pa
 
-        shift_resource_current(preview, caster, 2, plan["costs"]["ap"], subtract=True)
-        shift_resource_current(preview, caster, 3, plan["costs"]["mp"], subtract=True)
-    else:
-        before_ap = caster.ap
-        caster.ap -= plan["costs"]["ap"]
-        if caster.effect_stats is not None and 2 in caster.effect_stats:
-            caster.effect_stats[2] = caster.ap
-        notify_resource_pa(preview, caster, 2, before_current=before_ap)
-        caster.mp -= plan["costs"]["mp"]
-        if caster.effect_stats is not None and 3 in caster.effect_stats:
-            caster.effect_stats[3] = caster.mp
-    from .combat_spell_resource_costs import pay_extra_resources
+        if getattr(caster, "effect_resource_raw_currents", None) is not None:
+            from .combat_resource_pa_notifications import shift_resource_current
 
-    plan["extra_resource_payment"] = pay_extra_resources(
-        caster, plan["costs"]["extra_resource_deltas"], fight=preview
-    )
-    mirror_cast_facing(caster, plan, fight=preview)
+            shift_resource_current(
+                preview, caster, 2, plan["costs"]["ap"], subtract=True
+            )
+            shift_resource_current(
+                preview, caster, 3, plan["costs"]["mp"], subtract=True
+            )
+        else:
+            before_ap = caster.ap
+            caster.ap -= plan["costs"]["ap"]
+            if caster.effect_stats is not None and 2 in caster.effect_stats:
+                caster.effect_stats[2] = caster.ap
+            notify_resource_pa(preview, caster, 2, before_current=before_ap)
+            caster.mp -= plan["costs"]["mp"]
+            if caster.effect_stats is not None and 3 in caster.effect_stats:
+                caster.effect_stats[3] = caster.mp
+        from .combat_spell_resource_costs import pay_extra_resources
+
+        plan["extra_resource_payment"] = pay_extra_resources(
+            caster, plan["costs"]["extra_resource_deltas"], fight=preview
+        )
+        payment_done = True
+
+    facing_packets = begin_cast_facing(caster, plan, fight=preview, action_id=action_id)
     from .combat_ai_cast_history import record_authorized_cast
 
     record_authorized_cast(preview, caster.id, plan["spell_id"])
@@ -165,6 +195,7 @@ def _prepare_spell_transaction(
         active_scope=active_spell_scope,
         event_scope=cast_event_scope,
         roots_source=lambda: plan["effect_ids"],
+        pay_resources=pay_resources,
     )
     finish_mirrored_cast_facing(caster, plan, fight=preview)
     for opcode, payload in effect_packets:
@@ -178,6 +209,7 @@ def _prepare_spell_transaction(
     # snapshot remains the owner/deck authority for the ordinary player route.
     cast_source = dict(character, id=caster.id)
     packets = (
+        *facing_packets,
         (
             12588,
             cast_animation(

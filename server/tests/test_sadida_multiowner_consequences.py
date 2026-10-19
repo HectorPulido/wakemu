@@ -234,6 +234,12 @@ class SadidaMultiownerConsequencesTests(unittest.TestCase):
         data = self.fixture()
         data, _ = self.cast(data, 7, 926, data[0].actors[8].position)
         vudul = self.summon(data[0], 7, 3745)
+        self.reach(*data[:4], vudul.id, data[4])
+        before_position, before_mp = vudul.position, vudul.mp
+        data[0].move(vudul.owner_id, vudul.id, [(-7, -8, -1)])
+        self.assertEqual(vudul.position, (-7, -8, -1))
+        self.assertEqual(vudul.mp, before_mp - 1)
+        self.assertNotEqual(vudul.position, before_position)
         data, _ = self.cast(data, 8, 8137, (-6, -5, -1))
         data, _ = self.cast(data, 8, 8137, (-6, -5, -1))
         foreign_tree = self.summon(data[0], 8, 5577)
@@ -242,8 +248,13 @@ class SadidaMultiownerConsequencesTests(unittest.TestCase):
         self.assertGreater(
             abs(foreign_tree.position[0] + 7) + abs(foreign_tree.position[1] + 7), 2
         )
-        data, _ = self.cast(data, 7, 8137, (-7, -7, -1))
-        data, _ = self.cast(data, 7, 8137, (-7, -7, -1))
+        seed_cell = (-7, -7, -1)
+        self.assertFalse(
+            any(a.hp > 0 and a.position == seed_cell for a in data[0].actors.values())
+        )
+        data, _ = self.cast(data, 7, 8137, seed_cell)
+        data, _ = self.cast(data, 7, 8137, seed_cell)
+        self.assertGreater(data[0].actors[vudul.id].hp, 0)
         tree = self.summon(data[0], 7, 5577)
         self.reach(*data[:4], vudul.id, data[4])
         owner = data[0].actors[7]

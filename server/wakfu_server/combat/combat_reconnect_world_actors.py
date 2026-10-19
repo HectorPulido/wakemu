@@ -1,4 +1,4 @@
-"""Restore ordinary PvE NPC objects before an owned combat bootstrap.
+"""Restore ordinary world objects before an owned combat bootstrap.
 
 Exploration snapshots exclude claimed monster groups. A fresh client therefore
 needs their native appearances before cvb can resolve combat participants.
@@ -66,3 +66,44 @@ def ordinary_npc_appearances(fight, shared):
             )
         )
     return ((12608, spawn_group(members, group_id=group_key[2])),)
+
+
+def ordinary_player_appearances(
+    fight, shared, session, *, character_source, serializer
+):
+    """Hydrate missing ordinary player identity before combat-only myE data.
+
+    The selected character already owns its fresh world bootstrap. Other
+    players and heroes need full world name/appearance/equipment, including
+    reversible OFF_PLAY corpses. Native summons own their creation payloads.
+    """
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    hidden = hidden_snapshot_actor_ids(fight)
+    registrations = getattr(fight, "native_summon_registrations", {})
+    actors = [
+        actor
+        for actor in fight.actors.values()
+        if actor.controlled
+        and actor.id != session.character_id
+        and actor.id not in registrations
+        and actor.id not in hidden
+        and not getattr(actor, "pve_withdrawn", False)
+    ]
+    if not actors:
+        return ()
+    if not callable(character_source) or not callable(serializer):
+        raise ValueError("Reconnect lacks full player appearance authority")
+    packets = []
+    for actor in actors:
+        if type(actor.owner_id) is not int or actor.owner_id <= 0:
+            raise ValueError("Reconnect ordinary player has no account owner")
+        character = character_source(actor.owner_id, actor.id)
+        if (
+            not isinstance(character, dict)
+            or character.get("id") != actor.id
+            or character.get("account_id") != actor.owner_id
+        ):
+            raise ValueError("Reconnect player appearance source is foreign")
+        packets.append(serializer(character))
+    return tuple(packets)

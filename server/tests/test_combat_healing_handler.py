@@ -72,6 +72,38 @@ class HealingHandlerTests(unittest.TestCase):
         self.assertEqual(values, [7])
         self.assertEqual(_identity_fields(self.packets[0][1][19:])[4], 7)
 
+    def test_positive_heal_normalizes_overmaximum_raw_hp_with_signed_actual(self):
+        from dataclasses import replace
+        from wakfu_server.combat_hp_raw import SOURCE, hp_raw_current
+        from wakfu_server.combat_runner_callbacks import runner_value_scope
+        from wakfu_server.wire import proto_fields
+
+        target = self.fight.actors[-7]
+        target.hp = target.max_hp = 60
+        target.effect_stats.update({1: 60, 92: 0})
+        target.effect_minima = {1: 0}
+        target.effect_maxima.update({1: 60, 92: 0})
+        target.effect_hp_raw_current = 125
+        target.native_hp_raw_current_source = SOURCE
+        self.context = replace(self.context, resistance_enabled=False)
+        actual_values = []
+        with runner_value_scope(
+            lambda invocation, value: actual_values.append(value)
+        ) as token:
+            invocation = replace(self.invocation, native_value_scope=token)
+            self.assertTrue(
+                self.handler(dict(self.effect, parameters=[5, 0]), {}, invocation)
+            )
+        self.assertEqual(
+            (target.hp, target.max_hp, hp_raw_current(target)), (60, 60, 60)
+        )
+        self.assertEqual(actual_values, [-65])
+        encoded = next(
+            value for tag, value in proto_fields(self.packets[0][1][19:]) if tag == 32
+        )
+        self.assertEqual((encoded + (1 << 31)) % (1 << 32) - (1 << 31), -65)
+        self.assertEqual(target.effect_stats[32], 0)
+
     def test_light_healing_uses_highest_elemental_mastery_and_common_consumption(self):
         source = self.fight.actors[7]
         source.effect_stats.update({21: 100, 22: 300, 109: 10000})

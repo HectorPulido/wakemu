@@ -23,7 +23,15 @@ def _reachable(adjacency, origin, blocked, budget):
     return reached
 
 
-def decide(actors, actor_id, adjacency, *, after_attack=True, capability_records=None):
+def decide(
+    actors,
+    actor_id,
+    adjacency,
+    *,
+    after_attack=True,
+    capability_records=None,
+    attacked_targets=()
+):
     """Return a fresh team assignment from this exact forecast's roster.
 
     The 35% effective-health reserve is a bounded heuristic, not a damage
@@ -37,7 +45,38 @@ def decide(actors, actor_id, adjacency, *, after_attack=True, capability_records
     result["riskBasis"] = "effective_health_reserve_and_melee_topology_heuristic"
     if not after_attack:
         return result
-    result.update(mode="retreat", reason="no_living_allies")
+    effective_hp = actor["hp"] + max(0, actor.get("armor", 0))
+    enemies = [
+        other
+        for other in actors.values()
+        if other["team"] != actor["team"] and other["hp"] > 0
+    ]
+    primary = [other for other in enemies if other.get("registeredSummon") is not True]
+    origin = tuple(actor["position"])
+    # Actual damage against a surviving primary opponent preserves existing
+    # hit-and-run behavior at range without treating range hints as legality.
+    approach_without_contact = (
+        adjacency is not None
+        and actor["hp"] > 0
+        and effective_hp >= max(1, actor["max_hp"] * 0.35)
+        and enemies
+        and not any(other["id"] in attacked_targets for other in primary or enemies)
+        and not any(
+            tuple(other["position"]) in adjacency.get(origin, ())
+            or origin in adjacency.get(tuple(other["position"]), ())
+            for other in primary or enemies
+        )
+    )
+    # An attack on a disposable summon does not imply primary enemy contact.
+    # Still inspect useful protection before choosing this approach fallback.
+    result.update(
+        mode="approach" if approach_without_contact else "retreat",
+        reason=(
+            "surviving_primary_opponent_not_in_contact"
+            if approach_without_contact
+            else "no_living_allies"
+        ),
+    )
     allies = [
         other
         for other in actors.values()
@@ -47,7 +86,6 @@ def decide(actors, actor_id, adjacency, *, after_attack=True, capability_records
     ]
     if not allies:
         return result
-    effective_hp = actor["hp"] + max(0, actor.get("armor", 0))
     if actor["hp"] <= 0 or effective_hp < max(1, actor["max_hp"] * 0.35):
         return dict(result, reason="insufficient_effective_health")
     if adjacency is None:
@@ -124,10 +162,25 @@ def decide(actors, actor_id, adjacency, *, after_attack=True, capability_records
             ),
             holdPreference=2.0 + 0.5 * (protected_value - own_value),
         )
-    return dict(result, reason="holding_does_not_protect_allies")
+    return dict(
+        result,
+        reason=(
+            "surviving_primary_opponent_not_in_contact"
+            if approach_without_contact
+            else "holding_does_not_protect_allies"
+        ),
+    )
 
 
-def apply_position(metrics, actor_id, adjacency, *, after_attack):
+def apply_position(
+    metrics,
+    actor_id,
+    adjacency,
+    *,
+    after_attack,
+    allow_approach=True,
+    attacked_targets=()
+):
     """Apply a small positional preference without overriding native outcomes."""
     posture = decide(
         metrics["actors"],
@@ -135,11 +188,18 @@ def apply_position(metrics, actor_id, adjacency, *, after_attack):
         adjacency,
         after_attack=after_attack,
         capability_records=metrics.get("actorRepertoires"),
+        attacked_targets=attacked_targets,
     )
+    if after_attack and not allow_approach and posture["mode"] == "approach":
+        # Compare escape alternatives to a root contact/hold posture using
+        # the same retreat objective. Reconsider approach on the next decision.
+        posture = dict(posture, mode="retreat", reason="root_contact_escape")
     if posture["mode"] == "hold":
         # Above the bounded retreat distance bonus (1.5), below meaningful
         # damage/healing/rival losses. Never rewards a useless healthy blocker.
         metrics["position"] = posture["holdPreference"]
+    elif posture["mode"] == "approach":
+        metrics["position"] = metrics.get("approachPosition", metrics["position"])
     elif posture["mode"] == "retreat":
         # Callers compute metrics in retreat mode when after_attack is true.
         pass

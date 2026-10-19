@@ -24,6 +24,21 @@ def grid(size):
 
 
 class FriendlyDuelCompactArenaTests(unittest.TestCase):
+    @staticmethod
+    def _reachable(edges, start, blocked=()):
+        outgoing = {}
+        for source, target in edges:
+            outgoing.setdefault(source, set()).add(target)
+        blocked = set(blocked)
+        found = {start}
+        pending = [start]
+        while pending:
+            for target in outgoing.get(pending.pop(), ()):
+                if target not in blocked and target not in found:
+                    found.add(target)
+                    pending.append(target)
+        return found
+
     def select(self, size, origin, target):
         # Exercise real selection and placement; isolate published surface and
         # wire serialization boundaries, which have their own integration tests.
@@ -72,22 +87,50 @@ class FriendlyDuelCompactArenaTests(unittest.TestCase):
         self.assertEqual(result["participant_positions"], [(target, target)])
         self.assertLessEqual(len(result["validated_cells"]), 2500)
 
-    def test_adjacent_duelists_can_place_in_distant_distributed_regions(self):
+    def test_adjacent_duelists_keep_cohesive_native_formations_near_seeds(self):
         origin, target = (20, 20, 0), (21, 20, 0)
         result = self.select(45, origin, target)
         zones = result["placement_cells"]
-        centroids = [
-            tuple(sum(c[axis] for c in zones[t]) / len(zones[t]) for axis in (0, 1))
-            for t in (0, 1)
-        ]
-        self.assertGreater(sum(abs(a - b) for a, b in zip(*centroids)), 12)
-        for team in (0, 1):
-            self.assertGreater(
-                max(c[0] for c in zones[team]) - min(c[0] for c in zones[team]), 10
+        cells = result["validated_cells"]
+        edges = result["valid_edges"]
+        borders = result["native_border_cells"]
+
+        self.assertEqual(len(zones[0]), 12)
+        self.assertEqual(len(zones[1]), 12)
+        self.assertIn(origin, zones[0])
+        self.assertIn(target, zones[1])
+        self.assertFalse(zones[0] & zones[1])
+        self.assertFalse((zones[0] | zones[1]) & borders)
+        self.assertTrue((zones[0] | zones[1]) <= cells)
+        for team, seed in ((0, origin), (1, target)):
+            forward = self._reachable(edges, seed, borders)
+            reverse = self._reachable(
+                [(destination, source) for source, destination in edges], seed, borders
             )
-            self.assertGreater(
-                max(c[1] for c in zones[team]) - min(c[1] for c in zones[team]), 10
+            self.assertTrue(zones[team] <= forward)
+            self.assertTrue(zones[team] <= reverse)
+            self.assertLessEqual(
+                max(self._distance(edges, seed, cell, borders) for cell in zones[team]),
+                3,
             )
+
+    @staticmethod
+    def _distance(edges, start, destination, blocked=()):
+        outgoing = {}
+        for source, target in edges:
+            outgoing.setdefault(source, set()).add(target)
+        blocked = set(blocked)
+        distances = {start: 0}
+        pending = [start]
+        while pending:
+            current = pending.pop(0)
+            if current == destination:
+                return distances[current]
+            for neighbor in outgoing.get(current, ()):
+                if neighbor not in blocked and neighbor not in distances:
+                    distances[neighbor] = distances[current] + 1
+                    pending.append(neighbor)
+        raise AssertionError("Formation cell has no native route from its seed")
 
     def test_pve_initial_opponents_spread_on_native_opposing_side(self):
         from wakfu_server.combat_arena_selection import compact_encounter
@@ -111,29 +154,52 @@ class FriendlyDuelCompactArenaTests(unittest.TestCase):
                 abs(c[0] - origin[0]) + abs(c[1] - origin[1]) > 15 for c in destinations
             )
         )
-        self.assertGreater(
+        self.assertLessEqual(
             max(
                 abs(a[0] - b[0]) + abs(a[1] - b[1])
                 for a in destinations
                 for b in destinations
             ),
-            15,
+            4,
         )
+        forward = self._reachable(result["edges"], origin)
+        reverse = self._reachable(
+            [(destination, source) for source, destination in result["edges"]],
+            origin,
+        )
+        self.assertTrue(set(destinations) <= forward)
+        self.assertTrue(set(destinations) <= reverse)
 
-    def test_adjacent_duelists_start_at_opposite_native_interior_positions(self):
-        from wakfu_server.combat_placement_cells import opposing_starts
+    def test_adjacent_duelists_start_on_legal_mutually_reachable_interior_cells(self):
+        from wakfu_server.combat.combat_placement_cells import opposing_starts
 
-        result = self.select(45, (20, 20, 0), (21, 20, 0))
+        origin, target = (20, 20, 0), (21, 20, 0)
+        result = self.select(45, origin, target)
+        zones = result["placement_cells"]
+        edges = result["valid_edges"]
+        borders = result["native_border_cells"]
         starts = opposing_starts(
             result["validated_cells"],
-            result["valid_edges"],
-            result["placement_cells"],
-            avoid_cells=result["native_border_cells"],
+            edges,
+            zones,
+            avoid_cells=borders,
         )
-        self.assertGreater(sum(abs(a - b) for a, b in zip(starts[0], starts[1])), 30)
-        for team in (0, 1):
-            self.assertIn(starts[team], result["placement_cells"][team])
-            self.assertNotIn(starts[team], result["native_border_cells"])
+
+        self.assertEqual(len(zones[0]), 12)
+        self.assertEqual(len(zones[1]), 12)
+        self.assertIn(origin, zones[0])
+        self.assertIn(target, zones[1])
+        self.assertIn(starts[0], zones[0])
+        self.assertIn(starts[1], zones[1])
+        self.assertFalse(set(starts.values()) & borders)
+        forward = self._reachable(edges, starts[0], borders)
+        reverse = self._reachable(
+            [(destination, source) for source, destination in edges],
+            starts[0],
+            borders,
+        )
+        self.assertIn(starts[1], forward)
+        self.assertIn(starts[1], reverse)
 
     def test_budget_overflow_rejects_instead_of_relocating_player(self):
         with self.assertRaisesRegex(ValueError, "preserve participant positions"):

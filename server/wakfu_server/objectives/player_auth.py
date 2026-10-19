@@ -25,6 +25,25 @@ def validate_owner(db, identity):
     return dict(row)
 
 
+def lock_account_reference(db, identity):
+    """Fence an owned FK reference before an insert locks its selected lease."""
+    account_id, character_id = identity.get("account_id"), identity.get("character_id")
+    if any(
+        type(value) is not int or not 0 < value < 2**63
+        for value in (account_id, character_id)
+    ):
+        raise Unauthorized("Invalid player account or character")
+    if (
+        db.execute(
+            "SELECT a.id FROM accounts a JOIN characters c ON c.account_id=a.id "
+            "WHERE a.id=%s AND c.id=%s AND c.deleted_at IS NULL FOR KEY SHARE OF a",
+            (account_id, character_id),
+        ).fetchone()
+        is None
+    ):
+        raise Unauthorized("Character unavailable or foreign")
+
+
 def live_identity(db, identity, *, lock=False):
     """Resolve the current selected lease, without trusting an old link generation."""
     return db.execute(
@@ -87,6 +106,8 @@ def issue_embed(db, account_id, character_id):
 
 
 def issue_launch(db, account_id, character_id, generation):
+    # Token insertion needs its account FK before the selected-session lock.
+    lock_account_reference(db, dict(account_id=account_id, character_id=character_id))
     # In-game issuance still comes from the actual connected selected character.
     validate_identity(
         db,
@@ -107,6 +128,7 @@ def exchange_launch(db, token):
     identity = resolve_account(db, candidate)
     if candidate["kind"] == "launch":
         # Retain compatibility for already issued legacy one-use launch links.
+        lock_account_reference(db, candidate)
         validate_identity(db, candidate, lock=True)
         consumed = db.execute(
             "UPDATE objectives_player_tokens SET consumed_at=CURRENT_TIMESTAMP WHERE digest=%s AND kind='launch' AND consumed_at IS NULL AND expires_at>CURRENT_TIMESTAMP RETURNING digest",

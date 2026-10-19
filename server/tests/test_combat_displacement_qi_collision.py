@@ -144,6 +144,108 @@ class ForcedCollisionQITests(unittest.TestCase):
         )
         self.assertNotIn(91, self.fight.actors)
 
+    def test_collision_keeps_selected_native_pv_across_movement_retirement(self):
+        """Qs movement may retire the selected collider before eVI resolves it."""
+        from wakfu_server.combat_effect_area import native_effect_areas
+        from wakfu_server.combat_fake_fighter import fake_fighter_constructor
+        from wakfu_server.combat_collision_resource import (
+            NativeCollisionResourceExecutor,
+        )
+        from wakfu_server.combat_effect_area import remove_owned_hour_area
+        from wakfu_server.combat_state_ledger import StateLedger
+
+        definition = native_effect_areas()["1034"]
+        row = dict(
+            uid=91,
+            reference=1034,
+            owner_id=7,
+            cell=(2, 0, 0),
+            native_area_contract="faW",
+            native_obstacle_id=2,
+            native_obstacle_source="QI.f(QK)",
+            native_faw_constructor=fake_fighter_constructor(definition),
+            native_running_effect_manager=True,
+            state_ledger=StateLedger(91),
+        )
+        self.fight.native_effect_areas = {91: row}
+        self.fight.native_retired_area_managers = {}
+        self.collider.position = (3, 0, 0)
+        self.fight.native_qi_slots[1]["position"] = [3, 0]
+        self.fight.native_qi_slots[2] = dict(
+            identity=["effect_area", 91],
+            position=[2, 0],
+            radius=0,
+            indexed=True,
+            movement_blocking=True,
+        )
+
+        collision_definition = dict(
+            native_definition_class="eVI",
+            reference=-13,
+            effect_class=55,
+            parameters=[1.0, 0.0],
+            native_effect_flags=[],
+            target_masks=[None] * 7,
+        )
+        collision_handler = SimpleNamespace(
+            delivery=lambda *args: None,
+            event_lifecycle=object(),
+            fight=self.fight,
+        )
+        seen_pv = []
+
+        def has_ap(recipient, characteristic):
+            seen_pv.append((recipient.id, recipient.native_is_area, recipient.position))
+            return False
+
+        ap_executor = NativeCollisionResourceExecutor(
+            collision_handler,
+            collision_definition,
+            characteristic_present=has_ap,
+        )
+
+        def movement(target_id, *, from_cell, to_cell):
+            self.assertEqual((target_id, from_cell, to_cell), (7, (0, 0, 0), (1, 0, 0)))
+            remove_owned_hour_area(self.fight, 91)
+
+        self.handler.area_events = SimpleNamespace(movement=movement)
+        self.handler.collision_executor = (
+            lambda effect, invocation, **context: ap_executor(7, context["collider_id"])
+        )
+        self.handler._finish_events = lambda *args: None
+
+        # The real Qs removal path prunes this empty Qq as soon as its callback
+        # returns. The synchronous selected-PV scope must keep that exact row
+        # resolvable until the collision eVI has run.
+        with patch(
+            "wakfu_server.combat_displacement.native_definition_timing",
+            return_value={"retained": False, "delay": False, "duration": 0},
+        ), patch(
+            "wakfu_server.combat_displacement.displacement_geometry",
+            return_value=dict(
+                actor=self.actor,
+                distance=3,
+                vector=(1, 0),
+                stop=None,
+                loss_ap=True,
+                collision_reactions=True,
+            ),
+        ):
+            self.assertTrue(
+                self.handler(
+                    dict(effect_class=300, native_effect_flags=[]),
+                    None,
+                    EffectInvocation(1, 1, 7, 7, (3, 0, 0)),
+                )
+            )
+
+        self.assertEqual(self.fight.native_effect_areas, {})
+        self.assertEqual(self.fight.native_retired_area_managers, {})
+        self.assertEqual(seen_pv, [(91, True, (2, 0, 0))])
+        from wakfu_server.combat_state_managers import registered_area_pv
+
+        self.assertIsNone(registered_area_pv(self.fight, 91))
+
     def execute(self, effect_class):
         effect = dict(effect_class=effect_class, native_effect_flags=[])
         geometry = dict(

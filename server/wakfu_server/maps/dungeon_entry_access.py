@@ -30,10 +30,12 @@ def policy(store):
     return value
 
 
-def evaluate(store, criterion, *, character):
+def evaluate(store, criterion, *, character, destination_map_id=None):
     from wakfu_server.maps import dungeon_achievement_authority, dungeon_criteria
+    from wakfu_server.maps.seasonal_access import open_event_calendar
 
     selected = policy(store)
+    criterion = open_event_calendar(criterion, destination_map_id=destination_map_id)
     authority = None
     if not selected["bypass_mission_prerequisites"] and any(
         name in criterion

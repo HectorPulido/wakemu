@@ -125,7 +125,15 @@ def resolve(character, body, *, entry_map_id, source_allowed, topology=None):
 
 
 def leave(
-    store, account_id, generation, character_id, body, *, source_allowed, in_fight
+    store,
+    account_id,
+    generation,
+    character_id,
+    body,
+    *,
+    source_allowed,
+    in_fight,
+    positions=None,
 ):
     """Return one member, preserving the other party members' private run.
 
@@ -207,6 +215,7 @@ def leave(
         character_id,
         in_fight=in_fight,
         destination_for=destination_for,
+        positions=positions,
     )
 
 
@@ -270,7 +279,9 @@ def automatic_destination(character, run, configuration):
     return {key: destination[key] for key in ("map_id", "x", "y", "z")}
 
 
-def leave_automatic(store, account_id, generation, character_id, *, in_fight):
+def leave_automatic(
+    store, account_id, generation, character_id, *, in_fight, positions=None
+):
     """Allow a run member to leave local automatic travel outside combat."""
     from wakfu_server import dungeon_runtime
 
@@ -287,12 +298,38 @@ def leave_automatic(store, account_id, generation, character_id, *, in_fight):
         character_id,
         in_fight=in_fight,
         destination_for=destination_for,
+        positions=positions,
     )
 
 
-def _leave(store, account_id, generation, character_id, *, in_fight, destination_for):
+def _leave(
+    store,
+    account_id,
+    generation,
+    character_id,
+    *,
+    in_fight,
+    destination_for,
+    positions=None,
+):
     if not callable(in_fight):
         raise ValueError("Authoritative combat check is required")
+    if positions is not None:
+        from .dungeon_position_barrier import run_account_exit
+
+        return run_account_exit(
+            store,
+            positions,
+            account_id,
+            transition=lambda: _leave(
+                store,
+                account_id,
+                generation,
+                character_id,
+                in_fight=in_fight,
+                destination_for=destination_for,
+            ),
+        )
     with store.connection() as db:
         # Match entry and party mutation ordering before taking session rows.
         player_parties._lock_members(db, [character_id])

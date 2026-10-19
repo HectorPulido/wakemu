@@ -197,25 +197,89 @@ class EcologyBulkQueueTests(PostgresCase):
         self,
     ):
         repository = service.Repository(self.store)
-        ticket = dict(
-            map_id=1134,
-            instance_id=0,
-            group_id=1,
-            monster_id=-1,
-            reference=60,
-            cycle=1,
-            plan_incarnation="native",
+
+        def member(actor_id, reference, x, y):
+            return dict(
+                id=actor_id,
+                ref=reference,
+                team=1,
+                x=x,
+                y=y,
+                z=60,
+                ap=7,
+                hp=153,
+                max_hp=153,
+                mp=3,
+                wp=0,
+                breed=reference,
+                level=22,
+                map_id=527,
+                instance_id=0,
+                sprite_id=101500000 + reference,
+                initiative=16,
+                effective_level=22,
+            )
+
+        decision = dict(
+            draw=0.1337787157356456,
+            cycle=18,
+            attempts=1,
+            group_draw=0.9225139524098953,
+            variant_seed="1152527292a2b3f5cba5b55f50e82597b6ca949460e152ab91e6137e2ad4f3c7",
+            destination_draw=0.025525398700429247,
         )
+        ticket = dict(
+            map_id=527,
+            instance_id=0,
+            group_id=881,
+            monster_id=-8818,
+            reference=88,
+            cycle=18,
+            plan_incarnation="83b01e9724394c346f22fa4f2df19e15",
+            decision=decision,
+        )
+        configuration = dict(
+            interval_ms=300000,
+            stage_decay=0.5,
+            base_probability=0.1,
+            boss_probability=1e-05,
+        )
+        old_members = [
+            member(-8817, 87, -2, -171),
+            member(-8818, 88, -1, -168),
+        ]
         operation = dict(
             kind="maturation",
+            world_epoch="boot",
+            scope=[527, 0],
             ticket=ticket,
-            configuration=dict(probability=0.1),
-            expected_members=[dict(id=-1, ref=60)],
-            plan=dict(draw=0.1),
+            configuration=configuration,
+            expected_members=old_members,
+            draw=decision["draw"],
+            grown=dict(
+                x=-1,
+                y=-168,
+                z=60,
+                ap=7,
+                hp=153,
+                id=-8818,
+                mp=3,
+                wp=0,
+                ref=87,
+                team=1,
+                breed=87,
+                level=22,
+                map_id=527,
+                max_hp=153,
+                sprite_id=101500087,
+                initiative=16,
+                instance_id=0,
+                effective_level=22,
+            ),
         )
         row = proposal(
             "mobs",
-            dict(kind="lifecycle_bulk", scope=[1134, 0], operations=[operation]),
+            dict(kind="lifecycle_bulk", scope=[527, 0], operations=[operation]),
             "boot",
         )
         repository.save([row], [])
@@ -224,10 +288,13 @@ class EcologyBulkQueueTests(PostgresCase):
         repository.save([row], [])
         again = repository.pending()[0]
         self.assertEqual(again["id"], old["id"])
+        fresh_members = [
+            member(-8817, 87, -2, -171),
+            member(-8818, 88, -2, -170),
+        ]
         refreshed = dict(
             operation,
-            expected_members=[dict(id=-1, ref=60), dict(id=-2, ref=60)],
-            plan=dict(draw=0.9),
+            expected_members=fresh_members,
         )
         repository.save(
             [proposal("mobs", dict(row["payload"], operations=[refreshed]), "boot")], []
@@ -236,7 +303,14 @@ class EcologyBulkQueueTests(PostgresCase):
         self.assertNotEqual(current["id"], old["id"])
         entry = current["payload"]["operations"][0]
         self.assertEqual(entry["expected_members"], refreshed["expected_members"])
-        self.assertEqual(entry["plan"], operation["plan"])
+        self.assertEqual(entry["draw"], operation["draw"])
+        self.assertEqual(entry["ticket"]["cycle"], 18)
+        self.assertEqual(entry["ticket"]["decision"], decision)
+        self.assertEqual(
+            (entry["grown"]["x"], entry["grown"]["y"], entry["grown"]["z"]),
+            (-2, -170, 60),
+        )
+        self.assertEqual(entry["grown"]["ref"], 87)
         repository.acknowledge([dict(id=old["id"], status="applied")])
         self.assertEqual(repository.pending_count(), 1)
         with self.store.connection() as db:

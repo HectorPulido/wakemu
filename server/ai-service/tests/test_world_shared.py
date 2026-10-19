@@ -8,6 +8,7 @@ import unittest
 from wakfu_ai.bridge.world_shared import run_shared_turn
 from wakfu_ai.context.native_context import NativeGraph
 from wakfu_server.combat_state import Actor, Fight
+from wakfu_server.combat_runtime_messages import RuntimeMessages
 from wakfu_server.combat_shared import Registry, Session
 
 
@@ -36,6 +37,10 @@ class SharedNativeAiTests(unittest.TestCase):
         self.fight.phase = "active"
         self.fight.order, self.fight.turn_index = [-200, 10], 0
         self.fight.turn_id = 9
+        self.fight.native_timeline_round = 1
+        from wakfu_server.combat_timeline_snapshot import initialize
+
+        initialize(self.fight, self.fight.order)
         self.adapter = SimpleNamespace(registry=self.registry)
         self.public = (
             (13420, b"FIFO-before"),
@@ -181,18 +186,23 @@ class SharedNativeAiTests(unittest.TestCase):
         self.assertEqual(self.shared.sequence, 1)
         self.assertEqual(self.shared.fight.actors[10].hp, 55)
 
-    def test_empty_publication_does_not_adopt_candidate_or_advance_sequence(self):
+    def test_empty_publication_ends_turn_through_fresh_native_boundary(self):
+        # A runner that declines to publish cannot strand an active NPC turn.
+        # Use the real runtime boundary; its failed private candidate is not adopted.
+        runtime = RuntimeMessages(self.shared.fight, clock=lambda: 0.0)
+        self.shared.runtime = runtime
+        self.runtime = runtime
+
         def empty(native):
             native.fight.actors[10].hp = 1
             yield [], {"reason": "rejected"}
 
-        self.assertEqual(
-            list(run_shared_turn(self.runtime, self.adapter, self.one, empty)), []
-        )
-        self.assertIs(self.shared.runtime, self.runtime)
+        diagnostics = list(run_shared_turn(runtime, self.adapter, self.one, empty))
+        self.assertEqual(len(diagnostics), 1)
         self.assertEqual(self.shared.fight.actors[10].hp, 60)
-        self.assertEqual(self.shared.sequence, 0)
-        self.assertTrue(all(not queue for queue in self.shared.outboxes.values()))
+        self.assertEqual(self.shared.sequence, 1)
+        self.assertEqual(self.shared.runtime.awaiting_ack, 9)
+        self.assertTrue(all(self.shared.outboxes[key] for key in (1, 2)))
 
     def test_six_vs_six_move_survives_next_search_failure_and_acks_fifo_barrier(self):
         """A published movement is durable even if replanning then fails."""

@@ -46,6 +46,8 @@ class NativeAreaTargetTests(unittest.TestCase):
                     direction=0,
                     native_hour_contract=True,
                     native_area_contract="faY",
+                    native_qq_bhi=False,
+                    native_qq_guard_source="Qq.constructor",
                 )
             },
         )
@@ -87,6 +89,8 @@ class NativeAreaTargetTests(unittest.TestCase):
                     direction=0,
                     native_hour_contract=True,
                     native_area_contract="faY",
+                    native_qq_bhi=False,
+                    native_qq_guard_source="Qq.constructor",
                 )
             },
         )
@@ -130,6 +134,9 @@ class NativeAreaTargetTests(unittest.TestCase):
                     owner_id=7,
                     direction=0,
                     native_hour_contract=True,
+                    native_area_contract="faY",
+                    native_qq_bhi=False,
+                    native_qq_guard_source="Qq.constructor",
                 )
             },
         )

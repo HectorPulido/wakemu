@@ -126,6 +126,120 @@ class EntryPolicyTests(unittest.TestCase):
                     trace[-3:], ["cast.exit", "resolution.exit", "active.exit"]
                 )
 
+    def test_owned_payment_runs_once_after_live_cast_scope_before_reactions_and_roots(
+        self,
+    ):
+        trace = []
+        caster = SimpleNamespace(id=7, ap=6)
+        preview = SimpleNamespace(actors={7: caster}, effect_resolution=nullcontext)
+        plan = dict(
+            actor_id=7,
+            spell_id=6266,
+            evaluation_level=12,
+            target_id=7,
+            target=(0, 0, 0),
+        )
+        dispatcher = SimpleNamespace(
+            effects={"1": {}},
+            execute=lambda invocation: trace.append(("root", caster.ap)) or invocation,
+        )
+
+        @contextmanager
+        def events(_dispatcher, _plan):
+            trace.append(("cast.enter", caster.ap))
+            caster.ap += 1  # Native1024 changes the live balance before payment.
+            try:
+                yield
+            finally:
+                trace.append(("cast.exit", caster.ap))
+
+        calls = []
+
+        def pay_resources():
+            calls.append(caster.ap)
+            trace.append(("pay", caster.ap))
+            caster.ap -= 4
+
+        with patch(
+            "wakfu_server.combat_cost_payment_events.replay_paid_spell_costs",
+            side_effect=lambda *args: trace.append(("paid-reaction", caster.ap)),
+        ), patch(
+            "wakfu_server.combat_breeze_payment_events.replay_paid_breeze_costs",
+            side_effect=lambda *args: trace.append(("breeze-reaction", caster.ap)),
+        ), patch(
+            "wakfu_server.combat_direct_target.native_direct_target_policies",
+            return_value={},
+        ):
+            execute_entry_roots(
+                preview,
+                plan,
+                caster,
+                dispatcher,
+                (1,),
+                route="player",
+                execution_origin=normal_execution_origin(plan),
+                active_scope=lambda *args, **kwargs: nullcontext(),
+                event_scope=events,
+                pay_resources=pay_resources,
+            )
+
+        self.assertEqual(calls, [7])
+        self.assertEqual(
+            trace,
+            [
+                ("cast.enter", 6),
+                ("pay", 7),
+                ("paid-reaction", 3),
+                ("breeze-reaction", 3),
+                ("root", 3),
+                ("cast.exit", 3),
+            ],
+        )
+
+    def test_insufficient_post_1024_owned_payment_never_replays_or_dispatches(self):
+        trace = []
+        caster = SimpleNamespace(id=7, ap=2)
+        preview = SimpleNamespace(actors={7: caster}, effect_resolution=nullcontext)
+        plan = dict(
+            actor_id=7,
+            spell_id=6266,
+            evaluation_level=12,
+            target_id=7,
+            target=(0, 0, 0),
+        )
+
+        def fail_payment():
+            trace.append("payment")
+            raise ValueError("insufficient live PA")
+
+        dispatcher = SimpleNamespace(
+            effects={"1": {}}, execute=lambda *_: self.fail("root dispatched")
+        )
+        with patch(
+            "wakfu_server.combat_cost_payment_events.replay_paid_spell_costs",
+            side_effect=lambda *args: trace.append("reaction"),
+        ), patch(
+            "wakfu_server.combat_breeze_payment_events.replay_paid_breeze_costs",
+            side_effect=lambda *args: trace.append("breeze"),
+        ), patch(
+            "wakfu_server.combat_direct_target.native_direct_target_policies",
+            return_value={},
+        ):
+            with self.assertRaisesRegex(ValueError, "insufficient live PA"):
+                execute_entry_roots(
+                    preview,
+                    plan,
+                    caster,
+                    dispatcher,
+                    (1,),
+                    route="player",
+                    execution_origin=normal_execution_origin(plan),
+                    active_scope=lambda *args, **kwargs: nullcontext(),
+                    event_scope=lambda *args: nullcontext(),
+                    pay_resources=fail_payment,
+                )
+        self.assertEqual(trace, ["payment"])
+
     def test_npc_and_native_summon_cannot_replay_player_payment_or_cast_events(self):
         for route in ("npc", "summon.npc"):
             with self.subTest(route=route):
@@ -231,7 +345,9 @@ class PlayerEntryContractTests(unittest.TestCase):
         self.assertEqual(source_snapshot(self.native.fight), before)
         self.assertEqual(new.fight.actors[7].ap, 2)
         self.assertLess(new.fight.actors[-7].hp, 20)
-        self.assertEqual([opcode for opcode, _ in new.packets], [12588, 12678, 12613])
+        self.assertEqual(
+            [opcode for opcode, _ in new.packets], [13494, 13420, 12588, 12678, 12613]
+        )
 
     def test_invalid_owner_never_enters_shared_root_dispatch(self):
         from wakfu_server.combat_spell_transaction import prepare_spell_transaction
@@ -408,7 +524,7 @@ class NativeEntryContractTests(unittest.TestCase):
         self.assertEqual(
             new.fight.actors[7].ap, fight.actors[7].ap - new.plan["costs"]["ap"]
         )
-        self.assertEqual(new.packets[0][0], 13509)
+        self.assertEqual([op for op, _ in new.packets[:3]], [13494, 13420, 13509])
         self.assertEqual(new.plan["native_retained_container"]["type"], 12)
 
     def test_actual_owned_npc_spatial_attack_preserves_native_contract(self):
@@ -442,5 +558,7 @@ class NativeEntryContractTests(unittest.TestCase):
             new.fight.actors[template.pc.id].position, template.pc.position
         )
         self.assertEqual(new.fight.actors[template.npc.id].ap, template.npc.ap - 2)
-        self.assertEqual([op for op, _ in new.packets[:2]], [12588, 12678])
+        self.assertEqual(
+            [op for op, _ in new.packets[:4]], [13494, 13420, 12588, 12678]
+        )
         self.assertTrue(any((event["kind"] == "npc_cast" for event in new.events)))

@@ -8,6 +8,45 @@ from copy import deepcopy
 from .combat_qi_snapshot import NativeQISnapshot, RegisteredObstacle
 
 
+def _copy_byte_topology(topology):
+    """Detach persisted Trove arrays without redispatching each integer.
+
+    This is a copy optimization, not a schema validator. Unknown shapes retain
+    deepcopy's behavior, including aliases and cycles, before normal validation.
+    """
+    if type(topology) is not dict or any(type(key) is not str for key in topology):
+        return deepcopy(topology)
+    copied = {}
+    memo = {id(topology): copied}
+    fields = {"keys", "states", "size", "free", "compact_removes"}
+    for cell, state in topology.items():
+        if id(state) in memo:
+            copied[cell] = memo[id(state)]
+            continue
+        if (
+            type(state) is not dict
+            or state.keys() != fields
+            or any(type(key) is not str for key in state)
+            or any(type(state[key]) is not int for key in fields - {"keys", "states"})
+            or any(
+                type(state[key]) is not list
+                or any(type(value) is not int for value in state[key])
+                for key in ("keys", "states")
+            )
+        ):
+            copied[cell] = deepcopy(state, memo)
+            continue
+        detached = dict(state)
+        memo[id(state)] = detached
+        for key in ("keys", "states"):
+            array = state[key]
+            if id(array) not in memo:
+                memo[id(array)] = array.copy()
+            detached[key] = memo[id(array)]
+        copied[cell] = detached
+    return copied
+
+
 class NativeQIRegistry:
     def __init__(self, arena, slots, *, touched_cells=None, byte_topology=None):
         if not isinstance(arena, dict):
@@ -30,7 +69,7 @@ class NativeQIRegistry:
         if not isinstance(slots, (list, tuple)) or len(slots) != 127:
             raise ValueError("Missing complete native QI slot population")
         self.slots = deepcopy(list(slots))
-        self.byte_topology = deepcopy(byte_topology)
+        self.byte_topology = _copy_byte_topology(byte_topology)
         if byte_topology is not None and not isinstance(byte_topology, dict):
             raise ValueError("Missing native QL byte topology checkpoint")
         identities = set()

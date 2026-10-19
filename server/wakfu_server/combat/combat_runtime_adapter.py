@@ -655,7 +655,9 @@ class NativeServerRuntimeAdapter:
                 raise ValueError("Missing native range center relationship authority")
             else:
                 center = None  # eII.a: an unrecognized selector has no actor.
+            retained_reader = None
             if relation == "state":
+                from .combat_retained_runtime import native_retained_condition_reader
                 from .combat_native_actor_lookup import detached_authority
                 from .combat_native_criterion_failure import (
                     NativeCriterionRuntimeFailure,
@@ -670,7 +672,12 @@ class NativeServerRuntimeAdapter:
                     raise NativeCriterionRuntimeFailure(
                         "Native eKn criterion has no constructor combat context"
                     )
-                area_state_rows = attest_state_area_population(preview)
+                # Range evaluation is read-only. Share this validation only
+                # inside this call, then discard it before any effect mutates.
+                retained_reader = native_retained_condition_reader(preview)
+                area_state_rows = attest_state_area_population(
+                    preview, retained_reader=retained_reader
+                )
                 if owner.lower() == "caster":
                     state_caster = source.id
                 elif owner.lower() == "target":
@@ -727,7 +734,9 @@ class NativeServerRuntimeAdapter:
                     if world_property_reference not in world:
                         continue
                 states = (
-                    registered_state_carriers(preview, candidate)
+                    registered_state_carriers(
+                        preview, candidate, retained_reader=retained_reader
+                    )
                     if relation == "state"
                     else ()
                 )
@@ -2357,11 +2366,19 @@ class NativeServerRuntimeAdapter:
         )
 
     def targets(self, preview, plan, effect, invocation):
-        return {
+        contexts = {
             actor.id: dict(self._actor(preview, actor).targeting)
             for actor in native_actor_population(preview)
             if not getattr(actor, "pve_withdrawn", False)
         }
+        # A retained effect may outlive its caster's global PV membership.
+        # Resolve that source through current authority without making it a
+        # candidate target or a recipient of global turn events.
+        if invocation is not None and invocation.caster_id not in contexts:
+            caster = native_actor(preview, invocation.caster_id)
+            if caster is not None:
+                contexts[caster.id] = dict(self._actor(preview, caster).targeting)
+        return contexts
 
     def random(self, preview, plan):
         value = self.cast.random_fraction(preview, plan)

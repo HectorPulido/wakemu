@@ -96,7 +96,8 @@ class InteractivePublication:
         *,
         trace_ids=None,
         trace_account_id=None,
-        trace_limit=512
+        trace_limit=512,
+        attachment_projector=None,
     ):
         self.catalog = catalog
         self.trace = trace
@@ -104,6 +105,7 @@ class InteractivePublication:
         self.trace_account_id = trace_account_id
         self.trace_limit = max(0, int(trace_limit))
         self.trace_count = 0
+        self.attachment_projector = attachment_projector
         self._catalog_cache = {}
         self.clear()
 
@@ -131,7 +133,7 @@ class InteractivePublication:
             frames.append((opcode, body, records, data[cursor : cursor + length]))
             cursor += length
         if not any(
-            opcode in (13984, 12344, 12318, 13256, 13135, 12782)
+            opcode in (13984, 12344, 12318, 13256, 13974, 13135, 12782)
             for opcode, _, _, _ in frames
         ):
             return data
@@ -159,7 +161,9 @@ class InteractivePublication:
             )
 
         for opcode, body, records, original in frames:
-            if opcode == 13256:
+            # Native ciu handles every 13974 by clearing cdE, even when the
+            # map and instance are unchanged and no 13256 precedes it.
+            if opcode in (13256, 13974):
                 attached.clear()
                 visible = None
                 output.append(original)
@@ -208,9 +212,22 @@ class InteractivePublication:
                         updates.append(record)
                         emit_event(object_id, opcode, 12344, "update")
                     else:
-                        additions.append(record)
+                        projected = (
+                            None
+                            if self.attachment_projector is None
+                            else self.attachment_projector(row, scope)
+                        )
+                        if projected is None:
+                            additions.append(record)
+                        else:
+                            output.append(_frame(*projected))
                         attached.add(object_id)
-                        emit_event(object_id, opcode, 13984, "attach")
+                        emit_event(
+                            object_id,
+                            opcode,
+                            13984 if projected is None else projected[0],
+                            "attach",
+                        )
                 if additions:
                     output.append(
                         _frame(

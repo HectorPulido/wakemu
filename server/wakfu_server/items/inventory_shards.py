@@ -11,6 +11,7 @@ from wakfu_server.wire import proto_fields
 
 MAX_BLOB = 65536
 MAX_REPEATED = 32767
+JSON_STATE_FIELD = "shard_state_hex"
 
 
 def _fields(blob):
@@ -76,6 +77,41 @@ def validate(blob):
         elif tag in (24, 32, 72):
             _varint_field(tag, value)
     return blob
+
+
+def json_safe_item(item):
+    """Encode the opaque shard blob for JSON-backed durable snapshots.
+
+    PostgreSQL JSONB cannot serialize Python bytes. Keep the raw blob in the
+    live inventory model, but persist it as canonical lowercase hex in exchange
+    outbox payloads so reconnect/replay retains unknown protobuf fields exactly.
+    """
+    result = dict(item)
+    state = result.pop("shard_state", None)
+    if state is not None:
+        if JSON_STATE_FIELD in result or not isinstance(state, bytes):
+            raise ValueError("Invalid native shard state for JSON snapshot")
+        validate(state)
+        result[JSON_STATE_FIELD] = state.hex()
+    return result
+
+
+def item_from_json(item):
+    """Restore the durable JSON encoding to the live inventory item model."""
+    result = dict(item)
+    encoded = result.pop(JSON_STATE_FIELD, None)
+    if encoded is None:
+        return result
+    if "shard_state" in result or not isinstance(encoded, str):
+        raise ValueError("Invalid native shard JSON snapshot")
+    try:
+        state = bytes.fromhex(encoded)
+    except ValueError as error:
+        raise ValueError("Invalid native shard JSON snapshot") from error
+    if state.hex() != encoded:
+        raise ValueError("Noncanonical native shard JSON snapshot")
+    result["shard_state"] = validate(state)
+    return result
 
 
 def initialized_wire_state(blob):

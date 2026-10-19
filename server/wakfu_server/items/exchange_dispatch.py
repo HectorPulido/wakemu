@@ -232,6 +232,15 @@ class Exchanges:
                         exchange_id,
                         request["uids"],
                     )
+                elif opcode == 12510:
+                    exchange = player_exchanges.offer_items(
+                        self.store,
+                        account_id,
+                        generation,
+                        character_id,
+                        exchange_id,
+                        request["uids"],
+                    )
                 elif opcode == 13406:
                     exchange = player_exchanges.confirm(
                         self.store, account_id, generation, character_id, exchange_id

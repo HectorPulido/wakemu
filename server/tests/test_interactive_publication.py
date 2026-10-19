@@ -119,7 +119,7 @@ class InteractivePublicationTests(unittest.TestCase):
         )
 
     def test_scene_reset_allows_new_attachment(self):
-        for opcode in (13256,):
+        for opcode in (13256, 13974):
             self.publish(snapshot((1, b"a")))
             result = self.publish(
                 frame(opcode, b"scene") + self.loader + snapshot((1, b"b"))
@@ -169,10 +169,18 @@ class InteractivePublicationTests(unittest.TestCase):
         self.assertEqual([opcode for opcode, _ in decode(result)], [12344])
         self.assertEqual(self.events[-1]["character_id"], 12)
 
-    def test_same_world_ready_does_not_clear_retained_membership(self):
+    def test_same_world_ready_rebuilds_native_partition_membership(self):
         self.publish(snapshot((1, b"a")))
+        # Original ciu 13974 unconditionally clears cdE before rebuilding it.
         result = self.publish(frame(13974, b"ready") + snapshot((1, b"b")))
-        self.assertEqual([opcode for opcode, _ in decode(result)], [13974, 12344])
+        self.assertEqual([opcode for opcode, _ in decode(result)], [13974])
+        self.assertEqual(self.publisher.attached, set())
+        result = self.publish(self.loader + snapshot((1, b"b")))
+        self.assertEqual([opcode for opcode, _ in decode(result)], [12318, 13984])
+        self.assertEqual(
+            [opcode for opcode, _ in decode(self.publish(snapshot((1, b"c"))))],
+            [12344],
+        )
 
     def test_before_loader_does_not_poison_first_attachment(self):
         self.publisher.clear()

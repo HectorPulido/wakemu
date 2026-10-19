@@ -50,7 +50,7 @@ class CapturedManagementTests(unittest.TestCase):
             decode_request(12014, struct.pack(">qb", 7, 6)), (1798, 0, None)
         )
 
-    def test_malformed_frames_utf8_slots_and_unqualified_flag_are_rejected(self):
+    def test_malformed_frames_utf8_slots_and_nonboolean_flag_are_rejected(self):
         valid = rename_body(7, 6, "Alpha")
         bad = [
             (12014, b""),
@@ -60,12 +60,17 @@ class CapturedManagementTests(unittest.TestCase):
             (13068, valid[:-1]),
             (13068, valid + b"x"),
             (13068, struct.pack(">qbB", 7, 2, 1) + b"\xff\x01"),
-            (13068, rename_body(7, 2, "Alpha", 0)),
+            (13068, rename_body(7, 2, "Alpha", 2)),
             (999, valid),
         ]
         for opcode, body in bad:
             with self.subTest(opcode=opcode, body=body), self.assertRaises(ValueError):
                 decode_request(opcode, body)
+
+    def test_native_automatic_name_initialization_flag_is_decoded(self):
+        self.assertEqual(
+            decode_request(13068, rename_body(7, 6, "Tofu", 0)), (7, 6, "Tofu")
+        )
 
     def test_release_matches_native_lowest_selected_and_empty_fallback(self):
         roster = populated()
@@ -201,6 +206,61 @@ class CapturedManagementPersistenceTests(PostgresCase):
             reopened["captured_roster"]["slots"][2],
             original["captured_roster"]["slots"][2],
         )
+
+    def test_automatic_default_name_persists_once_and_preserves_manual_rename(self):
+        generation, owner = self.owner()
+        from wakfu_server.characters.captured_roster_store import save
+
+        roster = OwnedCapturedRoster.from_record(
+            owner["captured_roster"], expected_owner_id=owner["id"]
+        )
+        slots = list(roster.slots)
+        slots[6] = replace(slots[6], name="")
+        with self.store.connection() as db:
+            save(db, owner, replace(roster, slots=tuple(slots)))
+        automatic = rename_body(owner["id"], 6, "Tofu", 0)
+        first = manage(
+            self.store, owner["account_id"], generation, owner, 13068, automatic
+        )
+        self.assertEqual(first["slots"][6]["name"], "Tofu")
+        with self.store.connection() as db:
+            revision = db.execute(
+                "SELECT revision FROM character_captured_rosters WHERE character_id=%s",
+                (owner["id"],),
+            ).fetchone()["revision"]
+        self.assertEqual(
+            manage(
+                self.store, owner["account_id"], generation, owner, 13068, automatic
+            ),
+            first,
+        )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT revision FROM character_captured_rosters WHERE character_id=%s",
+                    (owner["id"],),
+                ).fetchone()["revision"],
+                revision,
+            )
+        manual = manage(
+            self.store,
+            owner["account_id"],
+            generation,
+            owner,
+            13068,
+            rename_body(owner["id"], 6, "Étoile", 1),
+        )
+        late = manage(
+            self.store, owner["account_id"], generation, owner, 13068, automatic
+        )
+        self.assertEqual(late, manual)
+        reopened = self.reopen().character(owner["account_id"], owner["id"])
+        self.assertEqual(reopened["captured_roster"], manual)
+        self.assertEqual(late["slots"][6]["name"], "Étoile")
+        self.assertEqual(
+            late["slots"][6]["profile_id"], first["slots"][6]["profile_id"]
+        )
+        self.assertEqual(late["selected_slot"], first["selected_slot"])
 
     def test_database_failure_and_replaced_lease_never_publish_optimistic_component(
         self,

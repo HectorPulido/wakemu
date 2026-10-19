@@ -36,6 +36,17 @@ ADMIN_TEMPLATE_REASON = "admin_template_excluded_by_user"
 NO_RESOURCE_PRODUCER_BLOCKED_REFERENCES = frozenset({5347})
 NO_RESOURCE_PRODUCER_REASON = "unpayable_native_book_without_resource_producer"
 
+# Native state7583 ->341714/341730/341731/341733 ->307(341734,341735)
+# creates these turnless Tentacles. They remain available to actual native
+# summon factories, but are not independent ordinary population candidates.
+# These additional published307 targets have native world property116,
+# eHQ.SUMMON_WITH_DROP. Keep the explicit positive inventory: ordinary Tofu6
+# and other dual natural/summon forms do not acquire this exclusion.
+NPC_SUMMON_ONLY_BLOCKED_REFERENCES = frozenset(
+    {4189, 4194, 4195, 4196, 4539, 5034, 5403, 5404}
+)
+NPC_SUMMON_ONLY_REASON = "npc_summon_only"
+
 # Explicit implemented class-summon policy, not a blanket summon exclusion.
 # Monster-owned or dual class/NPC producers remain eligible unless separately
 # attested and explicitly classified. Actual summon construction is unchanged.
@@ -74,6 +85,11 @@ def effective_class_summon_references():
     )
 
 
+def effective_ordinary_summon_only_references():
+    """Positively classified class/NPC summons excluded from wild population."""
+    return effective_class_summon_references() | NPC_SUMMON_ONLY_BLOCKED_REFERENCES
+
+
 # Implemented Uginak6286 -> native307 effect240997 -> profile4559.
 # This ordinary-wild policy does not claim universal NPC exclusivity; actual
 # native summon construction remains unrestricted for future proven producers.
@@ -82,7 +98,9 @@ def effective_class_summon_references():
 # Its real dependent summon route remains pending end-to-end qualification.
 # Sadida class/NPC dual profiles3745/3748/3750 retain all positively indexed
 # NPC creators. Blocking ordinary wild spawning does not complete these paths.
-NPC_SUMMON_REQUIRED_REFERENCES = frozenset({3251, 3745, 3748, 3750})
+NPC_SUMMON_REQUIRED_REFERENCES = (
+    frozenset({3251, 3745, 3748, 3750}) | NPC_SUMMON_ONLY_BLOCKED_REFERENCES
+)
 
 
 def effective_minigame_references():
@@ -105,6 +123,7 @@ def effective_inventory():
             | effective_class_summon_references()
             | ADMIN_TEMPLATE_BLOCKED_REFERENCES
             | NO_RESOURCE_PRODUCER_BLOCKED_REFERENCES
+            | NPC_SUMMON_ONLY_BLOCKED_REFERENCES
         )
     )
 
@@ -118,6 +137,8 @@ def exclusion_reason(reference, *, context="ordinary_wild"):
         return ADMIN_TEMPLATE_REASON
     if reference in NO_RESOURCE_PRODUCER_BLOCKED_REFERENCES:
         return NO_RESOURCE_PRODUCER_REASON
+    if reference in NPC_SUMMON_ONLY_BLOCKED_REFERENCES:
+        return NPC_SUMMON_ONLY_REASON
     if reference in effective_minigame_references():
         return REASON
     if reference in effective_class_summon_references():
@@ -131,6 +152,8 @@ def require_ordinary_spawn(reference):
         raise ValueError("This admin template is excluded from ordinary monsters")
     if reason == NO_RESOURCE_PRODUCER_REASON:
         raise ValueError("This monster cannot pay for its native actions")
+    if reason == NPC_SUMMON_ONLY_REASON:
+        raise ValueError("This NPC requires its native summon creator")
     if reason == REASON:
         raise ValueError("This monster requires its native minigame encounter")
     if reason == CLASS_SUMMON_REASON:
@@ -142,3 +165,16 @@ def require_ordinary_spawn(reference):
 def requires_npc_summon_validation(reference):
     """Retain actual monster-owned dependencies despite an ordinary-wild block."""
     return reference in NPC_SUMMON_REQUIRED_REFERENCES
+
+
+def ordinary_group_members(members, *, instance_id=0):
+    """Project public ordinary groups without discarding valid mixed members.
+
+    Private encounter rosters and actual summon construction own their separate
+    native producers. Existing public rows can remain durably intact while all
+    world publication and claim consumers see the same eligible composition.
+    """
+    if instance_id != 0:
+        return tuple(members)
+    blocked = effective_ordinary_summon_only_references()
+    return tuple(member for member in members if member["ref"] not in blocked)

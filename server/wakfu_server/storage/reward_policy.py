@@ -1,4 +1,4 @@
-"""Versioned Dofus-reference reward math with Wakfu inputs stored in PostgreSQL.
+"""Versioned Wakfu XP and configured kamas stored in PostgreSQL.
 
 This module does not discover a fight roster or attach itself to combat. The
 caller supplies the authoritative terminal roster snapshot and leases the
@@ -16,8 +16,10 @@ from psycopg.pq import TransactionStatus
 from psycopg.types.json import Jsonb
 
 
-ALGORITHM = "starloco-formuleofficiel-xp-kamas-v1-wakfu-curve"
-GROUP_BONUS = (0.5, 0.5, 2.1, 3.2, 4.3, 5.4, 6.5, 7.8, 9.0)
+from wakfu_server.wakfu_xp import monster_base_xp, level_factor
+
+ALGORITHM = "wakfu-native-mu-xp-v1-neutral-species"
+GROUP_BONUS = (0, 1, 1.5, 2, 2.75, 3.1, 3.5)
 WISDOM_MIN, WISDOM_MAX = -500, 200
 
 
@@ -123,97 +125,68 @@ def _normalize_context(context, character_id):
     return normalized
 
 
-def _trunc_div(numerator, denominator):
-    """Java integer division, truncating toward zero."""
-    if denominator <= 0:
-        raise ValueError("Invalid integer division")
-    return numerator // denominator
-
-
 def _xp_amount_with_status(
     *, character_id, context, group_xp, xp_rate_bp, conquest_rate_bp, clamp_native=False
 ):
-    """Port FormuleOfficiel math and report the local negative-XP clamp."""
+    """Wakfu native base, community fight factors and explicit local limits.
+
+    Legacy conquest and star inputs remain validated for receipt compatibility,
+    but are Dofus concepts and do not modify Wakfu XP.
+    """
     context = _normalize_context(context, character_id)
     group_xp = _integer(group_xp, "group XP")
     xp_rate_bp = _integer(xp_rate_bp, "XP rate", 0, MAX_REWARD_RATE_BP)
-    conquest_rate_bp = _integer(conquest_rate_bp, "conquest rate", 0, 1000000)
-    winners, losers = context["winners"], context["losers"]
-    winner_level_sum = sum(row["level"] for row in winners)
-    loser_level_sum = sum(row["level"] for row in losers)
-    if winner_level_sum <= 0 or loser_level_sum <= 0:
+    _integer(conquest_rate_bp, "conquest rate", 0, 1000000)
+    players = [w for w in context["winners"] if w["player"] and w["eligible"]]
+    monsters = [w for w in context["losers"] if w["monster_reference"] is not None]
+    recipient = next(w for w in context["winners"] if w["character_id"] == character_id)
+    if (
+        not players
+        or not monsters
+        or not recipient["player"]
+        or not recipient["eligible"]
+    ):
         return 0, False
-
-    level_max = max(winner_level_sum, loser_level_sum)
-    level_min = min(winner_level_sum, loser_level_sum)
-    group_ratio = level_max / level_min
-    if group_ratio == 0:
-        return 0, False
-    group_ratio = 1.0 if group_ratio < 3.0 else 1.0 / group_ratio
-    group_ratio = min(1.0, max(0.0, group_ratio))
-
-    # Fight.java derives nbonus from player winners above one third of the
-    # highest winning player level; level sums above still include every fighter.
-    highest_winning_player_level = max(
-        (w["level"] for w in winners if w["player"]), default=0
-    )
-    nbonus = sum(
-        1
-        for w in winners
-        if w["player"] and w["level"] > highest_winning_player_level // 3
-    )
-    group_size = min(8, sum(1 for w in winners if w["player"] and w["eligible"]))
-    if group_size < 1:
-        return 0, False
-    nbonus = min(8, nbonus)
-
-    ratio = loser_level_sum / winner_level_sum
-    if len(winners) == 1:
-        ratio = 0.6
-    elif ratio == 0:
-        return 0
-    elif 0.9 <= ratio <= 1.1:
-        ratio = 1.0
+    highest = max(w["level"] for w in players)
+    bonus_count = min(6, sum(w["level"] > highest // 3 for w in players))
+    player_count = len(players)
+    monster_count = min(6, len(monsters))
+    if monster_count >= player_count:
+        number_factor = min(1, 0.5 + 0.5 * player_count / monster_count)
     else:
-        if ratio > 1:
-            ratio = 1.0 / ratio
-        ratio = max(0.01, ratio)
-
-    recipient = next(w for w in winners if w["character_id"] == character_id)
-    if not recipient["player"] or not recipient["eligible"]:
-        return 0, False
-    wisdom_factor = recipient["level"] * 0.5 + recipient["wisdom"]
-    # Java's challenge/100 and star/100 are integer divisions. Likewise
-    # groupXp/sizeGroupe truncates before the floating-point multiplication.
-    challenge_factor = 1 + context["challenge_percent"] // 100
-    star_factor = 1 + context["star_percent"] // 100
-    divided_group_xp = _trunc_div(group_xp, group_size)
+        number_factor = max(
+            0.5,
+            1
+            - ((6 - min(6, player_count)) * 0.2 + 1)
+            * (player_count - monster_count)
+            * 0.1,
+        )
+    average_level = sum(w["level"] for w in monsters) / len(monsters)
+    wisdom_factor = (
+        1 + min(200, recipient["wisdom"] + context["challenge_percent"]) / 100
+    )
     value = (
-        (1 + wisdom_factor / 100)
-        * challenge_factor
-        * star_factor
-        * (GROUP_BONUS[nbonus] + ratio)
-        * group_ratio
-        * divided_group_xp
+        group_xp
+        / player_count
+        * GROUP_BONUS[bonus_count]
+        * number_factor
+        * level_factor(recipient["level"], average_level)
+        * wisdom_factor
+        * 1.3
         * (xp_rate_bp / 10000)
-        * (conquest_rate_bp / 10000)
         * (context.get("dungeon_rate_bp", 10000) / 10000)
     )
     if value < 0:
-        # Wakemu reward receipts are nonnegative. Preserve a successful fight
-        # finish and make this explicit policy adjustment auditable in snapshot.
         return 0, True
     if value >= 2**63:
         if clamp_native:
             return 2**63 - 1, False
         raise ValueError("XP reward exceeds signed64 range")
-    # Java's positive double->long cast truncates toward zero. All validated
-    # factors are nonnegative, so int(value) is equivalent here.
     return int(value), False
 
 
 def xp_amount(*, character_id, context, group_xp, xp_rate_bp, conquest_rate_bp):
-    """Return nonnegative XP using the versioned local Dofus-reference formula."""
+    """Return nonnegative XP using the versioned Wakfu policy."""
     return _xp_amount_with_status(
         character_id=character_id,
         context=context,
@@ -289,7 +262,7 @@ def resolve(
     if not isinstance(generation, str) or not generation:
         raise ValueError("Invalid session generation")
     normalized = _normalize_context(context, character_id)
-    from .combat_reward_ownership import lock_recipient
+    from wakfu_server.combat_reward_ownership import lock_recipient
 
     lock_recipient(store, db, account_id, generation, character_id, fight_id)
     participant = db.execute(
@@ -373,17 +346,22 @@ def resolve(
             raise ValueError(
                 "Missing configured reward data for a defeated monster level"
             )
-        group_xp += row["base_xp"]
+        native_base_xp = monster_base_xp(loser["level"])
+        group_xp = min((1 << 63) - 1, group_xp + native_base_xp)
         minimum_kamas += row["min_kamas"]
         maximum_kamas += row["max_kamas"]
         catalog_values.append(
             {
                 "reference": ref,
                 "level": loser["level"],
-                "base_xp": row["base_xp"],
+                "base_xp": native_base_xp,
+                "xp_source": "wakfu-client.MU.L",
+                "species_xp_factor": 1,
+                "legacy_base_xp": row["base_xp"],
                 "min_kamas": row["min_kamas"],
                 "max_kamas": row["max_kamas"],
                 "source": row["source"],
+                "kamas_source": row["source"],
                 "source_kind": source_kind,
             }
         )
@@ -426,6 +404,13 @@ def resolve(
             "conquest": settings["conquest_rate_bp"],
         },
         "context": normalized,
+        "xp_model": {
+            "base": "wakfu-client.MU.L",
+            "species_factor": 1,
+            "fight_factors": "WakfuCalc-community",
+            "level_window": "community-cosine-local-terminal-clamps",
+            "legacy_star_conquest_applied": False,
+        },
         "monster_catalog": catalog_values,
         "group_xp": group_xp,
         "kamas_bounds": [minimum_kamas, maximum_kamas],

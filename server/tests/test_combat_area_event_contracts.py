@@ -69,9 +69,11 @@ class AreaMovementContractTests(unittest.TestCase):
                         delivered = []
                         actual_delivery = runtime._deliver_event
 
-                        def record(row, definition, target, event_id):
+                        def record(row, definition, target, event_id, **context):
                             delivered.append((event_id, row["uid"]))
-                            return actual_delivery(row, definition, target, event_id)
+                            return actual_delivery(
+                                row, definition, target, event_id, **context
+                            )
 
                         runtime._deliver_event = record
                         result, observed_calls, areas, retained = self.observe(

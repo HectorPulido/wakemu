@@ -201,7 +201,9 @@ class SpellTransactionTests(unittest.TestCase):
         result = self.execute()
         self.assertLess(result.fight.actors[-7].hp, 20)
         self.assertEqual(result.fight.actors[7].ap, 2)
-        self.assertEqual([p[0] for p in result.packets], [12588, 12678, 12613])
+        self.assertEqual(
+            [p[0] for p in result.packets], [13494, 13420, 12588, 12678, 12613]
+        )
         self.assertEqual((self.fight.actors[7].ap, self.fight.actors[-7].hp), (6, 20))
 
     def test_explicit_critical_branch_is_encoded_in_both_cast_notifications(self):
@@ -218,8 +220,12 @@ class SpellTransactionTests(unittest.TestCase):
             conditional_context=self.cast_authority(),
             critical=True,
         )
-        self.assertEqual(result.packets[0][1][39], 1)
-        self.assertEqual(result.packets[1][1][24], 1)
+        self.assertEqual(
+            next(payload for op, payload in result.packets if op == 12588)[39], 1
+        )
+        self.assertEqual(
+            next(payload for op, payload in result.packets if op == 12678)[24], 1
+        )
         self.assertEqual(self.fight.actors[7].ap, 6)
 
     def test_missing_handler_rolls_back_costs_and_damage(self):
@@ -790,7 +796,9 @@ class SpellTransactionTests(unittest.TestCase):
         self.assertEqual(caster.position, (-8, -7, -1))
         self.assertEqual(target.position, (-6, -7, -1))
         self.assertEqual(caster.ap, 6)
-        self.assertEqual([op for op, _ in result.packets][:3], [12588, 12678, 12613])
+        self.assertEqual(
+            [op for op, _ in result.packets][:5], [13494, 13420, 12588, 12678, 12613]
+        )
 
     def test_server_entry_executes_full_native_roots_without_spell_whitelist(self):
         import random

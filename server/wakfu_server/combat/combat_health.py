@@ -2,6 +2,58 @@
 from . import health_store, health
 
 
+def _settled_level_health_baseline(db, fight, character, saved, generation, maximum):
+    """Attest a reward-only maximum change without accepting newer wounds."""
+    row = db.execute(
+        "SELECT p.session_generation,p.entry_hp,p.entry_max_hp,p.entry_hp_damage,"
+        "p.entry_health_dead,f.status AS fight_status,r.start_level,r.end_level "
+        "FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+        "JOIN fight_rewards r ON r.fight_id=p.fight_id AND r.character_id=p.character_id "
+        "AND r.account_id=p.account_id WHERE p.fight_id=%s AND p.character_id=%s "
+        "AND p.account_id=%s",
+        (fight.id, character["id"], saved["account_id"]),
+    ).fetchone()
+    if row is None:
+        return None
+    entry = tuple(
+        row[key]
+        for key in ("entry_hp", "entry_max_hp", "entry_hp_damage", "entry_health_dead")
+    )
+    if (
+        row["session_generation"] != generation
+        or row["fight_status"] != "finished"
+        or any(type(value) is not int for value in entry[:3])
+        or type(entry[3]) is not bool
+        or type(row["start_level"]) is not int
+        or type(row["end_level"]) is not int
+        or row["end_level"] <= row["start_level"]
+        or saved["level"] != row["end_level"]
+        or not 0 < entry[1] < 2**31
+        or not 0 <= entry[0] <= entry[1]
+        or not 0 <= entry[2] < 2**63
+    ):
+        return None
+    from wakfu_server.health_policy import visible
+
+    if (
+        entry[0] != visible(entry[1], entry[2], entry[3])
+        or saved["max_hp"] != maximum
+        or (saved["hp_damage"], saved["health_dead"]) != entry[2:]
+        or saved["hp"] != visible(maximum, entry[2], entry[3])
+    ):
+        return None
+    source = tuple(
+        character.get(key) for key in ("hp", "max_hp", "hp_damage", "health_dead")
+    )
+    current = tuple(saved[key] for key in ("hp", "max_hp", "hp_damage", "health_dead"))
+    if not (
+        (source == entry and character.get("level") == row["start_level"])
+        or (source == current and character.get("level") == row["end_level"])
+    ):
+        return None
+    return entry[:2]
+
+
 def persist(
     store,
     account_id,
@@ -134,25 +186,34 @@ def persist(
         is None
     ):
         raise ValueError("Missing owned durable fight participant")
-    if saved["hp"] != character["hp"]:
-        raise ValueError("Stale fight exit HP")
     if not 0 <= actor.hp <= actor.max_hp:
         raise ValueError("Invalid authoritative fight HP")
     from wakfu_server.equipment_stats import effective_character
 
     maximum = effective_character(saved)["max_hp"]
+    baseline = None
+    if reason == "return":
+        baseline = _settled_level_health_baseline(
+            db, fight, character, saved, generation, maximum
+        )
+    if saved["hp"] != character["hp"] and baseline is None:
+        raise ValueError("Stale fight exit HP")
     from wakfu_server.health_policy import visible, recover_finished_return
 
     # Translate the fight's wound delta, rather than its temporary maximum,
     # back to the persisted configuration. Preserve pre-existing hidden wounds.
-    initial_wound = character["max_hp"] - character["hp"]
+    initial_wound = (
+        character["max_hp"] - character["hp"]
+        if baseline is None
+        else baseline[1] - baseline[0]
+    )
     final_wound = actor.max_hp - actor.hp
     damage = max(0, saved["hp_damage"] + final_wound - initial_wound)
     dead = actor.hp == 0
     if reason == "return":
         damage, dead = recover_finished_return(maximum, damage, dead)
     hp = visible(maximum, damage, dead)
-    coefficient = 1 if hp > 0 else 0
+    coefficient = health.exploration_coefficient(maximum, hp)
     now = store.now()
     db.execute(
         "UPDATE characters SET hp=%s,max_hp=%s,hp_damage=%s,health_dead=%s "

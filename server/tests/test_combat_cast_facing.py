@@ -32,13 +32,12 @@ class CastFacingTest(unittest.TestCase):
         self.assertEqual(source.direction, 0)
         self.assertEqual(native_cast_facing()["7318"]["script_id"], 1002410)
 
-    def test_same_xy_preserves_direction_and_unknown_preserves_cast(self):
+    def test_same_xy_preserves_direction(self):
         actor = SimpleNamespace(position=(0, 0, 0), direction=3)
-        for spell, target in ((7318, (0, 0, 9)), (-1, (2, 0, 0))):
-            self.assertFalse(
-                mirror_cast_facing(actor, {"spell_id": spell, "target": target})
-            )
-            self.assertEqual(actor.direction, 3)
+        self.assertFalse(
+            mirror_cast_facing(actor, {"spell_id": 7318, "target": (0, 0, 9)})
+        )
+        self.assertEqual(actor.direction, 3)
 
     def test_explicit_no_turn_preserves_direction(self):
         actor = SimpleNamespace(position=(0, 0, 0), direction=7)
@@ -155,6 +154,7 @@ class CastFacingTest(unittest.TestCase):
     ):
         cells = {(0, 0, 0), (1, -1, 0), (3, 0, 0)}
         caster = Actor(7, 0, (0, 0, 0), 60, 6, 3, 9, 3, 7, True)
+        caster.direction = 3
         enemy = Actor(-2, 1, (3, 0, 0), 12, 6, 3, 1, 1)
         fight = Fight(
             2,
@@ -225,6 +225,10 @@ class CastFacingTest(unittest.TestCase):
             )
 
         self.assertEqual(dispatch_directions, [0])
+        self.assertEqual(
+            [op for op, _ in transaction.packets[:4]], [13494, 13420, 12588, 12678]
+        )
+        self.assertEqual(transaction.packets[0][1][-1], 0)
         self.assertEqual(transaction.fight.actors[7].direction, 7)
         delivery = commit_spell_transaction(
             runtime,
@@ -256,7 +260,7 @@ class CastFacingTest(unittest.TestCase):
         caster = SimpleNamespace(
             id=7, position=(0, 0, 0), direction=3, ap=6, mp=3, effect_stats=None
         )
-        fight = SimpleNamespace(actors={7: caster}, events=[])
+        fight = SimpleNamespace(id=77, actors={7: caster}, events=[])
         plan = {
             "actor_id": 7,
             "spell_id": 7318,

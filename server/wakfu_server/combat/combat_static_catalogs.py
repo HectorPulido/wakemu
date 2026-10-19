@@ -109,6 +109,41 @@ def characteristic_registry():
     )
 
 
+class DefinitionOverlay(Mapping):
+    """Read-only static delta over an already qualified definition mapping."""
+
+    def __init__(self, base, overrides, *, iteration_source=None):
+        self._base = base
+        self._overrides = overrides
+        self._iteration_source = iteration_source
+        self._size = len(base) + sum(key not in base for key in overrides)
+
+    def __getitem__(self, key):
+        if key in self._overrides:
+            return self._overrides[key]
+        return self._base[key]
+
+    def __contains__(self, key):
+        return key in self._overrides or key in self._base
+
+    def __iter__(self):
+        if self._iteration_source is not None:
+            # The original full merge visits spell/source definitions before
+            # state-only definitions, including newly attached spell roots.
+            yield from self._iteration_source
+            yield from (key for key in self._base if key not in self._iteration_source)
+        else:
+            yield from self._base
+            yield from (key for key in self._overrides if key not in self._base)
+
+    def __len__(self):
+        return self._size
+
+    def __deepcopy__(self, memo):
+        memo[id(self)] = self
+        return self
+
+
 class CompiledEffects:
     def __init__(self, effects, state_catalog):
         from .combat_effect_runtime import _merge_effects
@@ -119,3 +154,23 @@ class CompiledEffects:
         self.effects = ImmutableCatalog(
             merge_native_point_areas(_merge_effects(effects, state_catalog))
         )
+
+    def with_effect_delta(self, effects):
+        """Compile only additional sources; the base was qualified at construction.
+
+        Callers must first apply the ordinary source/state collision checks.
+        This stores definitions only, never source ownership or execution state.
+        """
+        from .combat_native_area_metadata import merge_native_point_areas
+
+        if not effects:
+            return self
+        extended = object.__new__(type(self))
+        extended.source_effects = DefinitionOverlay(self.source_effects, dict(effects))
+        extended.source_states = self.source_states
+        extended.effects = DefinitionOverlay(
+            self.effects,
+            ImmutableCatalog(merge_native_point_areas(effects)),
+            iteration_source=extended.source_effects,
+        )
+        return extended

@@ -9,6 +9,23 @@ from contextlib import contextmanager
 from . import party_snapshot, party_wire, player_parties
 
 
+class PartySnapshotUnavailable(ValueError):
+    """A live fight has not published this member's authoritative snapshot yet."""
+
+    def __init__(self, party_id, character_id, fight_id):
+        super().__init__("Current party fight snapshot is unavailable")
+        self.party_id = party_id
+        self.character_id = character_id
+        self.fight_id = fight_id
+
+    def diagnostic(self):
+        return dict(
+            party_id=self.party_id,
+            character_id=self.character_id,
+            fight_id=self.fight_id,
+        )
+
+
 class Parties:
     def __init__(self, store, world):
         self.store = store
@@ -101,7 +118,9 @@ class Parties:
                         else checkpoint.get("actors", {}).get(str(member["id"]))
                     )
                     if actor is None:
-                        raise ValueError("Current party fight snapshot is unavailable")
+                        raise PartySnapshotUnavailable(
+                            party_id, member["id"], active["id"]
+                        )
                     if actor is not None:
                         member.update(
                             hp=actor["hp"],
@@ -222,7 +241,9 @@ class Parties:
         """Repair missed publications and refresh changing HP/build/fight state."""
         live = {row["id"] for row in self.world.snapshot()}
         if not live:
-            return
+            return dict(refreshed=0, deferred=[])
+        deferred = {}
+        refreshed = set()
         with self.store.connection() as db:
             missing = db.execute(
                 "SELECT r.leader_id FROM account_hero_rosters r "
@@ -234,7 +255,10 @@ class Parties:
         for row in missing:
             current = self.world.live_identity(character_id=row["leader_id"])
             if current is not None:
-                self.refresh(current[1]["account_id"], current[0], row["leader_id"])
+                try:
+                    self.refresh(current[1]["account_id"], current[0], row["leader_id"])
+                except PartySnapshotUnavailable as error:
+                    deferred[error.party_id] = error.diagnostic()
         with self.store.connection() as db:
             rows = db.execute(
                 "SELECT party_id,min(character_id) AS anchor FROM player_party_members "
@@ -242,9 +266,17 @@ class Parties:
                 (list(live),),
             ).fetchall()
         for row in rows:
-            with self._guard(row["anchor"]):
-                self._publish(row["party_id"])
+            try:
+                with self._guard(row["anchor"]):
+                    if self._publish(row["party_id"]):
+                        refreshed.add(row["party_id"])
+                        deferred.pop(row["party_id"], None)
+            except PartySnapshotUnavailable as error:
+                # Keep the current native checkpoint guard closed for this
+                # party while allowing unrelated parties to refresh normally.
+                deferred[error.party_id] = error.diagnostic()
         player_parties.expire(self.store)
+        return dict(refreshed=len(refreshed), deferred=list(deferred.values()))
 
     def publish_character_deletion(self, change):
         """Publish a roster removal after an offline character is deleted."""

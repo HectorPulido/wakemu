@@ -7,6 +7,24 @@ from wakfu_server.combat_wire import decode_actor_state
 
 
 class RuntimeMessageTests(unittest.TestCase):
+    def test_default_sixty_second_turn_matches_wire_and_server_expiration(self):
+        fight, _ = self.state()
+        now = [10.0]
+        runtime = RuntimeMessages(fight, clock=lambda: now[0])
+        packets = runtime.turn_started()
+        durations = [
+            struct.unpack_from(">q", body, len(body) - 8)[0]
+            for opcode, body in packets
+            if opcode in (13337, 13482)
+        ]
+        self.assertEqual(durations, [60000, 60000])
+        self.assertEqual(runtime.turn_deadline, 70.0)
+        now[0] = 69.999
+        self.assertEqual(runtime.expire_current_once(), [])
+        now[0] = 70.0
+        self.assertTrue(runtime.expire_current_once())
+        self.assertEqual(fight.turn_id, 2)
+
     def test_terminal_start_reaction_ack_delivers_pending_without_turn_owner(self):
         fight, _ = self.state()
         wire = RuntimeMessages(fight, clock=lambda: 0.0)
@@ -340,7 +358,7 @@ class RuntimeMessageTests(unittest.TestCase):
     def test_inactivity_expiration_once_keeps_ack_and_starts_next_clock_on_ack(self):
         fight, _ = self.state()
         now = [10.0]
-        wire = RuntimeMessages(fight, clock=lambda: now[0])
+        wire = RuntimeMessages(fight, turn_duration_ms=30000, clock=lambda: now[0])
         wire.turn_started()
         self.assertEqual(wire.turn_deadline, 40)
         now[0] = 39.99
@@ -379,7 +397,12 @@ class RuntimeMessageTests(unittest.TestCase):
             candidate.current.ap = 0
             raise UnknownCondition("unverified native predicate")
 
-        wire = RuntimeMessages(fight, clock=lambda: now[0], turn_end_provider=reject)
+        wire = RuntimeMessages(
+            fight,
+            turn_duration_ms=30000,
+            clock=lambda: now[0],
+            turn_end_provider=reject,
+        )
         wire.turn_started()
         before = source_snapshot(fight)
         now[0] = 31.0
@@ -466,7 +489,7 @@ class RuntimeMessageTests(unittest.TestCase):
         now = [0.0]
         wire = RuntimeMessages(fight, clock=lambda: now[0])
         wire.turn_started()
-        now[0] = 31
+        now[0] = 61
         fight.current.hp = 0
         self.assertEqual(wire.expire_current_once(), [])
         fight.current.hp = 60

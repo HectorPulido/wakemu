@@ -157,3 +157,111 @@ class ClassInitializationTests(unittest.TestCase):
             initialize_transaction(
                 preview, initial, fixture.factory(), self.states, owner_id=3
             )
+
+    def test_cra_start_listeners_install_once_with_eleven_actor_population(self):
+        from copy import deepcopy
+        from dataclasses import replace
+        from test_combat_effect_runtime import NativeRuntimeFactoryTests
+        from wakfu_server.combat_state import Fight
+        from wakfu_server.combat_class_initialization import initialize_transaction
+        from wakfu_server.combat_event_replay import NativeExternalEvent
+
+        fixture = NativeRuntimeFactoryTests()
+        NativeRuntimeFactoryTests.setUpClass()
+        fixture.setUp()
+        owner = fixture.fight.actors[7]
+        owner.turn_count = 0
+        actors = [owner]
+        for index in range(10):
+            actor = deepcopy(fixture.fight.actors[-7])
+            actor.id = 20 + index
+            actor.native_obstacle_id = None
+            actor.turn_count = 0
+            actor.position = (index + 1, 0, 0)
+            actor.state_ledger.actor_id = actor.id
+            actors.append(actor)
+        fixture.fight = Fight(
+            77,
+            actors,
+            {actor.position for actor in actors},
+            {team: {a.position for a in actors if a.team == team} for team in (0, 1)},
+        )
+        from native_combat_fixture import initialize_fixture_qi
+
+        initialize_fixture_qi(fixture.fight)
+        fixture.fight.ready(3)
+        # Production candidates are the full fight population. A state's
+        # selected recipient must survive even an unrestricted fcE mask.
+        from random import Random
+        from wakfu_server.combat_ordinary_authority import (
+            OrdinaryActorAuthority,
+            ordinary_cast_authority,
+        )
+        from wakfu_server.combat_native_timing_context import NativeEffectTimingProvider
+        from wakfu_server.combat_runtime_adapter import NativeServerRuntimeAdapter
+
+        authority = OrdinaryActorAuthority(
+            characters={owner.id: dict(self.char(2, 1), map_id=1134)},
+            monsters={
+                a.id: dict(id=a.id, ref=4, level=1, map_id=1134) for a in actors[1:]
+            },
+            decks={owner.id: []},
+            excluded_decks={owner.id: []},
+        )
+        adapter = NativeServerRuntimeAdapter(
+            actor_authority=authority,
+            cast=ordinary_cast_authority(
+                actors=authority,
+                timing=NativeEffectTimingProvider(self.states),
+                rng=Random(1),
+                critical=False,
+            ),
+        )
+        contexts = replace(
+            adapter.contexts(),
+            uid_start=fixture.contexts.uid_start,
+            actor_candidates=lambda p, plan, e, i: tuple(p.actors.values()),
+        )
+        factory = fixture.factory(contexts=contexts, displacement_authority=authority)
+        initial = plan(self.char(2, 1), encode_deck(), self.spells, self.states)
+        preview, _ = initialize_transaction(
+            fixture.fight, initial, factory, self.states, owner_id=3
+        )
+        roots = [
+            row
+            for row in preview.native_owned_group_effects.values()
+            if row["invocation"]["reference"] == 326924
+        ]
+        self.assertEqual(len(roots), 1)
+        self.assertEqual(roots[0]["target_id"], owner.id)
+        self.assertEqual(roots[0]["execution_count"], 1)
+        dispatcher, _ = factory(
+            preview, {"native_retained_container": {"present": False}}
+        )
+        # Exercise the real combat-start listener boundary (1003), separately
+        # from the independent opening-mechanics boundary (1028). This checks
+        # installation cardinality without making claims about those mechanics.
+        for identity in preview.actors:
+            for channel in (6, 60, 61):
+                dispatcher.replay_event(
+                    NativeExternalEvent(identity, (1003,), channel),
+                    authority=dispatcher.native_clone_authority,
+                )
+        children = set(self.states["effects"]["326924"]["children"])
+        self.assertEqual(len(children), 32)
+        listeners = [
+            row
+            for row in preview.native_owned_group_effects.values()
+            if row["invocation"]["reference"] in children
+        ]
+        self.assertEqual(len(listeners), 32)
+        self.assertEqual({row["target_id"] for row in listeners}, {owner.id})
+        self.assertEqual(
+            {row["invocation"]["reference"] for row in listeners}, children
+        )
+        self.assertFalse(
+            any(
+                row["invocation"]["reference"] == 326924
+                for row in preview.native_owned_group_effects.values()
+            )
+        )

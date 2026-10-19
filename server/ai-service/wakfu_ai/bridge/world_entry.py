@@ -77,6 +77,16 @@ def run_npc_turn(
         return
     if runtime.awaiting_ack is not None or runtime.pending:
         return
+    from wakfu_server.combat_automatic_npc_turn import requires_automatic_npc_turn_end
+
+    if requires_automatic_npc_turn_end(runtime.fight, runtime.fight.current):
+        yield runtime.end_automatic_npc_turn(
+            runtime.fight.current.id, runtime.fight.turn_id
+        ), dict(
+            action={"type": "end_turn"},
+            reason="ordinary_root_without_action_controller",
+        )
+        return
     # The preparation phase must fail as a turn outcome, not disconnect the
     # owning game session before the turn driver can apply its fallback.
     from psycopg import Error as DatabaseError

@@ -44,6 +44,25 @@ class ProfilerTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    @staticmethod
+    def sampled_speedscope():
+        return {
+            "$schema": "https://www.speedscope.app/file-format-schema.json",
+            "shared": {"frames": [{"name": "sample"}]},
+            "profiles": [
+                {
+                    "type": "sampled",
+                    "name": "Thread 1 test",
+                    "unit": "seconds",
+                    "startValue": 0,
+                    "endValue": 1,
+                    "samples": [[0]],
+                    "weights": [0.04],
+                }
+            ],
+            "activeProfileIndex": 0,
+        }
+
     def test_recorder_health_exposes_stalled_loop_and_stale_capture(self):
         self.profiler.enabled = True
         self.profiler.last_loop_progress = time.monotonic() - 30
@@ -206,6 +225,56 @@ class ProfilerTests(unittest.TestCase):
             finally:
                 popen.call_args.kwargs["stdout"].close()
 
+    @mock.patch.object(service, "process_metrics", return_value={"available": True})
+    @mock.patch.object(service, "world_pid", return_value=4321)
+    @mock.patch.object(service.subprocess, "Popen")
+    def test_concurrent_continuous_and_manual_starts_join_one_active_capture(
+        self, popen, _pid, _metrics
+    ):
+        process = FakeProcess()
+        popen.return_value = process
+        self.profiler.enabled = True
+        results = []
+        errors = []
+        start = threading.Barrier(3)
+
+        def capture(request, continuous):
+            start.wait(timeout=2)
+            try:
+                results.append(self.profiler.capture(request, continuous=continuous))
+            except Exception as exc:  # pragma: no cover - asserted empty below
+                errors.append(exc)
+
+        workers = [
+            threading.Thread(
+                target=capture,
+                args=({"seconds": 60, "mode": "waits"}, True),
+            ),
+            threading.Thread(
+                target=capture,
+                args=({"seconds": 30, "mode": "cpu"}, False),
+            ),
+        ]
+        with mock.patch.object(service.threading, "Thread"):
+            for worker in workers:
+                worker.start()
+            start.wait(timeout=2)
+            for worker in workers:
+                worker.join(timeout=2)
+            try:
+                self.assertTrue(all(not worker.is_alive() for worker in workers))
+                self.assertEqual(errors, [])
+                self.assertEqual(len(results), 2)
+                self.assertEqual(popen.call_count, 1)
+                self.assertEqual(
+                    {result["capture_id"] for result in results},
+                    {self.profiler.current["capture_id"]},
+                )
+                self.assertTrue(any("note" in result for result in results))
+                self.assertIsNone(self.profiler.last_error)
+            finally:
+                popen.call_args.kwargs["stdout"].close()
+
     @mock.patch.object(service, "world_pid", return_value=4321)
     @mock.patch.object(service.subprocess, "Popen")
     def test_stop_signals_only_sampler_child(self, popen, _pid):
@@ -279,7 +348,7 @@ class ProfilerTests(unittest.TestCase):
         self,
     ):
         destination = self.output / "capture-current.speedscope.json"
-        destination.write_text("{}")
+        destination.write_text(json.dumps(self.sampled_speedscope()))
         log = open(self.output / "capture-current.log", "w")
         process = FakeProcess(wait_result=0)
         self.profiler.enabled = True
@@ -292,13 +361,12 @@ class ProfilerTests(unittest.TestCase):
             "started_at": time.time() - service.CHUNK_SECONDS,
             "continuous": True,
         }
-        with mock.patch.object(self.profiler, "capture") as capture:
+        with mock.patch.object(self.profiler, "_resume_continuous_capture") as resume:
             self.profiler.finish(process, log, destination)
-        capture.assert_called_once_with(
-            {"seconds": service.CHUNK_SECONDS, "mode": "waits"}, continuous=True
-        )
+        resume.assert_called_once_with()
         self.assertIsNone(self.profiler.current)
         self.assertEqual(self.profiler.last["return_code"], 0)
+        self.assertTrue(self.profiler.last["artifact_valid"])
         self.assertTrue((self.output / "capture-current.meta.json").is_file())
 
         failed = FakeProcess(wait_result=1)
@@ -313,10 +381,140 @@ class ProfilerTests(unittest.TestCase):
         }
         failed_log = open(self.output / "capture-failed.log", "w")
         failed_destination = self.output / "capture-failed.speedscope.json"
-        with mock.patch.object(self.profiler, "capture") as capture:
+        failed_destination.write_text(json.dumps(self.sampled_speedscope()))
+        with mock.patch.object(self.profiler, "_resume_continuous_capture") as resume:
             self.profiler.finish(failed, failed_log, failed_destination)
-        capture.assert_not_called()
+        resume.assert_not_called()
         self.assertIn("code 1", self.profiler.last_error)
+        self.assertNotIn("artifact_valid", self.profiler.last)
+        self.assertEqual(self.profiler.status()["completed_chunks"], 1)
+
+    @mock.patch.object(service, "process_metrics", return_value={"available": True})
+    @mock.patch.object(service, "world_pid", return_value=4321)
+    @mock.patch.object(service.subprocess, "Popen")
+    def test_continuous_resume_does_not_error_when_loop_started_capture_first(
+        self, popen, _pid, _metrics
+    ):
+        process = FakeProcess()
+        popen.return_value = process
+        self.profiler.enabled = True
+        with mock.patch.object(service.threading, "Thread"):
+            try:
+                active = self.profiler.capture(
+                    {"seconds": service.CHUNK_SECONDS, "mode": "waits"},
+                    continuous=True,
+                )
+                self.profiler._resume_continuous_capture()
+                self.assertEqual(popen.call_count, 1)
+                self.assertEqual(
+                    self.profiler.current["capture_id"], active["capture_id"]
+                )
+                self.assertIsNone(self.profiler.last_error)
+            finally:
+                popen.call_args.kwargs["stdout"].close()
+
+    @mock.patch.object(service, "world_pid", return_value=4321)
+    @mock.patch.object(
+        service.subprocess, "Popen", side_effect=OSError("sampler unavailable")
+    )
+    def test_continuous_resume_keeps_real_start_failure_degraded(self, _popen, _pid):
+        self.profiler.enabled = True
+        self.profiler._resume_continuous_capture()
+        self.assertEqual(self.profiler.last_error, "sampler unavailable")
+        self.assertIsNone(self.profiler.process)
+        self.assertTrue(self.profiler.status()["degraded"])
+
+    def test_continuous_resume_observes_stop_before_start(self):
+        self.profiler.enabled = False
+        with mock.patch.object(self.profiler, "_capture_locked") as start:
+            self.profiler._resume_continuous_capture()
+        start.assert_not_called()
+        self.assertIsNone(self.profiler.last_error)
+
+    @mock.patch.object(service, "world_pid")
+    @mock.patch.object(service.subprocess, "Popen")
+    def test_continuous_start_after_stop_is_a_noop(self, popen, world):
+        self.profiler.enabled = False
+        self.assertIsNone(
+            self.profiler.capture(
+                {"seconds": service.CHUNK_SECONDS, "mode": "waits"},
+                continuous=True,
+            )
+        )
+        popen.assert_not_called()
+        world.assert_not_called()
+        self.assertIsNone(self.profiler.process)
+
+    def test_invalid_utf8_speedscope_is_preserved_but_excluded_from_status(self):
+        destination = self.output / "capture-invalid-utf8.speedscope.json"
+        original = (
+            b'{"$schema":"https://www.speedscope.app/file-format-schema.json",'
+            b'"shared":{"frames":[{"name":"\xff"}]},"profiles":[]}'
+        )
+        destination.write_bytes(original)
+        log = open(self.output / "capture-invalid-utf8.log", "w")
+        process = FakeProcess(wait_result=0)
+        self.profiler.current = {
+            "capture_id": "capture-invalid-utf8",
+            "artifact": destination.name,
+            "mode": "waits",
+            "seconds": service.CHUNK_SECONDS,
+            "started_at": time.time() - service.CHUNK_SECONDS,
+            "continuous": False,
+        }
+
+        self.profiler.finish(process, log, destination)
+
+        metadata = json.loads(
+            (self.output / "capture-invalid-utf8.meta.json").read_text()
+        )
+        self.assertEqual(metadata["return_code"], 0)
+        self.assertFalse(metadata["artifact_valid"])
+        self.assertIn("not valid UTF-8", metadata["validation_error"])
+        self.assertEqual(destination.read_bytes(), original)
+        status = self.profiler.status()
+        self.assertEqual(status["completed_chunks"], 0)
+        self.assertEqual(status["last_error"], self.profiler.last_error)
+        self.assertTrue(status["degraded"])
+
+    def test_truncated_speedscope_json_is_not_counted_as_completed(self):
+        destination = self.output / "capture-truncated.speedscope.json"
+        destination.write_text(
+            '{"$schema":"https://www.speedscope.app/file-format-schema.json"'
+        )
+        log = open(self.output / "capture-truncated.log", "w")
+        process = FakeProcess(wait_result=0)
+        self.profiler.current = {
+            "capture_id": "capture-truncated",
+            "artifact": destination.name,
+            "mode": "waits",
+            "seconds": service.CHUNK_SECONDS,
+            "started_at": time.time() - service.CHUNK_SECONDS,
+            "continuous": False,
+        }
+
+        self.profiler.finish(process, log, destination)
+
+        self.assertFalse(self.profiler.last["artifact_valid"])
+        self.assertIn("not valid JSON", self.profiler.last["validation_error"])
+        self.assertEqual(self.profiler.status()["completed_chunks"], 0)
+
+    def test_old_success_metadata_without_validation_field_remains_compatible(self):
+        artifact = self.output / "capture-legacy.speedscope.json"
+        artifact.write_text(json.dumps(self.sampled_speedscope()))
+        (self.output / "capture-legacy.meta.json").write_text(
+            json.dumps(
+                {
+                    "capture_id": "capture-legacy",
+                    "artifact": artifact.name,
+                    "return_code": 0,
+                    "started_at": time.time() - 10,
+                    "finished_at": time.time() - 5,
+                }
+            )
+        )
+
+        self.assertEqual(self.profiler.status()["completed_chunks"], 1)
 
     def test_enabled_run_records_timeline_and_starts_waits_chunk(self):
         self.profiler.enabled = True

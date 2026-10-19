@@ -154,6 +154,82 @@ class RiftEntryAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "eligible"):
             self._entry(source_allowed=lambda *a: False)
 
+    def test_six_member_admission_reports_exact_failed_member_without_bypass(self):
+        rows = [
+            dict(
+                id=i,
+                name=f"Member{i}",
+                account_id=i,
+                generation="session",
+                map_id=527,
+                instance_id=0,
+                level=21,
+                x=0,
+                y=0,
+                z=0,
+            )
+            for i in range(1, 7)
+        ]
+        for failure in ("level", "map", "instance", "approach", None):
+            with self.subTest(failure=failure):
+                members = [dict(row) for row in rows]
+                failed = members[-1]
+                if failure == "level":
+                    failed["level"] = 20
+                elif failure == "map":
+                    failed["map_id"] = 528
+                elif failure == "instance":
+                    failed["instance_id"] = 1
+                db, store = Mock(), Mock()
+                db.execute.return_value.fetchone.return_value = {
+                    "value": {"3": self.portal}
+                }
+                store.connection = lambda: contextlib.nullcontext(db)
+                with patch.object(
+                    adapter, "_roster", return_value=members
+                ), patch.object(
+                    adapter.rift_runtime, "enter", return_value={"instance_id": 99}
+                ) as create:
+
+                    def enter():
+                        return adapter.enter(
+                            store,
+                            1,
+                            "session",
+                            1,
+                            527,
+                            self.body,
+                            source_allowed=lambda row, source: not (
+                                failure == "approach" and row["id"] == 6
+                            ),
+                            resolve_destination=lambda *args: dict(
+                                map_id=1314, x=0, y=1, z=0
+                            ),
+                        )
+
+                    if failure is None:
+                        result = enter()
+                        self.assertEqual(len(result["members"]), 6)
+                        self.assertEqual(create.call_args.args[3], list(range(1, 7)))
+                    else:
+                        expected = {
+                            "level": "level 20; requires level 21",
+                            "map": "different portal map or instance",
+                            "instance": "different portal map or instance",
+                            "approach": "move closer to the native portal",
+                        }[failure]
+                        with self.assertRaisesRegex(
+                            ValueError, f"Member6 .*{expected}"
+                        ):
+                            enter()
+                        create.assert_not_called()
+                        self.assertFalse(
+                            any(
+                                call.args[0].startswith("UPDATE characters")
+                                for call in db.execute.call_args_list
+                            )
+                        )
+
 
 if __name__ == "__main__":
     unittest.main()

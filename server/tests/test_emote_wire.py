@@ -105,6 +105,7 @@ class EmoteWireTests(unittest.TestCase):
         db.execute.side_effect = [
             Mock(fetchone=lambda: {"value": {"unlock_all": True}}),
             [{"emote_id": 20001}, {"emote_id": 20060}],
+            [],  # No separately learned opaque IDs in the default-only fixture.
         ]
         opcode, payload = emotes.snapshot(db, 1)
         self.assertEqual(13873, opcode)

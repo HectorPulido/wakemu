@@ -3352,5 +3352,17 @@ def evaluate_condition(
             and identity not in actor.excluded_deck_spell_ids
         )
 
-    check(root)
-    return True if validate_only else bool(run(root))
+    try:
+        check(root)
+        return True if validate_only else bool(run(root))
+    finally:
+        # Mutually recursive helpers otherwise retain the native context and
+        # its bound preview authority until a cyclic collection.
+        literal_long = None
+        is_selector = None
+        is_state_actor_selector = None
+        check_number = None
+        integral = None
+        number = None
+        check = None
+        run = None

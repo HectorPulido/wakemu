@@ -190,6 +190,7 @@ def create_or_reuse(
     transition_destination=None,
     initialize_instance=None,
     resolve_destination=None,
+    allowed_position_accounts=None,
 ):
     """Create/reuse the party's durable run after a server-owned entry check.
 
@@ -294,6 +295,11 @@ def create_or_reuse(
         from wakfu_server.characters.heroes import expand_session_rows
 
         live_rows = expand_session_rows(db, store, live_rows)
+        if allowed_position_accounts is not None and any(
+            member["account_id"] not in allowed_position_accounts
+            for member in live_rows
+        ):
+            raise ValueError("Dungeon entry party changed outside position barrier")
         member_ids = [row["id"] for row in live_rows]
         existing = db.execute(
             "SELECT * FROM dungeon_instances WHERE party_id=%s AND status='active' "

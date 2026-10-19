@@ -2,6 +2,9 @@
 from wakfu_server import native_catalog as protocol_catalog
 from dataclasses import dataclass
 from contextlib import nullcontext
+from functools import lru_cache
+from threading import RLock
+from types import MappingProxyType
 from .combat_casting_range import int32
 from .combat_conditions import UnknownCondition
 
@@ -230,8 +233,13 @@ class NativeSnPathAuthority:
         return True
 
 
+@dataclass(frozen=True, init=False, eq=False, repr=False)
 class NativeSnColumns:
     """Complete ordered VB.a columns from the offline physical bulk export."""
+
+    chunks: tuple
+    map_id: int
+    source_sha256: str
 
     def __init__(self, data, *, map_id, source_sha256):
         if (
@@ -248,8 +256,7 @@ class NativeSnColumns:
             or not isinstance(data.get("chunks"), list)
         ):
             raise ValueError("Missing matching native Sn physical provenance")
-        self.chunks = []
-        self.map_id, self.source_sha256 = map_id, source_sha256
+        chunks = []
         seen_bounds = set()
         for chunk in data["chunks"]:
             if not isinstance(chunk, dict):
@@ -264,7 +271,7 @@ class NativeSnColumns:
             ):
                 raise ValueError("Invalid native Sn physical chunk bounds")
             x, y, width, height = bounds
-            for old_bounds, _ in self.chunks:
+            for old_bounds, _ in chunks:
                 ox, oy, ow, oh = old_bounds
                 if x < ox + ow and ox < x + width and y < oy + oh and oy < y + height:
                     raise ValueError("Overlapping native Sn chunk bounds")
@@ -285,10 +292,26 @@ class NativeSnColumns:
                 ):
                     raise ValueError("Invalid native Sn ordered physical surfaces")
                 columns[cx, cy] = tuple(NativePhysicalSurface(*row) for row in rows)
-            self.chunks.append((bounds, columns))
+            chunks.append((bounds, MappingProxyType(columns)))
+        object.__setattr__(self, "chunks", tuple(chunks))
+        object.__setattr__(self, "map_id", map_id)
+        object.__setattr__(self, "source_sha256", source_sha256)
+
+    def __deepcopy__(self, memo):
+        # Physical geometry is immutable; live QI masks are separate authorities.
+        return self
 
     @classmethod
     def from_published(cls, map_id):
+        if type(map_id) is not int or map_id <= 0:
+            raise ValueError("Invalid native Sn map identity")
+        revision = protocol_catalog.release()
+        # Serialize cold loads so concurrent fights do not decode a large map twice.
+        with _published_columns_lock:
+            return _published_columns(cls, revision, map_id)
+
+    @classmethod
+    def _load_published(cls, map_id):
         """Load only the published protocol catalog; no private/runtime search."""
         import hashlib
         import json
@@ -342,3 +365,17 @@ class NativeSnColumns:
             if cx <= x < cx + width and cy <= y < cy + height:
                 return columns.get((x, y), ())
         return None
+
+
+_published_columns_lock = RLock()
+
+
+@lru_cache(maxsize=4)
+def _published_columns(columns_type, revision, map_id):
+    """Cache verified physical geometry only within one published release."""
+    if protocol_catalog.release() != revision:
+        raise ValueError("Native Sn catalog revision changed before geometry load")
+    columns = columns_type._load_published(map_id)
+    if protocol_catalog.release() != revision:
+        raise ValueError("Native Sn catalog revision changed during geometry load")
+    return columns

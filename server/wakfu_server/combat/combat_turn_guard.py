@@ -1,5 +1,6 @@
 """Isolate shared NPC preparation failures from the owner's transport."""
 from .combat_effective_control import effective_server_controlled
+from .combat_automatic_npc_turn import requires_automatic_npc_turn_end
 import time
 import uuid
 
@@ -11,7 +12,10 @@ def run_shared_npc_attempt(shared, operation, failed, *, clock=time.monotonic):
         if (
             shared.fight.phase != "active"
             or actor is None
-            or not effective_server_controlled(shared.fight, actor)
+            or not (
+                effective_server_controlled(shared.fight, actor)
+                or requires_automatic_npc_turn_end(shared.fight, actor)
+            )
             or runtime is None
             or runtime.awaiting_ack is not None
             or runtime.pending
@@ -54,5 +58,8 @@ def run_shared_npc_attempt(shared, operation, failed, *, clock=time.monotonic):
             if getattr(shared, "native_npc_retry_claim", None) == claim:
                 shared.native_npc_retry_claim = None
     with shared.lock:
-        shared.native_npc_retry = None
+        # Submission can return after a worker has already recorded failure.
+        # Clear only the retry state that this foreground attempt observed.
+        if getattr(shared, "native_npc_retry", None) is previous:
+            shared.native_npc_retry = None
     return True

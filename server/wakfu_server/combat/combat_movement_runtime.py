@@ -129,6 +129,19 @@ def apply_client(
     actor_id, path = decode_request(body)
     fight = runtime.fight
     actor = fight._current_owned(owner_id, actor_id)
+    from .combat_hour_travel import try_apply_hour_travel
+
+    hour = try_apply_hour_travel(
+        runtime,
+        owner_id,
+        actor_id,
+        path,
+        stats_serializer,
+        runtime_stats_serializer=runtime_stats_serializer,
+        step_callback=_step_callback,
+    )
+    if hour is not None:
+        return hour
     from .combat_portal_travel import try_apply_portal_travel
 
     gate = try_apply_portal_travel(
@@ -171,7 +184,7 @@ def apply_client(
         previous_stats = None
         candidate_fight = copy.deepcopy(fight)
         candidate = candidate_fight.actors[actor_id]
-        candidate_fight.move(owner_id, actor_id, path)
+        event = candidate_fight.move(owner_id, actor_id, path)
         set_registered_direction(candidate_fight, candidate, direction)
         stats = (
             runtime_stats_serializer(candidate, candidate_fight)
@@ -179,7 +192,12 @@ def apply_client(
             else stats_serializer(candidate)
         )
     animation = movement(
-        fight.id, runtime.action_id + 1, actor_id, [origin, *path], direction
+        fight.id,
+        runtime.action_id + 1,
+        actor_id,
+        [origin, *path],
+        direction,
+        on_rails=event.get("on_rails") is True,
     )
     refresh = (
         12873,
@@ -233,6 +251,7 @@ def apply_ai(
         result["event"] = fight.server_move(
             actor.id, path, step_callback=_step_callback
         )
+        prepared_event = result["event"]
         path = result["event"]["path"]
         result["path"] = path
         direction = direction_after_path(origin, path, actor.direction)
@@ -242,11 +261,16 @@ def apply_ai(
         previous_stats = None
         candidate_fight = copy.deepcopy(fight)
         candidate = candidate_fight.actors[actor.id]
-        candidate_fight.server_move(actor.id, path)
+        prepared_event = candidate_fight.server_move(actor.id, path)
         set_registered_direction(candidate_fight, candidate, direction)
         stats = stats_serializer(candidate)
     animation = movement(
-        fight.id, runtime.action_id + 1, actor.id, [origin, *path], direction
+        fight.id,
+        runtime.action_id + 1,
+        actor.id,
+        [origin, *path],
+        direction,
+        on_rails=prepared_event.get("on_rails") is True,
     )
     refresh = (
         12873,

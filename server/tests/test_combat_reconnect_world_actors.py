@@ -5,8 +5,8 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from protocol_codec import Reader
-from wakfu_server.combat.combat_reconnect_world_actors import ordinary_npc_appearances
-from wakfu_server.combat.combat_session_adapter import CombatSessionAdapter
+from wakfu_server.combat_reconnect_world_actors import ordinary_npc_appearances
+from wakfu_server.combat_session_adapter import CombatSessionAdapter
 from wakfu_server.monsters import owned_instance
 
 
@@ -29,6 +29,7 @@ class ReconnectWorldActorTests(unittest.TestCase):
             native_summon_registrations={},
             phase="placement",
         )
+        self.session = SimpleNamespace(character_id=13, account_id=0)
         self.shared = SimpleNamespace(
             map_id=1134,
             instance_id=0,
@@ -67,11 +68,11 @@ class ReconnectWorldActorTests(unittest.TestCase):
             with self.subTest(phase=phase):
                 self.fight.phase = phase
                 with patch(
-                    "wakfu_server.combat.combat_reconnect_snapshot.owned_snapshot",
+                    "wakfu_server.combat_reconnect_snapshot.owned_snapshot",
                     return_value=((12847, b"combat"),),
                 ):
                     packets = adapter.owned_reconnect_bootstrap(
-                        self.fight, self.shared, None
+                        self.fight, self.shared, self.session
                     )
                 self.assertEqual([op for op, _ in packets], [12608, 12847])
 
@@ -137,9 +138,7 @@ class ReconnectWorldActorTests(unittest.TestCase):
             def finish_application(self):
                 pass
 
-        with patch(
-            "wakfu_server.combat.combat_morph_handler.NativeRunnerAmount", Runner
-        ):
+        with patch("wakfu_server.combat_morph_handler.NativeRunnerAmount", Runner):
             self.assertTrue(morph(effect, {}, invocation))
         self.assertEqual([opcode for opcode, _ in effect_packets], [12613])
         original_payload = bytes.fromhex(fight.owned_stat_effects[7501]["payload"])
@@ -212,19 +211,21 @@ class ReconnectWorldActorTests(unittest.TestCase):
                     "wakfu_server.monsters.owned_instance", side_effect=fixture_instance
                 ),
                 patch(
-                    "wakfu_server.combat.combat_monster_world.owned_instance",
+                    "wakfu_server.combat_monster_world.owned_instance",
                     side_effect=fixture_instance,
                 ),
                 patch(
-                    "wakfu_server.combat.combat_monster_world.reference",
+                    "wakfu_server.combat_monster_world.reference",
                     return_value={"name": "Native NPC"},
                 ),
                 patch(
-                    "wakfu_server.combat.combat_monster_world.corpse_collect_actions",
+                    "wakfu_server.combat_monster_world.corpse_collect_actions",
                     return_value=(),
                 ),
             ):
-                return adapter.owned_reconnect_bootstrap(fight, shared, None)
+                return adapter.owned_reconnect_bootstrap(
+                    fight, shared, SimpleNamespace(character_id=10, account_id=0)
+                )
 
         first = reconnect_packets()
         opcodes = [opcode for opcode, _ in first]
@@ -244,7 +245,7 @@ class ReconnectWorldActorTests(unittest.TestCase):
         self.assertEqual(actor.number("q"), -200)
         self.assertEqual(actor.number("B"), 1)
         self.assertEqual(actor.number("q"), -1)
-        from wakfu_server.combat.combat_wire import decode_bootstrap
+        from wakfu_server.combat_wire import decode_bootstrap
 
         roster = decode_bootstrap(first[1][1])
         self.assertIn(-200, {row["actor_id"] for row in roster["participants"]})
@@ -293,7 +294,7 @@ class ReconnectWorldActorTests(unittest.TestCase):
 
     def test_retired_snapshot_npc_is_not_restored_as_a_world_appearance(self):
         with patch(
-            "wakfu_server.combat.combat_snapshot_actor_visibility.hidden_snapshot_actor_ids",
+            "wakfu_server.combat_snapshot_actor_visibility.hidden_snapshot_actor_ids",
             return_value={-200},
         ):
             self.assertEqual(ordinary_npc_appearances(self.fight, self.shared), ())
@@ -314,11 +315,11 @@ class ReconnectWorldActorTests(unittest.TestCase):
 
         with (
             patch(
-                "wakfu_server.combat.combat_snapshot_actor_visibility.hidden_snapshot_actor_ids",
+                "wakfu_server.combat_snapshot_actor_visibility.hidden_snapshot_actor_ids",
                 return_value={-200},
             ),
             patch(
-                "wakfu_server.combat.combat_monster_world.spawn_group",
+                "wakfu_server.combat_monster_world.spawn_group",
                 side_effect=capture_group,
             ),
         ):
@@ -343,3 +344,245 @@ class ReconnectWorldActorTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     ordinary_npc_appearances(self.fight, self.shared)
                 self.assertEqual((vars(self.fight), vars(self.shared)), before)
+
+
+class ReconnectPlayerAppearanceTests(unittest.TestCase):
+    def setUp(self):
+        self.selected = SimpleNamespace(
+            id=10, owner_id=100, controlled=True, team=0, position=(0, 0, 0)
+        )
+        self.ally = SimpleNamespace(
+            id=11, owner_id=200, controlled=True, team=0, position=(1, 0, 0), hp=20
+        )
+        self.corpse = SimpleNamespace(
+            id=12, owner_id=300, controlled=True, team=0, position=(2, 0, 0), hp=0
+        )
+        self.summon = SimpleNamespace(
+            id=13, owner_id=200, controlled=True, team=0, position=(3, 0, 0)
+        )
+        self.hidden = SimpleNamespace(
+            id=14, owner_id=200, controlled=True, team=0, position=(4, 0, 0)
+        )
+        self.withdrawn = SimpleNamespace(
+            id=15,
+            owner_id=200,
+            controlled=True,
+            team=0,
+            position=(5, 0, 0),
+            pve_withdrawn=True,
+        )
+        self.fight = SimpleNamespace(
+            actors={
+                actor.id: actor
+                for actor in (
+                    self.selected,
+                    self.ally,
+                    self.corpse,
+                    self.summon,
+                    self.hidden,
+                    self.withdrawn,
+                )
+            },
+            native_summon_registrations={13: {"owner": 11}},
+            phase="placement",
+        )
+        self.shared = SimpleNamespace(map_id=1134, instance_id=0, join_context={})
+        self.session = SimpleNamespace(character_id=10, account_id=100)
+
+    def test_sources_only_visible_other_players_and_preserves_off_play_corpse(self):
+        from wakfu_server.combat_reconnect_world_actors import (
+            ordinary_player_appearances,
+        )
+
+        source_calls, serializer_calls = [], []
+
+        def source(owner_id, character_id):
+            source_calls.append((owner_id, character_id))
+            return {
+                "id": character_id,
+                "account_id": owner_id,
+                "name": str(character_id),
+            }
+
+        def serialize(character):
+            serializer_calls.append(character["id"])
+            return 12608, str(character["id"]).encode()
+
+        with patch(
+            "wakfu_server.combat_snapshot_actor_visibility.hidden_snapshot_actor_ids",
+            return_value={14},
+        ):
+            packets = ordinary_player_appearances(
+                self.fight,
+                self.shared,
+                self.session,
+                character_source=source,
+                serializer=serialize,
+            )
+
+        self.assertEqual(packets, ((12608, b"11"), (12608, b"12")))
+        self.assertEqual(source_calls, [(200, 11), (300, 12)])
+        self.assertEqual(serializer_calls, [11, 12])
+
+    def test_missing_factory_and_foreign_character_source_fail_closed(self):
+        from wakfu_server.combat_reconnect_world_actors import (
+            ordinary_player_appearances,
+        )
+
+        with self.assertRaisesRegex(ValueError, "appearance authority"):
+            ordinary_player_appearances(
+                self.fight,
+                self.shared,
+                self.session,
+                character_source=None,
+                serializer=None,
+            )
+
+        with self.assertRaisesRegex(ValueError, "foreign"):
+            ordinary_player_appearances(
+                self.fight,
+                self.shared,
+                self.session,
+                character_source=lambda owner, actor: {
+                    "id": actor,
+                    "account_id": owner + 1,
+                },
+                serializer=lambda source: (12608, b"partial"),
+            )
+
+    def test_real_spawn_wire_carries_source_name_and_equipment(self):
+        import hashlib
+        import struct
+        from wakfu_server import wire
+        from wakfu_server.combat_reconnect_world_actors import (
+            ordinary_player_appearances,
+        )
+
+        template = (
+            struct.pack(
+                ">BqBqH",
+                11,
+                wire.TEMPLATE_CHARACTER,
+                1,
+                wire.TEMPLATE_ACCOUNT,
+                len(b"Pekebu"),
+            )
+            + b"Pekebu"
+            + struct.pack(">iihqBB", -12, -8, -1, 1134, 0, 1)
+            + bytes(20)
+            + b"\x00"
+        )
+        equipment_start = len(template) - 1
+        layout = {
+            "template_sha256": hashlib.sha256(template).hexdigest(),
+            "sections": [
+                {
+                    "name": "EQUIPMENT_APPEARANCE",
+                    "start": equipment_start,
+                    "end": equipment_start + 1,
+                }
+            ],
+        }
+        character = dict(
+            id=11,
+            account_id=200,
+            name="Mira Hero",
+            level=6,
+            breed=8,
+            active_build_index=0,
+            x=7,
+            y=9,
+            z=-1,
+            map_id=1134,
+            direction=2,
+            inventory_items=[
+                dict(uid=1001, character_id=11, reference=6823, quantity=1)
+            ],
+            builds={
+                0: dict(
+                    sheet=wire.proto_field(24, (1 << 64) - 1).hex(),
+                    equipment=wire.proto_field(
+                        10, wire.proto_field(8, 1001) + wire.proto_field(16, 0)
+                    ).hex(),
+                )
+            },
+        )
+        self.fight.actors = {10: self.selected, 11: self.ally}
+        with patch.dict(wire.ENTITY_LAYOUTS, {11: layout}):
+            packets = ordinary_player_appearances(
+                self.fight,
+                self.shared,
+                self.session,
+                character_source=lambda owner, identity: character,
+                serializer=lambda source: (12608, wire.spawn_player(template, source)),
+            )
+
+        self.assertEqual(len(packets), 1)
+        packet = packets[0][1]
+        self.assertIn(b"Mira Hero", packet)
+        self.assertNotIn(b"Pekebu", packet)
+        self.assertIn(struct.pack(">BBii", 1, 0, 6823, 0), packet)
+
+    def test_owned_reconnect_prefix_order_for_placement_active_rift_and_duel(self):
+        from wakfu_server.combat_session_adapter import CombatSessionAdapter
+
+        source_calls = []
+
+        def source(owner_id, character_id):
+            source_calls.append((owner_id, character_id))
+            return {"id": character_id, "account_id": owner_id, "name": "Ally"}
+
+        store = SimpleNamespace(character=source)
+        context_packet = (12608, b"from-context")
+        fallback_packet = (12608, b"from-fallback")
+        adapter = CombatSessionAdapter(
+            store, player_appearance=lambda character: fallback_packet
+        )
+        self.fight.actors = {10: self.selected, 11: self.ally}
+
+        for phase, context, rift, expected in (
+            (
+                "placement",
+                {"hero_appearance": lambda _: context_packet},
+                False,
+                [12608, 12847],
+            ),
+            (
+                "active",
+                {"hero_appearance": lambda _: context_packet},
+                False,
+                [12608, 12847],
+            ),
+            ("active", {}, False, [12608, 12847]),
+            (
+                "active",
+                {"hero_appearance": lambda _: context_packet},
+                True,
+                [12608, 12608, 12847],
+            ),
+        ):
+            self.fight.phase = phase
+            if rift:
+                self.fight.rift_wave_state = {"wave": 1}
+            elif hasattr(self.fight, "rift_wave_state"):
+                del self.fight.rift_wave_state
+            self.shared.join_context = context
+            with (
+                patch(
+                    "wakfu_server.combat_reconnect_snapshot.owned_snapshot",
+                    return_value=((12847, b"combat"),),
+                ),
+                patch(
+                    "wakfu_server.rift_combat_adapter.world_snapshot",
+                    return_value=((12608, b"rift"),),
+                ),
+            ):
+                packets = adapter.owned_reconnect_bootstrap(
+                    self.fight, self.shared, self.session
+                )
+            self.assertEqual([opcode for opcode, _ in packets], expected)
+            self.assertEqual(
+                packets[0][1], context_packet[1] if context else fallback_packet[1]
+            )
+
+        self.assertEqual(source_calls, [(200, 11)] * 4)

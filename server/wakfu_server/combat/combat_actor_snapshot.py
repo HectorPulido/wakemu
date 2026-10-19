@@ -469,12 +469,21 @@ def initialize_fight_snapshots(
             identity: value.physical_radius for identity, value in prepared.items()
         },
     )
-    from .combat_npc_initialization import initial_plans, initialize_ordinary_npcs
+    from .combat_npc_initialization import (
+        initial_plans,
+        initialize_ordinary_npcs,
+        initial_property_counts,
+        install_initial_properties,
+    )
 
     plans = initial_plans(fight, monsters)
+    properties = initial_property_counts(monsters)
     from .combat_npc_ai_initialization import initial_ai_actors
 
     ai_actors = initial_ai_actors(fight, monsters)
+    from .combat_automatic_npc_turn import initial_root_manifest, install_root_manifest
+
+    root_manifest = initial_root_manifest(fight, monsters)
     original_fight = fight
     if plans:
         from copy import deepcopy
@@ -486,6 +495,10 @@ def initialize_fight_snapshots(
     # dataclass field assignments, after the entire roster has been validated.
     for identity, snapshot in prepared.items():
         snapshot.install(fight.actors[identity])
+        if identity in properties:
+            # Breed properties are constructor facts even with no activated
+            # innate state or offensive ability (including turnless actors).
+            install_initial_properties(fight.actors[identity], properties[identity])
         if identity in ai_actors:
             # Establish the actual tactical server controller before initial
             # effects run. Subsequent native control effects remain authoritative.
@@ -495,6 +508,7 @@ def initialize_fight_snapshots(
             # No owned eWr/eXb link has run at this validated fresh boundary.
             fight.actors[identity].native_resource_numeric_observers = {4: ()}
     fight.native_npc_ai_actors = ai_actors
+    install_root_manifest(fight, root_manifest)
     if plans:
         fight.native_effect_uid_next = initial_effect_uid
         initialize_ordinary_npcs(fight, monsters, plans)

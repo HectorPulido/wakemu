@@ -108,12 +108,8 @@ class OrdinaryActorAuthority:
             raise ValueError("Missing checkpointed ordinary rift monster sources")
         return sources
 
-    def __call__(self, preview, actor):
-        from .combat_native_actor_lookup import detached_authority
-
-        construction = detached_authority(preview, actor)
-        if construction is not None:
-            return construction
+    def _creation_facts(self, preview, actor):
+        """Fresh ordinary identity/life facts shared by full and GF queries."""
         withdrawn = {
             identity
             for identity, candidate in preview.actors.items()
@@ -169,6 +165,41 @@ class OrdinaryActorAuthority:
         from .combat_ordinary_death import owned_fighter_guards
 
         life = owned_fighter_guards(preview, actor)
+        if hasattr(preview, "native_controller_registry"):
+            from .combat_controller_registry import current_native_controller
+
+            current_native_controller(preview, actor.id)
+        return player, source, carrying, properties, life
+
+    def summon_count_flags(self, preview, actor):
+        """Project native eGj/dTE only; this grants no spell or item authority.
+
+        GF does not inspect another ordinary fighter's spellbook, cosmetics or
+        social components. Custom authority subclasses keep their full query.
+        """
+        if type(self) is not OrdinaryActorAuthority:
+            targeting = self(preview, actor).targeting
+            return targeting.get("is_eGj"), targeting.get("dTE")
+        from .combat_native_actor_lookup import detached_authority
+
+        construction = detached_authority(preview, actor)
+        if construction is not None:
+            return construction.targeting.get("is_eGj"), construction.targeting.get(
+                "dTE"
+            )
+        self._creation_facts(preview, actor)
+        # These are the same exact biB/bjo/bje constructor facts used below.
+        return True, False
+
+    def __call__(self, preview, actor):
+        from .combat_native_actor_lookup import detached_authority
+
+        construction = detached_authority(preview, actor)
+        if construction is not None:
+            return construction
+        player, source, carrying, properties, life = self._creation_facts(
+            preview, actor
+        )
         in_play = life["baF"]
         context = dict(
             bcN=actor.native_obstacle_id,

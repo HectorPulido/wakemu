@@ -71,16 +71,24 @@ def world_properties(character):
     )
 
 
-def account_packet(db):
+def account_packet(db, account_id=None):
     """13873/eDS.INVENTORY/flY absolute account quest-item snapshot.
 
-    Only this policy owns account inventory in the local server today. These
-    entries have no bag slots, equipment stats, exchange value, or rewards.
+    Projected exploration artifacts and persisted owned account quest items
+    share the native snapshot. Neither uses bag slots or equipment sheets.
     """
     selected = load(db)["account_item_refs"]
+    quantities = {identity: 1 for identity in selected}
+    if account_id is not None:
+        from wakfu_server.items.account_quest_inventory import load as load_owned
+
+        for item in load_owned(db, account_id):
+            quantities[item["reference"]] = max(
+                quantities.get(item["reference"], 0), item["quantity"]
+            )
     rows = []
-    for identity in selected:
-        row = b"\x08" + _varint(identity) + b"\x10\x01"
+    for identity, quantity in quantities.items():
+        row = b"\x08" + _varint(identity) + b"\x10" + _varint(quantity)
         rows.append(b"\x0a" + _varint(len(row)) + row)
     proto = b"".join(rows)
     return 13873, struct.pack(">III", 1, 4, len(proto)) + proto
@@ -97,10 +105,10 @@ def _varint(value):
 
 def account_quantity(character, references):
     """Native eKE adds account quantities once per requested int32 reference."""
-    state = None if character is None else character.get("exploration_secrets")
-    if state is None:
+    if character is None:
         return 0
-    owned = state.get("account_item_refs")
+    state = character.get("exploration_secrets")
+    owned = () if state is None else state.get("account_item_refs")
     if (
         not isinstance(owned, (tuple, list))
         or any(
@@ -109,10 +117,24 @@ def account_quantity(character, references):
         or len(set(owned)) != len(owned)
     ):
         raise ValueError("Invalid owned exploration account items")
+    quantities = {identity: 1 for identity in owned}
+    from wakfu_server.items.account_quest_inventory import validate
+
+    seen = set()
+    for row in character.get("account_quest_items", ()):
+        if not isinstance(row, dict) or row.get("reference") in seen:
+            raise ValueError("Invalid owned native account quest items")
+        validate(row.get("account_id"), row.get("reference"), row.get("quantity"))
+        if row["account_id"] != character.get("account_id"):
+            raise ValueError("Foreign native account quest item")
+        quantities[row["reference"]] = max(
+            quantities.get(row["reference"], 0), row["quantity"]
+        )
+        seen.add(row["reference"])
     total = 0
     for reference in references:
         if type(reference) is not int or not -(2**63) <= reference < 2**63:
             raise ValueError("Native item reference requires signed long")
         narrowed = ((reference + 2**31) % 2**32) - 2**31
-        total += narrowed in owned
+        total += quantities.get(narrowed, 0)
     return ((total + 2**31) % 2**32) - 2**31

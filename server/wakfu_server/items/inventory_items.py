@@ -74,6 +74,19 @@ def grant(
     with store.connection() if db is None else nullcontext(db) as db:
         _lease(store, db, account_id, generation, character_id)
         from . import quest_inventory
+        from . import account_quest_inventory
+
+        if reference in account_quest_inventory.REFERENCES:
+            from .inventory_uids import allocate
+            from wakfu_server.characters.exploration_secrets import account_packet
+
+            result = account_quest_inventory.grant(db, account_id, reference, quantity)
+            result.update(
+                uid=allocate(db),
+                account_quest_item=True,
+                account_packet=account_packet(db, account_id),
+            )
+            return result
 
         if reference in quest_inventory.REFERENCES:
             from .inventory_uids import allocate
@@ -228,6 +241,8 @@ def item_form(item):
 
 
 def insertion(item, *, notification=False):
+    if item.get("account_quest_item"):
+        return item["account_packet"]
     if item.get("quest_item"):
         return item["quest_packet"]
     proto = item_proto(item)

@@ -1,5 +1,6 @@
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from psycopg.types.json import Jsonb
 from psycopg.pq import TransactionStatus
 from postgres_case import PostgresCase
 from wakfu_server import monster_reproduction
@@ -18,6 +19,158 @@ class DurableGroupsTests(PostgresCase):
         self.groups = PersistentGroups(self.store)
         self.members = [owned_instance(5525, 1, -200, map_id=1134, x=-7, y=-7, z=-1)]
         self.key = self.groups.register(1134, 0, 501, self.members)
+
+    @staticmethod
+    def summon_only_mixed_members(instance_id=0, id_start=9000):
+        refs = (5373, 5403, 5404, 5373, 5374)
+        return [
+            owned_instance(
+                reference,
+                REFERENCES[reference]["min_level"],
+                -(id_start + index),
+                map_id=1134,
+                x=-7 + index,
+                y=-7,
+                z=-1,
+                instance_id=instance_id,
+            )
+            for index, reference in enumerate(refs)
+        ]
+
+    def insert_legacy_group(self, key, members, *, status="available"):
+        with self.store.connection() as db, db.transaction():
+            db.execute(
+                "INSERT INTO combat_groups(map_id,instance_id,group_id,members,status) "
+                "VALUES(%s,%s,%s,%s,%s)",
+                (*key, Jsonb(members), status),
+            )
+            for member in members:
+                db.execute(
+                    "INSERT INTO combat_group_members(map_id,instance_id,monster_id,group_id) "
+                    "VALUES(%s,%s,%s,%s)",
+                    (key[0], key[1], member["id"], key[2]),
+                )
+
+    def persisted_members(self, key):
+        with self.store.connection() as db:
+            return db.execute(
+                "SELECT members,status,revision FROM combat_groups "
+                "WHERE map_id=%s AND instance_id=%s AND group_id=%s",
+                key,
+            ).fetchone()
+
+    def test_public_mixed_group_projects_consistently_without_deleting_legacy_members(
+        self,
+    ):
+        members = self.summon_only_mixed_members()
+        key = (1134, 0, 770)
+        expected = tuple(
+            member for member in members if member["ref"] not in (5403, 5404)
+        )
+        self.insert_legacy_group(key, members)
+
+        visible = self.groups.available(1134, 0)
+        row = next(item for item in visible if item["key"] == key)
+        self.assertEqual(row["members"], expected)
+
+        # Seed reconciliation compares the public projection without deleting
+        # the still-durable summon-only members from this legacy roster.
+        self.assertEqual(self.groups.register_seed(1134, 0, 770, members), key)
+        self.assertEqual(self.persisted_members(key)["members"], members)
+
+        moved = [dict(member, x=member["x"] + 1) for member in expected]
+        self.assertTrue(self.groups.move_members(key, expected, moved))
+        raw_after_move = self.persisted_members(key)["members"]
+        self.assertEqual(
+            [member for member in raw_after_move if member["ref"] in (5403, 5404)],
+            [member for member in members if member["ref"] in (5403, 5404)],
+        )
+        self.assertEqual(
+            [member for member in raw_after_move if member["ref"] not in (5403, 5404)],
+            moved,
+        )
+        self.assertFalse(self.groups.move_members(key, expected, moved))
+        moved_raw = [
+            member
+            if member["ref"] in (5403, 5404)
+            else next(updated for updated in moved if updated["id"] == member["id"])
+            for member in members
+        ]
+
+        lease, claimed = self.groups.claim(key, "summon-only-public", self.fight_id)
+        self.assertEqual(claimed, tuple(moved))
+        raw = self.persisted_members(key)
+        self.assertEqual(raw["members"], moved_raw)
+        self.assertEqual(raw["status"], "fighting")
+
+        released = self.groups.release_session("summon-only-public")
+        released_row = next(item for item in released if item["key"] == key)
+        self.assertEqual(released_row["members"], tuple(moved))
+        self.assertEqual(self.persisted_members(key)["members"], moved_raw)
+
+        next_lease, next_members = self.groups.claim(
+            key, "summon-only-defeat", self.fight_id
+        )
+        self.assertEqual(next_members, tuple(moved))
+        self.assertTrue(self.groups.finish(next_lease, defeated=True))
+        self.assertEqual(self.groups.respawn(key), tuple(moved))
+        raw = self.persisted_members(key)
+        self.assertEqual(raw["members"], moved_raw)
+        self.assertEqual(raw["status"], "available")
+
+    def test_private_group_preserves_summon_only_members_and_all_blocked_claim_is_read_only(
+        self,
+    ):
+        private = self.summon_only_mixed_members(instance_id=37, id_start=9100)
+        private_key = (1134, 37, 771)
+        self.insert_legacy_group(private_key, private)
+        visible = self.groups.available(1134, 37)
+        self.assertEqual(visible, [dict(key=private_key, members=tuple(private))])
+        self.assertEqual(self.groups.register(1134, 37, 771, private), private_key)
+        lease, claimed = self.groups.claim(
+            private_key, "private-encounter", self.fight_id
+        )
+        self.assertEqual(claimed, tuple(private))
+        self.assertEqual(
+            self.groups.release_session("private-encounter")[0]["members"],
+            tuple(private),
+        )
+        self.assertEqual(self.persisted_members(private_key)["members"], private)
+
+        blocked = [
+            member
+            for member in self.summon_only_mixed_members(id_start=9300)
+            if member["ref"] in (5403, 5404)
+        ]
+        defeated_blocked = [
+            member
+            for member in self.summon_only_mixed_members(id_start=9400)
+            if member["ref"] in (5403, 5404)
+        ]
+        available_key = (1134, 0, 772)
+        defeated_key = (1134, 0, 773)
+        self.insert_legacy_group(available_key, blocked)
+        self.insert_legacy_group(defeated_key, defeated_blocked, status="defeated")
+
+        self.assertNotIn(
+            available_key, [row["key"] for row in self.groups.available(1134, 0)]
+        )
+        before = self.persisted_members(available_key)
+        with self.assertRaisesRegex(ValueError, "no eligible ordinary monsters"):
+            self.groups.claim(available_key, "blocked", self.fight_id)
+        after = self.persisted_members(available_key)
+        self.assertEqual(
+            (after["status"], after["revision"]), (before["status"], before["revision"])
+        )
+
+        before_respawn = self.persisted_members(defeated_key)
+        with self.assertRaisesRegex(ValueError, "no eligible ordinary monsters"):
+            self.groups.respawn(defeated_key)
+        after_respawn = self.persisted_members(defeated_key)
+        self.assertEqual(
+            (after_respawn["status"], after_respawn["revision"]),
+            (before_respawn["status"], before_respawn["revision"]),
+        )
 
     def test_register_transaction_requires_caller_transaction(self):
         # Bypass Store.connection's intentional transaction wrapper to model

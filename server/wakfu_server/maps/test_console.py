@@ -59,6 +59,7 @@ def execute(
     ecology_coordination=None,
     ecology_publish=None,
     private_scene=None,
+    positions=None,
 ):
     if not isinstance(text, str) or not text.startswith("!"):
         return None
@@ -182,7 +183,7 @@ def execute(
                 (max(xp, latest["xp"]), current["id"]),
             )
             updated = health_store.initialize(
-                store, account, generation, current["id"], coefficient=1, db=db
+                store, account, generation, current["id"], exploration=True, db=db
             )
             packet = outside_progression(
                 updated,
@@ -226,8 +227,16 @@ def execute(
                 "La casilla de destino no es transitable en la geometría nativa"
             )
         destination = dict(map_id=map_id, instance_id=0, x=x, y=y, z=z)
-        result["character"] = store.transition_map(
-            account, generation, current["id"], current, destination
+        from .console_relocation import relocate
+
+        result["character"] = relocate(
+            store,
+            account,
+            generation,
+            current["id"],
+            current,
+            destination,
+            positions=positions,
         )
         result.update(
             action="tp",
@@ -246,20 +255,29 @@ def execute(
             raise ValueError(
                 "Referencia o cantidad fuera del catálogo nativo de objetos"
             )
-        occupied = {
-            (item["container"], item["slot"]) for item in current["inventory_items"]
-        }
-        destination = next(
-            (
-                (bag["uid"], slot)
-                for bag in current["inventory_containers"]
-                for slot in range(bag["capacity"])
-                if (bag["uid"], slot) not in occupied
-            ),
-            None,
-        )
-        if destination is None:
-            raise ValueError("El inventario está lleno")
+        from wakfu_server.items import quest_inventory, account_quest_inventory
+
+        if (
+            reference in quest_inventory.REFERENCES
+            or reference in account_quest_inventory.REFERENCES
+        ):
+            # Native quest inventories have no ordinary bag position or capacity.
+            destination = (0, 0)
+        else:
+            occupied = {
+                (item["container"], item["slot"]) for item in current["inventory_items"]
+            }
+            destination = next(
+                (
+                    (bag["uid"], slot)
+                    for bag in current["inventory_containers"]
+                    for slot in range(bag["capacity"])
+                    if (bag["uid"], slot) not in occupied
+                ),
+                None,
+            )
+            if destination is None:
+                raise ValueError("El inventario está lleno")
         item = grant(
             store,
             account,

@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from .combat_effect_area_queries import _rows
 from .combat_area_affiliation import area_affiliation
+from .combat_area_authority import area_guards
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,9 @@ class NativeAreaTarget:
     native_is_obstacle: bool = False
     native_los_height: int = 0
     native_targeting_bcR: bool | None = None
+    native_baF: bool = True
+    native_baG: bool = False
+    native_baK: bool = False
 
 
 def native_area_targeting_bcR(row):
@@ -37,6 +41,7 @@ def native_area_targeting_bcR(row):
 def area_targets(fight):
     targets = []
     for row in _rows(fight):
+        life = area_guards(fight, row["uid"])
         constructor = (
             row.get("native_faw_constructor")
             if row.get("native_area_contract") == "faW"
@@ -89,6 +94,9 @@ def area_targets(fight):
                     if row.get("native_area_contract") == "fbb"
                     else 0
                 ),
+                native_baF=life["baF"],
+                native_baG=life["baG"],
+                native_baK=life["baK"],
             )
         )
     return tuple(targets)
@@ -105,6 +113,7 @@ def retained_area_source_target(fight, identity):
         return None
     row = retained_area_pv_row(fight, identity)
     affiliation = area_affiliation(fight, row)
+    life = area_guards(fight, identity)
     return NativeAreaTarget(
         identity,
         pv.position,
@@ -113,6 +122,9 @@ def retained_area_source_target(fight, identity):
         direction=row["direction"],
         native_los_height=pv.native_los_height,
         native_targeting_bcR=native_area_targeting_bcR(row),
+        native_baF=life["baF"],
+        native_baG=life["baG"],
+        native_baK=life["baK"],
     )
 
 
@@ -134,6 +146,9 @@ def area_target_context(target):
         bcO=target.native_is_obstacle,
         bcP=target.native_movement_blocking,
         q_owner_id=target.owner_id,
+        baF=target.native_baF,
+        baG=target.native_baG,
+        baK=target.native_baK,
     )
 
 

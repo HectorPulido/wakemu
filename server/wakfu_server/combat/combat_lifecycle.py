@@ -587,7 +587,9 @@ def recover_settled_world(
     )
     saved = health_exit["character"]
     fight = health_exit["fight"]
-    coefficient = health_exit.get("coefficient", 0 if saved["hp"] == 0 else 1)
+    coefficient = health_exit.get(
+        "coefficient", health.exploration_coefficient(saved["max_hp"], saved["hp"])
+    )
     from wakfu_server.inventory_items import equipment_inventory
     from wakfu_server.inventory_move import synchronization
 

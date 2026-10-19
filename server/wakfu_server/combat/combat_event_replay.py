@@ -53,16 +53,25 @@ class NativeEventSource:
         )
         if movement_payment:
             costs = self.cost_source["action_costs"]
-            identifiers = tuple(
-                sorted(
-                    {0, 74}
-                    | ({65} if costs["mp"] else set())
-                    | ({55} if costs["ap"] else set())
+            hour_wp = (
+                self.cost_source["movement_payment_policy"].get("payment_phase")
+                == "hour_wp"
+            )
+            identifiers = (
+                (0, 60, 2263)
+                if hour_wp
+                else tuple(
+                    sorted(
+                        {0, 74}
+                        | ({65} if costs["mp"] else set())
+                        | ({55} if costs["ap"] else set())
+                        | ({60} if costs["wp"] else set())
+                    )
                 )
             )
             if (
                 self.event_ids != identifiers
-                or self.value != costs["ap"] | (costs["mp"] << 8)
+                or self.value != costs["ap"] | (costs["mp"] << 8) | (costs["wp"] << 16)
                 or self.channel not in (3, 4, 30, 40, 31, 41)
             ):
                 raise ValueError("Movement eWf source differs from its payment")

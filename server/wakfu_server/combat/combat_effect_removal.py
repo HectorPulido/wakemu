@@ -7,6 +7,7 @@ UID/value/caster/target. The ledger decides whether removal is valid.
 """
 import struct
 from functools import lru_cache
+from types import MappingProxyType
 
 EFFECT_UNAPPLICATION_OPCODE = 13560
 STATE_CARRIER_EFFECT_CLASS = 310  # eVi.rpJ -> eZk, distinct from apply304/eWu.
@@ -56,7 +57,7 @@ def _parse_identity_fields(data, *, integer_fields=(1, 2, 3, 4, 6, 7), messages=
     return fields
 
 
-@lru_cache(maxsize=512)
+@lru_cache(maxsize=4096)
 def _cached_identity_fields(data, integer_fields, collect_messages):
     messages = {} if collect_messages else None
     fields = _parse_identity_fields(
@@ -67,8 +68,8 @@ def _cached_identity_fields(data, integer_fields, collect_messages):
 
 def _identity_fields(data, *, integer_fields=(1, 2, 3, 4, 6, 7), messages=None):
     # Cache immutable wire facts only, never fight ownership or a retained view.
-    # Bound both entry count and byte/field sizes: at most 2 MiB source bytes,
-    # 2 MiB extracted message bytes, and 8192 selected integer fields.
+    # Bound both entry count and byte/field sizes: at most 16 MiB source bytes,
+    # 16 MiB extracted message bytes, and 65536 selected integer fields.
     if (
         type(data) is not bytes
         or len(data) > 4096
@@ -95,6 +96,23 @@ def _identity_fields(data, *, integer_fields=(1, 2, 3, 4, 6, 7), messages=None):
                 raise ValueError("Duplicate running-effect AdditionalDatas")
             messages[field] = value
     return dict(fields)
+
+
+@lru_cache(maxsize=4096)
+def _cached_hex_identity_fields(payload):
+    return MappingProxyType(_identity_fields(bytes.fromhex(payload)))
+
+
+def _readonly_hex_identity_fields(payload):
+    """Reuse immutable wire facts, independently of current fight ownership.
+
+    The public parser still returns private mutable dictionaries. This internal
+    view bounds retained hex source to 32 MiB plus at most six integer fields
+    per entry; oversized or non-exact-string inputs retain uncached behavior.
+    """
+    if type(payload) is str and len(payload) <= 8192:
+        return _cached_hex_identity_fields(payload)
+    return MappingProxyType(_identity_fields(bytes.fromhex(payload)))
 
 
 def _proto_replace(data, field, wire, replacement):

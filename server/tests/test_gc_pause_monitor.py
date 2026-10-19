@@ -1,8 +1,13 @@
 """GC callbacks record bounded facts without calling lock-taking diagnostics."""
 import gc
+import itertools
+import json
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import Mock
 from wakfu_server.storage.gc_pause_monitor import GCPauseMonitor
+from wakfu_server.storage.performance_monitor import write_report
 
 
 class GCPauseMonitorTests(unittest.TestCase):
@@ -93,6 +98,61 @@ class GCPauseMonitorTests(unittest.TestCase):
         count = profiler.observe.call_count
         monitor.drain(profiler)
         self.assertEqual(profiler.observe.call_count, count)
+
+    def test_timestamped_history_is_bounded_and_survives_drains(self):
+        wall = itertools.count(0.0)
+        cpu = itertools.count(10.0)
+        utc = itertools.count(1_800_000_000.0)
+        monitor = GCPauseMonitor(
+            capacity=2,
+            callbacks=[],
+            wall_clock=lambda: next(wall),
+            cpu_clock=lambda: next(cpu),
+            utc_clock=lambda: next(utc),
+        )
+        profiler = Mock()
+        for index in range(monitor.history.maxlen + 3):
+            monitor.callback("start", {"generation": 2})
+            monitor.callback("stop", {"generation": 2})
+            if index % 4 == 3:
+                monitor.drain(profiler)
+
+        history = monitor.history_snapshot()
+        self.assertEqual(len(history), monitor.history.maxlen)
+        self.assertEqual(history[0]["generation"], 2)
+        self.assertEqual(history[0]["started_at_utc_epoch_seconds"], 1_800_000_006.0)
+        self.assertEqual(history[0]["ended_at_utc_epoch_seconds"], 1_800_000_007.0)
+        self.assertEqual(history[-1]["started_at_utc_epoch_seconds"], 1_800_000_068.0)
+        self.assertEqual(history[-1]["ended_at_utc_epoch_seconds"], 1_800_000_069.0)
+        self.assertEqual(history[-1]["duration_seconds"], 1.0)
+        self.assertEqual(history[-1]["thread_cpu_seconds"], 1.0)
+        self.assertGreaterEqual(profiler.observe.call_count, 1)
+
+    def test_timestamped_history_is_included_in_atomic_performance_report(self):
+        utc = iter((1_800_000_100.0, 1_800_000_100.5))
+        wall = iter((3.0, 3.25))
+        cpu = iter((7.0, 7.1))
+        monitor = GCPauseMonitor(
+            callbacks=[],
+            wall_clock=lambda: next(wall),
+            cpu_clock=lambda: next(cpu),
+            utc_clock=lambda: next(utc),
+        )
+        monitor.callback("start", {"generation": 1})
+        monitor.callback("stop", {"generation": 1})
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "performance.json"
+            write_report(
+                Mock(snapshot=lambda: {"features": []}), path, gc_monitor=monitor
+            )
+            payload = json.loads(path.read_text())
+        history = payload["gc_pause_history"]
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["generation"], 1)
+        self.assertEqual(history[0]["started_at_utc_epoch_seconds"], 1_800_000_100.0)
+        self.assertEqual(history[0]["ended_at_utc_epoch_seconds"], 1_800_000_100.5)
+        self.assertAlmostEqual(history[0]["duration_seconds"], 0.25)
+        self.assertAlmostEqual(history[0]["thread_cpu_seconds"], 0.1)
 
 
 if __name__ == "__main__":

@@ -2083,7 +2083,15 @@ class NativeEffectRuntimeFactory:
         from .combat_effect_area import native_effect_areas
 
         dispatcher.native_area_events = NativeAreaEventRuntime(
-            preview, dispatcher, definitions=native_effect_areas()
+            preview,
+            dispatcher,
+            definitions=native_effect_areas(),
+            target_authority=(
+                self.displacement_authority
+                if self.displacement_authority is not None
+                else self.summon_authority
+            ),
+            area_affiliation=self.contexts.area_affiliation,
         )
         carrying.area_events = dispatcher.native_area_events
         import os
@@ -2094,6 +2102,29 @@ class NativeEffectRuntimeFactory:
                 displacement.area_events = dispatcher.native_area_events
             if retention is not None:
                 area_handler.on_created = dispatcher.native_area_events.created
+                from .combat_microbot_rails import synchronize_microbot_rails
+                from .combat_effect_area_codec import area_retirement
+
+                def publish_microbot_rails(owner_id):
+                    synchronize_microbot_rails(
+                        preview,
+                        owner_id,
+                        packets=packets,
+                        action_id=self.action_id,
+                        allocate_uid=allocate,
+                        allocate_area_uid=area_handler.allocate_area_uid,
+                        affiliation=area_handler.area_affiliation(preview, owner_id),
+                        callbacks=dispatcher.native_area_events,
+                    )
+
+                dispatcher.native_area_events.microbot_network_changed = (
+                    publish_microbot_rails
+                )
+                dispatcher.native_area_events.area_removed = (
+                    lambda area_uid: packets.append(
+                        area_retirement(preview.id, self.action_id, area_uid)
+                    )
+                )
                 area_removal.events = dispatcher.native_area_events
                 area_reference_removal.events = dispatcher.native_area_events
                 retention.area_events = dispatcher.native_area_events

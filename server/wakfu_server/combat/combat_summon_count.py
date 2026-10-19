@@ -5,6 +5,7 @@ from .combat_native_death_status import native_is_dead
 def registered_summon_counts(fight, owner_id, records, ordinary, ordinary_view):
     from .combat_global_pv_collections import _collections
     from .combat_trove_long_map import NativeTroveLongMap
+    from .combat_ordinary_authority import OrdinaryActorAuthority
 
     if not hasattr(fight, "native_global_pv_collections"):
         return None
@@ -24,10 +25,18 @@ def registered_summon_counts(fight, owner_id, records, ordinary, ordinary_view):
         actor = fight.actors[identity]
         record = records.get(identity)
         if record is None:
-            metadata = ordinary(ordinary_view, actor)
-            if metadata.targeting.get("is_eGj") is not True:
+            if type(ordinary) is OrdinaryActorAuthority:
+                is_fighter, is_summon = ordinary.summon_count_flags(
+                    ordinary_view, actor
+                )
+            else:
+                # Custom/unknown providers retain their existing full contract.
+                metadata = ordinary(ordinary_view, actor)
+                is_fighter = metadata.targeting.get("is_eGj")
+                is_summon = metadata.targeting.get("dTE")
+            if is_fighter is not True:
                 continue
-            if metadata.targeting.get("dTE") is False:
+            if is_summon is False:
                 continue
             return None  # Unregistered summon ownership is not inferred.
         targeting = record["authority"]["targeting"]

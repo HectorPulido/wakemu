@@ -1,6 +1,30 @@
 """Read committed attack evidence from the complete native fight ledger."""
 
 
+def damaged_targets_this_turn(graph, fight, actor_id):
+    """Targets of positive damage committed by this actor's current turn casts."""
+    try:
+        turn = graph.plain(graph.field(fight, "turn_id"))
+        events = graph.plain(graph.field(fight, "events"))
+    except (KeyError, ValueError):
+        return frozenset()
+    pending, committed = set(), set()
+    for event in events:
+        kind = event.get("kind")
+        if kind in ("turn_started", "turn_ended"):
+            pending.clear()
+            committed.clear()
+        elif kind == "damage" and event.get("source_id") == actor_id:
+            target = event.get("target_id")
+            if event.get("amount", 0) > 0 and type(target) is int:
+                pending.add(target)
+        elif kind == "npc_cast":
+            if event.get("actor_id") == actor_id and event.get("turn_id") == turn:
+                committed.update(pending)
+            pending.clear()
+    return frozenset(committed)
+
+
 def attacked_this_turn(graph, fight, actor_id):
     try:
         turn = graph.plain(graph.field(fight, "turn_id"))

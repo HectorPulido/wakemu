@@ -70,16 +70,22 @@ def execute_entry_roots(
     native_cell=None,
     native_level_source=None,
     roots_source=None,
+    pay_resources=None,
 ):
     """Dispatch native roots once, in source order and native scope order.
 
-    This boundary neither pays costs nor publishes packets. In particular the
-    NPC and weapon policies cannot replay the player's resource-payment events.
+    An admitted player entry may delegate its owned payment until after1024.
+    NPC and weapon policies cannot use this callback or replay player payments.
+    No route publishes packets at this boundary.
     """
     try:
         policy = ENTRY_ROUTES[route]
     except (KeyError, TypeError):
         raise ValueError("Unknown native entry route") from None
+    if pay_resources is not None and (
+        not callable(pay_resources) or not policy.paid_player_events
+    ):
+        raise ValueError("Owned payment callback requires a player entry")
     with ExitStack() as scopes:
         if policy.active_spell:
             if active_scope is None:
@@ -105,6 +111,8 @@ def execute_entry_roots(
 
                 event_scope = cast_event_scope
             scopes.enter_context(event_scope(dispatcher, plan))
+            if pay_resources is not None:
+                pay_resources()
             from .combat_cost_payment_events import replay_paid_spell_costs
 
             replay_paid_spell_costs(dispatcher, plan)

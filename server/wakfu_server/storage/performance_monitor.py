@@ -5,10 +5,15 @@ import threading
 import time
 
 
-def write_report(profiler, path, *, lag_seconds=0.0):
+def write_report(profiler, path, *, lag_seconds=0.0, gc_monitor=None):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     payload = profiler.snapshot()
     payload["monitor_lag_seconds"] = max(0.0, lag_seconds)
+    if gc_monitor is None:
+        from .gc_pause_monitor import MONITOR
+
+        gc_monitor = MONITOR
+    payload["gc_pause_history"] = gc_monitor.history_snapshot()
     temporary = path.with_suffix(".tmp")
     descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     try:
@@ -34,7 +39,7 @@ def start_monitor(profiler, path, stopping, *, interval=30.0):
                 MONITOR.drain(profiler)
                 profiler.observe("diagnostics.monitor_lag", lag, 0.0)
                 try:
-                    write_report(profiler, path, lag_seconds=lag)
+                    write_report(profiler, path, lag_seconds=lag, gc_monitor=MONITOR)
                 except Exception:
                     # Disk faults must not affect gameplay or recursively log.
                     profiler.observe("diagnostics.report_failure", 0.0, 0.0, error=True)

@@ -20,8 +20,8 @@ services:
     tmpfs:
       - /tmp:size=16m,mode=1777
     volumes:
-      - ./.local-state/wakemu/profiler:/profiles
-      - ./.local-state/wakemu/world/logs/profiles:/metrics:ro
+      - ${WAKFU_PROFILER_DATA_DIR:-./.local-state/wakemu/profiler}:/profiles
+      - ${WAKFU_WORLD_DATA_DIR:-./.local-state/wakemu/world}/logs/profiles:/metrics:ro
     ports:
       - '127.0.0.1:18082:8092'
     networks: [isolated, client-access]

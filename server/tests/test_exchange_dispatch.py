@@ -1,7 +1,9 @@
+import ast
 import json
 import struct
 import threading
 import uuid
+from pathlib import Path
 from unittest.mock import patch
 
 from postgres_case import PostgresCase
@@ -88,7 +90,7 @@ class ExchangeDispatchTests(PostgresCase):
             inviter, 13140, struct.pack(">q", invitee["character"]["id"])
         )
 
-    def grant_item(self, player, quantity=4):
+    def grant_item(self, player, quantity=4, slot=0):
         container = self.fetchone(
             "SELECT uid FROM inventory_containers WHERE character_id=%s AND kind=0",
             (player["character"]["id"],),
@@ -101,7 +103,7 @@ class ExchangeDispatchTests(PostgresCase):
             reference=12,
             quantity=quantity,
             container=container,
-            slot=0,
+            slot=slot,
             allowed_references={12},
         )
 
@@ -120,6 +122,101 @@ class ExchangeDispatchTests(PostgresCase):
             for character_id, generation, opcode, body in row
             if opcode in (13084, 13636)
         ]
+
+    def test_bulk_offer_dispatch_uses_full_stacks_once_and_resets_confirmation(self):
+        inviter, invitee = self.player("bulk-inviter"), self.player("bulk-invitee")
+        exchange = self.invite(inviter, invitee)
+        exchange = self.request(invitee, 12997, struct.pack(">qB", exchange["id"], 0))
+        self.assertEqual("active", exchange["state"])
+        first = self.grant_item(inviter, quantity=3, slot=0)
+        second = self.grant_item(inviter, quantity=2, slot=1)
+        third = self.grant_item(inviter, quantity=1, slot=2)
+
+        before = self.fetchone(
+            "SELECT revision FROM player_exchanges WHERE id=%s", (exchange["id"],)
+        )["revision"]
+        body = struct.pack(">qiqq", exchange["id"], 2, first["uid"], second["uid"])
+        offered = self.request(inviter, 12510, body)
+        self.assertEqual(before + 1, offered["revision"])
+        self.assertEqual(
+            [(first["uid"], 3), (second["uid"], 2)],
+            [
+                (row["uid"], row["quantity"])
+                for row in self.fetchall(
+                    "SELECT uid,quantity FROM player_exchange_items "
+                    "WHERE exchange_id=%s ORDER BY uid",
+                    (exchange["id"],),
+                )
+            ],
+        )
+        self.assertCountEqual(
+            [(13636, 3), (13636, 3), (13636, 2), (13636, 2)],
+            self.item_delta(self.world.sent),
+        )
+
+        self.request(inviter, 13406, struct.pack(">q", exchange["id"]))
+        confirmations = {
+            row["character_id"]: row["confirmed_revision"]
+            for row in self.fetchall(
+                "SELECT character_id,confirmed_revision FROM player_exchange_members "
+                "WHERE exchange_id=%s",
+                (exchange["id"],),
+            )
+        }
+        self.assertEqual(offered["revision"], confirmations[inviter["character"]["id"]])
+        self.assertIsNone(confirmations[invitee["character"]["id"]])
+
+        changed = self.request(
+            inviter,
+            12510,
+            struct.pack(
+                ">qiqqq", exchange["id"], 3, first["uid"], second["uid"], third["uid"]
+            ),
+        )
+        self.assertEqual(offered["revision"] + 1, changed["revision"])
+        confirmations = {
+            row["character_id"]: row["confirmed_revision"]
+            for row in self.fetchall(
+                "SELECT character_id,confirmed_revision FROM player_exchange_members "
+                "WHERE exchange_id=%s",
+                (exchange["id"],),
+            )
+        }
+        self.assertEqual(
+            {inviter["character"]["id"]: None, invitee["character"]["id"]: None},
+            confirmations,
+        )
+
+    def test_bulk_offer_opcode_is_present_at_all_three_world_gates(self):
+        source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        gated = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Compare):
+                continue
+            if not isinstance(node.left, ast.Name) or node.left.id != "opcode":
+                continue
+            if not any(isinstance(operator, ast.In) for operator in node.ops):
+                continue
+            values = node.comparators[0]
+            if isinstance(values, (ast.Tuple, ast.List)) and any(
+                isinstance(value, ast.Constant) and value.value == 12510
+                for value in values.elts
+            ):
+                gated.append(values)
+        self.assertEqual(
+            3, len(gated), "opcode must pass exactly the three world gates"
+        )
+        self.assertTrue(
+            all(
+                sum(
+                    isinstance(value, ast.Constant) and value.value == 12510
+                    for value in values.elts
+                )
+                == 1
+                for values in gated
+            )
+        )
 
     def test_invite_accept_quantity_edit_zero_and_confirm_reconcile_receipt(self):
         inviter, invitee = self.player("flow-inviter"), self.player("flow-invitee")

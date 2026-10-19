@@ -1,7 +1,11 @@
 import struct
 import unittest
+import json
 
 from wakfu_server import exchange_snapshot
+from wakfu_server import inventory_shards
+from wakfu_server.exchange_wire import item as exchange_item
+from wakfu_server.wire import proto_field
 
 
 EXCHANGE = 901
@@ -107,6 +111,40 @@ class ExchangeSnapshotTests(unittest.TestCase):
             [2, 2], [struct.unpack_from(">h", body, 17)[0] for _, body in packets]
         )
         self.assertNotEqual(packets[0][1][19:], packets[1][1][19:])
+
+    def test_native_shard_bytes_survive_json_outbox_encoding_and_wire_replay(self):
+        shard_state = proto_field(
+            10,
+            proto_field(80, 1)
+            + proto_field(88, 2468)
+            + proto_field(96, 4)
+            + proto_field(112, 2),
+        )
+        raw_unit = unit(507, LEFT, reference=2869, shard_state=shard_state)
+        persisted_unit = inventory_shards.json_safe_item(raw_unit)
+        self.assertNotIn("shard_state", persisted_unit)
+        self.assertEqual(shard_state.hex(), persisted_unit["shard_state_hex"])
+
+        # Model the JSONB round trip performed by the durable exchange outbox.
+        persisted_unit = json.loads(json.dumps(persisted_unit))
+        current = snapshot(
+            [
+                offer(
+                    persisted_unit["uid"],
+                    persisted_unit["character_id"],
+                    persisted_unit["quantity"],
+                    **{
+                        key: value
+                        for key, value in persisted_unit.items()
+                        if key not in {"uid", "character_id", "quantity"}
+                    },
+                )
+            ]
+        )
+        self.assertEqual(
+            item_packets(self.publish(current)),
+            [exchange_item(EXCHANGE, LEFT, raw_unit, 1)],
+        )
 
     def test_foreign_participant_and_mismatched_unit_identity_fail_closed(self):
         invalid = (

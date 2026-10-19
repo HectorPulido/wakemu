@@ -193,15 +193,14 @@ class AbandonTests(PostgresCase):
         )
         self.assertTrue(result["applied"])
         self.assertEqual(s.character(a, hero["id"])["hp"], hero["hp"] - 4)
-        # The abort continuation shares the same atomic per-account helper;
-        # existing receipts make a repeated callback preserve later world HP.
+        # A normal return cannot be reinterpreted as a committed abandonment.
         r.abandon_owner = (a, c["id"])
         r.abandon_returned = False
         f.winner = None
-        returned = combat_abandon.return_to_world(
-            s, a, g, result["character"], r, struct.pack(">iB", f.id, 0), wp=6
-        )
-        self.assertEqual(returned["character"]["id"], c["id"])
+        with self.assertRaisesRegex(ValueError, "committed terminal abort"):
+            combat_abandon.return_to_world(
+                s, a, g, result["character"], r, struct.pack(">iB", f.id, 0), wp=6
+            )
         with s.connection() as db:
             self.assertEqual(
                 db.execute(
@@ -212,8 +211,6 @@ class AbandonTests(PostgresCase):
             )
 
     def test_abort_returns_persist_all_owned_hero_health_atomically(self):
-        from wakfu_server import combat_lifecycle
-
         s, a, g, c, f, r = setup_abandon_state(self.store)
         hero = s.create_character(a, "Return Hero")
         f.actors[hero["id"]] = Actor(
@@ -236,9 +233,7 @@ class AbandonTests(PostgresCase):
                 "VALUES(%s,%s,%s,0,%s)",
                 (f.id, hero["id"], a, g),
             )
-        f.phase, f.winner = "finished", None
-        r.abandon_owner = (a, c["id"])
-        r.abandon_returned = False
+        combat_abandon.prepare(s, a, g, c, r, b"")
         result = combat_abandon.return_to_world(
             s, a, g, c, r, struct.pack(">iB", f.id, 0), wp=6
         )
