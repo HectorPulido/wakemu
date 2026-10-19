@@ -252,6 +252,57 @@ class CombatRewardContextTests(unittest.TestCase):
         self.assertIn({"level": 4, "monster_reference": None}, result["losers"])
         self.assertIn({"level": 1, "monster_reference": 5525}, result["losers"])
 
+    def test_summons_on_either_team_cannot_change_player_prospection_or_drop_rolls(
+        self,
+    ):
+        from wakfu_server.combat_drops import plan_player_drops
+        from test_combat_drops import drop_row, Draws
+
+        fight, character, monsters, player, _ = self.setup_fight()
+        player.effect_stats[33] = 25
+        catalog = dict(source_sha256="a" * 64, monsters={5525: [drop_row("0.008")]})
+        before = build_drop_context(
+            fight, character, monsters, encounter_kind="ordinary_world"
+        )
+        args = dict(
+            monsters=[dict(actor_id=monsters[0]["id"], reference=5525)],
+            character_id=character["id"],
+            can_loot=True,
+            catalog=catalog,
+        )
+        baseline = plan_player_drops(
+            **args,
+            prospecting_bonus=native_prospection_bonus(player),
+            fight_context=before,
+            rng=Draws(0, 0)
+        )
+        for identity, team, controlled in ((-201, 0, True), (-202, 1, False)):
+            summon = Actor(identity, team, (2, 0, 0), 10, 0, 0, 0, 245, 41, controlled)
+            summon.native_summon_source = dict(
+                ref=123, level=245, caster_id=character["id"]
+            )
+            summon.effect_stats = {33: 200, 36: 200}
+            fight.actors[identity] = summon
+        after = build_drop_context(
+            fight, character, monsters, encounter_kind="ordinary_world"
+        )
+        self.assertEqual(after, before)
+        self.assertEqual(native_prospection_bonus(player), 25)
+        actual = plan_player_drops(
+            **args,
+            prospecting_bonus=native_prospection_bonus(player),
+            fight_context=after,
+            rng=Draws(0, 0)
+        )
+        self.assertEqual(actual, baseline)
+        self.assertEqual(len(actual), 1)
+
+    def test_controlled_summon_cannot_be_the_owned_reward_or_drop_recipient(self):
+        fight, character, monsters, player, _ = self.setup_fight()
+        player.native_summon_source = dict(ref=123, level=1, caster_id=99)
+        with self.assertRaisesRegex(ValueError, "owned winning player"):
+            build_drop_context(fight, character, monsters)
+
     def test_native_negative_wisdom_is_preserved_inside_catalog_bounds(self):
         fight, character, monsters, _, _ = self.setup_fight(wisdom=-500)
         self.assertEqual(

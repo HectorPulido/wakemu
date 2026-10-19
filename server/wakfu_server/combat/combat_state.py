@@ -285,6 +285,27 @@ class Fight:
             for a in self.actors.values()
         ):
             raise ValueError("Placement cell occupied")
+        if any((a.physical_radius or 0) > 0 for a in self.actors.values()):
+            from .combat_obstacle_condition import footprint
+            from .combat_placement_footprints import covered_cells
+
+            radius = actor.physical_radius if actor.physical_radius is not None else 0
+            covered = covered_cells(position, radius, self.walkable)
+            if covered & set(getattr(self, "native_border_cells", ())):
+                raise ValueError("Placement footprint intersects combat border")
+            destination = set(footprint(position, radius))
+            if any(
+                a.id != actor_id
+                and a.hp > 0
+                and destination.intersection(
+                    footprint(
+                        a.position,
+                        a.physical_radius if a.physical_radius is not None else 0,
+                    )
+                )
+                for a in self.actors.values()
+            ):
+                raise ValueError("Placement cell occupied")
         from .combat_qi_fight import move_registered_actor
 
         move_registered_actor(self, actor, position)
@@ -532,6 +553,18 @@ class Fight:
             or turn_id != self.turn_id
         ):
             raise ValueError("Invalid server controlled turn")
+        self._advance()
+
+    def end_automatic_npc_turn(self, actor_id, turn_id):
+        from .combat_automatic_npc_turn import requires_automatic_npc_turn_end
+
+        if (
+            self.current is None
+            or self.current.id != actor_id
+            or turn_id != self.turn_id
+            or not requires_automatic_npc_turn_end(self, self.current)
+        ):
+            raise ValueError("Invalid automatic ordinary NPC turn")
         self._advance()
 
     def _advance(self):

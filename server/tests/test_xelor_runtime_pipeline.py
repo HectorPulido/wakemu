@@ -22,8 +22,19 @@ from wakfu_server.spells import encode_deck
 
 
 class XelorRuntimePipelineTests(unittest.TestCase):
-    def fixture(self, *, level=200, passives=(), actives=(754, 775, 2839), seed=17):
-        origin, target = (-8, -7, -1), (-5, -7, -1)
+    def fixture(
+        self,
+        *,
+        level=200,
+        passives=(),
+        actives=(754, 775, 2839),
+        seed=17,
+        target_distance=3,
+        target_offset=None,
+    ):
+        origin = (-8, -7, -1)
+        offset = target_offset or (target_distance, 0)
+        target = (origin[0] + offset[0], origin[1] + offset[1], origin[2])
         terrain = bounded_arena(map_geometry(1134), origin, [target], radius=12)
         character, monster, fight = native_fixture.fixture(
             5,

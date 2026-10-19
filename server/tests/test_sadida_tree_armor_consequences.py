@@ -27,11 +27,26 @@ class SadidaTreeArmorConsequencesTests(unittest.TestCase):
             and a.hp > 0
             and actor_action_book(a)["profile"] == 3745
         )
+        for _ in range(30):
+            if data[2].current.id == vudul.id:
+                break
+            turns.AniripsaGrantSummonPipelineTests().end_current_turn(data[2], data[:5])
+        self.assertEqual(data[2].current.id, vudul.id)
+        before_position, before_mp = vudul.position, vudul.mp
+        data[2].move(vudul.owner_id, vudul.id, [(-7, -8, -1)])
+        self.assertEqual(vudul.position, (-7, -8, -1))
+        self.assertEqual(vudul.mp, before_mp - 1)
+        self.assertNotEqual(vudul.position, before_position)
         turns.AniripsaGrantSummonPipelineTests().next_player_turn(data[2], data[:5])
-        tx = helper.cast(data, 8137, target=(-7, -7, -1))
+        seed_cell = (-7, -7, -1)
+        self.assertFalse(
+            any(a.hp > 0 and a.position == seed_cell for a in data[2].actors.values())
+        )
+        tx = helper.cast(data, 8137, target=seed_cell)
         data = (*data[:2], tx.fight, *data[3:])
-        tx = helper.cast(data, 8137, target=(-7, -7, -1), action_id=11)
+        tx = helper.cast(data, 8137, target=seed_cell, action_id=11)
         data = (*data[:2], tx.fight, *data[3:])
+        self.assertGreater(data[2].actors[vudul.id].hp, 0)
         tree = next(
             a
             for a in data[2].actors.values()
@@ -45,6 +60,7 @@ class SadidaTreeArmorConsequencesTests(unittest.TestCase):
             turns.AniripsaGrantSummonPipelineTests().end_current_turn(data[2], data[:5])
         self.assertEqual(data[2].current.id, vudul.id)
         fight = data[2]
+        vudul = fight.actors[vudul.id]
         owner = fight.actors[7]
         # Native378745: eYs mode1 uses MAX_HP + MAX_VIRTUAL_HP; native
         # float32 coefficient0.05 and nearest rounding, then1013 base0+level.

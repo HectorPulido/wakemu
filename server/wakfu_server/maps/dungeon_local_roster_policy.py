@@ -17,6 +17,7 @@ def draft(
     room_count=None,
     capacity=121,
     generation_target=8,
+    generation_targets=None,
     boss_references=(),
 ):
     """Return an optional policy artifact; never an installable configuration."""
@@ -86,9 +87,41 @@ def draft(
             )
     if type(count) is not int or not 1 <= count <= 100:
         raise ValueError("Invalid local room count")
+    targets = {} if generation_targets is None else generation_targets
+    if not isinstance(targets, dict) or any(
+        type(order) is not int
+        or not 1 <= order <= count
+        or type(target) is not int
+        or not 1 <= target <= capacity
+        for order, target in targets.items()
+    ):
+        raise ValueError("Invalid per-room local generation targets")
     # Boss identity must come from reviewed roles, explicit policy, or a single-
     # species ultimate-boss definition. A species pool is never a room roster.
     bosses = set(boss_references)
+    # Species pools include bosses without assigning them to a room. Native
+    # BOSS world property 43 is identity evidence, unlike reference ordering
+    # or level. Keep these actors out of generated ordinary-room slots even
+    # when the preparation caller has no separate reviewed boss list.
+    native_role_properties = {
+        ref: set(catalog[ref]["raw_visual_arrays"]["csc"])
+        for ref in pool
+        if isinstance(catalog[ref].get("raw_visual_arrays"), dict)
+        and isinstance(catalog[ref]["raw_visual_arrays"].get("csc"), list)
+        and all(
+            type(value) is int for value in catalog[ref]["raw_visual_arrays"]["csc"]
+        )
+    }
+    native_specials = {
+        ref
+        for ref, properties in native_role_properties.items()
+        if properties & {13, 43, 45, 115}
+    }
+    native_bosses = {
+        ref
+        for ref, properties in native_role_properties.items()
+        if 43 in properties and not properties & {45, 115}
+    }
     if any(type(ref) is not int or ref not in pool for ref in bosses):
         raise ValueError("Explicit boss identity is outside the native species pool")
     bosses.update(
@@ -97,10 +130,31 @@ def draft(
         for row in room.get("monsters", ())
         if row.get("role") == "boss" and row.get("ref_id") in pool
     )
+    if not bosses:
+        if len(native_bosses) > 1:
+            ordinary_families = {
+                catalog[ref]["family_id"]
+                for ref, properties in native_role_properties.items()
+                if not properties & {13, 43, 45, 115}
+                and type(catalog[ref].get("family_id")) is int
+            }
+            matching = {
+                ref
+                for ref in native_bosses
+                if type(catalog[ref].get("family_id")) is int
+                and catalog[ref]["family_id"] in ordinary_families
+            }
+            if len(matching) != 1:
+                raise ValueError(
+                    "Multiple native bosses require explicit final-boss selection"
+                )
+            bosses.update(matching)
+        else:
+            bosses.update(native_bosses)
     ultimate = definition.get("type") == "ULTIMATE_BOSS"
     if ultimate and not bosses and len(pool) == 1:
         bosses.update(pool)
-    regular_pool = [ref for ref in pool if ref not in bosses]
+    regular_pool = [ref for ref in pool if ref not in bosses | native_specials]
     if ultimate and len(bosses) != 1:
         raise ValueError("Ultimate boss requires one resolved boss identity")
     rooms = []
@@ -189,7 +243,7 @@ def draft(
                 )
         total = sum(monster["count"] for monster in monsters)
         # Ultimate encounters never receive synthetic padding to eight actors.
-        target = 1 if ultimate else generation_target
+        target = 1 if ultimate else targets.get(order, generation_target)
         final_boss_missing = (
             bool(bosses)
             and order == count

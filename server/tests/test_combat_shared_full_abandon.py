@@ -47,11 +47,8 @@ class SharedFullAbandonTests(PostgresCase):
         fight.native_summon_registrations = {208: registration}
         if requester_ko:
             hero = store.create_character(account, "LivingHero")
-            hero = store.select_character(account, generation, hero["id"])
-            hero = health_store.initialize(
-                store, account, generation, hero["id"], coefficient=0
-            )
-            store.select_character(account, generation, character["id"])
+            # The main already owns durable placement. A fresh companion does
+            # not require switching the selected company leader mid-combat.
             fight.walkable.add((2, 1, 0))
             fight.placement[0].add((2, 1, 0))
             fight.actors[hero["id"]] = Actor(
@@ -652,6 +649,13 @@ def bind(shared, owner, before_dispatch=None):
     def test_returned_withdrawn_owner_new_selected_lease_is_not_rewritten(self):
         adapter, shared, requester, character, other, other_character = self.fixture()
         receipt = adapter.withdraw_pve(other, other_character, b"")
+        replacement = self.store.create_character(other.account_id, "NewSelected")
+        from wakfu_server.characters.heroes import CompanySelectionRejected
+
+        with self.assertRaises(CompanySelectionRejected):
+            self.store.select_character(
+                other.account_id, other.generation, replacement["id"]
+            )
         adapter.return_withdrawn_pve(
             other,
             shared.fight.id,
@@ -660,7 +664,6 @@ def bind(shared, owner, before_dispatch=None):
             wp=6,
         )
         generation = self.store.begin_session(other.account_id)
-        replacement = self.store.create_character(other.account_id, "NewSelected")
         selected = self.store.select_character(
             other.account_id, generation, replacement["id"]
         )
@@ -794,7 +797,15 @@ def bind(shared, owner, before_dispatch=None):
         saved = returned["character"]
         self.assertEqual(saved["hp"], 1)
         self.assertIn(
-            (12436, health.packet(requester.character_id, 1, 1)), returned["packets"]
+            (
+                12436,
+                health.packet(
+                    requester.character_id,
+                    1,
+                    health.exploration_coefficient(saved["max_hp"], 1),
+                ),
+            ),
+            returned["packets"],
         )
         self.assertIn(outside_progression(saved, wp=6, ap=6, mp=3), returned["packets"])
         self.assertNotIn(

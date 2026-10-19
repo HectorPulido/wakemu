@@ -26,6 +26,8 @@ def reward_preview(rewards, level, policies):
 
 
 def snapshot(db, identity):
+    # This fresh projection transaction may materialize assignment FK rows.
+    player_auth.lock_account_reference(db, identity)
     identity = player_auth.resolve_account(db, identity, lock=True)
     now = datetime.now(timezone.utc)
     actor = db.execute(
@@ -168,6 +170,8 @@ def snapshot(db, identity):
             key=lambda c: (
                 c["key"]
                 if name == "first_steps"
+                else achievement_sort_key(c)
+                if name == "achievements"
                 else (c["state"] == "completed", c["key"])
             )
         )
@@ -285,15 +289,35 @@ def decorate_achievement_zones(db, cards, definitions):
         "SELECT value FROM settings WHERE name='admin_map_names'"
     ).fetchone()
     names = names_row["value"] if names_row else {}
+    dungeon_rows = db.execute(
+        "SELECT c.configuration->'route'->>'definition_id' AS dungeon_id,"
+        "c.configuration->'route'->>'entry_map_id' AS map_id,"
+        "c.configuration->'compiled_plan' AS plan FROM dungeon_runtime_configurations c "
+        "JOIN dungeon_runtime_active_configurations a USING(route_key,policy_version)"
+    ).fetchall()
+    dungeon_levels = {
+        int(row["dungeon_id"]): max(
+            (
+                member["native_max_level"]
+                for room in (row["plan"] or {}).get("rooms", [])
+                for member in room.get("monsters", [])
+                if type(member.get("native_max_level")) is int
+            ),
+            default=0,
+        )
+        for row in dungeon_rows
+        if row["dungeon_id"] is not None
+    }
     dungeon_maps = {
         int(row["dungeon_id"]): int(row["map_id"])
-        for row in db.execute(
-            "SELECT c.configuration->'route'->>'definition_id' AS dungeon_id,c.configuration->'route'->>'entry_map_id' AS map_id FROM dungeon_runtime_configurations c JOIN dungeon_runtime_active_configurations a USING(route_key,policy_version)"
-        ).fetchall()
+        for row in dungeon_rows
         if row["dungeon_id"] is not None and row["map_id"] is not None
     }
     definitions_by_key = {row["key"]: row["definition"] for row in definitions}
     for card in cards:
+        card["difficulty_level"] = achievement_difficulty(
+            definitions_by_key[card["key"]], dungeon_levels
+        )
         filters = [
             objective.get("filters", {})
             for objective in definitions_by_key[card["key"]]["objectives"]
@@ -365,6 +389,32 @@ _EVENT_ACHIEVEMENT_TYPES = {
     "account_character_level_progressed": "characters",
     "shop_opened": "account",
 }
+
+
+def achievement_difficulty(definition, dungeon_levels):
+    """Use native dungeon roster levels and authored milestone requirements."""
+    levels = []
+    for objective in definition["objectives"]:
+        filters = objective.get("filters", {})
+        threshold = filters.get("minimum_level")
+        if type(threshold) is int and threshold > 0:
+            levels.append(threshold)
+        dungeon_ids = filters.get("dungeon_id", [])
+        if type(dungeon_ids) is int:
+            dungeon_ids = [dungeon_ids]
+        levels.extend(dungeon_levels.get(value, 0) for value in dungeon_ids)
+    return max(levels, default=0) or None
+
+
+def achievement_sort_key(card):
+    """Completed first, then increasing level and required effort within a type."""
+    return (
+        card["state"] != "completed",
+        card.get("difficulty_level") or float("inf"),
+        sum(objective["target"] for objective in card["objectives"]),
+        card["title"].casefold(),
+        card["key"],
+    )
 
 
 def achievement_type(definition):

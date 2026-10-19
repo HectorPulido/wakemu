@@ -21,7 +21,7 @@ def decode_request(opcode, body):
         if len(body) < 11:
             raise ValueError("Invalid native captured rename payload")
         owner_id, slot, size = struct.unpack_from(">qbB", body)
-        if len(body) != 11 + size or body[-1] != 1:
+        if len(body) != 11 + size or body[-1] not in (0, 1):
             raise ValueError("Unsupported native captured rename payload")
         try:
             name = body[10:-1].decode("utf-8")
@@ -78,6 +78,7 @@ def rename_slot(roster, slot, name):
 
 def manage(store, account_id, generation, character, opcode, body, *, fight=None):
     owner_id, slot, name = decode_request(opcode, body)
+    initialize_name = opcode == 13068 and body[-1] == 0
     if (
         character.get("id") != owner_id
         or character.get("account_id") != account_id
@@ -87,6 +88,17 @@ def manage(store, account_id, generation, character, opcode, body, *, fight=None
 
     def mutation(record):
         roster = OwnedCapturedRoster.from_record(record, expected_owner_id=owner_id)
+        if initialize_name:
+            # Native biH.zm/bjd.bm fill an empty descriptor from localization
+            # and send cnv(false). A delayed hydration must not replace a name
+            # already saved by another hydration or a manual cnv(true) edit.
+            entry = roster.slots[slot]
+            if entry is None:
+                raise ValueError("Captured rename descriptor is absent")
+            if entry.name:
+                return roster
+            if not name:
+                raise ValueError("Captured default name is empty")
         return (
             release_slot(roster, slot)
             if opcode == 12014
@@ -96,8 +108,10 @@ def manage(store, account_id, generation, character, opcode, body, *, fight=None
     if fight is None:
         with store.connection() as db:
             store.lock_character(db, account_id, generation, owner_id)
-            roster = mutation(load(db, character))
-            save(db, character, roster)
+            record = load(db, character)
+            roster = mutation(record)
+            if not initialize_name or roster.to_record() != record:
+                save(db, character, roster)
         # Publish the caller's character component only after durable commit.
         return roster.to_record()
 

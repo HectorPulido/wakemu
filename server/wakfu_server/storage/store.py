@@ -251,6 +251,7 @@ class Store:
         hair=0,
         colors=None,
         appearance=None,
+        selection_generation=None,
     ):
         if appearance is not None:
             if not isinstance(appearance, dict) or any(
@@ -305,6 +306,19 @@ class Store:
                     is None
                 ):
                     raise ValueError("Cuenta inválida.")
+                if selection_generation is not None:
+                    if (
+                        db.execute(
+                            "SELECT account_id FROM sessions WHERE account_id=%s AND generation=%s "
+                            "AND expires_at>%s FOR UPDATE",
+                            (account_id, selection_generation, self.now()),
+                        ).fetchone()
+                        is None
+                    ):
+                        raise ValueError("Authentication required")
+                    from wakfu_server.characters.heroes import preflight_main_selection
+
+                    preflight_main_selection(db, account_id)
                 count = db.execute(
                     "SELECT count(*) AS count FROM characters WHERE account_id=%s AND deleted_at IS NULL",
                     (account_id,),
@@ -381,6 +395,34 @@ class Store:
             )
             return self.character(account_id, character_id, db)
 
+    def combat_public_character(self, account_id, character_id, db=None):
+        """Read fresh identity for a public fighter with complete live stats.
+
+        Resources and equipment characteristics belong to the validated live
+        actor snapshot. Public membership needs no inventory, achievement or
+        cosmetic hydration, but ownership and earned XP remain authoritative.
+        """
+        if db is None:
+            with self.connection() as connection:
+                return self.combat_public_character(
+                    account_id, character_id, connection
+                )
+        row = db.execute(
+            "SELECT c.id,c.account_id,c.level,c.breed,c.map_id,p.xp,"
+            "w.account_id AS wallet_owner FROM characters c "
+            "JOIN accounts a ON a.id=c.account_id "
+            "LEFT JOIN character_progression p ON p.character_id=c.id "
+            "LEFT JOIN account_wallets w ON w.account_id=c.account_id "
+            "WHERE c.account_id=%s AND c.id=%s AND c.deleted_at IS NULL",
+            (account_id, character_id),
+        ).fetchone()
+        if row is None:
+            raise ValueError("Personaje no encontrado.")
+        result = dict(row)
+        if result.pop("wallet_owner") is None or result["xp"] is None:
+            raise ValueError("Missing character progression or account wallet")
+        return result
+
     def character(self, account_id, character_id, db=None):
         if db is None:
             with self.connection() as connection:
@@ -446,6 +488,13 @@ class Store:
         from wakfu_server.characters.exploration_secrets import load as load_secrets
 
         result["exploration_secrets"] = load_secrets(db)
+        from wakfu_server.items.account_quest_inventory import (
+            load as load_account_quest_items,
+        )
+
+        result["account_quest_items"] = load_account_quest_items(
+            db, result["account_id"]
+        )
         from wakfu_server.mount_state import load as load_mount_state
 
         result["mount_state"] = load_mount_state(db, character_id)
@@ -697,6 +746,9 @@ class Store:
             self.lock_character(
                 db, account_id, generation, character_id, selected=False
             )
+            from wakfu_server.characters import heroes
+
+            heroes.preflight_main_selection(db, account_id, character_id)
             from wakfu_server.characters.guild_character import record_presence
             from wakfu_server.equipment_stacks import normalize
 
@@ -736,6 +788,7 @@ class Store:
                 "UPDATE sessions SET character_id=%s WHERE account_id=%s AND generation=%s",
                 (character_id, account_id, generation),
             )
+            heroes.select_main(self, account_id, generation, character_id, db=db)
             return character
 
     def move(self, account_id, generation, character_id, start, end):

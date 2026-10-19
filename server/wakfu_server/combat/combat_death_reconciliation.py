@@ -59,6 +59,9 @@ def settle_deaths_shared(fight):
     """Remove inactive timeline entries, settle summons, then reconcile once."""
     from .combat_summon_retirement import settle_summon_retirements
     from .combat_timeline_snapshot import remove
+    from .combat_summon_owner_death import settle as settle_owner_deaths
+
+    settle_owner_deaths(fight)
 
     for identity in tuple(dict.fromkeys(fight.order)):
         if not fight._in_play(fight.actors[identity]):

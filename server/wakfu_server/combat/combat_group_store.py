@@ -23,7 +23,11 @@ class PersistentGroups:
 
     @staticmethod
     def _members(row):
-        return tuple(row["members"])
+        from .monster_minigame_policy import ordinary_group_members
+
+        return ordinary_group_members(
+            row["members"], instance_id=row.get("instance_id", 0)
+        )
 
     def register(self, map_id, instance_id, group_id, members):
         with self.lock, self.store.connection() as db, db.transaction():
@@ -57,7 +61,7 @@ class PersistentGroups:
         ).fetchone()
         if inserted is None:
             row = db.execute(
-                "SELECT members FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s",
+                "SELECT members,instance_id FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s",
                 key,
             ).fetchone()
             if self._members(row) != canonical:
@@ -104,10 +108,26 @@ class PersistentGroups:
         def identity(member):
             return {k: v for k, v in member.items() if k not in ("x", "y", "z")}
 
-        if [identity(m) for m in persisted] != [identity(m) for m in members]:
+        from .monster_minigame_policy import ordinary_group_members
+
+        visible_persisted = ordinary_group_members(persisted, instance_id=instance_id)
+        visible_seeds = ordinary_group_members(members, instance_id=instance_id)
+        if [identity(m) for m in visible_persisted] != [
+            identity(m) for m in visible_seeds
+        ]:
             from wakfu_server.monster_maturation import reconcile_seed
 
-            return reconcile_seed(self.store, key, members, persisted)
+            # Old durable groups can retain excluded roots; new groups never
+            # stored them. Keep a historical seed when its ID still exists,
+            # including a former excluded root matured through real receipts.
+            persisted_ids = {member["id"] for member in persisted}
+            visible_seed_ids = {member["id"] for member in visible_seeds}
+            reconciliation_seeds = [
+                member
+                for member in members
+                if member["id"] in persisted_ids | visible_seed_ids
+            ]
+            return reconcile_seed(self.store, key, reconciliation_seeds, persisted)
         return key
 
     def move_members(self, key, expected_members, moved_members):
@@ -127,12 +147,23 @@ class PersistentGroups:
                 "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
                 ("monster-population:" + ":".join(map(str, key[:2])),),
             )
+            row = db.execute(
+                "SELECT members,instance_id FROM combat_groups WHERE map_id=%s "
+                "AND instance_id=%s AND group_id=%s AND status='available' FOR UPDATE",
+                key,
+            ).fetchone()
+            if row is None or list(self._members(row)) != expected_members:
+                return False
+            moved_by_id = {member["id"]: member for member in moved_members}
+            durable_members = [
+                moved_by_id.get(member["id"], member) for member in row["members"]
+            ]
             return (
                 db.execute(
                     "UPDATE combat_groups SET members=%s,revision=revision+1 "
                     "WHERE map_id=%s AND instance_id=%s AND group_id=%s "
                     "AND status='available' AND members=%s RETURNING group_id",
-                    (Jsonb(moved_members), *key, Jsonb(expected_members)),
+                    (Jsonb(durable_members), *key, Jsonb(row["members"])),
                 ).fetchone()
                 is not None
             )
@@ -153,6 +184,7 @@ class PersistentGroups:
                     else "SELECT * FROM combat_groups WHERE map_id=%s AND instance_id=%s",
                     () if map_id is None else (map_id, instance_id),
                 )
+                if self._members(row)
             ]
 
     def available(self, map_id, instance_id):
@@ -178,6 +210,7 @@ class PersistentGroups:
                     "AND c.returned_at IS NULL)) ORDER BY g.group_id",
                     (map_id, instance_id),
                 )
+                if self._members(r)
             ]
 
     def claim(self, key, generation, fight_id):
@@ -195,12 +228,15 @@ class PersistentGroups:
             ).fetchone()
             if row is None:
                 raise ValueError("Group is unavailable")
+            members = self._members(row)
+            if not members:
+                raise ValueError("Group has no eligible ordinary monsters")
             revision = row["revision"] + 1
             db.execute(
                 "UPDATE combat_groups SET status='fighting',generation=%s,fight_id=%s,revision=%s WHERE map_id=%s AND instance_id=%s AND group_id=%s",
                 (generation, fight_id, revision, *key),
             )
-            return (key, generation, fight_id, revision), self._members(row)
+            return (key, generation, fight_id, revision), members
 
     def finish(self, lease, *, defeated, db=None):
         if type(defeated) is not bool:
@@ -242,12 +278,13 @@ class PersistentGroups:
             for prior in rows:
                 key = (prior["map_id"], prior["instance_id"], prior["group_id"])
                 current = db.execute(
-                    "SELECT members,status FROM combat_groups WHERE map_id=%s "
+                    "SELECT members,status,instance_id FROM combat_groups WHERE map_id=%s "
                     "AND instance_id=%s AND group_id=%s",
                     key,
                 ).fetchone()
-                if current["status"] == "available":
-                    released.append(dict(key=key, members=self._members(current)))
+                members = self._members(current)
+                if current["status"] == "available" and members:
+                    released.append(dict(key=key, members=members))
             return released
 
     def respawn(self, key):
@@ -258,6 +295,9 @@ class PersistentGroups:
             ).fetchone()
             if row is None:
                 raise ValueError("Only defeated groups can respawn")
+            members = self._members(row)
+            if not members:
+                raise ValueError("Group has no eligible ordinary monsters")
             if row.get("ecology_admin_removed_ids"):
                 raise ValueError("Administratively removed groups cannot respawn")
             if db.execute(
@@ -274,7 +314,7 @@ class PersistentGroups:
                 "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1,defeated_at=NULL WHERE map_id=%s AND instance_id=%s AND group_id=%s",
                 key,
             )
-            return self._members(row)
+            return members
 
     def recover_reservations(self):
         """Startup-only abort of lost fights. Never call on a live second worker."""

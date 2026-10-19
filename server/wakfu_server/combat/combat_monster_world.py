@@ -162,7 +162,7 @@ def spawn_monster(monster, *, group_id, name=None, direction=3, summon_identity=
 
 
 def spawn_group(members, *, group_id, direction=3):
-    """Register all owned world actors with the same full native group roster."""
+    """Publish eligible ordinary actors with one consistent native roster."""
     members = tuple(members)
     if not members or len(members) > 127:
         raise ValueError("Invalid owned group size")
@@ -174,6 +174,26 @@ def spawn_group(members, *, group_id, direction=3):
         if len(blob) > 65535:
             raise ValueError("NPC appearance too large")
         entries.append(struct.pack(">BqH", 1, member["id"], len(blob)) + blob)
+    from .monster_minigame_policy import ordinary_group_members
+
+    # Validate the complete original roster above, including excluded members.
+    # Ecological publications may supply durable legacy rows directly, bypassing
+    # available() projections. Keep private encounter and summon paths intact.
+    eligible = ordinary_group_members(members, instance_id=members[0]["instance_id"])
+    if eligible != members:
+        if not eligible:
+            # Original ctE.dp reads unsigned count0 and returns true; no actors
+            # are admitted. An originally empty/invalid roster still fails above.
+            return b"\x00\x00"
+        entries = []
+        for member in eligible:
+            blob = world_actor(
+                member, group_id=group_id, direction=direction, members=eligible
+            )
+            if len(blob) > 65535:
+                raise ValueError("NPC appearance too large")
+            entries.append(struct.pack(">BqH", 1, member["id"], len(blob)) + blob)
+        members = eligible
     return bytes([0, len(members)]) + b"".join(entries)
 
 

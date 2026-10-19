@@ -19,6 +19,7 @@ class EcologyPlantPlanTests(PostgresCase):
         ecology_plants._CURSORS.clear()
         self.snapshot = dict(
             world_epoch="boot-a",
+            started_at_ms=1000000,
             now_ms=1000000,
             players=[],
             excluded_ids=[],

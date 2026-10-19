@@ -10,7 +10,11 @@ from collections import deque
 from ..context.native_context import NativeGraph
 from ..context.native_graph_parts import load_graph
 from .scoring import evaluate
-from .turn_memory import attacked_this_turn, battleground_border_cells
+from .turn_memory import (
+    attacked_this_turn,
+    battleground_border_cells,
+    damaged_targets_this_turn,
+)
 from .tactical import DEFAULT_WEIGHTS
 from .capability_evidence import observed
 from .topology_distance import (
@@ -25,6 +29,7 @@ from .casting_prerequisites import (
 )
 from ..native.native_deadline import check
 from .query_identity import identity as state_identity
+from .movement_routes import hazard_route_alternatives
 from .feature_values import DEFAULT_FEATURE_WEIGHTS, validate_features
 from .team_posture import (
     decide as decide_team_posture,
@@ -271,6 +276,20 @@ def candidates(
         )
         ranges = prepared(lambda: _native_range_hints(spell))
         hint = spell.get("advisoryCapabilities")
+        if (
+            isinstance(hint, dict)
+            and type(hint.get("spellId")) is int
+            and type(hint.get("level")) is int
+            and hint.get("spellId") == spell["spellId"]
+            and hint.get("level") == spell["level"]
+            and isinstance(hint.get("tags"), list)
+            and "damage" in hint["tags"]
+        ):
+            # A fresh decision has no observed roles yet. An injured caster
+            # must not put self-casts ahead of an adjacent enemy for a damage
+            # spell and exhaust the bounded preview budget. This hint changes
+            # ordering only; all recipients still require native certification.
+            roles = set(roles) | {"damage"}
         summon_hint = "summoning" in roles or (
             isinstance(hint, dict)
             and hint.get("spellId") == spell["spellId"]
@@ -326,6 +345,21 @@ def candidates(
                 )
             ) or (not ally and bool(set(roles) & {"damage", "control"}))
 
+        if roles and ranges is not None and not summon_hint:
+            # Among useful recipients, try current-range targets before weak
+            # distant ones. Unknown-role streams retain their original order;
+            # all targets, including conditional self casts, remain eligible.
+            spell_targets = prepared(
+                lambda: sorted(
+                    spell_targets,
+                    key=lambda cell: (
+                        not relevant(cell),
+                        range_priority(cell),
+                        priority(cell),
+                    ),
+                )
+            )
+
         # A conservative range envelope is used only to order exploration. If
         # any stream lacks complete known metadata, keep the established
         # cast-first order. The native preview remains the only legality test.
@@ -354,11 +388,9 @@ def candidates(
             # Observations order exploration only. A multi-purpose spell keeps
             # both sides eligible, including empty cells and future mechanics.
             def role_priority(cell):
-                return (
-                    range_priority(cell) if summon_hint else False,
-                    not relevant(cell),
-                    priority(cell),
-                )
+                if summon_hint:
+                    return (range_priority(cell), not relevant(cell), priority(cell))
+                return (not relevant(cell), range_priority(cell), priority(cell))
 
             ordered = (
                 prepared(lambda: sorted(spell_targets, key=role_priority))
@@ -512,6 +544,7 @@ def _movement_candidates(
         actor_id,
         retreat=after_attack,
         team_posture=after_attack,
+        attacked_targets=damaged_targets_this_turn(graph, _fight(graph), actor_id),
         hazard_cells=battleground_border_cells(graph, _fight(graph)),
     )
     route_orders = operation() if prepare is None else prepare(operation)
@@ -543,7 +576,8 @@ def _movement_orders(
     *,
     retreat=False,
     hazard_cells=(),
-    team_posture=False
+    team_posture=False,
+    attacked_targets=(),
 ):
     """Prepare complete route orders; candidate exploration is timed separately.
 
@@ -556,7 +590,15 @@ def _movement_orders(
     cell_set = set(cells)
     adjacency, reverse = directed_adjacencies(edges, cells=cell_set)
     if team_posture:
-        retreat = decide_team_posture(actors, actor_id, adjacency)["mode"] == "retreat"
+        retreat = (
+            decide_team_posture(
+                actors,
+                actor_id,
+                adjacency,
+                attacked_targets=attacked_targets,
+            )["mode"]
+            == "retreat"
+        )
     routes, reached = [], {origin: ()}
     queue = deque([origin])
     while queue:
@@ -571,6 +613,16 @@ def _movement_orders(
             reached[end] = route
             routes.append(route)
             queue.append(end)
+    if hazard_cells:
+        # Native edges can converge after different exposure costs. Preserve
+        # ordinary shortest routes and also offer safer detours within MP.
+        seen_routes = set(routes)
+        for route in hazard_route_alternatives(
+            adjacency, origin, occupied, actor["mp"], hazard_cells
+        ):
+            if route not in seen_routes:
+                routes.append(route)
+                seen_routes.add(route)
     enemies = [a for a in actors.values() if a["team"] != actor["team"] and a["hp"] > 0]
     enemy_cells = {tuple(enemy["position"]) for enemy in enemies}
     approach = distance_field_from_reverse(
@@ -746,6 +798,7 @@ def _metrics(raw, actor_id, *, unreachable_penalty=None, retreat=False):
         actors=actors,
         actorRepertoires=repertoires,
         position=(min(distance, 6) if retreat else -distance) * 0.25,
+        approachPosition=-distance * 0.25,
         position_basis=position_basis,
         threat=0,
         uncertainty=0,
@@ -947,6 +1000,11 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
     )
     memory_graph = root_graph or load_graph(store, envelope["root"]["nativeContext"])
     retreat = attacked_this_turn(memory_graph, _fight(memory_graph), actor_id)
+    attacked_targets = damaged_targets_this_turn(
+        memory_graph,
+        _fight(memory_graph),
+        actor_id,
+    )
     border_cells = battleground_border_cells(memory_graph, _fight(memory_graph))
     root = _metrics(envelope["root"], actor_id, retreat=retreat)
     posture_adjacency = None
@@ -957,10 +1015,17 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             posture_adjacency, _ = directed_adjacencies(
                 _sequence(memory_graph, edges_reference)
             )
-    apply_position(root, actor_id, posture_adjacency, after_attack=retreat)
+    apply_position(
+        root,
+        actor_id,
+        posture_adjacency,
+        after_attack=retreat,
+        attacked_targets=attacked_targets,
+    )
+    allow_approach = root["teamPosture"]["mode"] == "approach"
     border_reverse = None
     unavoidable_border = None
-    if border_cells and not retreat:
+    if border_cells and root["teamPosture"]["mode"] != "retreat":
         fight_reference = _fight(memory_graph)
         edges_reference = memory_graph.field(fight_reference, "edges")
         if memory_graph.resolve(edges_reference) is not None:
@@ -1006,7 +1071,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                 )
                 continue
             available_weights[name] = weight
-        return evaluate(
+        score, components, intent, target = evaluate(
             root,
             metrics,
             actor_id,
@@ -1015,6 +1080,33 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             available_weights,
             summon_value=registered_summon_value,
         )
+        # A bounded strategic preference makes a small native movement toll
+        # comparable to advancing this turn even when no cast is yet in range.
+        # This is not a prediction of future damage or native spell legality.
+        actor = root["actors"][actor_id]
+        moved = metrics["actors"][actor_id]["position"] != actor["position"]
+        progress = max(
+            0.0,
+            (metrics.get("approachPosition", 0) - root.get("approachPosition", 0))
+            / 0.25,
+        )
+        bonus = 0.0
+        if (
+            moved
+            and metrics["actors"][actor_id]["hp"] > 0
+            and metrics["teamPosture"]["mode"] == "approach"
+            and root["position_basis"] == metrics["position_basis"]
+        ):
+            movement_budget = max(1, actor["mp"])
+            bonus = (
+                min(progress, movement_budget)
+                / movement_budget
+                * (actor["hp"] + max(0, actor.get("armor", 0)))
+                * 0.02
+                * weights["position"]
+            )
+        components["strategic_approach"] = round(bonus, 6)
+        return score + bonus, components, intent, target
 
     # Complete snapshot/repertoire loading is mandatory context preparation,
     # separate from exploration work. Count it under the real owner deadline,
@@ -1294,7 +1386,14 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                 unreachable_penalty=unreachable_penalty,
                 retreat=retreat,
             )
-            apply_position(metrics, actor_id, posture_adjacency, after_attack=retreat)
+            apply_position(
+                metrics,
+                actor_id,
+                posture_adjacency,
+                after_attack=retreat,
+                allow_approach=allow_approach,
+                attacked_targets=attacked_targets,
+            )
             if metrics["actors"][actor_id]["hp"] <= 0:
                 metrics["position"] = root["position"]
             if action["type"] == "cast":
@@ -1492,7 +1591,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                         weights,
                         deadline=risk_deadline,
                         clock=clock,
-                        **risk_limits
+                        **risk_limits,
                     )
                 )
             )
@@ -1508,7 +1607,12 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             )
             option_metrics = _metrics(option["state"], actor_id, retreat=retreat)
             posture = apply_position(
-                option_metrics, actor_id, posture_adjacency, after_attack=retreat
+                option_metrics,
+                actor_id,
+                posture_adjacency,
+                after_attack=retreat,
+                allow_approach=allow_approach,
+                attacked_targets=attacked_targets,
             )
             contradiction = contradicted_hold(
                 option_metrics["actors"], actor_id, posture, risk
@@ -1573,7 +1677,14 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         unreachable_penalty=unreachable_penalty,
         retreat=retreat,
     )
-    apply_position(selected, actor_id, posture_adjacency, after_attack=retreat)
+    apply_position(
+        selected,
+        actor_id,
+        posture_adjacency,
+        after_attack=retreat,
+        allow_approach=allow_approach,
+        attacked_targets=attacked_targets,
+    )
     if selected["actors"][actor_id]["hp"] <= 0:
         selected["position"] = root["position"]
     return dict(
@@ -1582,6 +1693,23 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         sourceKey=envelope["sourceKey"],
         rootState=root_key,
         action=best["actions"][0] if best["actions"] else {"type": "end_turn"},
+        defensiveFacing=(
+            dict(
+                sourceKey=envelope["sourceKey"],
+                rootState=root_key,
+                actorId=actor_id,
+                turnId=envelope["root"]["turnId"],
+                stateRevision=envelope["root"]["stateRevision"],
+                actors=[
+                    dict(id=row["id"], position=row["position"])
+                    for row in envelope["root"]["actors"]
+                ],
+                visibleActorIds=[row["id"] for row in envelope["root"]["actors"]],
+                rivals=best.get("riskForecast", {}).get("rivals", []),
+            )
+            if not best["actions"]
+            else None
+        ),
         plan=best["actions"],
         score=best["score"],
         components=best["components"],
@@ -1616,6 +1744,8 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         ),
         positionEvidence=dict(
             basis=selected["position_basis"],
+            strategicApproachBasis="root_effective_health_two_percent_per_mp_budget",
+            strategicApproachUtility=best["components"].get("strategic_approach", 0),
             rootUtility=root["position"],
             selectedUtility=selected["position"],
         ),

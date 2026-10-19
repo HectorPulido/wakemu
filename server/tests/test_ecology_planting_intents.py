@@ -61,11 +61,17 @@ class EcologyPlantingIntentTests(PostgresCase):
 
     def prepare(self):
         origin = tuple(self.char[key] for key in ("x", "y", "z"))
+        with self.store.connection() as db:
+            started_at_ms = db.execute(
+                "SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS value"
+            ).fetchone()["value"]
         with patch("wakfu_server.planting_cells.authorize", return_value=0), patch(
             "wakfu_server.combat_geometry.published_geometry",
             return_value=SimpleNamespace(outgoing={origin: {(10, 11, 0)}}),
         ):
-            return prepare_intents(self.store, self.snapshot)[0]
+            return prepare_intents(
+                self.store, dict(self.snapshot, started_at_ms=started_at_ms)
+            )[0]
 
     def accept(self, db, proposal):
         return self.runtime.begin_prepared(
@@ -100,8 +106,13 @@ class EcologyPlantingIntentTests(PostgresCase):
         with patch.object(
             garden, "authorize", return_value=0
         ) as authorize, patch.object(garden, "validate_target", return_value=0):
+            with self.store.connection() as db:
+                started_at_ms = db.execute(
+                    "SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS value"
+                ).fetchone()["value"]
             proposal = prepare_intents(
-                self.store, dict(self.snapshot, players=[scalar])
+                self.store,
+                dict(self.snapshot, players=[scalar], started_at_ms=started_at_ms),
             )[0]
         self.assertEqual(proposal["kind"], "planting_begin")
         actor = authorize.call_args.args[1]

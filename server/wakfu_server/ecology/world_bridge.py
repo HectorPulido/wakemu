@@ -130,6 +130,8 @@ class EcologyWorldBridge:
         )
 
     def snapshot(self):
+        # Intents inserted during this snapshot belong to the next observation.
+        started_at_ms = int(self.clock() * 1000)
         # Only current player coordinates and occupation identities cross this
         # boundary. Character inventories, secrets and credentials never do.
         players = self.world.ecology_snapshot()
@@ -168,6 +170,7 @@ class EcologyWorldBridge:
             "locations": [list(scope) for scope in scopes],
             "players": positions,
             "excluded_ids": excluded,
+            "started_at_ms": started_at_ms,
             "now_ms": int(self.clock() * 1000),
             "growth_seconds": self.plantings.growth_seconds,
             "open_test_policy": self.plantings.open_test_policy,
@@ -298,8 +301,14 @@ class EcologyWorldBridge:
                     except Exception as error:
                         self.record(
                             event="ecology_apply_failed",
+                            proposal_id=row["id"],
                             domain=row["domain"],
+                            kind=row["payload"].get("kind"),
+                            scope=row["payload"].get("scope"),
                             error_type=type(error).__name__,
+                            reason=str(error)[:256]
+                            if isinstance(error, ValueError)
+                            else None,
                         )
                         result = {"status": "retry"}
                 results[row["id"]] = {"id": row["id"], **result}

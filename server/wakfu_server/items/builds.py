@@ -207,15 +207,16 @@ def response_messages(character, index, *, wp, status=0):
     bonus over an already-effective bootstrap. This does not manufacture
     native running effects or replace the equipment registry carrier.
     """
+    # cER/dbU installs the acknowledged fpj and binds the native edit tracker
+    # to it. A subsequent12393 replaces that registry object behind the
+    # tracker's cached reference, breaking dirty detection and unequipping.
     packets = [(12284, response(character, index, status))]
     if status == 0 and index in character.get("builds", {}):
         from wakfu_server.combat_lifecycle import outside_progression
 
-        registry = proto_field(10, equipment_registry(character))
         aptitudes = aptitude_registry(character)
         packets.extend(
             [
-                (12393, struct.pack(">I", len(registry)) + registry),
                 (
                     12103,
                     struct.pack(">qI", character["id"], len(aptitudes)) + aptitudes,
@@ -264,6 +265,24 @@ def rejection_response(character, index, *, status):
     return body
 
 
+class BuildOccupationError(ValueError):
+    """An active occupation prevents editing the selected build."""
+
+
+def rejection_status(error):
+    """Select native eQQ ordinals without confusing occupation with permission."""
+    if isinstance(error, BuildOccupationError):
+        return 5  # INVALID_OCCUPATION; UNAUTHORIZED=2 has level-unlock text.
+    reason = str(error).casefold()
+    if "equipment" in reason:
+        return 7
+    if "aptitude" in reason:
+        return 9
+    if "spell" in reason or "deck" in reason:
+        return 8
+    return 2
+
+
 def blocked_save_messages(character, request_body):
     """Reject an owned save during combat and restore its prior native sheet.
 
@@ -275,7 +294,7 @@ def blocked_save_messages(character, request_body):
         raise ValueError("Build request belongs to another character")
     if not valid_index(index):
         raise ValueError("Invalid build index")
-    return [(12284, rejection_response(character, index, status=2))]
+    return [(12284, rejection_response(character, index, status=5))]
 
 
 def rejection_messages(character, index, *, wp, status):

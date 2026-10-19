@@ -58,10 +58,10 @@ class _UncacheableRetainedRecord(Exception):
 
 
 @lru_cache(maxsize=2048)
-def _cached_retained_record(items, value_types):
+def _cached_retained_record(keys, values, value_types):
     # Only immutable, bounded metadata belongs here. The type tuple keeps
     # malformed bool/int aliases distinct for the live view's strict checks.
-    for (key, value), value_type in zip(items, value_types):
+    for key, value, value_type in zip(keys, values, value_types):
         if (
             type(key) is not str
             or len(key) > 64
@@ -70,7 +70,7 @@ def _cached_retained_record(items, value_types):
             or (value_type is int and value.bit_length() > 64)
         ):
             raise _UncacheableRetainedRecord
-    return RetainedEffect(**dict(items))
+    return RetainedEffect(**dict(zip(keys, values)))
 
 
 def _retained_record(record):
@@ -79,20 +79,41 @@ def _retained_record(record):
         return RetainedEffect(**record)
     try:
         return _cached_retained_record(
-            tuple(record.items()), tuple(map(type, record.values()))
+            tuple(record), tuple(record.values()), tuple(map(type, record.values()))
         )
     except (_UncacheableRetainedRecord, TypeError):
         # Preserve constructor behavior for unsupported/unhashable inputs.
         return RetainedEffect(**record)
 
 
+def native_retained_condition_reader(fight):
+    """Return one lazy read snapshot for a single pure range query.
+
+    The caller discards this reader when the query returns. It must never be
+    stored on Fight or reused across an effect, mutation or another query.
+    """
+    population = None
+
+    def read(actor_id):
+        nonlocal population
+        if (
+            fight.native_retained_tracking is not True
+            or state_manager(fight, actor_id) is None
+        ):
+            raise ValueError("Unverified native retained condition population")
+        if population is None:
+            population = _native_retained_condition_population(fight)
+        return population.get(actor_id, ())
+
+    return read
+
+
 def native_retained_condition_effects(fight, actor_id):
-    """Read the complete tracked Qf population without storing runtime objects on Fight."""
-    if (
-        fight.native_retained_tracking is not True
-        or state_manager(fight, actor_id) is None
-    ):
-        raise ValueError("Unverified native retained condition population")
+    """Read current Qf authority without reusing a previous query snapshot."""
+    return native_retained_condition_reader(fight)(actor_id)
+
+
+def _native_retained_condition_population(fight):
     live = (
         set(fight.owned_stat_effects)
         | set(fight.state_wire_payloads)
@@ -116,11 +137,12 @@ def native_retained_condition_effects(fight, actor_id):
         ],
         population_verified_complete=True,
     )
-    return tuple(
-        (entry.generic_effect, entry.effect_class, entry.uid)
-        for entry in view.entries
-        if entry.manager_id == actor_id
-    )
+    population = {}
+    for entry in view.entries:
+        population.setdefault(entry.manager_id, []).append(
+            (entry.generic_effect, entry.effect_class, entry.uid)
+        )
+    return {identity: tuple(rows) for identity, rows in population.items()}
 
 
 def group_payload(

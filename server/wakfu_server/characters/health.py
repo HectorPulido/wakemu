@@ -13,6 +13,28 @@ from wakfu_server.character_levels import validate_character_level
 
 BASE_HEALTH = protocol_catalog.load(DATA_ROOT / "base-health.json")["breeds"]
 REGEN_DENOMINATOR_MS = 4000
+EXPLORATION_RECOVERY_MS = 120000
+
+
+def exploration_coefficient(max_hp, hp):
+    """Explicit Wakemu policy: recover a full HP bar in about two minutes.
+
+    The original client/server coefficient still means HP per 4000 ms. Scale
+    that coefficient with the owned maximum; never change the native clock.
+    Call only outside combat. Dead characters require an owned return first.
+    """
+    if (
+        type(max_hp) is not int
+        or not 0 < max_hp < 2**31
+        or type(hp) is not int
+        or not 0 <= hp <= max_hp
+    ):
+        raise ValueError("Invalid exploration health")
+    if hp == 0:
+        return 0
+    return (
+        max_hp * REGEN_DENOMINATOR_MS + EXPLORATION_RECOVERY_MS - 1
+    ) // EXPLORATION_RECOVERY_MS
 
 
 def maximum(breed, level):

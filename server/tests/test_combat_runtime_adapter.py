@@ -579,6 +579,8 @@ class ServerAdapterTests(unittest.TestCase):
                 direction=7,
                 native_area_contract="fbc",
                 native_running_effect_manager=True,
+                native_qq_bhi=False,
+                native_qq_guard_source="Qq.constructor",
                 state_ledger=ledger,
             )
         }

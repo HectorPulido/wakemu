@@ -260,7 +260,19 @@ class WithdrawalDispatcherTests(unittest.TestCase):
             if isinstance(node, ast.If) and ast.unparse(node.test) == "opcode == 13488"
         )
         code = compile(
-            ast.fix_missing_locations(ast.Module(body=selection.body, type_ignores=[])),
+            ast.fix_missing_locations(
+                ast.Module(
+                    body=[
+                        ast.For(
+                            target=ast.Name(id="_dispatch_once", ctx=ast.Store()),
+                            iter=ast.Tuple(elts=[ast.Constant(0)], ctx=ast.Load()),
+                            body=selection.body,
+                            orelse=[],
+                        )
+                    ],
+                    type_ignores=[],
+                )
+            ),
             "<real-selector-handler>",
             "exec",
         )
@@ -305,8 +317,26 @@ class WithdrawalDispatcherTests(unittest.TestCase):
             if isinstance(node, ast.FunctionDef)
             and node.name == "publish_external_marker"
         )
+        publisher_locked = next(
+            node
+            for node in ast.walk(self.tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_publish_external_marker_locked"
+        )
         code = compile(
-            ast.fix_missing_locations(ast.Module(body=selection.body, type_ignores=[])),
+            ast.fix_missing_locations(
+                ast.Module(
+                    body=[
+                        ast.For(
+                            target=ast.Name(id="_dispatch_once", ctx=ast.Store()),
+                            iter=ast.Tuple(elts=[ast.Constant(0)], ctx=ast.Load()),
+                            body=selection.body,
+                            orelse=[],
+                        )
+                    ],
+                    type_ignores=[],
+                )
+            ),
             "<real-selector-marker-handler>",
             "exec",
         )
@@ -376,7 +406,9 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                 exec(
                     compile(
                         ast.fix_missing_locations(
-                            ast.Module(body=[publisher], type_ignores=[])
+                            ast.Module(
+                                body=[publisher, publisher_locked], type_ignores=[]
+                            )
                         ),
                         "<real-marker-publisher>",
                         "exec",

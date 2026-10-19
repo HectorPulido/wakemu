@@ -70,17 +70,71 @@ class CapturedAreaActivationTests(unittest.TestCase):
         self.assertIsNone(runtime._target_affiliation(target))
 
     def test_real_roster_target_uses_existing_typed_affiliation_provider(self):
+        from wakfu_server.combat_runtime_adapter import NativeActorAuthority
+
         runtime, row, calls, definition, target = self.fixture()
         del target.native_is_amO
 
         class Adapter:
             def _actor(self, fight, actor):
-                return SimpleNamespace(targeting=dict(is_amO=True, is_eGj=True))
+                return NativeActorAuthority(
+                    targeting=dict(is_amO=True, is_eGj=True),
+                    is_player=True,
+                    deck_spell_ids=frozenset(),
+                    excluded_deck_spell_ids=frozenset(),
+                    is_carried=False,
+                    breed_id=1,
+                    summon_count=0,
+                    summon_counts_by_breed={},
+                    occupant_blocks=True,
+                )
 
             def affiliation(self, fight, identity):
                 return 0
 
-        runtime.dispatcher.contexts = SimpleNamespace(
-            area_affiliation=Adapter().affiliation
-        )
+        adapter = Adapter()
+        runtime.target_authority = adapter._actor
+        runtime.area_affiliation = adapter.affiliation
         self.assertFalse(runtime._activate(row, definition, target))
+
+    def test_actual_server_factory_binds_registered_player_and_npc_area_targets(self):
+        from copy import deepcopy
+        from random import Random
+        from test_combat_spell_transaction import SpellTransactionTests
+        from wakfu_server.combat_server_spell import server_runtime
+        from wakfu_server.spells import encode_deck
+        from wakfu_server.fight_checkpoint_store import snapshot
+
+        character, monster, fight = SpellTransactionTests().native_server_fixture(
+            1,
+            60,
+            native_qi=True,
+            target_distance=1,
+        )
+        before = snapshot(fight)
+        preview = deepcopy(fight)
+        factory, _ = server_runtime(
+            character,
+            {monster["id"]: monster},
+            encode_deck(),
+            action_id=2,
+            critical=False,
+            rng=Random(0),
+        )
+        dispatcher, packets = factory(
+            preview, {"native_retained_container": {"present": False}}
+        )
+        self.assertFalse(hasattr(dispatcher, "contexts"))
+        events = dispatcher.native_area_events
+        for identity in (character["id"], monster["id"]):
+            target = preview.actors[identity]
+            self.assertFalse(hasattr(target, "native_is_amO"))
+            self.assertEqual(events._target_affiliation(target), target.team)
+            # A filtered ally must not execute glyph children or consume a
+            # charge. The explicit area fixture is independent of its producer.
+            _, row, _, definition, _ = self.fixture()
+            row.update(owner_id=identity, native_fight_affiliation=target.team)
+            self.assertFalse(events._activate(row, definition, target))
+            self.assertEqual(row["remaining_activations"], 1)
+        self.assertEqual(len(packets), 0)
+        self.assertTrue(snapshot(fight) == before, "Source fight was mutated")

@@ -213,6 +213,134 @@ class HeroTakeoverPostgresTests(fixtures.CombatHeroesPostgresTests):
         self.assertFalse(repeated["applied"])
         self.assert_health_rows(replacement, identities)
 
+    def test_terminal_abort_health_receipt_is_reused_on_finished_recovery(self):
+        admitted = self._admit()
+        fight = admitted["fight"]
+        fight.phase, fight.winner = "finished", 0
+        main_actor = fight.actors[self.main["id"]]
+        main_actor.hp -= 9
+        with self.store.connection() as db:
+            fight_store.finish(
+                self.store,
+                db,
+                self.account,
+                self.generation,
+                self.main["id"],
+                self.fight_id,
+            )
+            fight_store._write_terminal_checkpoint(
+                db, self.store, self.account, self.generation, fight
+            )
+            aborted = combat_health.persist_owned(
+                self.store,
+                self.account,
+                self.generation,
+                self.main,
+                fight,
+                reason="abort",
+                db=db,
+            )
+        identities = {self.main["id"], self.hero_a["id"], self.hero_b["id"]}
+        self.assertEqual(set(aborted["characters"]), identities)
+        old_hp = {
+            identity: self.store.character(self.account, identity)["hp"]
+            for identity in identities
+        }
+
+        replacement = self.replace_session()
+        canonical = self.store.character(self.account, self.main["id"])
+        recovered = fight_store.recover_finished_return(
+            self.store,
+            self.account,
+            replacement,
+            self.main["id"],
+            fight,
+            canonical,
+            previous_generation=self.generation,
+        )
+        self.assertFalse(recovered["applied"])
+        self.assertEqual(set(recovered["characters"]), identities)
+        self.assertEqual(set(self.members().values()), {replacement})
+        for identity in identities:
+            self.assertEqual(
+                self.store.character(self.account, identity)["hp"], old_hp[identity]
+            )
+        with self.store.connection() as db:
+            exits = db.execute(
+                "SELECT character_id,generation,reason FROM fight_health_exits "
+                "WHERE fight_id=%s ORDER BY character_id",
+                (self.fight_id,),
+            ).fetchall()
+        self.assertEqual({row["character_id"] for row in exits}, identities)
+        self.assertEqual({row["generation"] for row in exits}, {self.generation})
+        self.assertEqual({row["reason"] for row in exits}, {"abort"})
+
+    def test_abort_health_receipt_rejects_nonterminal_checkpoint_without_mutation(self):
+        from psycopg.types.json import Jsonb
+        from wakfu_server.fight_checkpoint_store import Checkpoints
+
+        admitted = self._admit()
+        fight = admitted["fight"]
+        fight.phase, fight.winner = "finished", 0
+        with self.store.connection() as db:
+            fight_store.finish(
+                self.store,
+                db,
+                self.account,
+                self.generation,
+                self.main["id"],
+                self.fight_id,
+            )
+            fight_store._write_terminal_checkpoint(
+                db, self.store, self.account, self.generation, fight
+            )
+            combat_health.persist_owned(
+                self.store,
+                self.account,
+                self.generation,
+                self.main,
+                fight,
+                reason="abort",
+                db=db,
+            )
+            checkpoint = db.execute(
+                "SELECT snapshot FROM fight_checkpoints WHERE fight_id=%s",
+                (self.fight_id,),
+            ).fetchone()["snapshot"]
+            checkpoint["phase"] = "active"
+            db.execute(
+                "UPDATE fight_checkpoints SET snapshot=%s WHERE fight_id=%s",
+                (Jsonb(checkpoint), self.fight_id),
+            )
+        replacement = self.replace_session()
+        before = self.members()
+        with self.assertRaisesRegex(
+            ValueError, "Abort health recovery requires a terminal checkpoint"
+        ):
+            fight_store.recover_finished_return(
+                self.store,
+                self.account,
+                replacement,
+                self.main["id"],
+                fight,
+                self.store.character(self.account, self.main["id"]),
+                previous_generation=self.generation,
+            )
+        self.assertEqual(self.members(), before)
+        with self.store.connection() as db:
+            exit_row = db.execute(
+                "SELECT reason FROM fight_health_exits WHERE fight_id=%s AND character_id=%s",
+                (self.fight_id, self.main["id"]),
+            ).fetchone()
+            status = Checkpoints._read_snapshot(
+                db.execute(
+                    "SELECT snapshot FROM fight_checkpoints WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["snapshot"]
+            )["phase"]
+        self.assertEqual(exit_row["reason"], "abort")
+        self.assertEqual(status, "active")
+
 
 def load_tests(loader, _tests, _pattern):
     # Reuse admission setup only, without repeating inherited unrelated tests.
@@ -223,5 +351,7 @@ def load_tests(loader, _tests, _pattern):
             "test_idempotent_main_new_repairs_old_heroes_without_touching_peer",
             "test_mixed_third_generation_rejects_without_partial_updates",
             "test_terminal_return_recovery_rebinds_and_persists_all_heroes",
+            "test_terminal_abort_health_receipt_is_reused_on_finished_recovery",
+            "test_abort_health_receipt_rejects_nonterminal_checkpoint_without_mutation",
         )
     )

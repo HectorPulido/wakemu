@@ -814,15 +814,14 @@ class BuildCapacityTests(PostgresCase):
             "builds": {127: {k: v.hex() for k, v in blobs(127).items()}},
         }
         packets = builds.response_messages(character, 127, wp=6)
-        self.assertEqual([op for op, _ in packets], [12284, 12393, 12103, 13046])
-        registry = packets[1][1]
-        self.assertEqual(struct.unpack(">I", registry[:4])[0], len(registry) - 4)
-        entries = list(proto_fields(dict(proto_fields(registry[4:]))[10]))
+        self.assertEqual([op for op, _ in packets], [12284, 12103, 13046])
+        registry = builds.equipment_registry(character)
+        entries = list(proto_fields(registry))
         self.assertEqual(dict(entries)[16], 7)
         self.assertEqual(
             [dict(proto_fields(v))[8] for t, v in entries if t == 10], [0, 127]
         )
-        aptitudes = packets[2][1]
+        aptitudes = packets[1][1]
         self.assertEqual(struct.unpack(">qI", aptitudes[:12]), (7, len(aptitudes) - 12))
 
     def test_persisted_selection_is_encoded_on_reconnect(self):

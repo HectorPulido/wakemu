@@ -109,6 +109,7 @@ class AstrubDispatcherTests(PostgresCase):
         namespace["POSITIONS"].attach.assert_called_once_with(
             self.account, self.generation, namespace["character"]
         )
+        namespace["POSITIONS"].account_barrier.assert_not_called()
         namespace["join_world"].assert_called_once()
 
     def test_public_arrival(self):

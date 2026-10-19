@@ -142,6 +142,10 @@ class HavenBagGardenRuntimeTests(PostgresCase):
                 key: live[0][key]
                 for key in ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
             }
+            with self.store.connection() as db:
+                started_at_ms = db.execute(
+                    "SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS value"
+                ).fetchone()["value"]
             with patch("wakfu_server.planting_bonus.current", return_value=0):
                 plan = prepare_intents(
                     self.store,
@@ -149,6 +153,7 @@ class HavenBagGardenRuntimeTests(PostgresCase):
                         "world_epoch": "ranch-boot",
                         "players": [scalar],
                         "open_planting": False,
+                        "started_at_ms": started_at_ms,
                     },
                 )[0]
             self.assertEqual(plan["kind"], "planting_begin", plan)

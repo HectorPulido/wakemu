@@ -1,6 +1,7 @@
 from dataclasses import replace
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 from wakfu_server.combat_character_copy_book import CopyBookAction
 from wakfu_server.combat_runtime_adapter import NativeActorAuthority
 from wakfu_server.combat_character_copy_codec import (
@@ -104,7 +105,14 @@ class CharacterCopyCodecTests(unittest.TestCase):
     def test_ordinary_model_selection_uses_source_sex_and_cloth_byte(self):
         class Authority:
             characters = {
-                7: dict(id=7, breed=15, appearance=dict(sex=1, clothIndex=255))
+                7: dict(
+                    id=7,
+                    breed=15,
+                    level=200,
+                    builds={},
+                    inventory_items=[],
+                    appearance=dict(sex=1, clothIndex=255),
+                )
             }
 
             def __call__(self, fight, actor):
@@ -153,3 +161,67 @@ class CharacterCopyCodecTests(unittest.TestCase):
         self.assertIn(encode_copy_descriptor(d), body)
         self.assertIn(summon_additional_payload(295), body)
         self.assertEqual(d.actor_id, -1)
+
+    def ordinary_source(self, metadata=None):
+        class Authority:
+            characters = {
+                7: dict(
+                    id=7,
+                    breed=15,
+                    level=200,
+                    builds={},
+                    inventory_items=[],
+                    appearance=dict(sex=1, clothIndex=0),
+                )
+            }
+
+            def __call__(self, fight, actor):
+                return metadata or NativeActorAuthority(
+                    {},
+                    True,
+                    frozenset(),
+                    frozenset(),
+                    False,
+                    15,
+                    0,
+                    {},
+                    True,
+                    native_actor_type=0,
+                    native_is_ehp=True,
+                )
+
+        actor = SimpleNamespace(id=7)
+        return Authority(), SimpleNamespace(actors={7: actor}), actor
+
+    def test_ordinary_copy_uses_exact_owned_equipment_display_categories(self):
+        authority, fight, actor = self.ordinary_source()
+        with patch(
+            "wakfu_server.items.equipment_appearance.rows",
+            return_value=((2, 901, 0), (9, 902, 1902), (200, 903, -1)),
+        ) as projection:
+            source = connected_copy_appearance(
+                authority, fight, actor, model_query=lambda *args: 151
+            )
+        projection.assert_called_once_with(authority.characters[7])
+        self.assertEqual(source.categories, ((2, 901), (9, 1902), (-56, 903)))
+
+    def test_ordinary_copy_rejects_unowned_equipment_projection(self):
+        authority, fight, actor = self.ordinary_source()
+        with patch(
+            "wakfu_server.items.equipment_appearance.rows",
+            side_effect=ValueError(
+                "Equipment references an unavailable or unowned unit"
+            ),
+        ), self.assertRaisesRegex(ValueError, "unowned"):
+            connected_copy_appearance(
+                authority, fight, actor, model_query=lambda *args: 151
+            )
+
+    def test_ordinary_copy_still_requires_typed_player_authority(self):
+        authority, fight, actor = self.ordinary_source(
+            metadata=SimpleNamespace(native_actor_type=0, native_is_ehp=True)
+        )
+        with self.assertRaisesRegex(ValueError, "appearance producer"):
+            connected_copy_appearance(
+                authority, fight, actor, model_query=lambda *args: 151
+            )

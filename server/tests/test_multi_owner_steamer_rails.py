@@ -97,8 +97,10 @@ class MultiOwnerSteamerRailsTests(unittest.TestCase):
             self.assertEqual(snapshot(runtime.fight), source)
             self.assertTrue(any(tx.outcomes))
             runtime.fight = tx.fight
+            return tx
 
         endpoints = {}
+        actual_cast_plans = {}
         for owner in (7, 8):
             reach(owner)
             origin = runtime.fight.actors[owner].position
@@ -138,7 +140,7 @@ class MultiOwnerSteamerRailsTests(unittest.TestCase):
                 rng_before = rng.getstate()
                 try:
                     cast(owner, cells[0], 10 + owner)
-                    cast(owner, cells[-1], 20 + owner)
+                    actual_cast_plans[owner] = cast(owner, cells[-1], 20 + owner).plan
                 except ValueError as error:
                     runtime.fight = before
                     rng.setstate(rng_before)
@@ -160,6 +162,68 @@ class MultiOwnerSteamerRailsTests(unittest.TestCase):
             self.assertEqual(len(network["microbot_ids"]), 2)
             self.assertTrue(network["segments"])
             self.assertTrue(set(selected) <= {tuple(c) for c in network["cells"]})
+
+        # Exercise the exact shared Qs cleanup suboperation used by forced
+        # retirement on an isolated copy of the paid two-owner state. Put a
+        # rail before its microbot in native global order so callback delivery
+        # cannot depend on which owner row the native collection visits first.
+        cleanup_fight = copy.deepcopy(runtime.fight)
+        cleanup_factory, _ = server_runtime(
+            characters[7],
+            {-7: monster},
+            decks[7],
+            action_id=500,
+            critical=False,
+            **common,
+        )
+        cleanup_dispatcher, cleanup_packets = cleanup_factory(
+            cleanup_fight, actual_cast_plans[7]
+        )
+        from wakfu_server.combat_forced_retirement import NativeForcedRetirementCleanup
+
+        cleanup = NativeForcedRetirementCleanup(cleanup_dispatcher.native_retention)
+        cleanup_actor = cleanup_fight.actors[7]
+        cleanup.preflight(cleanup_actor)
+        cleanup_rails = {
+            uid
+            for uid in cleanup.areas
+            if cleanup_fight.native_effect_areas[uid].get("native_microbot_rail_source")
+        }
+        self.assertTrue(cleanup_rails)
+        cleanup.areas = tuple(
+            sorted(cleanup.areas, key=lambda uid: (uid not in cleanup_rails, uid))
+        )
+        cleanup_foreign = copy.deepcopy(cleanup_fight.native_microbot_networks[8])
+        cleanup_foreign_areas = {
+            uid: _plain(cleanup_fight.native_effect_areas[uid])
+            for uid, row in cleanup_fight.native_effect_areas.items()
+            if row.get("owner_id") == 8
+            and (
+                uid in cleanup_foreign["microbot_ids"]
+                or row.get("native_microbot_rail_source")
+            )
+        }
+        self.assertTrue(
+            any(
+                row.get("native_microbot_rail_source")
+                for uid, row in cleanup_fight.native_effect_areas.items()
+                if row.get("owner_id") == 8
+            )
+        )
+        cleanup.remove_areas(cleanup_actor)
+        cleanup_removals = [
+            struct.unpack(">iiiq", body)[3]
+            for opcode, body in cleanup_packets
+            if opcode == 13726 and len(body) == struct.calcsize(">iiiq")
+        ]
+        self.assertEqual(
+            [uid for uid in cleanup_removals if uid in cleanup_rails],
+            sorted(cleanup_rails),
+        )
+        self.assertTrue(cleanup_rails.isdisjoint(cleanup_fight.native_effect_areas))
+        self.assertEqual(cleanup_fight.native_microbot_networks[8], cleanup_foreign)
+        for uid, row in cleanup_foreign_areas.items():
+            self.assertEqual(_plain(cleanup_fight.native_effect_areas[uid]), row)
 
         # Both allied networks contribute to travel. Use a real paid path
         # onto owner7's rail, then two rail steps for one MP with owner8.

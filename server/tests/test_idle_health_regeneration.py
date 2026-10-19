@@ -32,7 +32,13 @@ class IdleHealthRegenerationTests(unittest.TestCase):
             if isinstance(n, ast.If) and "last_health_tick" in ast.unparse(n.test)
         )
         calls = []
-        character = {"id": 6, "hp": 807, "max_hp": 836}
+        character = {
+            "id": 6,
+            "hp": 807,
+            "max_hp": 836,
+            "hp_damage": 29,
+            "health_dead": False,
+        }
         namespace = {
             "STORE": SimpleNamespace(session_health=lambda *a, **k: {"valid": True}),
             "account_id": 1,
@@ -44,7 +50,15 @@ class IdleHealthRegenerationTests(unittest.TestCase):
             "character": character,
             "last_health_tick": 0,
             "time": SimpleNamespace(monotonic=lambda: 2),
-            "health_store": SimpleNamespace(tick=lambda *a: {"hp": 808, "max_hp": 836}),
+            "health_store": SimpleNamespace(
+                tick=lambda *a: {
+                    "hp": 808,
+                    "max_hp": 836,
+                    "hp_damage": 28,
+                    "health_dead": False,
+                    "regeneration_coefficient": 28,
+                }
+            ),
             "health": SimpleNamespace(packet=lambda *a: calls.append(a) or b"hp"),
             "WORLD": SimpleNamespace(update=lambda *a: None),
             "record": lambda **k: None,
@@ -53,5 +67,27 @@ class IdleHealthRegenerationTests(unittest.TestCase):
         exec(
             compile(ast.fix_missing_locations(isolated), str(source), "exec"), namespace
         )
-        self.assertEqual(character["hp"], 808)
-        self.assertEqual(calls, [(6, 808, 1)])
+        self.assertEqual(
+            (character["hp"], character["hp_damage"], character["health_dead"]),
+            (808, 28, False),
+        )
+        self.assertEqual(calls, [(6, 808, 28)])
+
+        # Hidden wounds can decrease while the visible living minimum stays 1.
+        calls.clear()
+        character.update(hp=1, hp_damage=900)
+        namespace["last_health_tick"] = 0
+        namespace["health_store"] = SimpleNamespace(
+            tick=lambda *a: {
+                "hp": 1,
+                "max_hp": 836,
+                "hp_damage": 899,
+                "health_dead": False,
+                "regeneration_coefficient": 28,
+            }
+        )
+        exec(
+            compile(ast.fix_missing_locations(isolated), str(source), "exec"), namespace
+        )
+        self.assertEqual((character["hp"], character["hp_damage"]), (1, 899))
+        self.assertEqual(calls, [])

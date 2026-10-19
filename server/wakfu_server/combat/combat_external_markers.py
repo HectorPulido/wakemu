@@ -331,6 +331,29 @@ class ExternalFightMarkers:
         return external(payload)
 
     def update(self, shared, *, now_ms=None, now_monotonic=None, member_packet=None):
+        """Read mutable shared fights under their authoritative mutation lock."""
+        shared_lock = getattr(shared, "lock", None)
+        if shared_lock is None:
+            # Immutable standalone scene records do not have a runtime owner.
+            return self._update_locked(
+                shared,
+                now_ms=now_ms,
+                now_monotonic=now_monotonic,
+                member_packet=member_packet,
+            )
+        # Mutation and publication use the same order: shared fight, marker.
+        # Never acquire this after self.lock: callbacks read live actor state.
+        with shared_lock:
+            return self._update_locked(
+                shared,
+                now_ms=now_ms,
+                now_monotonic=now_monotonic,
+                member_packet=member_packet,
+            )
+
+    def _update_locked(
+        self, shared, *, now_ms=None, now_monotonic=None, member_packet=None
+    ):
         """Publish a marker once; retain later state for new map entrants.
 
         Ineligible fights remove a previously visible marker. A marker is never

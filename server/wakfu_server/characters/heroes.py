@@ -2,6 +2,51 @@
 NATIVE_HERO_CAP = 2
 
 
+class CompanySelectionRejected(ValueError):
+    """A valid owned selection would change a currently frozen company."""
+
+
+def preflight_main_selection(db, account_id, main_character_id=None):
+    """Fence a prospective company change before creation/selection mutates.
+
+    The caller already owns the account row. Lock its session before company
+    characters, matching dungeon admission's session/character boundary. A
+    reconnect to the same leader does not change the frozen company.
+    """
+    from psycopg.pq import TransactionStatus
+
+    if db.info.transaction_status != TransactionStatus.INTRANS:
+        raise ValueError("Company selection requires an active transaction")
+    db.execute(
+        "SELECT account_id FROM sessions WHERE account_id=%s FOR UPDATE", (account_id,)
+    )
+    row = db.execute(
+        "SELECT leader_id FROM account_hero_rosters WHERE account_id=%s FOR UPDATE",
+        (account_id,),
+    ).fetchone()
+    if row is None or row["leader_id"] == main_character_id:
+        return
+    slots = db.execute(
+        "SELECT character_id FROM account_hero_slots WHERE account_id=%s ORDER BY slot FOR UPDATE",
+        (account_id,),
+    ).fetchall()
+    identities = sorted(
+        {row["leader_id"], *(entry["character_id"] for entry in slots)}
+        | ({main_character_id} if main_character_id is not None else set())
+    )
+    owned = db.execute(
+        "SELECT id FROM characters WHERE account_id=%s AND id=ANY(%s) "
+        "AND deleted_at IS NULL ORDER BY id FOR UPDATE",
+        (account_id, identities),
+    ).fetchall()
+    if [entry["id"] for entry in owned] != identities:
+        raise ValueError("Company selection contains an unavailable owned character")
+    try:
+        _idle(db, identities)
+    except ValueError as error:
+        raise CompanySelectionRejected(str(error)) from error
+
+
 def session_authorized(db, row):
     """An inactive owned hero uses its selected main's real account lease."""
     if row["selected_character_id"] == row["id"]:
@@ -49,7 +94,11 @@ def expand_session_rows(db, store, rows):
 def _outside_combat(db, identities):
     if db.execute(
         "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
-        "WHERE p.character_id=ANY(%s) AND f.status IN ('placement','active') LIMIT 1",
+        "WHERE p.character_id=ANY(%s) AND f.status IN ('placement','active') "
+        "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w "
+        "WHERE w.fight_id=p.fight_id AND w.character_id=p.character_id "
+        "AND w.account_id=p.account_id AND w.returned_at IS NOT NULL "
+        "AND w.health_returned_at IS NOT NULL) LIMIT 1",
         (list(identities),),
     ).fetchone():
         raise ValueError("Hero roster cannot change during combat")
@@ -256,9 +305,14 @@ def remove(store, account_id, generation, main_character_id, hero_id):
         )
 
 
-def select_main(store, account_id, generation, main_character_id):
+def select_main(store, account_id, generation, main_character_id, *, db=None):
     """Align a newly selected real main with the saved roster, preserving hero slots."""
-    with store.connection() as db:
+    from contextlib import nullcontext
+    from psycopg.pq import TransactionStatus
+
+    if db is not None and db.info.transaction_status != TransactionStatus.INTRANS:
+        raise ValueError("Company selection requires an active transaction")
+    with nullcontext(db) if db is not None else store.connection() as db:
         db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
         store.lock_character(db, account_id, generation, main_character_id)
         row = db.execute(
@@ -399,7 +453,7 @@ def switch_main(store, account_id, generation, main_character_id, hero_id):
         # Switching the selected actor starts its idle health lifecycle, even
         # when this hero has never been selected through the login screen.
         health_store.initialize(
-            store, account_id, generation, hero_id, coefficient=1, db=db
+            store, account_id, generation, hero_id, exploration=True, db=db
         )
         return dict(load_roster(db, store, account_id, hero_id), applied=True)
 

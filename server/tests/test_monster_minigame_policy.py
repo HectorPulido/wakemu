@@ -7,7 +7,9 @@ import unittest
 from wakfu_server.maps.monster_minigame_policy import (
     MINIGAME_BLOCKED_REFERENCES,
     exclusion_reason,
+    ordinary_group_members,
     require_ordinary_spawn,
+    requires_npc_summon_validation,
 )
 from monster_activation_exceptions import ENCOUNTER_EXCEPTIONS, exclusion_status
 from prepare_monster_spell_activation import select_candidates
@@ -41,6 +43,30 @@ class MonsterMinigamePolicyTests(unittest.TestCase):
         for ref in MINIGAME_BLOCKED_REFERENCES:
             with self.assertRaisesRegex(ValueError, "native minigame encounter"):
                 require_ordinary_spawn(ref)
+
+    def test_tentacles_are_summon_only_not_ordinary_wild_or_admin_spawns(self):
+        for ref in (5403, 5404):
+            self.assertEqual(exclusion_reason(ref), "npc_summon_only")
+            self.assertIsNone(exclusion_reason(ref, context="native_summon"))
+            self.assertTrue(requires_npc_summon_validation(ref))
+            with self.assertRaisesRegex(ValueError, "native summon creator"):
+                require_ordinary_spawn(ref)
+
+    def test_public_group_projection_removes_only_summon_only_members(self):
+        members = [
+            {"id": -1, "ref": 5373},
+            {"id": -2, "ref": 5403},
+            {"id": -3, "ref": 5404},
+            {"id": -4, "ref": 5373},
+            {"id": -5, "ref": 5374},
+        ]
+        self.assertEqual(
+            ordinary_group_members(members, instance_id=0),
+            (members[0], members[3], members[4]),
+        )
+        self.assertEqual(
+            ordinary_group_members(members, instance_id=17), tuple(members)
+        )
 
     def test_automatic_selection_excludes_blocked_but_retains_inventory(self):
         rows = [

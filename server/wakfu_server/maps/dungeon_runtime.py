@@ -120,6 +120,54 @@ def initialize_instance(db, session, *, groups, geometry):
     return ensure_current_room(db, groups, run["instance_id"], geometry)
 
 
+def combat_room_cells(db, group_key, player_position, member_positions):
+    """Limit an encounter to its pinned room, including its durable branch.
+
+    The room spawn receipt is the authority for the selected group. Never
+    expand the arena into the whole asset map to satisfy random arena sizes.
+    """
+    if (
+        not isinstance(group_key, tuple)
+        or len(group_key) != 3
+        or any(type(value) is not int for value in group_key)
+    ):
+        raise ValueError("Invalid dungeon combat group identity")
+    map_id, instance_id, group_id = group_key
+    _, config = configuration_for_instance(db, instance_id)
+    progress = db.execute(
+        "SELECT current_room,status FROM dungeon_room_runs WHERE instance_id=%s",
+        (instance_id,),
+    ).fetchone()
+    if progress is None or progress["status"] != "active":
+        raise ValueError("Dungeon combat requires active room progression")
+    receipt = db.execute(
+        "SELECT asset_map_id,group_id FROM dungeon_room_spawn_receipts "
+        "WHERE instance_id=%s AND room_order=%s",
+        (instance_id, progress["current_room"]),
+    ).fetchone()
+    topology = config["topology"]
+    if (
+        map_id != topology["asset_map_id"]
+        or receipt is None
+        or receipt["asset_map_id"] != map_id
+        or receipt["group_id"] != group_id
+    ):
+        raise ValueError("Combat group is not the current dungeon room")
+    from wakfu_server import dungeon_branches
+    from wakfu_server.combat_geometry import coordinate
+
+    room = dungeon_branches.selected_room(topology, progress["current_room"])
+    if room is None:
+        raise ValueError("Dungeon combat requires a selected encounter branch")
+    cells = frozenset(coordinate(cell) for cell in room["cells"])
+    participants = [coordinate(player_position)] + [
+        coordinate(position) for position in member_positions
+    ]
+    if not cells or any(position not in cells for position in participants):
+        raise ValueError("Dungeon combat participant is outside its pinned room")
+    return cells
+
+
 def room_for_position(config, map_id, x, y, z, *, current_room=None):
     if map_id != config["topology"]["asset_map_id"]:
         raise ValueError("Dungeon position uses another asset map")

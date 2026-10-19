@@ -110,7 +110,7 @@ def forecast(
             if not set(source) <= set(ended_actors):
                 raise ValueError("Native rival end-turn omitted existing actor")
             outcomes.append(("end_turn", ended_actors))
-        for _ in range(depth):
+        for ply in range(depth):
             following = []
             for current, actions, visited in frontier:
                 if expanded >= nodes or deadline is not None and clock() >= deadline:
@@ -162,9 +162,15 @@ def forecast(
             for _, current, actions, visited in following:
                 if state_identity(current) not in seen:
                     seen.add(state_identity(current))
-                    frontier.append((current, actions, visited))
-                    if len(frontier) == beam:
-                        break
+                    if len(frontier) < beam:
+                        frontier.append((current, actions, visited))
+                    else:
+                        unknown.add("rival_response_beam_pruned")
+            # Certified outcomes remain useful lower bounds. A live response
+            # at the horizon is not evidence that its remaining actions are
+            # harmless; report this limit just like node/time exhaustion.
+            if frontier and ply + 1 == depth:
+                unknown.add("rival_response_depth_exhausted")
             if not frontier or expanded >= nodes:
                 break
         if expanded >= nodes:
@@ -204,6 +210,31 @@ def forecast(
         details.append(
             dict(
                 trace[0],
+                actorHpLoss=max(
+                    (
+                        max(0, source[actor_id]["hp"] - outcome[actor_id]["hp"])
+                        for _, outcome in outcomes
+                    ),
+                    default=0,
+                ),
+                actorArmorLoss=max(
+                    (
+                        max(0, source[actor_id]["armor"] - outcome[actor_id]["armor"])
+                        for _, outcome in outcomes
+                    ),
+                    default=0,
+                ),
+                actorLoss=max(
+                    (
+                        max(0, source[actor_id]["hp"] - outcome[actor_id]["hp"])
+                        + max(0, source[actor_id]["armor"] - outcome[actor_id]["armor"])
+                        for _, outcome in outcomes
+                    ),
+                    default=0,
+                ),
+                actorLethal=any(
+                    outcome[actor_id]["hp"] <= 0 for _, outcome in outcomes
+                ),
                 risk=risk if outcomes else None,
                 complete=bool(outcomes) and not unknown,
                 expanded=expanded,

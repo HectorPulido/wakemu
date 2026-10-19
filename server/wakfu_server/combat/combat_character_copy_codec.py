@@ -228,7 +228,7 @@ def connected_copy_appearance(authority, fight, actor, *, model_query=None):
 
         model_query = native_class_copy_model
     if source is None and callable(model_query):
-        from wakfu_server.wire import ENTITY_DEFAULTS
+        from wakfu_server.items.equipment_appearance import rows as equipment_rows
         from .combat_runtime_adapter import NativeActorAuthority
 
         metadata = authority(fight, actor)
@@ -237,23 +237,26 @@ def connected_copy_appearance(authority, fight, actor, *, model_query=None):
             or getattr(metadata, "native_actor_type", None) != 0
             or getattr(metadata, "native_is_ehp", None) is not True
             or actor.id in getattr(fight, "native_morph_spellbooks", {})
-            or ENTITY_DEFAULTS.get("EQUIPMENT_APPEARANCE") != b"\x00"
         ):
             raise ValueError("Missing ordinary connected entity appearance producer")
+        # Use the same selected-build, owned-item pO producer as world entities.
+        # bjy.zm fills big.don/igU with skin when positive, otherwise reference.
+        categories = tuple(
+            ((slot + 128) % 256 - 128, skin if skin > 0 else reference)
+            for slot, reference, skin in equipment_rows(character)
+        )
         breed, sex = character.get("breed"), character["appearance"].get("sex", 0)
         cloth = character["appearance"].get("clothIndex", 0)
         _pack(">h", breed)
         _pack(">i", sex)
         _pack(">i", cloth)
-        # Original bjy.zm clears igU, then iterates pO.TP. The actual
-        # ordinary entity encoder emits pO count0, so this population is empty.
         # bhe.b receives sex byte and dpi (clothIndex narrowed to byte).
         byte = lambda value: (value + 128) % 256 - 128
         source = dict(
             source_id=actor.id,
             producer="owned.character.dS.don.v1",
             model=model_query(breed, byte(sex), byte(cloth)),
-            categories=(),
+            categories=categories,
         )
     if (
         not isinstance(source, dict)

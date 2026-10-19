@@ -80,7 +80,7 @@ services:
     volumes:
       # Runtime code, protocol and migrations come from the validated image.
       # Source edits remain isolated until the next tested image is deployed.
-      - ./.local-state/wakemu/world:/data
+      - ${WAKFU_WORLD_DATA_DIR:-./.local-state/wakemu/world}:/data
       - ./.database/secrets:/run/secrets:ro
       - ./server/ai-service:/app/ai-service:ro
     networks: [isolated, client-access]
@@ -146,7 +146,7 @@ services:
       - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
       - ./.database/secrets/admin:/data
       - ./.database/secrets/admin-control-token:/run/secrets/admin-control-token:ro
-      - ./.local-state/wakemu/world/logs/profiles:/metrics:ro
+      - ${WAKFU_WORLD_DATA_DIR:-./.local-state/wakemu/world}/logs/profiles:/metrics:ro
       - ./.database/secrets/objectives-token:/run/secrets/objectives-token:ro
     ports:
       - '127.0.0.1:18084:18084'
@@ -157,6 +157,7 @@ services:
       timeout: 3s
       retries: 5
   admin-control:
+    image: ${WAKFU_ADMIN_CONTROL_IMAGE:-wakfu-local-admin-control:latest}
     build:
       context: ./server
       dockerfile: admin-control-service/Dockerfile

@@ -17,11 +17,14 @@ class Groups:
     def register(self, map_id, instance_id, group_id, members):
         from .combat_monster_world import spawn_group
 
+        from .monster_minigame_policy import ordinary_group_members
+
         members = tuple(deepcopy(list(members)))
         if any(m["map_id"] != map_id for m in members):
             raise ValueError("Group belongs to another map")
         if any(m["instance_id"] != instance_id for m in members):
             raise ValueError("Group belongs to another instance")
+        members = ordinary_group_members(members, instance_id=instance_id)
         spawn_group(
             members, group_id=group_id
         )  # Enforce native ownership/roster constraints.

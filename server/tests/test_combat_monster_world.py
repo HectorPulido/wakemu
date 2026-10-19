@@ -6,6 +6,76 @@ from wakfu_server.combat_monster_world import spawn_monster, world_actor
 
 
 class MonsterWorldTests(unittest.TestCase):
+    @staticmethod
+    def summon_only_members(instance_id=0, id_start=8700):
+        from wakfu_server.monsters import REFERENCES
+
+        return [
+            owned_instance(
+                ref,
+                REFERENCES[ref]["min_level"],
+                -(id_start + index),
+                map_id=1134,
+                x=-7 + index,
+                y=-7,
+                z=-1,
+                instance_id=instance_id,
+            )
+            for index, ref in enumerate((5373, 5403, 5404, 5373, 5374))
+        ]
+
+    def test_spawn_group_projects_legacy_public_roster_but_keeps_private_roster(self):
+        from wakfu_server.combat_monster_world import spawn_group
+
+        public = self.summon_only_members(id_start=8700)
+        eligible = tuple(
+            member for member in public if member["ref"] not in (5403, 5404)
+        )
+
+        def decode_rosters(packet, members):
+            r = Reader(packet)
+            self.assertEqual((r.number("B"), r.number("B")), (0, len(members)))
+            decoded = []
+            for member in members:
+                self.assertEqual((r.number("B"), r.number("q")), (1, member["id"]))
+                e = Reader(r.take(r.number("H")))
+                e.number("B")
+                e.number("q")
+                e.number("B")
+                e.number("q")
+                e.text("H")
+                e.number("h")
+                e.take(20)  # position and visibility
+                e.take(5 + 11 + 1)  # level, properties, fight and world props
+                e.number("q")  # group ID
+                count = e.number("H")
+                decoded.append(
+                    tuple((e.number("h"), e.number("h")) for _ in range(count))
+                )
+            r.finish()
+            return decoded
+
+        public_packet = spawn_group(public, group_id=870)
+        expected_public = tuple((member["ref"], member["level"]) for member in eligible)
+        self.assertEqual(
+            decode_rosters(public_packet, eligible), [expected_public] * len(eligible)
+        )
+
+        private = self.summon_only_members(instance_id=37, id_start=8800)
+        private_packet = spawn_group(private, group_id=880)
+        expected_private = tuple((member["ref"], member["level"]) for member in private)
+        self.assertEqual(
+            decode_rosters(private_packet, private), [expected_private] * len(private)
+        )
+
+        blocked_packet = spawn_group([public[1], public[2]], group_id=881)
+        self.assertEqual(blocked_packet, b"\x00\x00")
+        with self.assertRaisesRegex(ValueError, "verified own NPC"):
+            spawn_group([public[1], {**public[2], "map_id": 999}], group_id=882)
+
+        # The native summon serializer remains available for these references.
+        self.assertTrue(spawn_monster(public[1], group_id=883))
+
     def test_world_spawn_r_e_carries_each_native_direction(self):
         from protocol_codec import Reader
 

@@ -50,7 +50,7 @@ class ObjectivesPlayerStaticTests(unittest.TestCase):
         self.assertNotIn("parentOrigin", self.js)
         self.assertNotIn("allowedParents", self.js)
         self.assertNotIn('id="close"', self.html)
-        self.assertIn("credentials: 'omit'", self.js)
+        self.assertIn("credentials: 'same-origin'", self.js)
         self.assertIn("referrerPolicy: 'no-referrer'", self.js)
 
     def test_action_uses_request_id_for_replay_and_server_receipt_id_for_polling(self):

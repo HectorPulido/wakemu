@@ -5,6 +5,7 @@ executing children; immediate public PI operands restore their recorded value.
 The server FSM, ACK barrier and resource ledger stay intact.
 """
 from .combat_environment_glyphs import environment_sections
+from .combat_live_area_snapshot import sections as live_area_sections
 import struct
 import time
 
@@ -22,11 +23,18 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
         raise ValueError("Owned reconnect lacks native fight bootstrap context")
     from .combat_recovery import timeline
     from .combat_phase import action_transition
-    from .combat_spectator_snapshot import _retained_carrier_packets
+    from .combat_spectator_snapshot import (
+        _retained_carrier_packets,
+        _project_rehydrated_area_creators,
+    )
     from .combat_wire import bootstrap, topology, actor_state
     from .combat_delivery_boundary import initial_summon_timeline
 
     runtime = shared.runtime
+    area_rehydration = {}
+    retained_packets = _retained_carrier_packets(
+        fight, runtime.native_action_id, area_rehydration=area_rehydration
+    )
     deadline = runtime.turn_deadline
     # An ACK-paused turn has no running deadline. Preserve that pause, while
     # presenting its actual current member; no timer is armed by this snapshot.
@@ -65,6 +73,10 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
         if actor.id in departed:
             continue
         stats, effects = actor_payload(fight, actor, session)
+        # Native Qf.p keeps the first object for a UID. Let the explicit
+        # retained carrier own each live eYQ area, rather than admitting an
+        # unexecuted duplicate through bootstrap or the later13912 reset.
+        effects = _project_rehydrated_area_creators(effects, actor.id, area_rehydration)
         payloads[actor.id] = (stats, effects)
         if actor.id in birth_ids:
             continue  # Its exact birth enrolls the actor, once, after bootstrap.
@@ -104,7 +116,8 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
                 if getattr(fight, "native_environment_glyph_constructors", ())
                 else None
             ),
-        ),
+        )
+        + live_area_sections(fight),
     )
     # cvb owned fight creation, followed by the existing native phase transition
     # contract and cvn recovery. Never use spectator cva/12044 for an owner.
@@ -134,7 +147,7 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
             action_transition(fight.id),
         )
     )
-    packets.extend(_retained_carrier_packets(fight, runtime.native_action_id))
+    packets.extend(retained_packets)
     from .combat_death_script_snapshot import immediate_death_script_packets
 
     packets.extend(

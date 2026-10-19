@@ -9,7 +9,7 @@ from functools import lru_cache
 from wakfu_server import native_catalog
 from wakfu_server.paths import DATA_ROOT
 from .inventory_items import _varint
-from .wire import proto_fields
+from wakfu_server.wire import proto_fields
 
 
 @lru_cache(maxsize=1)
@@ -20,14 +20,23 @@ def _rules():
     }
 
 
-def _source_refs(source_ref):
-    from .haven_bag_furniture_catalog import _catalog
-
-    return sorted(
-        row["item_ref"]
-        for row in _catalog()[1].values()
-        if row["source_item_ref"] == source_ref
-    )
+def _source_refs(source_ref, *, db, action_id):
+    """Use bIx knowledge outputs, independent of portable placement templates."""
+    row = db.execute(
+        "SELECT learned_refs,has_criteria FROM native_furniture_learning_actions "
+        "WHERE item_ref=%s AND action_id=%s",
+        (source_ref, action_id),
+    ).fetchone()
+    if row is None or row["has_criteria"] is not False:
+        return []
+    refs = row["learned_refs"]
+    if (
+        not refs
+        or len(set(refs)) != len(refs)
+        or any(type(ref) is not int or not 0 < ref < 2**31 for ref in refs)
+    ):
+        raise ValueError("Invalid native furniture learning references")
+    return sorted(refs)
 
 
 def known(db, account_id, reference):
@@ -114,9 +123,9 @@ def learn(store, account_id, generation, character_id, body):
             or rule.get("use_has_criteria") is not False
         ):
             raise ValueError("Furniture learning action or native criteria unsupported")
-        refs = _source_refs(item["reference"])
+        refs = _source_refs(item["reference"], db=db, action_id=action_id)
         if not refs:
-            raise ValueError("Furniture learning source has no native template mapping")
+            raise ValueError("Furniture learning source has no native learning mapping")
         character = store.character(account_id, character_id, db)
         for build in character.get("builds", {}).values():
             for tag, value in proto_fields(bytes.fromhex(build["equipment"])):

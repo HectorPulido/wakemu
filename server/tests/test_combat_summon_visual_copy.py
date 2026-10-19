@@ -16,7 +16,12 @@ class NativeSummonVisualCopyTests(unittest.TestCase):
         from wakfu_server.combat_character_copy_codec import connected_copy_appearance
 
         fight, actor, caster, metadata, appearance = self.fixture()
-        character = dict(id=caster.id, breed=4, appearance=dict(sex=0, clothIndex=0))
+        character = dict(
+            id=caster.id,
+            breed=4,
+            level=1,
+            appearance=dict(sex=0, clothIndex=0),
+        )
 
         class Ordinary:
             characters = {caster.id: character}

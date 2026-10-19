@@ -22,13 +22,23 @@ def _owned(store, db, account_id, generation, character_id):
 
 
 def initialize(
-    store, account_id, generation, character_id, *, coefficient=0, now_ms=None, db=None
+    store,
+    account_id,
+    generation,
+    character_id,
+    *,
+    coefficient=0,
+    exploration=False,
+    now_ms=None,
+    db=None
 ):
     """Reconcile effective maximum without erasing canonical wounds or death.
 
     Call on selection before sending initial HP; shared with build transitions.
     """
     now_ms = int(store.clock() * 1000) if now_ms is None else now_ms
+    if type(exploration) is not bool or (exploration and coefficient != 0):
+        raise ValueError("Invalid exploration regeneration policy")
     if db is not None and db.info.transaction_status != TransactionStatus.INTRANS:
         raise ValueError("Health initialization requires an active transaction")
     borrowed = db is not None
@@ -37,7 +47,13 @@ def initialize(
         from .equipment_stats import effective_character
 
         maximum = effective_character(character)["max_hp"]
+        if exploration:
+            from .acknowledged_return_health import reconcile
+
+            character = reconcile(db, character, maximum)
         hp = health_policy.reconfigure(db, character, maximum)
+        if exploration:
+            coefficient = health.exploration_coefficient(maximum, hp)
         if hp == 0:
             coefficient = 0  # A dead character waits for explicit resurrection.
         health.packet(character_id, hp, coefficient)
@@ -169,4 +185,5 @@ def tick(store, account_id, generation, character_id, expected_hp, *, now_ms=Non
                 character["hp"] = hp
                 character["hp_damage"] = damage
         _TICK_CLOCKS[store][(account_id, character_id)] = (signature, now_ms)
+        character["regeneration_coefficient"] = state["coefficient"]
         return character

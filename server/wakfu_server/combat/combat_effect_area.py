@@ -35,6 +35,14 @@ def remove_owned_hour_area(fight, uid, *, callbacks=None, removal_target_id=None
         raise ValueError("Unsupported native effect-area removal callbacks")
     if callbacks is None and any(row.get("child_effect_uids", {}).values()):
         raise ValueError("Owned area child cleanup provider required")
+    if row.get("native_microbot_rail_source") is not None:
+        from .combat_microbot_rails import SOURCE as RAIL_SOURCE
+
+        if row.get("native_microbot_rail_source") != RAIL_SOURCE or not (
+            callable(getattr(callbacks, "area_removed", None))
+            or callable(getattr(callbacks, "microbot_rail_removed", None))
+        ):
+            raise ValueError("Owned native rail retirement delivery provider required")
     retired = getattr(fight, "native_retired_area_managers", {})
     if uid in retired:
         raise ValueError("Duplicate retired native area manager")

@@ -30,7 +30,9 @@ def direct_healing(
         for v in (fight_id, action_id, generic_effect)
     ):
         raise ValueError("Invalid native healing fight/action/effect")
-    if type(restored) is not int or not 0 <= restored < 1 << 31:
+    # eXs.fOz reports PA.nG raw-current deltas, including negative values
+    # when a positive heal normalizes raw HP above its reduced maximum.
+    if type(restored) is not int or not -(1 << 31) <= restored < 1 << 31:
         raise ValueError("Invalid actual native healing value")
     if (
         type(uid) is not int

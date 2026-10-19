@@ -278,6 +278,76 @@ class QuerySearchTests(unittest.TestCase):
             Counter(json.dumps(action, sort_keys=True) for action in fallback),
         )
 
+    def test_injured_caster_damage_hint_probes_enemy_without_removing_targets(self):
+        spell = self._range_spell(2782, (1, 1))
+        session = fixture([spell])
+        state = deepcopy(session.root_state)
+        state["actors"][0].update(hp=20)
+        state["actors"][2]["position"] = [1, 0, 0]
+        graph = NativeGraph(session.root_graph)
+        original = list(candidates(graph, state, {"spells": [spell]}, ACTOR_ID))
+        hinted = dict(
+            spell,
+            advisoryCapabilities=dict(spellId=2782, level=1, tags=["damage"]),
+        )
+        actions = list(candidates(graph, state, {"spells": [hinted]}, ACTOR_ID))
+        first_cast = next(action for action in actions if action["type"] == "cast")
+        self.assertEqual(first_cast["targetId"], ENEMY_ID)
+        self.assertEqual(
+            Counter(json.dumps(action, sort_keys=True) for action in original),
+            Counter(json.dumps(action, sort_keys=True) for action in actions),
+        )
+
+    def test_unbound_damage_hint_cannot_reorder_injured_caster_targets(self):
+        spell = self._range_spell(2782, (1, 1))
+        session = fixture([spell])
+        state = deepcopy(session.root_state)
+        state["actors"][0].update(hp=20)
+        graph = NativeGraph(session.root_graph)
+        baseline = list(candidates(graph, state, {"spells": [spell]}, ACTOR_ID))
+        for hint in (
+            dict(spellId=2784, level=1, tags=["damage"]),
+            dict(spellId=2782, level=2, tags=["damage"]),
+            dict(spellId=2782, level=1, tags="damage"),
+            dict(spellId=2782, level=True, tags=["damage"]),
+            dict(spellId=2782, level=1, tags=["heal"]),
+        ):
+            with self.subTest(hint=hint):
+                self.assertEqual(
+                    baseline,
+                    list(
+                        candidates(
+                            graph,
+                            state,
+                            {"spells": [dict(spell, advisoryCapabilities=hint)]},
+                            ACTOR_ID,
+                        )
+                    ),
+                )
+
+    def test_injured_melee_caster_finds_damage_with_one_native_preview(self):
+        for use_hint in (False, True):
+            with self.subTest(use_hint=use_hint):
+                spell = self._range_spell(2782, (1, 1))
+                if use_hint:
+                    spell["advisoryCapabilities"] = dict(
+                        spellId=2782,
+                        level=1,
+                        tags=["damage"],
+                        conditional=True,
+                    )
+                session = fixture([spell], effects={2782: "damage"}, edges=[])
+                session.root_state["actors"][0]["hp"] = 20
+                session.root_state["actors"][2]["position"] = [1, 0, 0]
+                session.envelope["policy"]["limits"].update(nodes=1, depth=1)
+                decision = run_search(session)
+                self.assertEqual(len(session.preview_actions), 1)
+                if use_hint:
+                    self.assertEqual(decision["action"]["spellId"], 2782)
+                    self.assertEqual(decision["action"]["targetId"], ENEMY_ID)
+                else:
+                    self.assertEqual(decision["action"]["type"], "end_turn")
+
     def test_conditional_range_keeps_cast_first_when_it_can_cover_first_target(self):
         spell = self._range_spell(711, (1, 2), ((3, 3),))
         session = fixture([spell])
@@ -320,6 +390,32 @@ class QuerySearchTests(unittest.TestCase):
             "native_casting_table_missing:710:1",
             result["unknownDependencies"],
         )
+
+    def test_end_turn_exports_source_bound_facing_without_native_preview(self):
+        session = fixture([], edges=[])
+        session.root_state["actors"][ACTOR_ID - 1]["mp"] = 0
+
+        result = run_search(session)
+
+        facing = result["defensiveFacing"]
+        self.assertEqual(result["action"], {"type": "end_turn"})
+        self.assertEqual(facing["sourceKey"], result["sourceKey"])
+        self.assertEqual(facing["rootState"], result["rootState"])
+        self.assertEqual(facing["actorId"], ACTOR_ID)
+        self.assertEqual(facing["turnId"], session.root_state["turnId"])
+        self.assertEqual(facing["stateRevision"], session.root_state["stateRevision"])
+        self.assertEqual(
+            facing["actors"],
+            [
+                dict(id=row["id"], position=row["position"])
+                for row in session.root_state["actors"]
+            ],
+        )
+        self.assertEqual(
+            facing["visibleActorIds"],
+            [row["id"] for row in session.root_state["actors"]],
+        )
+        self.assertEqual(session.preview_actions, [])
 
     def test_missing_casting_table_does_not_prune_level_zero_or_unstated_metadata(self):
         spell_level_zero = dict(spellId=710, level=0, casting=None)

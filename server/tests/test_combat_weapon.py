@@ -113,7 +113,9 @@ class WeaponTests(unittest.TestCase):
         self.assertEqual(snapshot(fight), before)
         self.assertLess(transaction.fight.actors[-7].hp, fight.actors[-7].hp)
         self.assertEqual(transaction.plan["native_retained_container"]["type"], 12)
-        self.assertEqual(transaction.packets[0][0], 13509)
+        self.assertEqual(
+            [op for op, _ in transaction.packets[:3]], [13494, 13420, 13509]
+        )
         self.assertEqual(
             transaction.fight.actors[7].ap,
             fight.actors[7].ap - transaction.plan["costs"]["ap"],
@@ -185,7 +187,9 @@ class WeaponTests(unittest.TestCase):
                     )
                     self.assertIs(runtime.fight, transaction.fight)
                     self.assertEqual(runtime.action_id, 1)
-                    self.assertEqual(packets[0][0], 13509)
+                    self.assertEqual(
+                        [op for op, _ in packets[:3]], [13494, 13420, 13509]
+                    )
                     self.assertEqual(
                         [opcode for opcode, _ in packets][-4:],
                         [13420, 12873, 12873, 13420],

@@ -220,10 +220,13 @@ class QueryThreatTests(unittest.TestCase):
 
         result = run_forecast(provider, nodes=64, beam=16)
 
-        self.assertTrue(result["complete"])
-        self.assertEqual(result["risk"], 7)
+        # A certified cast supplies a lower bound, but the provider leaves
+        # the rival active at the search horizon with possible continuations.
+        self.assertFalse(result["complete"])
+        self.assertIsNone(result["risk"])
+        self.assertEqual(result["knownLowerBound"], 7)
         self.assertEqual(result["rivals"][0]["actorId"], 9)
-        self.assertEqual(result["rivals"][0]["mode"], "native")
+        self.assertEqual(result["rivals"][0]["mode"], "approximate")
         self.assertEqual(result["rivals"][0]["risk"], 7)
 
     def test_native_move_then_cast_is_explored_within_two_ply(self):
@@ -233,8 +236,9 @@ class QueryThreatTests(unittest.TestCase):
 
         result = run_forecast(provider, depth=2, beam=16, nodes=64)
 
-        self.assertEqual(result["risk"], 6)
-        self.assertTrue(result["complete"])
+        self.assertEqual(result["knownLowerBound"], 6)
+        self.assertIsNone(result["risk"])
+        self.assertFalse(result["complete"])
         projected = "projected-9"
         self.assertIn(
             (projected, {"type": "move", "path": [[2, 0, 0]]}), provider.preview_log
@@ -255,8 +259,47 @@ class QueryThreatTests(unittest.TestCase):
         result = run_forecast(provider, depth=1, beam=16, nodes=64)
 
         self.assertEqual([entry["actorId"] for entry in result["rivals"]], [9, 10])
-        self.assertEqual(result["risk"], 8)
+        self.assertEqual(result["knownLowerBound"], 8)
+        self.assertIsNone(result["risk"])
+        self.assertFalse(result["complete"])
+
+    def test_depth_exhaustion_does_not_certify_move_only_zero_risk(self):
+        provider = FakeProvider(move_then_cast=True)
+
+        result = run_forecast(provider, depth=1, nodes=64, beam=64)
+
+        self.assertEqual(result["knownLowerBound"], 0)
+        self.assertIsNone(result["risk"])
+        self.assertFalse(result["complete"])
+        self.assertIn("rival_response_depth_exhausted", result["unknownDependencies"])
+        self.assertNotIn(
+            "rival_candidate_budget_exhausted", result["unknownDependencies"]
+        )
+
+    def test_beam_pruning_keeps_observed_risk_and_reports_unexplored_responses(self):
+        provider = FakeProvider()
+
+        result = run_forecast(provider, depth=1, nodes=64, beam=1)
+
+        self.assertEqual(result["knownLowerBound"], 6)
+        self.assertIsNone(result["risk"])
+        self.assertIn("rival_response_beam_pruned", result["unknownDependencies"])
+
+    def test_terminal_native_outcomes_can_complete_within_depth_limit(self):
+        class TerminalProvider(FakeProvider):
+            def query(self, query):
+                answer = super().query(query)
+                if query["operation"] == "preview" and answer["supported"]:
+                    # This oracle certifies that each action ends the turn.
+                    # No live outgoing continuation remains to truncate.
+                    answer["result"]["currentId"] = AI_ID
+                return answer
+
+        result = run_forecast(TerminalProvider(), depth=1, nodes=64, beam=1)
+
         self.assertTrue(result["complete"])
+        self.assertEqual(result["risk"], 6)
+        self.assertEqual(result["unknownDependencies"], [])
 
     def test_unsupported_projection_reports_unknown_instead_of_zero_risk(self):
         provider = FakeProvider(rivals=(9,), projection_unsupported=(9,))

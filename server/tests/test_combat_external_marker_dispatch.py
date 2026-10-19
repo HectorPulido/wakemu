@@ -59,6 +59,7 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
 
     def test_marker_changes_are_drained_from_current_shared_fight_only(self):
         from types import SimpleNamespace
+        import threading
 
         from wakfu_server import monsters
         from wakfu_server.combat.combat_external_markers import ExternalFightMarkers
@@ -73,9 +74,11 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
             )
         )
         publisher = _function(self.tree, "publish_external_marker")
+        publisher_locked = _function(self.tree, "_publish_external_marker_locked")
         marker = ExternalFightMarkers()
         npc = monsters.owned_instance(5525, 1, -201, map_id=1134, x=14, y=9, z=2)
         shared = SimpleNamespace(
+            lock=threading.RLock(),
             fight=SimpleNamespace(
                 id=53,
                 phase="placement",
@@ -145,7 +148,11 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
             "record": lambda **event: None,
         }
         exec(
-            compile(ast.Module(body=[publisher], type_ignores=[]), str(SERVER), "exec"),
+            compile(
+                ast.Module(body=[publisher_locked, publisher], type_ignores=[]),
+                str(SERVER),
+                "exec",
+            ),
             namespace,
         )
         namespace["publish_external_marker"](shared)

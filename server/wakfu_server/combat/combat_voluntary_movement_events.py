@@ -47,6 +47,11 @@ def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell, acti
     gate = current_gate_movement_boundary(fight, actor_id, from_cell, to_cell)
     if gate is not None:
         context["gate_boundary"] = gate.facts()
+    from .combat_hour_travel import current_hour_movement_boundary
+
+    hour = current_hour_movement_boundary(fight, actor_id, from_cell, to_cell)
+    if hour is not None:
+        context["hour_boundary"] = dict(hour)
     with committed_movement_recipient_scope(fight, context):
         for identity, channel in recipients:
             outcomes.extend(

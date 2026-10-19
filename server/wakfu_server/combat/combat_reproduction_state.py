@@ -232,11 +232,15 @@ def encode_state(value, *, preserve_scalars=False):
                     node["mapping"] = encode(dict(current), depth + 1)
         return reference
 
-    root = encode(value)
-    result = dict(schema=SCHEMA, root=root, nodes=nodes, services=services)
-    if len(json.dumps(result, allow_nan=False).encode()) > MAX_BYTES:
-        raise UnsupportedReproductionState("Reproduction state size limit exceeded")
-    return result
+    try:
+        root = encode(value)
+        result = dict(schema=SCHEMA, root=root, nodes=nodes, services=services)
+        if len(json.dumps(result, allow_nan=False).encode()) > MAX_BYTES:
+            raise UnsupportedReproductionState("Reproduction state size limit exceeded")
+        return result
+    finally:
+        # Break the recursive closure without changing the captured graph.
+        encode = None
 
 
 def decode_state(payload):
@@ -344,108 +348,121 @@ def decode_state(payload):
             building.remove(index)
         return objects[index]
 
-    # Resolve immutable nodes, then populate mutable references and attributes.
-    for index in range(len(nodes)):
-        decode({"ref": index})
-    for index, node in enumerate(nodes):
-        obj, kind = objects[index], node["kind"]
-        if kind == "dict":
-            for key, value in node["items"]:
-                key = decode(key)
-                if key in obj:
-                    raise UnsupportedReproductionState(
-                        "Duplicate reproduction mapping key"
-                    )
-                obj[key] = decode(value)
-        elif kind == "list":
-            obj.extend(decode(item) for item in node["items"])
-        elif kind == "set":
-            obj.update(decode(item) for item in node["items"])
-    for index, node in enumerate(nodes):
-        if node["kind"] != "object" or "attrs" not in node:
-            continue
-        attrs = decode(node["attrs"])
-        if type(attrs) is not dict or any(type(k) is not str for k in attrs):
-            raise UnsupportedReproductionState("Invalid reproduction object attributes")
-        if preserve_scalars:
-            # Assign the restored dictionary itself; update() on a split
-            # instance dictionary can substitute cached attribute key objects.
-            object.__setattr__(objects[index], "__dict__", attrs)
-        else:
-            objects[index].__dict__.update(attrs)
-        if "service_keys" in node:
-            allowed = (
-                _RUNTIME_SERVICES
-                if node["type"] == "RuntimeMessages"
-                else {"native_rail_movement_authority"}
-                if node["type"] == "Fight"
-                else set()
+    try:
+        # Resolve immutable nodes, then populate mutable references and attributes.
+        for index in range(len(nodes)):
+            decode({"ref": index})
+        for index, node in enumerate(nodes):
+            obj, kind = objects[index], node["kind"]
+            if kind == "dict":
+                for key, value in node["items"]:
+                    key = decode(key)
+                    if key in obj:
+                        raise UnsupportedReproductionState(
+                            "Duplicate reproduction mapping key"
+                        )
+                    obj[key] = decode(value)
+            elif kind == "list":
+                obj.extend(decode(item) for item in node["items"])
+            elif kind == "set":
+                obj.update(decode(item) for item in node["items"])
+        for index, node in enumerate(nodes):
+            if node["kind"] != "object" or "attrs" not in node:
+                continue
+            attrs = decode(node["attrs"])
+            if type(attrs) is not dict or any(type(k) is not str for k in attrs):
+                raise UnsupportedReproductionState(
+                    "Invalid reproduction object attributes"
+                )
+            if preserve_scalars:
+                # Assign the restored dictionary itself; update() on a split
+                # instance dictionary can substitute cached attribute key objects.
+                object.__setattr__(objects[index], "__dict__", attrs)
+            else:
+                objects[index].__dict__.update(attrs)
+            if "service_keys" in node:
+                allowed = (
+                    _RUNTIME_SERVICES
+                    if node["type"] == "RuntimeMessages"
+                    else {"native_rail_movement_authority"}
+                    if node["type"] == "Fight"
+                    else set()
+                )
+                if type(node["service_keys"]) is not list:
+                    raise UnsupportedReproductionState("Invalid scalar service keys")
+                restored_keys = set()
+                for row in node["service_keys"]:
+                    if (
+                        type(row) is not list
+                        or len(row) != 2
+                        or row[0] not in allowed
+                        or row[0] in restored_keys
+                    ):
+                        raise UnsupportedReproductionState("Invalid scalar service key")
+                    key = decode(row[1])
+                    if type(key) is not str or key != row[0]:
+                        raise UnsupportedReproductionState("Scalar service key differs")
+                    objects[index].__dict__[key] = None
+                    restored_keys.add(key)
+            elif node["type"] == "RuntimeMessages":
+                objects[index].__dict__.update(
+                    {field: None for field in _RUNTIME_SERVICES}
+                )
+            if node["type"] == "OwnedSocialContext":
+                objects[index].validate()
+            if node["type"] in _MAPPING_TYPES:
+                dict.update(objects[index], decode(node["mapping"]))
+            if node["type"] == "ActualActorQI":
+                objects[index].movement_blocking = {
+                    id(decode(key)): decode(value) for key, value in node["blocking"]
+                }
+        for index, node in enumerate(nodes):
+            if "attribute_order" not in node:
+                continue
+            if (
+                node.get("kind") != "object"
+                or type(node["attribute_order"]) is not list
+            ):
+                raise UnsupportedReproductionState(
+                    "Invalid reproduction attribute order"
+                )
+            keys = [decode(key) for key in node["attribute_order"]]
+            attrs = vars(objects[index])
+            if (
+                any(type(key) is not str for key in keys)
+                or len(keys) != len(set(keys))
+                or set(keys) != set(attrs)
+            ):
+                raise UnsupportedReproductionState("Reproduction attribute keys differ")
+            object.__setattr__(
+                objects[index], "__dict__", {key: attrs[key] for key in keys}
             )
-            if type(node["service_keys"]) is not list:
-                raise UnsupportedReproductionState("Invalid scalar service keys")
-            restored_keys = set()
-            for row in node["service_keys"]:
-                if (
-                    type(row) is not list
-                    or len(row) != 2
-                    or row[0] not in allowed
-                    or row[0] in restored_keys
-                ):
-                    raise UnsupportedReproductionState("Invalid scalar service key")
-                key = decode(row[1])
-                if type(key) is not str or key != row[0]:
-                    raise UnsupportedReproductionState("Scalar service key differs")
-                objects[index].__dict__[key] = None
-                restored_keys.add(key)
-        elif node["type"] == "RuntimeMessages":
-            objects[index].__dict__.update({field: None for field in _RUNTIME_SERVICES})
-        if node["type"] == "OwnedSocialContext":
-            objects[index].validate()
-        if node["type"] in _MAPPING_TYPES:
-            dict.update(objects[index], decode(node["mapping"]))
-        if node["type"] == "ActualActorQI":
-            objects[index].movement_blocking = {
-                id(decode(key)): decode(value) for key, value in node["blocking"]
-            }
-    for index, node in enumerate(nodes):
-        if "attribute_order" not in node:
-            continue
-        if node.get("kind") != "object" or type(node["attribute_order"]) is not list:
-            raise UnsupportedReproductionState("Invalid reproduction attribute order")
-        keys = [decode(key) for key in node["attribute_order"]]
-        attrs = vars(objects[index])
-        if (
-            any(type(key) is not str for key in keys)
-            or len(keys) != len(set(keys))
-            or set(keys) != set(attrs)
-        ):
-            raise UnsupportedReproductionState("Reproduction attribute keys differ")
-        object.__setattr__(
-            objects[index], "__dict__", {key: attrs[key] for key in keys}
-        )
-    services = payload["services"]
-    if not isinstance(services, list):
-        raise UnsupportedReproductionState("Invalid reproduction service manifest")
-    for row in services:
-        if not isinstance(row, dict) or set(row) != {"node", "field"}:
-            raise UnsupportedReproductionState(
-                "Invalid reproduction service requirement"
-            )
-        index, field = row["node"], row["field"]
-        if (
-            type(index) is not int
-            or index not in objects
-            or not (
-                nodes[index].get("type") == "RuntimeMessages"
-                and field in _RUNTIME_SERVICES
-                or nodes[index].get("type") == "Fight"
-                and field == "native_rail_movement_authority"
-            )
-        ):
-            raise UnsupportedReproductionState(
-                "Unknown reproduction service requirement"
-            )
-    for index, node in enumerate(nodes):
-        if node.get("type") == "NativePointerCheckpoint":
-            objects[index].validate(objects[index]._qi.fight)
-    return decode(payload["root"])
+        services = payload["services"]
+        if not isinstance(services, list):
+            raise UnsupportedReproductionState("Invalid reproduction service manifest")
+        for row in services:
+            if not isinstance(row, dict) or set(row) != {"node", "field"}:
+                raise UnsupportedReproductionState(
+                    "Invalid reproduction service requirement"
+                )
+            index, field = row["node"], row["field"]
+            if (
+                type(index) is not int
+                or index not in objects
+                or not (
+                    nodes[index].get("type") == "RuntimeMessages"
+                    and field in _RUNTIME_SERVICES
+                    or nodes[index].get("type") == "Fight"
+                    and field == "native_rail_movement_authority"
+                )
+            ):
+                raise UnsupportedReproductionState(
+                    "Unknown reproduction service requirement"
+                )
+        for index, node in enumerate(nodes):
+            if node.get("type") == "NativePointerCheckpoint":
+                objects[index].validate(objects[index]._qi.fight)
+        return decode(payload["root"])
+    finally:
+        # Do not retain restored objects through the local recursive function.
+        decode = None

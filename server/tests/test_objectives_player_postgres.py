@@ -18,6 +18,7 @@ TEST_TRAVEL_ACTIONS = [
         "label": "Travel to Astrub",
         "target": {"map_id": 527, "instance_id": 0, "x": 1, "y": 2, "z": 0},
         "objective_key": "content-v1.map.527",
+        "cost_kamas": 0,
     }
 ]
 
@@ -217,6 +218,7 @@ class ObjectivesPlayerPostgresTests(PostgresCase):
                 "label": "Travel to Astrub",
                 "target": {"map_id": 527, "instance_id": 0, "x": 1, "y": 2, "z": 0},
                 "objective_key": "content-v1.map.527",
+                "cost_kamas": 0,
             }
         ]
         with self.store.connection() as db, patch(

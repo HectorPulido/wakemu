@@ -22,6 +22,17 @@ def decode_request(body):
 
 
 def response(fight_id, action_id, actor_id, direction, sequence=-1):
+    return _response(
+        fight_id, action_id, actor_id, direction, sequence, CARDINAL_DIRECTIONS
+    )
+
+
+def facing_response(fight_id, action_id, actor_id, direction, sequence=-1):
+    """cvL/aTU accepts all eight aAS directions, unlike coZ UI requests."""
+    return _response(fight_id, action_id, actor_id, direction, sequence, range(8))
+
+
+def _response(fight_id, action_id, actor_id, direction, sequence, directions):
     if (
         type(fight_id) is not int
         or not -(1 << 31) <= fight_id < (1 << 31)
@@ -31,7 +42,7 @@ def response(fight_id, action_id, actor_id, direction, sequence=-1):
         or actor_id == 0
         or not -(1 << 63) <= actor_id < (1 << 63)
         or type(direction) is not int
-        or direction not in CARDINAL_DIRECTIONS
+        or direction not in directions
         or type(sequence) is not int
         or not -(1 << 31) <= sequence < (1 << 31)
     ):

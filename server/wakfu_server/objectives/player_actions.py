@@ -58,6 +58,9 @@ def allowed_actions(db, identity):
                 ),
             )
         )
+    from . import seasonal_entry
+
+    actions.extend(seasonal_entry.actions(db, identity))
     from . import pvp
 
     actions.extend(pvp.actions(db, identity))
@@ -73,7 +76,8 @@ def allowed_actions(db, identity):
                 reason="Finish your current combat before changing locations",
             )
         elif character["instance_id"] != 0 and (
-            action["kind"] in ("travel", "pvp") or action["key"] == "weekly.enter"
+            action["kind"] in ("travel", "pvp", "seasonal_entry")
+            or action["key"] == "weekly.enter"
         ):
             action.update(
                 enabled=False, reason="Leave your current private instance first"
@@ -106,6 +110,9 @@ def enqueue(db, identity, action_key, request_id):
         r"[A-Za-z0-9_-]{1,128}", request_id
     ):
         raise ValueError("Invalid request identity")
+    # The action FK must follow the same account-before-session order as
+    # earned reward delivery. Ordinary lease reads do not acquire this lock.
+    player_auth.lock_account_reference(db, identity)
     current = player_auth.live_identity(db, identity, lock=True)
     if current is None:
         raise ConflictError("Connect this character in World to use game actions")

@@ -2,7 +2,11 @@
 import struct
 
 
-def timeline(fight, *, deadline_ms, bonus_counts=None, excluded_actor_ids=()):
+def timeline(
+    fight, *, deadline_ms, bonus_counts=None, excluded_actor_ids=(), new_turn=False
+):
+    if type(new_turn) is not bool:
+        raise ValueError("Invalid native recovery turn phase")
     if fight.phase != "active" or fight.current is None:
         raise ValueError("Recovery requires an active fight")
     if not isinstance(excluded_actor_ids, (tuple, list, set, frozenset)):
@@ -101,7 +105,16 @@ def timeline(fight, *, deadline_ms, bonus_counts=None, excluded_actor_ids=()):
         or not 0 < fight.turn_id < 2**31
     ):
         raise ValueError("Invalid live native timeline counters")
-    out = struct.pack(">hiBq", round_number, fight.turn_id, 1, deadline_ms)
+    # SU.eE enters ON_FIGHTER_TURN from BEGINNING_FIGHTER_TURN and
+    # increments its global turn once. A restored ongoing turn must not replay
+    # that boundary. Tc/SY progress belongs to end-turn and stays unchanged.
+    out = struct.pack(
+        ">hiBq",
+        round_number,
+        fight.turn_id - int(new_turn),
+        4 if new_turn else 1,
+        deadline_ms,
+    )
     next_order = getattr(fight, "native_base_turn_order", None)
     next_order = (
         order
@@ -150,7 +163,13 @@ def timeline(fight, *, deadline_ms, bonus_counts=None, excluded_actor_ids=()):
 
 
 def recovery_packet(
-    fight, body, *, deadline_ms, bonus_counts=None, excluded_actor_ids=()
+    fight,
+    body,
+    *,
+    deadline_ms,
+    bonus_counts=None,
+    excluded_actor_ids=(),
+    new_turn=False
 ):
     if len(body) != 4 or struct.unpack(">i", body)[0] != fight.id:
         raise ValueError("Recovery request belongs to another fight")
@@ -159,6 +178,7 @@ def recovery_packet(
         deadline_ms=deadline_ms,
         bonus_counts=bonus_counts,
         excluded_actor_ids=excluded_actor_ids,
+        new_turn=new_turn,
     )
     # fg/fh field envelope: count1,(index0,absolute offset6), data marker0,
     # followed by fcc i16length+SU. cvn carries the complete fg envelope.

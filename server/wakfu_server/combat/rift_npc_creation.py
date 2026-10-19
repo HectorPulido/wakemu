@@ -19,12 +19,16 @@ def initialize_native_wave_actors(fight, monsters):
     from .combat_npc_initialization import initial_plans, initialize_ordinary_npcs
 
     sources = {monster["id"]: monster for monster in monsters}
+    from .combat_automatic_npc_turn import initial_root_manifest, install_root_manifest
+
+    root_manifest = initial_root_manifest(fight, sources)
     ai_actors = initial_ai_actors(fight, sources)
     for identity in ai_actors:
         fight.actors[identity].native_controlled_by_ai = True
     fight.native_npc_ai_actors = (
         frozenset(getattr(fight, "native_npc_ai_actors", ())) | ai_actors
     )
+    install_root_manifest(fight, root_manifest)
     plans = initial_plans(fight, sources)
     if plans:
         previous = dict(getattr(fight, "native_npc_initialization_receipts", {}))
@@ -104,6 +108,14 @@ def prepare_wave_npcs(monsters, *, catalog=None):
         or any(any(type(value) is not int for value in p) for p in positions)
     ):
         raise ValueError("Invalid fresh rift NPC identities or positions")
+    from .combat_npc_initialization import (
+        initial_property_counts,
+        install_initial_properties,
+    )
+
+    properties = initial_property_counts(
+        {monster["id"]: monster for monster in monsters}
+    )
     actors = []
     for monster, position in zip(monsters, positions):
         values = native_npc_creation_values(
@@ -129,6 +141,7 @@ def prepare_wave_npcs(monsters, *, catalog=None):
             running_effects=(),
             catalog=catalog,
         ).install(actor)
+        install_initial_properties(actor, properties[actor.id])
         actors.append(actor)
     return actors
 
@@ -196,10 +209,11 @@ def install_native_wave(fight, monsters, *, initialize_actor, catalog=None):
         fight.actors[actor.id] = actor
         register_global_fighter(fight, actor.id)
         # Explicit DEV policy: append wave reinforcements to remaining turns.
-        insert(fight, actor.id, len(fight.order))
-        fight.order.append(actor.id)
-        if base is not None:
-            base.append(actor.id)
+        if 114 not in actor.native_fight_properties:
+            insert(fight, actor.id, len(fight.order))
+            fight.order.append(actor.id)
+            if base is not None:
+                base.append(actor.id)
     initialize_native_wave_actors(fight, monsters)
     packets, creations = [], {}
     for actor, monster in zip(actors, monsters):

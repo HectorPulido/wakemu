@@ -20,24 +20,32 @@ class RecoveryTests(unittest.TestCase):
         f.ready(9)
         while not f.current.controlled:
             f.end_server_turn(f.current.id, f.turn_id)
-        return f, RuntimeMessages(f)
+        # Keep this exact recovery assertion pinned to its explicit 31s
+        # deadline instead of coupling it to the product default.
+        return f, RuntimeMessages(f, turn_duration_ms=30000)
 
     def test_death_recovery_preserves_live_turn_and_exact_ack(self):
         f, r = self.state()
         f.apply_damage(5, -200, 12)
         r.end_turn(9, 5, f.current.turn_count)
         packets = r.recover(9, struct.pack(">i", f.id), now_ms=1000)
-        self.assertEqual([x[0] for x in packets], [12053, 12514, 13420])
+        opcodes = [x[0] for x in packets]
+        self.assertEqual(opcodes.count(12053), 1)
+        self.assertEqual(opcodes.count(13482), 1)
+        self.assertNotIn(13337, opcodes)
+        self.assertLess(opcodes.index(12053), opcodes.index(12514))
+        self.assertLess(opcodes.index(12514), opcodes.index(13482))
+        self.assertEqual(opcodes[-2:], [13482, 13420])
         self.assertIsNone(r.awaiting_ack)
         self.assertEqual(r.pending, [])
-        raw = packets[0][1]
+        raw = next(body for opcode, body in packets if opcode == 12053)
         self.assertEqual(struct.unpack_from(">ih", raw), (f.id, len(raw) - 6))
         self.assertEqual(raw[6:13], struct.pack(">BBiB", 1, 0, 6, 0))
-        state = timeline(f, deadline_ms=31000)
+        state = timeline(f, deadline_ms=31000, new_turn=True)
         self.assertEqual(raw[15:], state)
         self.assertEqual(
             struct.unpack_from(">hiBq", state),
-            (f.current.turn_count, f.turn_id, 1, 31000),
+            (f.current.turn_count, f.turn_id - 1, 4, 31000),
         )
         count = state[15]
         native_order = list(struct.unpack_from(">" + str(count) + "q", state, 16))
@@ -200,15 +208,18 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual([opcode for opcode, _ in end_packets], [12502, 13420])
         self.assertEqual(runtime.awaiting_ack, previous_turn)
         pending_opcodes = [opcode for opcode, _ in runtime.pending]
-        self.assertEqual(pending_opcodes, [12053, 12514, 13420])
+        self.assertEqual(pending_opcodes, [12053, 12514, 13420, 13482, 13420])
         self.assertNotIn(13337, pending_opcodes)
-        self.assertNotIn(13482, pending_opcodes)
+        self.assertEqual(pending_opcodes.count(13482), 1)
 
         with self.assertRaisesRegex(ValueError, "Invalid or stale turn"):
             runtime.acknowledge_turn(struct.pack(">i", previous_turn - 1))
         clock[0] = 2.0
         acknowledged = runtime.acknowledge_turn(struct.pack(">i", previous_turn))
-        self.assertEqual([opcode for opcode, _ in acknowledged], [12053, 12514, 13420])
+        self.assertEqual(
+            [opcode for opcode, _ in acknowledged],
+            [12053, 12514, 13420, 13482, 13420],
+        )
         self.assertEqual(runtime.awaiting_ack, None)
         self.assertEqual(fight.current.id, 6)
 

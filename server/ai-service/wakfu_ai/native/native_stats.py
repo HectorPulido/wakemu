@@ -57,7 +57,12 @@ class NativeStats:
             raise ValueError("Missing owned native statistics source")
         encoder = actual_actor_stats if actor.controlled else actual_monster_actor_stats
         return encoder(
-            source, actor, self.fight_id, wp_current=stats[4], wp_maximum=maxima[4]
+            source,
+            actor,
+            self.fight_id,
+            wp_current=stats[4],
+            wp_maximum=maxima[4],
+            fight=fight,
         )
 
     def summon_stats(self, actor, registration, fight=None):

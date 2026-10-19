@@ -5,6 +5,7 @@ an effect. Unsupported retained effect families fail closed rather than
 producing a visibly incomplete active-fight snapshot.
 """
 from .combat_environment_glyphs import environment_sections
+from .combat_live_area_snapshot import sections as live_area_sections
 from .combat_spectator_wire import spectator_bootstrap, timeline_snapshot
 from .combat_turns import initial_order
 from .combat_wire import initial_timeline, topology
@@ -241,6 +242,7 @@ def current_snapshot(
                     effective_level=actor.effective_level,
                 )
                 for actor in actors
+                if 114 not in getattr(actor, "native_fight_properties", ())
             ],
         )
         fight_timeline = initial_timeline([actor.id for actor in actors], order)
@@ -283,7 +285,7 @@ def current_snapshot(
         myH=[],
         myM=[],
         myN=[],
-        myK=environment_sections(fight),
+        myK=environment_sections(fight) + live_area_sections(fight),
     )
     timeline_state = timeline_snapshot(3)
     area_rehydration = {}

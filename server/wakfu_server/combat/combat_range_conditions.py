@@ -156,15 +156,16 @@ def creation_in_play(preview, actor):
     return None  # Only predicates requiring membership reject this unknown fact.
 
 
-def registered_state_carriers(fight, actor):
+def registered_state_carriers(fight, actor, *, retained_reader=None):
     """eLr scans Qf eZk, not pending application descriptors or state levels."""
     from .combat_retained_runtime import native_retained_condition_effects
 
-    registered = {
-        uid
-        for _, family, uid in native_retained_condition_effects(fight, actor.id)
-        if family == 310
-    }
+    effects = (
+        native_retained_condition_effects(fight, actor.id)
+        if retained_reader is None
+        else retained_reader(actor.id)
+    )
+    registered = {uid for _, family, uid in effects if family == 310}
     return tuple(
         (state.reference, state.level, state.caster_id)
         for state in actor.state_ledger.entries
@@ -172,7 +173,7 @@ def registered_state_carriers(fight, actor):
     )
 
 
-def attest_state_area_population(fight):
+def attest_state_area_population(fight, *, retained_reader=None):
     """eLr appends actual Qs/Qq Qf managers, independently of fighters."""
     from .combat_effect_area_queries import _rows
     from .combat_effect_area import native_effect_areas
@@ -184,7 +185,14 @@ def attest_state_area_population(fight):
             continue  # Original Qq.bax null: eLr skips this manager.
         if "state_ledger" in row:
             manager = state_manager(fight, row["uid"])
-            result.append((manager.position, registered_state_carriers(fight, manager)))
+            result.append(
+                (
+                    manager.position,
+                    registered_state_carriers(
+                        fight, manager, retained_reader=retained_reader
+                    ),
+                )
+            )
             continue
         definition = native_effect_areas().get(str(row["reference"]))
         if (

@@ -870,6 +870,7 @@ class MountPublicationTests(PostgresCase):
             "PROFILER": PROFILER,
             "WORLD": fake_world,
             "connection": peer,
+            "character": {"id": 7},
             "send_native_planting_bonus": lambda connection, current: bonus_publications.append(
                 (connection, current, list(fake_world.sent))
             ),
@@ -901,6 +902,38 @@ class MountPublicationTests(PostgresCase):
         )
 
         self.assertEqual(bonus_publications, [(peer, current, fake_world.sent)])
+
+        peer_packets = []
+        owner_packets = []
+        fake_world.broadcast = (
+            lambda generation, leader_id, *packet, **options: peer_packets.append(
+                (generation, leader_id, packet, options)
+            )
+        )
+        namespace.update(
+            service="world",
+            send=lambda connection, service, *packet: owner_packets.append(
+                (connection, service, packet)
+            ),
+        )
+        hero = {"id": 9, "map_id": 11, "instance_id": 3}
+        with patch(
+            "wakfu_server.mount_publication.equipment_changes",
+            return_value=fake_packets,
+        ):
+            publisher({"id": 9}, hero)
+        self.assertEqual(
+            owner_packets,
+            [(peer, "world", packet) for packet in fake_packets],
+        )
+        self.assertEqual(
+            peer_packets,
+            [
+                (generation, 7, packet, {"include_sender": False})
+                for packet in fake_packets
+            ],
+        )
+        self.assertEqual(len(fake_world.sent), 2)
 
     def test_build_handlers_publish_only_from_success_branch_after_store_commit(self):
         source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"

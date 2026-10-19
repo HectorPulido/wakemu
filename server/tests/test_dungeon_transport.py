@@ -125,8 +125,9 @@ class DungeonLegacyTransportGuardTests(unittest.TestCase):
 
     def test_item_and_kama_requirements_are_not_waived(self):
         self.destination.update(item_reference=7, cyW=1)
-        with self.assertRaisesRegex(ValueError, "item transaction"):
-            self.resolve()
+        resolved = self.resolve()
+        self.assertEqual(resolved["native_destination"]["item_reference"], 7)
+        self.assertEqual(resolved["native_destination"]["cyW"], 1)
         self.destination.update(item_reference=0, cyW=0, cyX=10)
         with self.assertRaisesRegex(ValueError, "kama transaction"):
             self.resolve()

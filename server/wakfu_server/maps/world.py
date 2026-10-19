@@ -359,6 +359,33 @@ class World:
                 generation, character["id"], opcode, body, include_sender=include_sender
             )
 
+    def refresh_location(self, generation, character):
+        """Publish canonical owner coordinates without sending a synthetic walk."""
+        from .planting_location import _validate_location
+
+        _validate_location(character)
+        direction = character.get("direction")
+        if type(direction) is not int or not 0 <= direction <= 7:
+            raise ValueError("Invalid owned world direction")
+        with self.lock:
+            existing = self.players.get(character["id"])
+            if (
+                existing is None
+                or existing[0] != generation
+                or existing[2]["account_id"] != character["account_id"]
+            ):
+                raise ValueError("Character is no longer in this world session")
+            if self.location(character) != self.location(existing[2]):
+                raise ValueError("Map transition requires leave/join")
+            updated = dict(existing[2])
+            updated.update(
+                {
+                    key: character[key]
+                    for key in ("map_id", "instance_id", "x", "y", "z", "direction")
+                }
+            )
+            self.players[character["id"]] = (generation, existing[1], updated)
+
     def publish_ecology(self, character):
         """Publish committed ecology to the current session, wherever it is.
 

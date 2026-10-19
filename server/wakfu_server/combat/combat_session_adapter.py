@@ -12,8 +12,9 @@ from .combat_input_observation import observe_authority, observe_fact
 
 
 class CombatSessionAdapter:
-    def __init__(self, store):
+    def __init__(self, store, *, player_appearance=None):
         self.store = store
+        self.player_appearance = player_appearance
         self.registry = Registry(self._lease_is_current)
 
     def _lease_is_current(self, session):
@@ -378,49 +379,16 @@ class CombatSessionAdapter:
             )
             return observe_fact("ready_stats_serializer.monster", stats)
 
-        def turn_end(preview, *, actor_id, action_id):
-            actor = preview.actors[actor_id]
-            source = characters.get(actor_id, first_character)
-            deck = decks.get(actor_id, first_deck)
-            return prepare_server_turn_end(
-                source,
-                monsters,
-                preview,
-                deck,
-                actor_id=actor_id,
-                action_id=action_id,
-                player_characters=characters,
-                deck_blobs=decks,
-            )
+        from .combat_expiration_provider import OwnedExpirationFactory
 
-        def turn_start(preview, **boundary):
-            actor_id = boundary["actor_id"]
-            source = characters.get(actor_id, first_character)
-            deck = decks.get(actor_id, first_deck)
-            return prepare_server_turn_start(
-                source,
-                monsters,
-                preview,
-                deck,
-                native_events=fight_start,
-                area_callbacks=area_callbacks,
-                player_characters=characters,
-                deck_blobs=decks,
-                **boundary,
-            )
-
-        def expiration_factory(*, action_id):
-            from .combat_server_spell import server_runtime
-
-            return server_runtime(
-                first_character,
-                monsters,
-                first_deck,
-                action_id=action_id,
-                critical=False,
-                player_characters=characters,
-                deck_blobs=decks,
-            )[0]
+        expiration_factory = OwnedExpirationFactory(
+            characters=characters,
+            monsters=monsters,
+            decks=decks,
+            actor_id=first_character["id"],
+            fight_start=fight_start,
+            area_callbacks=area_callbacks,
+        )
 
         candidate, candidate_runtime, packets = prepare_ready(
             fight,
@@ -431,8 +399,10 @@ class CombatSessionAdapter:
             runtime_stats_serializer=stats_serializer,
             effects_serializer=actor_effects,
             expiration_runtime_factory=expiration_factory,
-            turn_end_provider=turn_end if fight_start else None,
-            turn_start_provider=turn_start if fight_start or area_callbacks else None,
+            turn_end_provider=expiration_factory.turn_end if fight_start else None,
+            turn_start_provider=(
+                expiration_factory.turn_start if fight_start or area_callbacks else None
+            ),
             previous_native_action_id=previous_native_action_id,
         )
         if withdrawn:
@@ -724,6 +694,10 @@ class CombatSessionAdapter:
     def acknowledge(self, session, fight_id, body, release_packets):
         return self.registry.acknowledge(fight_id, session, body, release_packets)
 
+    def recover_timeline(self, session, fight_id, body, *, now_ms):
+        """Route coX through the same shared transaction and ordered outboxes."""
+        return self.registry.recover_timeline(fight_id, session, body, now_ms=now_ms)
+
     def expire_current_turn(self, fight_id, session, *, now_ms):
         """Delegate the idle-loop deadline check to the shared fight registry."""
         shared = self.registry.lookup(fight_id)
@@ -741,9 +715,9 @@ class CombatSessionAdapter:
     def drain(self, session, fight_id):
         return self.registry.drain(fight_id, session)
 
-    def dispatch_connected(self, fight_id, deliver):
+    def dispatch_connected(self, fight_id, deliver, *, blocking=True):
         """Push ordered outbox batches to all currently connected owners."""
-        return self.registry.dispatch_connected(fight_id, deliver)
+        return self.registry.dispatch_connected(fight_id, deliver, blocking=blocking)
 
     def disconnect(self, session):
         return self.registry.disconnect(session)
@@ -878,13 +852,19 @@ class CombatSessionAdapter:
             old_health = (
                 12436,
                 health.packet(
-                    previous["id"], previous["hp"], 1 if previous["hp"] > 0 else 0
+                    previous["id"],
+                    previous["hp"],
+                    health.exploration_coefficient(previous["max_hp"], previous["hp"]),
                 ),
             )
             progression = outside_progression(saved, wp=wp, ap=6, mp=3)
             current_health = (
                 12436,
-                health.packet(saved["id"], saved["hp"], 1 if saved["hp"] > 0 else 0),
+                health.packet(
+                    saved["id"],
+                    saved["hp"],
+                    health.exploration_coefficient(saved["max_hp"], saved["hp"]),
+                ),
             )
             # Format17/FOR_PHOENIX uses the same13046 opcode. Preserve every
             # actor teardown byte and replace only the exact prior main fmt3.
@@ -961,8 +941,24 @@ class CombatSessionAdapter:
 
     def owned_reconnect_bootstrap(self, fight, shared, session):
         from .combat_reconnect_snapshot import owned_snapshot
-        from .combat_reconnect_world_actors import ordinary_npc_appearances
+        from .combat_reconnect_world_actors import (
+            ordinary_npc_appearances,
+            ordinary_player_appearances,
+        )
 
+        context = shared.join_context or {}
+        if not isinstance(context, dict):
+            raise ValueError("Reconnect lacks native appearance context")
+        serializer = context.get("hero_appearance")
+        if not callable(serializer):
+            serializer = getattr(self, "player_appearance", None)
+        appearances = ordinary_player_appearances(
+            fight,
+            shared,
+            session,
+            character_source=getattr(getattr(self, "store", None), "character", None),
+            serializer=serializer,
+        )
         packets = owned_snapshot(
             fight, shared, session, actor_payload=self.actor_payload
         )
@@ -973,8 +969,8 @@ class CombatSessionAdapter:
         ):
             from .rift_combat_adapter import world_snapshot
 
-            return world_snapshot(fight) + tuple(packets)
-        return ordinary_npc_appearances(fight, shared) + tuple(packets)
+            return appearances + world_snapshot(fight) + tuple(packets)
+        return appearances + ordinary_npc_appearances(fight, shared) + tuple(packets)
 
     def reconcile_disconnected_pve(self, session, *, groups=None):
         """Heal an orphaned old lease before initializing a reconnect's world HP."""
@@ -1031,7 +1027,9 @@ class CombatSessionAdapter:
             persist_takeover=persist,
         )
 
-    def recover_settled_world(self, session, character, *, wp, ap=6, mp=3):
+    def recover_settled_world(
+        self, session, character, *, wp, ap=6, mp=3, pending_world_recovery=None
+    ):
         """Resolve a terminal PvE reconnect that has already loaded world state."""
         if (
             not isinstance(character, dict)
@@ -1059,7 +1057,13 @@ class CombatSessionAdapter:
 
         shared = self.registry.lookup_character(session.character_id)
         if shared is not None:
+            if pending_world_recovery is not None:
+                return self.registry.recover_settled_world(
+                    session, persist, pending_world_recovery=pending_world_recovery
+                )
             return self.registry.recover_settled_world(session, persist)
+        if pending_world_recovery is not None:
+            raise ValueError("Pending world recovery lost its shared fight")
 
         # After process restart the in-memory Registry is empty. A terminal
         # snapshot committed with settlement is sufficient to restore this

@@ -84,6 +84,28 @@ class ExchangeWireTests(unittest.TestCase):
             with self.subTest(body=invalid.hex()), self.assertRaises(ValueError):
                 exchange_wire.request(13113, invalid)
 
+    def test_bulk_offer_count_and_uid_list_match_coG_layout(self):
+        # coG writes exchange i64, selected count i32, then full-stack UIDs i64.
+        body = struct.pack(">qiqq", 456, 2, 67890, 98765)
+        self.assertEqual(
+            exchange_wire.request(12510, body),
+            {"exchange_id": 456, "uids": [67890, 98765]},
+        )
+        malformed = (
+            struct.pack(">qi", 456, 0),
+            struct.pack(">qi", 456, -1),
+            struct.pack(">qi", 456, 129),
+            struct.pack(">qiQQ", 456, 2, UID, UID),
+            struct.pack(">qiQQ", 456, 2, UID, 0),
+            struct.pack(">qiQ", 456, 1, UID) + b"\x00",
+            struct.pack(">qiQ", 456, 2, UID),
+            struct.pack(">qiQ", 0, 1, UID),
+            struct.pack(">qiQ", -1, 1, UID),
+        )
+        for invalid in malformed:
+            with self.subTest(body=invalid.hex()), self.assertRaises(ValueError):
+                exchange_wire.request(12510, invalid)
+
     def test_confirmation_has_only_exchange_id_and_no_revision(self):
         fixture = bytes.fromhex("1122334455667788")
         self.assertEqual(

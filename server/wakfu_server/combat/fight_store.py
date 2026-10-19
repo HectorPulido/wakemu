@@ -272,15 +272,20 @@ def settle_shared(
         )
         started = time.monotonic()
         _trace_stage(trace, "award_callback_started", fight.id, operation="settle")
-        packets = settle(db, rows, fight)
-        from wakfu_server.custom_tasks.external import enabled as objectives_enabled
+        from wakfu_server.combat_reward_ownership import _durable_settlement_scope
 
-        if objectives_enabled():
-            from wakfu_server.objectives.challenges import settle_fight
+        # The finalizer lease, exact runtime/durable roster and all character
+        # locks above authorize this transaction's earned offline-peer loot.
+        with _durable_settlement_scope(db, fight, rows):
+            packets = settle(db, rows, fight)
+            from wakfu_server.custom_tasks.external import enabled as objectives_enabled
 
-            # The finished fight, normal rewards and private challenge receipt
-            # commit together. Replays retain the original attempt and score.
-            settle_fight(db, fight)
+            if objectives_enabled():
+                from wakfu_server.objectives.challenges import settle_fight
+
+                # The finished fight, normal rewards and private challenge receipt
+                # commit together. Replays retain the original attempt and score.
+                settle_fight(db, fight)
         _trace_stage(
             trace,
             "award_callback_finished",
@@ -551,8 +556,22 @@ def recover_finished_return(
             "WHERE fight_id=%s AND character_id=%s FOR UPDATE",
             (fight.id, character_id),
         ).fetchone()
-        if existing_exit is not None and existing_exit["reason"] != "return":
-            raise ValueError("Settled fight already has a non-return health exit")
+        if existing_exit is not None and existing_exit["reason"] not in (
+            "return",
+            "abort",
+        ):
+            raise ValueError("Settled fight has an unknown health exit")
+        if (
+            existing_exit is not None
+            and existing_exit["reason"] == "abort"
+            and not terminal_snapshot
+        ):
+            raise ValueError("Abort health recovery requires a terminal checkpoint")
+        # A disconnect can persist its owned abort health receipt after the
+        # terminal settlement commits but before native UI return. The durable
+        # finished/checkpoint/lease checks above still fence this recovery.
+        # persist_owned reuses that receipt and current canonical HP verbatim;
+        # do not apply wounds again, revive, or rewrite abort provenance.
         _takeover_account_memberships(
             db, fight.id, account_id, generation, previous_generation
         )

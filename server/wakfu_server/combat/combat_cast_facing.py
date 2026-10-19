@@ -1,7 +1,8 @@
-"""Mirror accredited casting1040 Lua facing on the private server preview.
+"""Face admitted casts toward their cell under the requested server policy.
 
-Unsupported script contracts remain metadata pending; they do not invent a
-rotation or reject otherwise valid spells. Cardinal/diagonal sectors follow aBz.
+Known literal native exceptions take precedence over the cardinal default.
+Verified1040 presentation/finish contracts retain their native timing semantics.
+All mutations and wire packets remain inside the private cast transaction.
 """
 from wakfu_server import native_catalog as protocol_catalog
 import json
@@ -9,7 +10,7 @@ import math
 import struct
 from functools import lru_cache
 from pathlib import Path
-from .combat_displacement import cardinal_vector
+from .combat_displacement_geometry import cardinal_vector
 
 DIRECTIONS = {(1, 0): 1, (0, 1): 3, (-1, 0): 5, (0, -1): 7}
 
@@ -17,21 +18,35 @@ DIRECTIONS = {(1, 0): 1, (0, 1): 3, (-1, 0): 5, (0, -1): 7}
 @lru_cache(maxsize=1)
 def native_cast_facing():
     path = Path(__file__).parents[2] / "protocol/native-cast-facing.json"
-    return protocol_catalog.load(path)["spells"]
+    spells = protocol_catalog.load(path)["spells"]
+    from .combat_cast_facing_contracts import SCRIPT_CONTRACTS
+
+    result = dict(spells)
+    for reference, record in spells.items():
+        supplement = SCRIPT_CONTRACTS.get(record.get("script_id"))
+        if supplement is not None:
+            combined = dict(record)
+            for name, value in supplement.items():
+                combined.setdefault(name, value)
+            result[reference] = combined
+    return result
 
 
 def mirror_cast_facing(caster, plan, *, fight=None, contracts=None):
-    record = (native_cast_facing() if contracts is None else contracts).get(
-        str(plan["spell_id"])
+    # Weapons have no casting-script contract; use the same requested default.
+    record = (
+        {}
+        if "spell_id" not in plan
+        else (native_cast_facing() if contracts is None else contracts).get(
+            str(plan["spell_id"]), {}
+        )
     )
-    if record is None or record.get("status") != "verified":
-        return False
-    if not record["turnCasterTowardTargetCell"]:
+    if record.get("turnCasterTowardTargetCell") is False:
         return False
     target = plan["target"]
     # aiL computes Java signed-int deltas before aBA.bXz.
     delta = _java_xy_delta(caster.position, target)
-    direction = cast_direction(*delta, diagonals=record["useDiags"])
+    direction = cast_direction(*delta, diagonals=record.get("useDiags") is True)
     if direction is None:
         return False  # aiL ignores the native NONE result.
     if fight is None or fight.actors.get(caster.id) is not caster:
@@ -40,6 +55,20 @@ def mirror_cast_facing(caster, plan, *, fight=None, contracts=None):
 
     set_registered_direction(fight, caster, direction)
     return True
+
+
+def begin_cast_facing(caster, plan, *, fight, action_id, contracts=None):
+    """Prepare facing before cast animation/effects, with its own FIFO block."""
+    before = caster.direction
+    mirrored = mirror_cast_facing(caster, plan, fight=fight, contracts=contracts)
+    if not mirrored or caster.direction == before:
+        return ()
+    from .combat_orientation import facing_response
+
+    return (
+        facing_response(fight.id, action_id, caster.id, caster.direction),
+        (13420, struct.pack(">i", fight.id)),
+    )
 
 
 def _java_xy_delta(position, target):

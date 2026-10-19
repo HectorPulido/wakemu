@@ -66,6 +66,7 @@ def generate(
     variation_seed=None,
     avoid_cells=(),
     spread_teams=False,
+    occupied_cells=(),
 ):
     """Return disjoint team0/1 placement sets containing every current actor.
 
@@ -114,16 +115,16 @@ def generate(
     }
     anchor_distances = None
     if spread_teams:
-        # Select opposite native reachable ends, then grow each formation around
-        # its own end. Actor seeds remain selectable even when adjacent.
+        # Grow each formation around its required native seed. Actor seeds
+        # remain selectable even when adjacent to the opposing formation.
         available = {
             team: set(distances[team]) - selected[1 - team] - avoided for team in (0, 1)
         }
         if all(available.values()):
-            enemy_distances = _distances(selected[1], cells, outgoing, set())
-            anchor0 = max(available[0], key=lambda c: (enemy_distances.get(c, -1), c))
-            from_anchor0 = _distances({anchor0}, cells, outgoing, set())
-            anchor1 = max(available[1], key=lambda c: (from_anchor0.get(c, -1), c))
+            # Preserve the initiating team's native origin. Choosing the point
+            # farthest from enemies can put allies on a remote upper plateau.
+            anchor0 = min(selected[0])
+            anchor1 = min(selected[1])
             anchor_distances = {
                 0: _distances({anchor0}, cells, outgoing, selected[1]),
                 1: _distances({anchor1}, cells, outgoing, selected[0]),
@@ -148,7 +149,10 @@ def generate(
         team: deque(sorted(distances[team], key=lambda c: candidate_order(team, c)))
         for team in (0, 1)
     }
-    occupied = selected[0] | selected[1]
+    blocked = {_cell(cell) for cell in occupied_cells}
+    if not blocked <= cells:
+        raise ValueError("Occupied placement footprints exceed selected terrain")
+    occupied = selected[0] | selected[1] | blocked
     limits = {team: max(slots_per_team, len(selected[team])) for team in (0, 1)}
     while True:
         added = False
@@ -164,8 +168,9 @@ def generate(
                         candidates[team].clear()
                         continue
 
-                    # Spatial spacing only ranks already native-reachable
-                    # candidates; it never creates a path or terrain cell.
+                    # Formation cohesion follows native path distance first.
+                    # XY spacing is only a tie-breaker: folded terrain and
+                    # ramps can be close on screen but many walking steps away.
                     def spread_order(cell):
                         own = anchor_distances[team].get(cell, len(cells))
                         opposing = anchor_distances[1 - team].get(cell, len(cells))
@@ -176,6 +181,7 @@ def generate(
                         return (
                             cell in avoided,
                             own > opposing,
+                            own,
                             -spacing,
                             candidate_order(team, cell),
                         )

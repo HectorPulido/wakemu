@@ -10,6 +10,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 
 _POLICY = "wakemu.committed-step-eWf.v1"
+_WP_POLICY = "wakemu.committed-step-eWf.v2"
 _step_payment = ContextVar("committed_step_payment", default=None)
 
 
@@ -34,7 +35,10 @@ def committed_step_payment(
     ap_paid,
     mp_paid,
     ap_after=None,
-    mp_after=None
+    mp_after=None,
+    wp_before=None,
+    wp_after=None,
+    wp_paid=0,
 ):
     """Only execute_steps calls this after its actual resource debit and QI move."""
     actual_after = _raw_resources(actor)
@@ -80,6 +84,30 @@ def committed_step_payment(
         mp_paid=mp_paid,
         consumed=False,
     )
+    if wp_before is not None or wp_after is not None or wp_paid != 0:
+        wp_current = (actor.effect_stats or {}).get(4)
+        if (
+            any(
+                type(value) is not int or value < 0
+                for value in (wp_before, wp_after, wp_paid, wp_current)
+            )
+            or wp_before - wp_after != wp_paid
+            or wp_paid != 1
+            or wp_current != wp_after
+        ):
+            raise ValueError("Missing actual committed movement WP payment witness")
+        from .combat_hour_travel import current_hour_movement_boundary
+
+        hour = current_hour_movement_boundary(fight, actor.id, origin, destination)
+        if hour is None:
+            raise ValueError("Movement WP payment lacks its actual HOUR boundary")
+        receipt.update(
+            wp_before=wp_before,
+            wp_after=wp_after,
+            wp_paid=wp_paid,
+            wp_effective_after=wp_current,
+            hour_boundary=dict(hour),
+        )
     token = _step_payment.set(receipt)
     try:
         yield
@@ -106,6 +134,8 @@ def consume_step_payment(fight, *, actor_id, origin, path):
         or (actor.ap, actor.mp)
         != (receipt["ap_effective_after"], receipt["mp_effective_after"])
         or _raw_resources(actor) != (receipt["ap_raw_post"], receipt["mp_raw_post"])
+        or "wp_paid" in receipt
+        and (actor.effect_stats or {}).get(4) != receipt["wp_effective_after"]
     ):
         raise ValueError("Movement payment receipt does not own this callback")
     receipt["consumed"] = True
@@ -123,7 +153,18 @@ def valid_movement_descriptor(descriptor, *, caster_id, target_id):
     }:
         return False
     policy = descriptor["movement_payment_policy"]
-    if not isinstance(policy, dict) or set(policy) != {
+    if not isinstance(policy, dict):
+        return False
+    wp_fields = {
+        "wp_before",
+        "wp_after",
+        "wp_paid",
+        "wp_effective_after",
+        "hour_boundary",
+        "payment_phase",
+    }
+    has_wp = bool(set(policy) & wp_fields)
+    if set(policy) != {
         "policy",
         "fight_id",
         "actor_id",
@@ -143,14 +184,52 @@ def valid_movement_descriptor(descriptor, *, caster_id, target_id):
         "mp_raw_post",
         "mi",
         "mh",
-    }:
+    } | (wp_fields if has_wp else set()):
         return False
+    if has_wp and (
+        any(
+            type(policy[key]) is not int or policy[key] < 0
+            for key in ("wp_before", "wp_after", "wp_paid", "wp_effective_after")
+        )
+        or policy["wp_paid"] != 1
+        or policy["wp_effective_after"] != policy["wp_after"]
+        or policy["wp_before"] - policy["wp_after"] != policy["wp_paid"]
+        or policy["payment_phase"] not in ("movement", "hour_wp")
+    ):
+        return False
+    hour_wp = has_wp and policy["payment_phase"] == "hour_wp"
+    for key in ("origin", "destination"):
+        if (
+            not isinstance(policy[key], (tuple, list))
+            or len(policy[key]) != 3
+            or any(type(v) is not int for v in policy[key])
+        ):
+            return False
+    if has_wp:
+        from .combat_hour_travel import validate_hour_boundary_facts
+
+        try:
+            hour = validate_hour_boundary_facts(policy["hour_boundary"])
+        except ValueError:
+            return False
+        if (
+            hour["actor_id"] != policy["actor_id"]
+            or hour["turn_id"] != policy["turn_id"]
+            or tuple(hour["from_cell"]) != tuple(policy["origin"])
+            or tuple(hour["to_cell"]) != tuple(policy["destination"])
+        ):
+            return False
+    expected_costs = (
+        {"ap": 0, "mp": 0, "wp": 1}
+        if hour_wp
+        else {"ap": policy["ap_paid"], "mp": policy["mp_paid"], "wp": 0}
+    )
     if (
         descriptor["runner_class"] != "eWf"
         or descriptor["spell_context"] != {"present": False}
-        or policy["policy"] != _POLICY
-        or policy["mi"] is not False
-        or policy["mh"] is not True
+        or policy["policy"] != (_WP_POLICY if has_wp else _POLICY)
+        or policy["mi"] is not hour_wp
+        or policy["mh"] is not (not hour_wp)
         or type(policy["fight_id"]) is not int
         or not 0 < policy["fight_id"] < (1 << 31)
         or type(policy["actor_id"]) is not int
@@ -178,17 +257,9 @@ def valid_movement_descriptor(descriptor, *, caster_id, target_id):
         or policy["ap_paid"] > 127
         or policy["ap_before"] - policy["ap_after"] != policy["ap_paid"]
         or policy["mp_before"] - policy["mp_after"] != policy["mp_paid"]
-        or descriptor["action_costs"]
-        != {"ap": policy["ap_paid"], "mp": policy["mp_paid"], "wp": 0}
+        or descriptor["action_costs"] != expected_costs
     ):
         return False
-    for key in ("origin", "destination"):
-        if (
-            not isinstance(policy[key], (tuple, list))
-            or len(policy[key]) != 3
-            or any(type(v) is not int for v in policy[key])
-        ):
-            return False
     return tuple(policy["origin"]) != tuple(policy["destination"])
 
 
@@ -203,12 +274,20 @@ class WakemuMovementPolicy:
         return self.receipt["actor_id"]
 
     def descriptor(self, costs):
+        has_wp = "wp_paid" in self.receipt
+        hour_wp = has_wp and costs == {"ap": 0, "mp": 0, "wp": 1}
+        fields = dict(self.receipt)
+        if has_wp:
+            fields["payment_phase"] = "hour_wp" if hour_wp else "movement"
         result = dict(
             runner_class="eWf",
             action_costs=dict(costs),
             spell_context={"present": False},
             movement_payment_policy=dict(
-                self.receipt, policy=_POLICY, mi=False, mh=True
+                fields,
+                policy=_WP_POLICY if has_wp else _POLICY,
+                mi=hour_wp,
+                mh=not hour_wp,
             ),
         )
         if not valid_movement_descriptor(
@@ -237,13 +316,18 @@ def replay_movement_payment(dispatcher, policy):
         or (actor.ap, actor.mp)
         != (receipt["ap_effective_after"], receipt["mp_effective_after"])
         or _raw_resources(actor) != (receipt["ap_raw_post"], receipt["mp_raw_post"])
+        or "wp_paid" in receipt
+        and (actor.effect_stats or {}).get(4) != receipt["wp_effective_after"]
     ):
         raise ValueError("Movement payment differs from unpublished preview")
     from .combat_effect_dispatch import EffectInvocation
     from .combat_cost_payment_events import payment_event_ids
 
-    costs = dict(ap=receipt["ap_paid"], mp=receipt["mp_paid"], wp=0)
-    policy.descriptor(costs)
+    phases = [dict(ap=receipt["ap_paid"], mp=receipt["mp_paid"], wp=0)]
+    if "wp_paid" in receipt:
+        phases.insert(0, dict(ap=0, mp=0, wp=receipt["wp_paid"]))
+    for costs in phases:
+        policy.descriptor(costs)
     policy.publication.append(True)
     events = dispatcher.native_cost_payment_events_factory()
     invocation = EffectInvocation(
@@ -254,25 +338,34 @@ def replay_movement_payment(dispatcher, policy):
         actor.position,
         native_retained_container={"present": False},
     )
-    definition = dict(
-        effect_class=30,
-        native_effect_flags=[],
-        native_costs=costs,
-        native_movement_payment_policy=policy,
-    )
-    identifiers = tuple(sorted({*payment_event_ids(costs), 74}))
-    packed = costs["ap"] | (costs["mp"] << 8)
     outcomes = []
-    for channel in (3, 4):
-        outcomes.extend(
-            events.phase(
-                definition,
-                invocation,
-                uid=-1,
-                value=packed,
-                channel=channel,
-                _event_ids=identifiers,
-            )
-            or ()
+    # Actual hour WP is a paid non-spell action. Installed314228 subscribes
+    # to2263 and excludes only Dial5345; original313167/313252 tooltips specify
+    # each WP used. Keep tackle AP/MP away from all special ability events.
+    for costs in phases:
+        hour_wp = costs["wp"] > 0
+        definition = dict(
+            effect_class=30,
+            native_effect_flags=[],
+            native_costs=costs,
+            native_movement_payment_policy=policy,
         )
+        identifiers = (
+            payment_event_ids(costs, special=True)
+            if hour_wp
+            else tuple(sorted({*payment_event_ids(costs), 74}))
+        )
+        packed = costs["ap"] | (costs["mp"] << 8) | (costs["wp"] << 16)
+        for channel in (3, 4):
+            outcomes.extend(
+                events.phase(
+                    definition,
+                    invocation,
+                    uid=-1,
+                    value=packed,
+                    channel=channel,
+                    _event_ids=identifiers,
+                )
+                or ()
+            )
     return tuple(outcomes)

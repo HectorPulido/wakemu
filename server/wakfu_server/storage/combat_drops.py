@@ -1,4 +1,4 @@
-"""Wakfu-native combat loot rows with Dofus-reference per-player probability.
+"""Wakfu-native loot rows with capped per-player prospection probability.
 
 This module is deliberately an adapter/store API, not a combat callback. The
 caller supplies a finished owned winner, the defeated native monster actor
@@ -8,7 +8,7 @@ the caller's transaction so it can share the victory reward/lifecycle commit.
 """
 from wakfu_server import native_catalog as protocol_catalog
 from wakfu_server.reward_rates import MAX_REWARD_RATE_BP
-from dataclasses import dataclass
+from wakfu_server.combat_drop_types import AwardBatch, DropDecision
 from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 from hashlib import sha256
@@ -21,42 +21,10 @@ from psycopg.types.json import Jsonb
 from wakfu_server.paths import DATA_ROOT
 
 
-ALGORITHM = "dofus-fight-drop-formula-v1-wakfu-native-catalog"
+ALGORITHM = "wakfu-capped-prospection-drop-formula-v2-native-catalog"
 DRAW_DENOMINATOR = 1 << 53
 PROSPECTION_STAT_ID = 33
 _MAX_SAFE_ATTEMPTS = 1000
-
-
-@dataclass(frozen=True)
-class DropDecision:
-    defeated_actor_id: int
-    monster_reference: int
-    drop_row_index: int
-    attempt_index: int
-    item_reference: int
-    success: bool
-    quantity: int | None
-    base_probability: Decimal
-    raw_probability: Decimal
-    effective_probability: Decimal
-    draw_numerator: int
-    quantity_draw_numerator: int | None
-    quantity_min: int
-    quantity_max: int
-    roll_count: int
-    native_roll_max: int
-    native_min_prospection: int
-
-
-@dataclass(frozen=True)
-class AwardBatch:
-    fight_id: int
-    character_id: int
-    policy_version: int
-    snapshot: dict
-    snapshot_sha256: str
-    decisions: tuple[DropDecision, ...]
-    replayed: bool
 
 
 def _integer(value, name, minimum=0, maximum=(1 << 63) - 1):
@@ -278,13 +246,13 @@ def _factors(
     drop_rate_bp,
     breach_bonus_bp,
 ):
-    # Wakfu stat 33 is a bonus with native default 0. Dofus Fighter.getPros()
-    # supplies effective PP and the source formula floors its factor at 1.0.
-    effective_prospection = 100 + prospecting_bonus
-    prospecting_factor = max(Decimal(1), Decimal(effective_prospection) / Decimal(100))
-    # Faithful Fight.java challenge setup: max(1, sum of winning challenge
-    # bonuses), then 1 + percent/100. Thus the no-challenge reference is 1.01.
-    challenge_factor = Decimal(1) + Decimal(max(1, challenge_drop_percent)) / Decimal(
+    # Wakfu PP is a bonus capped at 200, including in-fight sources.
+    applied_prospection = min(200, max(0, prospecting_bonus))
+    prospecting_factor = Decimal(1) + Decimal(applied_prospection) / Decimal(100)
+    # Preserve the existing native criteria gate separately: its field
+    # semantics are not established by the probability research.
+    native_gate_prospection = 100 + prospecting_bonus
+    challenge_factor = Decimal(1) + Decimal(max(0, challenge_drop_percent)) / Decimal(
         100
     )
     star_factor = max(
@@ -293,7 +261,7 @@ def _factors(
     conquest_factor = Decimal(conquest_rate_bp) / Decimal(10000)
     drop_rate_factor = Decimal(drop_rate_bp) / Decimal(10000)
     breach_factor = Decimal(breach_bonus_bp) / Decimal(10000)
-    return effective_prospection, (
+    return native_gate_prospection, (
         prospecting_factor
         * challenge_factor
         * star_factor
@@ -342,7 +310,7 @@ def plan_player_drops(
         _integer(value, name, minimum, maximum)
     catalog = native_drop_catalog() if catalog is None else catalog
     normalized_monsters = _validate_monsters(monsters, catalog)
-    effective_pp, modifiers = _factors(
+    native_gate_pp, modifiers = _factors(
         prospecting_bonus=prospecting_bonus,
         challenge_drop_percent=challenge_drop_percent,
         star_bonus_percent=star_bonus_percent,
@@ -361,7 +329,7 @@ def plan_player_drops(
         rows = catalog["monsters"][monster["reference"]]
         for row_index, row in enumerate(rows):
             if not _row_is_eligible(
-                row, fight_context=fight_context, effective_prospection=effective_pp
+                row, fight_context=fight_context, effective_prospection=native_gate_pp
             ):
                 continue
             probability = _decimal(
@@ -389,8 +357,8 @@ def plan_player_drops(
             minimum_prospection = _integer(
                 row.get("native_csF"), "native minimum prospection", 0, 32767
             )
-            # Dofus computes an unbounded percent chance and compares a draw in
-            # [0,100); cap only the comparison threshold, with no truncation.
+            # Preserve exact odds and cap only the comparison threshold;
+            # modifiers never create extra attempts or alter quantities.
             raw_probability = probability * modifiers
             effective_probability = min(Decimal(1), raw_probability)
             for attempt_index in range(attempt_count):
@@ -507,7 +475,7 @@ def resolve(
     fight_id = _integer(fight_id, "fight id", 1, 2**31 - 1)
     if not isinstance(generation, str) or not generation:
         raise ValueError("Invalid session generation")
-    from .combat_reward_ownership import lock_recipient
+    from wakfu_server.combat_reward_ownership import lock_recipient
 
     lock_recipient(store, db, account_id, generation, character_id, fight_id)
     reward = db.execute(
@@ -570,7 +538,9 @@ def resolve(
         "character_id": character_id,
         "prospection_stat_id": PROSPECTION_STAT_ID,
         "prospection_bonus": prospecting_bonus,
-        "effective_prospection": 100 + prospecting_bonus,
+        "applied_prospection_bonus": min(200, max(0, prospecting_bonus)),
+        "effective_prospection": 100 + min(200, max(0, prospecting_bonus)),
+        "native_gate_prospection": 100 + prospecting_bonus,
         "can_loot": can_loot,
         "fight_context": fight_context,
         "modifiers": {

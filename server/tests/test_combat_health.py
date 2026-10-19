@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 from postgres_case import PostgresCase
 from tests import test_combat_rewards
-from wakfu_server import health_store, health_policy
+from wakfu_server import health_store, health_policy, health
 from wakfu_server.combat_health import persist, persist_aborted_fight
 
 
@@ -387,7 +387,10 @@ class FightExitHealthTests(PostgresCase):
             f.actors[c["id"]].hp = 0
             f.winner = 1
             result = persist(s, a, g, c, f)
-            self.assertEqual((result["character"]["hp"], result["coefficient"]), (1, 1))
+            self.assertEqual(
+                (result["character"]["hp"], result["coefficient"]),
+                (1, health.exploration_coefficient(result["character"]["max_hp"], 1)),
+            )
             self.assertFalse(result["character"]["health_dead"])
             self.assertEqual(
                 result["character"]["hp_damage"], result["character"]["max_hp"] - 1

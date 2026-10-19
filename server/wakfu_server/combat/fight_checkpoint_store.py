@@ -49,6 +49,8 @@ def _trace_stage(
 
 
 def _plain(value):
+    if value is None or type(value) in (str, int, float, bool):
+        return value
     from wakfu_server.characters.owned_social_context import OwnedSocialContext
 
     if type(value) is OwnedSocialContext:
@@ -74,8 +76,6 @@ def _plain(value):
             actor_id=value.actor_id,
             entries=[_plain(asdict(entry)) for entry in value.entries],
         )
-    if value is None or type(value) in (str, int, float, bool):
-        return value
     if isinstance(value, dict):
         return {str(k): _plain(v) for k, v in value.items()}
     if isinstance(value, (set, frozenset)):

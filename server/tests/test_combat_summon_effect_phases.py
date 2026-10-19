@@ -90,6 +90,9 @@ class FreshSummonPhaseTests(unittest.TestCase):
                     direction=specification.direction,
                 )
                 actor.native_obstacle_id = 2
+                # Match build_npc_snapshot(...).install: fresh eGZ.pHH is
+                # false before eZl.c's ordered post-factory lx(true) call.
+                actor.native_controlled_by_ai = False
                 actor.effect_stats = {1: 1, 2: 0, 3: 0}
                 actor.effect_maxima = {1: 1, 2: 0, 3: 0}
                 actor.effect_minima = {1: 0, 2: 0, 3: 0}
@@ -128,6 +131,8 @@ class FreshSummonPhaseTests(unittest.TestCase):
                     is_carrying=False,
                     native_real_level=specification.level,
                     native_controller_id=caster_id,
+                    native_ai_control_baseline=True,
+                    native_controlled_by_ai=False,
                 )
                 actor.native_summon_source["controller_id"] = caster_id
                 registration = SummonRegistration(
@@ -251,6 +256,7 @@ class FreshSummonPhaseTests(unittest.TestCase):
         self.assertEqual(len(builder.created), 1)
 
         actor, specification, _ = builder.created[0]
+        self.assertIs(actor.native_controlled_by_ai, True)
         opcode, packet = handler.packets[0]
         self.assertEqual(opcode, 12613)
         self.assertEqual(packet[12], 1)

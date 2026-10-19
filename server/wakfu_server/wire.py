@@ -110,6 +110,12 @@ def minimal_entity(body, character):
             replacement = bytes((len(name),)) + name
         elif section["name"] == "APPEARANCE" and character.get("appearance"):
             replacement = appearance_section(character["appearance"])
+        elif section["name"] == "EQUIPMENT_APPEARANCE":
+            from wakfu_server.items.equipment_appearance import (
+                section as equipment_section,
+            )
+
+            replacement = equipment_section(character)
         elif section["name"] in ("NATION_ID", "CHARACTER_LIST_NATION_ID"):
             from wakfu_server.characters.nation_state import nation_id
 
@@ -708,9 +714,13 @@ def adapt(opcode, body, account_id, character=None, *, kamas=None):
             entity = minimal_entity(body[10:], character)
             return struct.pack(">qH", character["id"], len(entity)) + entity
     if opcode == 12436 and character is not None:
-        from wakfu_server.health import packet
+        from wakfu_server.health import packet, exploration_coefficient
 
-        return packet(character["id"], character["hp"], 1)
+        return packet(
+            character["id"],
+            character["hp"],
+            exploration_coefficient(character["max_hp"], character["hp"]),
+        )
     if kamas is None:
         kamas = character.get("kamas", 0) if character else 0
     if type(kamas) is not int or not 0 <= kamas < 2**63:

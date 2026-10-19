@@ -10,6 +10,27 @@ from wakfu_server.combat_results import finish_messages
 
 
 class DeathTests(unittest.TestCase):
+    def test_raw_new_deaths_finalize_state_without_allocating_native_actions(self):
+        from wakfu_server.combat_death import newly_registered_death_messages
+
+        fight, runtime, _ = test_combat_results.FightResultTests().state()
+        fight.events = [dict(sequence=1, kind="death", actor_id=-200)]
+        packets = newly_registered_death_messages(
+            runtime, after_sequence=0, prepare_delivery=False
+        )
+        self.assertEqual(runtime.native_action_id, 0)
+        self.assertEqual(
+            [struct.unpack(">iiiqB", body)[3:] for op, body in packets if op == 12727],
+            [(-200, 0), (-200, 2)],
+        )
+        self.assertEqual(
+            fight.actors[-200].native_death_status["last_writer"], "owned.aTS.F.type2"
+        )
+        prepared = runtime.prepare_delivery(packets)
+        self.assertEqual(runtime.native_action_id, 2)
+        self.assertIs(runtime.prepare_delivery(prepared), prepared)
+        self.assertEqual(newly_registered_death_messages(runtime, after_sequence=0), [])
+
     def test_action_death_delivery_is_unique_and_excludes_old_or_revived_deaths(self):
         from wakfu_server.combat_death import newly_registered_death_messages
 

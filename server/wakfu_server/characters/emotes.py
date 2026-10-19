@@ -27,9 +27,23 @@ def allowed_ids(db, account_id):
 
 
 def snapshot(db, account_id):
-    """Native account section10: length-prefixed hI with repeated hE(id) records."""
+    """Publish native knowledge, including attested opaque learning outputs.
+
+    fbs snapshots preserve IDs even when no executable definition exists.
+    allowed_ids remains the separate definition-backed execution authority.
+    """
+    known = set(allowed_ids(db, account_id))
+    known.update(
+        row["emote_id"]
+        for row in db.execute(
+            "SELECT DISTINCT k.emote_id FROM account_emote_knowledge k "
+            "JOIN native_emote_learning_actions n ON n.emote_id=k.emote_id "
+            "WHERE k.account_id=%s AND NOT n.has_criteria ORDER BY k.emote_id",
+            (account_id,),
+        )
+    )
     payload = b""
-    for emote_id in allowed_ids(db, account_id):
+    for emote_id in sorted(known):
         record = b"\x08" + _varint(emote_id)
         payload += b"\x0a" + _varint(len(record)) + record
     return 13873, struct.pack(">III", 1, 10, len(payload)) + payload

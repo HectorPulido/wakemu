@@ -76,7 +76,13 @@ class NativeRetainedAreaTests(unittest.TestCase):
             self.assertEqual(fight.native_owned_area_effects, {})
             self.assertEqual(bool(fight.native_effect_areas), keep)
             self.assertEqual(packets[0][0], 13560)
-            self.assertEqual(packets[0][1][18:-16], payload)
+            from wakfu_server.combat_effect_removal import state_unapplication_payload
+
+            # Native configured eYQ removal sets TimeDatas.NotifyUnapplication
+            # before Qf removal; all other payload bytes remain constructor-owned.
+            self.assertEqual(
+                packets[0][1][18:-16], state_unapplication_payload(payload)
+            )
 
     def test_missing_caster_manager_rejects_before_mutation(self):
         fight, record, payload = self.fixture(False)

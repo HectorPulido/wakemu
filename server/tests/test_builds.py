@@ -46,6 +46,8 @@ class BuildTests(PostgresCase):
         decks.finish()
 
     def test_save_response_and_reopen_are_authoritative(self):
+        # Editing the default sheet is legal before custom-build unlock.
+        self.assertLess(self.character["level"], 50)
         body = struct.pack(">q", self.character["id"]) + b"".join(
             struct.pack(">I", len(self.blobs[key])) + self.blobs[key]
             for key in builds.KEYS
@@ -67,6 +69,41 @@ class BuildTests(PostgresCase):
         from wakfu_server.spells import default_deck
 
         self.assertEqual(values[2], default_deck(reopened))
+
+    def test_blocked_default_edits_preserve_all_persisted_build_blobs(self):
+        saved = self.store.save_build(
+            self.account, self.generation, self.character["id"], 0, self.blobs
+        )
+        before = self.store.character(self.account, saved["id"])["builds"]
+        for key in ("equipment", "deck", "aptitudes"):
+            with self.subTest(edit=key):
+                changed = dict(self.blobs, **{key: b"optimistic unsaved edit"})
+                request = struct.pack(">q", saved["id"]) + b"".join(
+                    struct.pack(">I", len(changed[field])) + changed[field]
+                    for field in builds.KEYS
+                )
+                packets = builds.blocked_save_messages(saved, request)
+                self.assertEqual([opcode for opcode, _ in packets], [12284])
+                reader = Reader(packets[0][1])
+                self.assertEqual(
+                    (
+                        reader.number("q"),
+                        reader.number("i"),
+                        reader.number("b"),
+                        reader.number("B"),
+                    ),
+                    (saved["id"], 0, 5, 1),
+                )
+                returned = [reader.take(reader.number("I")) for _ in builds.KEYS]
+                reader.finish()
+                canonical = Reader(builds.response(saved, 0))
+                canonical.take(14)
+                expected = [canonical.take(canonical.number("I")) for _ in builds.KEYS]
+                canonical.finish()
+                self.assertEqual(returned, expected)
+                self.assertEqual(
+                    self.store.character(self.account, saved["id"])["builds"], before
+                )
 
     def test_failed_edit_returns_prior_authority_without_claiming_success(self):
         packets = builds.rejection_messages(self.character, 0, wp=6, status=9)
@@ -105,7 +142,7 @@ class BuildTests(PostgresCase):
         r = Reader(packets[0][1])
         self.assertEqual(
             (r.number("q"), r.number("i"), r.number("b"), r.number("B")),
-            (saved["id"], 0, 2, 1),
+            (saved["id"], 0, 5, 1),
         )
         values = [r.take(r.number("I")) for _ in range(4)]
         r.finish()
@@ -358,7 +395,7 @@ class BuildTests(PostgresCase):
         refresh_packets = builds.response_messages(saved_active, 0, wp=6)
         self.assertEqual(
             [opcode for opcode, _ in refresh_packets],
-            [12284, 12393, 12103, 13046],
+            [12284, 12103, 13046],
         )
         refresh_body = refresh_packets[-1][1]
         self.assertEqual(
@@ -607,3 +644,23 @@ class BootstrapRegistryTests(unittest.TestCase):
         packet = wire.adapt(12103, b"old fixture", 9, character)
         self.assertEqual(packet, struct.pack(">qI", 7, len(apt)) + apt)
         self.assertNotIn(gear, packet)
+
+
+class BuildRejectionStatusTests(unittest.TestCase):
+    def test_occupation_has_its_native_status_without_changing_other_errors(self):
+        self.assertEqual(
+            builds.rejection_status(
+                builds.BuildOccupationError(
+                    "Active build cannot be saved during combat"
+                )
+            ),
+            5,
+        )
+        for message, expected in (
+            ("Unauthorized second build", 2),
+            ("Equipment sheet item is unavailable or foreign", 7),
+            ("Invalid aptitude sheet", 9),
+            ("Invalid spell deck", 8),
+        ):
+            with self.subTest(message=message):
+                self.assertEqual(builds.rejection_status(ValueError(message)), expected)

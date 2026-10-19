@@ -288,25 +288,42 @@ def change_member(
 
 
 def snapshot(store, account_id, generation, character_id):
-    """Consistent owned roster for reconnect; does not create membership."""
+    """Read one coherent roster without locking an unrelated party writer."""
     with store.connection() as db:
         store.lock_character(db, account_id, generation, character_id)
-        party = _party(db, character_id)
-        if party is None:
-            return None
-        members = db.execute(
-            "SELECT c.id,c.account_id,c.name,c.level,c.hp,c.max_hp,c.breed,c.sex,c.health_dead,m.joined_order "
-            "FROM player_party_members m JOIN characters c ON c.id=m.character_id "
-            "WHERE m.party_id=%s ORDER BY m.joined_order",
-            (party["id"],),
+        # One statement observes party metadata and every member at the same
+        # MVCC snapshot. A read-only publication must not hold the selected
+        # character while waiting for an exclusive lock on the party row.
+        rows = db.execute(
+            "SELECT p.id AS party_id,p.leader_id,p.revision,"
+            "c.id,c.account_id,c.name,c.level,c.hp,c.max_hp,c.breed,c.sex,"
+            "c.health_dead,m.joined_order "
+            "FROM player_party_members own "
+            "JOIN player_parties p ON p.id=own.party_id "
+            "JOIN player_party_members m ON m.party_id=p.id "
+            "JOIN characters c ON c.id=m.character_id "
+            "WHERE own.character_id=%s ORDER BY m.joined_order",
+            (character_id,),
         ).fetchall()
-        if not any(row["id"] == character_id for row in members):
+        if not rows or not any(row["id"] == character_id for row in rows):
             return None
+        member_fields = (
+            "id",
+            "account_id",
+            "name",
+            "level",
+            "hp",
+            "max_hp",
+            "breed",
+            "sex",
+            "health_dead",
+            "joined_order",
+        )
         return {
-            "party_id": party["id"],
-            "leader_id": party["leader_id"],
-            "revision": party["revision"],
-            "members": [dict(row) for row in members],
+            "party_id": rows[0]["party_id"],
+            "leader_id": rows[0]["leader_id"],
+            "revision": rows[0]["revision"],
+            "members": [{field: row[field] for field in member_fields} for row in rows],
         }
 
 

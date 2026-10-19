@@ -79,6 +79,10 @@ def publication_viable(reference, min_level):
     """Prove a release-pinned native form can become a complete world packet."""
     from .monsters import owned_instance
     from .combat_monster_world import spawn_group
+    from .monster_minigame_policy import effective_ordinary_summon_only_references
+
+    if reference in effective_ordinary_summon_only_references():
+        return False
 
     try:
         member = owned_instance(reference, min_level, -1, map_id=1, x=0, y=0, z=0)

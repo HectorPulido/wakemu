@@ -213,13 +213,21 @@ def _complete_owned_health_return(store, db, session, fight_id):
                 character["max_hp"], character["hp_damage"], True
             )
             hp = health_policy.apply_damage(db, character, damage, dead)
+            from wakfu_server import health
+
             now = store.now()
             db.execute(
                 "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) "
-                "VALUES(%s,%s,%s,1,%s) ON CONFLICT(character_id) DO UPDATE SET "
+                "VALUES(%s,%s,%s,%s,%s) ON CONFLICT(character_id) DO UPDATE SET "
                 "initial_hp=excluded.initial_hp,started_at=excluded.started_at,"
                 "coefficient=excluded.coefficient,last_at=excluded.last_at",
-                (identity, hp, now, now),
+                (
+                    identity,
+                    hp,
+                    now,
+                    health.exploration_coefficient(character["max_hp"], hp),
+                    now,
+                ),
             )
         db.execute(
             "UPDATE combat_pve_withdrawals SET health_returned_at=%s "

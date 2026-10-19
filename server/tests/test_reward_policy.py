@@ -1,12 +1,9 @@
-import hashlib
-import json
-from pathlib import Path
+import unittest
 
 from postgres_case import PostgresCase
 from psycopg.errors import CheckViolation
 
 from wakfu_server.reward_policy import kamas_amount, resolve, xp_amount
-from wakfu_server import native_catalog
 
 
 def context(
@@ -30,65 +27,49 @@ def context(
     }
 
 
-class RewardPolicyMathTests(PostgresCase):
-    def test_native_dungeon_rate_is_optional_and_multiplies_before_final_cast(self):
-        ordinary = context(7)
-        selected = dict(ordinary, dungeon_rate_bp=40000)
+class RewardPolicyMathTests(unittest.TestCase):
+    def test_wakfu_community_golden_vector_and_ignored_legacy_factors(self):
+        # Independent reference vector: level 7 player, level 4 monster,
+        # native monster base 433, one eligible player, neutral wisdom.
+        base = context(7, level=7, losers=[{"level": 4, "monster_reference": 500}])
         args = dict(
-            character_id=7, group_xp=1000, xp_rate_bp=10000, conquest_rate_bp=10000
+            character_id=7, group_xp=433, xp_rate_bp=10000, conquest_rate_bp=10000
         )
-        self.assertEqual(xp_amount(context=ordinary, **args), 1105)
-        self.assertEqual(xp_amount(context=selected, **args), 4422)
-        for invalid in (0, 71001, True):
-            with self.assertRaises(ValueError):
-                xp_amount(context=dict(ordinary, dungeon_rate_bp=invalid), **args)
-
-    def test_dofus_reference_golden_xp_vectors_preserve_integer_casts(self):
-        one = context(7)
+        self.assertEqual(xp_amount(context=base, **args), 553)
+        self.assertEqual(xp_amount(context=base, **dict(args, xp_rate_bp=100000)), 5532)
+        self.assertEqual(xp_amount(context=dict(base, star_percent=100), **args), 553)
         self.assertEqual(
-            xp_amount(
-                character_id=7,
-                context=one,
-                group_xp=1000,
-                xp_rate_bp=10000,
-                conquest_rate_bp=10000,
-            ),
-            1105,
+            xp_amount(context=base, **dict(args, conquest_rate_bp=20000)), 553
         )
         self.assertEqual(
             xp_amount(
-                character_id=7,
-                context=context(7, challenge=99, star=99),
-                group_xp=1000,
-                xp_rate_bp=10000,
-                conquest_rate_bp=10000,
+                context=context(
+                    7,
+                    level=7,
+                    wisdom=200,
+                    losers=[{"level": 4, "monster_reference": 500}],
+                    challenge=100,
+                ),
+                **args,
             ),
-            1105,
-        )
-        self.assertEqual(
-            xp_amount(
-                character_id=7,
-                context=context(7, challenge=100, star=100),
-                group_xp=1000,
-                xp_rate_bp=10000,
-                conquest_rate_bp=10000,
-            ),
-            4422,
+            1659,
         )
 
-    def test_group_split_truncates_before_float_formula(self):
+    def test_equal_share_keeps_fraction_until_final_floor(self):
         ctx = context(
             7,
+            level=7,
+            losers=[{"level": 4, "monster_reference": 500}],
             winners=[
                 {
-                    "level": 1,
+                    "level": 7,
                     "player": True,
                     "eligible": True,
                     "character_id": 7,
                     "wisdom": 0,
                 },
                 {
-                    "level": 1,
+                    "level": 7,
                     "player": True,
                     "eligible": True,
                     "character_id": 8,
@@ -100,85 +81,87 @@ class RewardPolicyMathTests(PostgresCase):
             xp_amount(
                 character_id=7,
                 context=ctx,
-                group_xp=1001,
+                group_xp=433,
                 xp_rate_bp=10000,
                 conquest_rate_bp=10000,
             ),
-            1306,
+            340,
         )
 
-    def test_single_player_ratio_and_dofus_larva_reference_vector(self):
+    def test_dungeon_rate_multiplies_before_final_floor_and_is_validated(self):
+        ordinary = context(7, level=7, losers=[{"level": 4, "monster_reference": 500}])
+        args = dict(
+            character_id=7, group_xp=433, xp_rate_bp=10000, conquest_rate_bp=10000
+        )
+        self.assertEqual(
+            xp_amount(context=dict(ordinary, dungeon_rate_bp=40000), **args),
+            2213,
+        )
+        for invalid in (0, 71001, True):
+            with self.assertRaises(ValueError):
+                xp_amount(context=dict(ordinary, dungeon_rate_bp=invalid), **args)
+
+    def test_wisdom_and_challenge_share_a_capped_200_percent_bonus(self):
+        ctx = context(
+            7,
+            level=7,
+            wisdom=150,
+            challenge=100,
+            losers=[{"level": 4, "monster_reference": 500}],
+        )
         self.assertEqual(
             xp_amount(
                 character_id=7,
-                context=context(7, losers=[{"level": 2, "monster_reference": 500}]),
-                group_xp=200,
+                context=ctx,
+                group_xp=433,
                 xp_rate_bp=10000,
                 conquest_rate_bp=10000,
             ),
-            221,
+            1659,
         )
-
-    def test_configured_xp_rate_applies_at_198_199_and_200_without_dofus_exception(
-        self,
-    ):
-        for level in (198, 199, 200):
-            ctx = context(
-                7, level=level, losers=[{"level": 1, "monster_reference": 500}]
-            )
-            base = xp_amount(
+        capped = dict(ctx, challenge_percent=1000)
+        self.assertEqual(
+            xp_amount(
                 character_id=7,
-                context=ctx,
-                group_xp=100000,
+                context=capped,
+                group_xp=433,
                 xp_rate_bp=10000,
                 conquest_rate_bp=10000,
-            )
-            doubled = xp_amount(
-                character_id=7,
-                context=ctx,
-                group_xp=100000,
-                xp_rate_bp=20000,
-                conquest_rate_bp=10000,
-            )
-            self.assertGreater(doubled, base)
-            self.assertIn(doubled, (base * 2, base * 2 + 1))
+            ),
+            1659,
+        )
 
-    def test_group_size_is_eligible_players_capped_at_eight(self):
+    def test_group_size_uses_eligible_players_and_caps_at_six(self):
         winners = [
-            {
-                "level": 30,
-                "player": True,
-                "eligible": True,
-                "character_id": n,
-                "wisdom": 0,
-            }
-            for n in range(1, 10)
+            dict(level=30, player=True, eligible=True, character_id=n, wisdom=0)
+            for n in range(1, 8)
         ]
         ctx = context(
-            1, winners=winners, losers=[{"level": 200, "monster_reference": 500}]
+            1, winners=winners, losers=[{"level": 30, "monster_reference": 500}]
         )
-        capped = xp_amount(
+        six = xp_amount(
             character_id=1,
             context=ctx,
             group_xp=8000,
             xp_rate_bp=10000,
             conquest_rate_bp=10000,
         )
-        self.assertGreater(capped, 0)
-        excluded = [dict(row, eligible=False) for row in winners]
-        ctx = context(
-            1, winners=excluded, losers=[{"level": 200, "monster_reference": 500}]
+        excluded_ctx = context(
+            1,
+            winners=[dict(row, eligible=False) for row in winners],
+            losers=[{"level": 30, "monster_reference": 500}],
         )
         self.assertEqual(
             xp_amount(
                 character_id=1,
-                context=ctx,
+                context=excluded_ctx,
                 group_xp=8000,
                 xp_rate_bp=10000,
                 conquest_rate_bp=10000,
             ),
             0,
         )
+        self.assertEqual(six, 2600)
 
     def test_invalid_context_types_and_missing_recipient_fail_closed(self):
         bad = context(7)
@@ -219,7 +202,7 @@ class RewardPolicyMathTests(PostgresCase):
             xp_rate_bp=10000,
             conquest_rate_bp=10000,
         )
-        self.assertLess(modest_negative, 1105)
+        self.assertLess(modest_negative, 1300)
         self.assertEqual(
             xp_amount(
                 character_id=7,
@@ -270,7 +253,7 @@ class RewardPolicyMathTests(PostgresCase):
             xp_rate_bp=1_000_001,
             conquest_rate_bp=10000,
         )
-        self.assertEqual(high, 110550)
+        self.assertEqual(high, 130000)
 
         maximum_rate = 99_999_999_999
         maximum_xp = xp_amount(
@@ -280,7 +263,7 @@ class RewardPolicyMathTests(PostgresCase):
             xp_rate_bp=maximum_rate,
             conquest_rate_bp=10000,
         )
-        self.assertEqual(maximum_xp, int(1105.5 * (maximum_rate / 10000)))
+        self.assertEqual(maximum_xp, 12_999_999_999)
         with self.assertRaisesRegex(ValueError, "signed64 range"):
             xp_amount(
                 character_id=7,
@@ -507,7 +490,7 @@ class RewardPolicyPostgresTests(PostgresCase):
                 context=self.ctx,
                 kamas_roll_index=10,
             )
-            self.assertEqual((first.policy.xp, first.policy.kamas), (1105, 20))
+            self.assertEqual((first.policy.xp, first.policy.kamas), (132, 20))
             self.assertFalse(first.replayed)
         with self.store.connection() as db:
             db.execute(
@@ -530,7 +513,7 @@ class RewardPolicyPostgresTests(PostgresCase):
                 context=self.ctx,
                 kamas_roll_index=0,
             )
-            self.assertEqual((replay.policy.xp, replay.policy.kamas), (1105, 20))
+            self.assertEqual((replay.policy.xp, replay.policy.kamas), (132, 20))
             self.assertEqual(replay.version, 1)
             self.assertTrue(replay.replayed)
             self.assertEqual(replay.snapshot_sha256, first.snapshot_sha256)
@@ -570,7 +553,7 @@ class RewardPolicyPostgresTests(PostgresCase):
             )
             db.execute(
                 "INSERT INTO combat_reward_level_defaults(monster_level,base_xp,min_kamas,max_kamas,source) "
-                "VALUES(1,1000,10,20,'local Dofus-derived level policy') "
+                "VALUES(1,1000,10,20,'legacy SQL XP fixture; kamas bounds tested separately') "
                 "ON CONFLICT(monster_level) DO UPDATE SET base_xp=EXCLUDED.base_xp, "
                 "min_kamas=EXCLUDED.min_kamas,max_kamas=EXCLUDED.max_kamas,source=EXCLUDED.source"
             )
@@ -585,16 +568,27 @@ class RewardPolicyPostgresTests(PostgresCase):
                 context=self.ctx,
                 kamas_roll_index=0,
             )
-        self.assertEqual((decision.policy.xp, decision.policy.kamas), (1105, 10))
+        self.assertEqual((decision.policy.xp, decision.policy.kamas), (132, 10))
+        self.assertEqual(decision.snapshot["monster_catalog"][0]["base_xp"], 102)
+        self.assertEqual(
+            decision.snapshot["monster_catalog"][0]["xp_source"],
+            "wakfu-client.MU.L",
+        )
         self.assertEqual(
             decision.snapshot["monster_catalog"][0]["source_kind"], "level_default"
         )
 
-    def test_reference_override_wins_over_level_default(self):
+    def test_reference_override_supplies_kamas_but_legacy_xp_does_not_override_wakfu_base(
+        self,
+    ):
         with self.store.connection() as db:
             db.execute(
+                "UPDATE combat_reward_monster_levels SET base_xp=9000,min_kamas=30,max_kamas=40 "
+                "WHERE monster_reference=500 AND monster_level=1"
+            )
+            db.execute(
                 "INSERT INTO combat_reward_level_defaults(monster_level,base_xp,min_kamas,max_kamas,source) "
-                "VALUES(1,2000,100,200,'local Dofus-derived level policy') "
+                "VALUES(1,2000,100,200,'legacy SQL XP fixture; kamas bounds tested separately') "
                 "ON CONFLICT(monster_level) DO UPDATE SET base_xp=EXCLUDED.base_xp, "
                 "min_kamas=EXCLUDED.min_kamas,max_kamas=EXCLUDED.max_kamas,source=EXCLUDED.source"
             )
@@ -609,7 +603,12 @@ class RewardPolicyPostgresTests(PostgresCase):
                 context=self.ctx,
                 kamas_roll_index=0,
             )
-        self.assertEqual((decision.policy.xp, decision.policy.kamas), (1105, 10))
+        self.assertEqual((decision.policy.xp, decision.policy.kamas), (132, 30))
+        self.assertEqual(
+            decision.snapshot["monster_catalog"][0]["legacy_base_xp"], 9000
+        )
+        self.assertEqual(decision.snapshot["monster_catalog"][0]["min_kamas"], 30)
+        self.assertEqual(decision.snapshot["monster_catalog"][0]["base_xp"], 102)
         self.assertEqual(
             decision.snapshot["monster_catalog"][0]["source_kind"], "reference_override"
         )
@@ -642,10 +641,10 @@ class RewardPolicyPostgresTests(PostgresCase):
             )
         self.assertEqual(next_decision.version, 2)
         self.assertEqual(
-            (next_decision.policy.xp, next_decision.policy.kamas), (2211, 0)
+            (next_decision.policy.xp, next_decision.policy.kamas), (265, 0)
         )
 
-    def test_maximum_policy_rates_clamp_packet_and_available_storage_headroom(self):
+    def test_maximum_policy_rates_preserve_storage_and_kamas_packet_caps(self):
         maximum_rate = 99_999_999_999
         max_xp_total = (1 << 63) - 1
         max_kamas_total = (1 << 63) - 1
@@ -692,7 +691,7 @@ class RewardPolicyPostgresTests(PostgresCase):
         self.assertEqual(
             decision.snapshot["native_limits"],
             {
-                "xp_at_packet_limit": True,
+                "xp_at_packet_limit": False,
                 "kamas_at_packet_limit": True,
                 "xp_storage_capped": True,
                 "kamas_storage_capped": True,
@@ -755,7 +754,7 @@ class RewardPolicyPostgresTests(PostgresCase):
                     context=self.ctx,
                     kamas_roll_index=5,
                 )
-                self.assertEqual(decision.policy.xp, 1105)
+                self.assertEqual(decision.policy.xp, 132)
                 raise RuntimeError("injected later reward failure")
         with self.store.connection() as db:
             self.assertIsNone(
@@ -950,42 +949,6 @@ class RewardPolicyPostgresTests(PostgresCase):
                 db.execute(
                     "INSERT INTO combat_reward_monster_levels(monster_reference,monster_level,base_xp,min_kamas,max_kamas,source) VALUES(501,1,10,20,10,'invalid fixture')"
                 )
-
-    def test_migration_defaults_match_the_hashed_dofus_level_export(self):
-        path = (
-            Path(__file__).resolve().parents[1]
-            / "protocol"
-            / "dofus-reward-level-reference.json"
-        )
-        raw = native_catalog.read_bytes(path)
-        digest = hashlib.sha256(raw).hexdigest()
-        data = json.loads(raw)
-        expected = data["defaults_by_level"]
-        self.assertEqual(len(expected), 200)
-        with self.store.connection() as db:
-            actual = db.execute(
-                "SELECT monster_level,base_xp,min_kamas,max_kamas,source "
-                "FROM combat_reward_level_defaults WHERE monster_level BETWEEN 1 AND 200 "
-                "ORDER BY monster_level"
-            ).fetchall()
-        self.assertEqual(len(actual), 200)
-        for row, expected_row in zip(actual, expected):
-            self.assertEqual(
-                (
-                    row["monster_level"],
-                    row["base_xp"],
-                    row["min_kamas"],
-                    row["max_kamas"],
-                ),
-                (
-                    expected_row["level"],
-                    expected_row["base_xp"],
-                    expected_row["min_kamas"],
-                    expected_row["max_kamas"],
-                ),
-            )
-            self.assertIn(f"dofus-level-json-sha256:{digest}", row["source"])
-            self.assertIn(f"source_level:{expected_row['source_level']}", row["source"])
 
 
 if __name__ == "__main__":

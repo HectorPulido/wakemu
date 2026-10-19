@@ -22,17 +22,27 @@ def group_key(definition):
     return recurrence if recurrence in {"daily", "weekly"} else "mission"
 
 
-def ensure_for_character(db, account_id, character_id, level, at=None):
+def ensure_for_character(
+    db, account_id, character_id, level, at=None, *, wait_for_lock=True
+):
+    if type(wait_for_lock) is not bool:
+        raise ValueError("Invalid assignment lock policy")
     at = at or datetime.now(timezone.utc)
     if not db.execute(
         "SELECT 1 FROM sessions WHERE account_id=%s AND character_id=%s AND expires_at>CURRENT_TIMESTAMP",
         (account_id, character_id),
     ).fetchone():
         return 0
-    db.execute(
-        "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
-        ("objective-assignments:" + str(account_id),),
-    )
+    lock_key = "objective-assignments:" + str(account_id)
+    if wait_for_lock:
+        db.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (lock_key,))
+    elif not db.execute(
+        "SELECT pg_try_advisory_xact_lock(hashtextextended(%s,0)) AS locked",
+        (lock_key,),
+    ).fetchone()["locked"]:
+        # A scheduler batch already holds other account locks. Never wait on a
+        # foreground transaction that may need one of them; retry next pass.
+        return 0
     row = db.execute(
         "SELECT value FROM settings WHERE name='objectives_assignment_counts'"
     ).fetchone()
@@ -132,7 +142,9 @@ def ensure_online(db, limit=100):
         if not rows:
             return created
         created += sum(
-            ensure_for_character(db, r["account_id"], r["character_id"], r["level"])
+            ensure_for_character(
+                db, r["account_id"], r["character_id"], r["level"], wait_for_lock=False
+            )
             for r in rows
         )
 

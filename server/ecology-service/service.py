@@ -157,11 +157,16 @@ def merge_bulk_payload(original, fresh):
     for entry in original[field] + fresh[field]:
         key = json_bytes(bulk_entry_key(entry))
         if key in entries:
-            updated = deepcopy(entry)
             original_entry = entries[key]
-            for outcome in ("draw", "group_draw", "child", "member", "grown"):
-                if outcome in original_entry:
-                    updated[outcome] = deepcopy(original_entry[outcome])
+            if fresh["kind"] == "lifecycle_bulk":
+                # A retained draw must be reconstructed against the fresh
+                # roster; copying its old actor snapshot retains stale cells.
+                updated = refresh_stale_decision(original_entry, entry)
+            else:
+                updated = deepcopy(entry)
+                for outcome in ("draw", "group_draw", "child", "member", "grown"):
+                    if outcome in original_entry:
+                        updated[outcome] = deepcopy(original_entry[outcome])
             if isinstance(updated.get("plan"), dict) and isinstance(
                 original_entry.get("plan"), dict
             ):
@@ -259,6 +264,7 @@ def refresh_stale_decision(original, fresh):
             refreshed[key] = deepcopy(original[key])
     if fresh.get("kind") == "maturation" and "configuration" in fresh:
         from wakfu_server import monster_maturation as maturation
+        from wakfu_server import monster_life_plans as life_plans
         from wakfu_server.monsters import owned_instance
 
         parent = next(
@@ -266,11 +272,18 @@ def refresh_stale_decision(original, fresh):
             for member in fresh["expected_members"]
             if member["id"] == fresh["ticket"]["monster_id"]
         )
+        decision = fresh.get("ticket", {}).get("decision", {})
+        choice = (
+            dict(choose=lambda candidates: life_plans.choose(candidates, decision))
+            if isinstance(decision, dict) and "variant_seed" in decision
+            else {}
+        )
         candidate = maturation.choose_next(
             parent["ref"],
             fresh["configuration"],
             draw=refreshed["draw"],
             members=fresh["expected_members"],
+            **choice,
         )
         refreshed["grown"] = (
             None

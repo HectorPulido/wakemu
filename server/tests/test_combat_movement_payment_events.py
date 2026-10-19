@@ -2,6 +2,7 @@
 from copy import deepcopy
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_movement_payment_events import (
@@ -279,3 +280,32 @@ class MovementPaymentTests(unittest.TestCase):
                         policies[0].descriptor(costs), caster_id=7, target_id=7
                     )
                 )
+
+    def test_forged_hour_wp_after_value_is_rejected_before_receipt_publication(self):
+        fight = self.fixture()
+        actor = fight.actors[7]
+        actor.effect_stats = {4: 12}
+        with patch(
+            "wakfu_server.combat_tackle_movement.movement_tackle_cost",
+            return_value=(0, 0),
+        ):
+            fight.move(3, 7, [(1, 0, 0)])
+        with self.assertRaisesRegex(ValueError, "committed movement WP payment"):
+            with committed_step_payment(
+                fight,
+                actor,
+                origin=(0, 0, 0),
+                destination=(1, 0, 0),
+                index=0,
+                ap_before=actor.ap,
+                mp_before=4,
+                ap_paid=0,
+                mp_paid=1,
+                wp_before=12,
+                wp_after=11,
+                wp_paid=1,
+            ):
+                self.fail("A claimed WP debit cannot differ from actual WP")
+        self.assertIsNone(
+            consume_step_payment(fight, actor_id=7, origin=(0, 0, 0), path=[(1, 0, 0)])
+        )

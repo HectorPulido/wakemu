@@ -152,55 +152,82 @@ def learn(store, account_id, generation, character_id, body, *, kind="cosmetic")
         }
 
 
-def learn_item(store, account_id, generation, character_id, body):
-    """Route shared cqd13220 by native item action, never by display item type."""
-    from wakfu_server.haven_bag_furniture_knowledge import learn as learn_furniture
-
-    if not isinstance(body, bytes) or len(body) != 12:
-        raise ValueError("Item learning requires exactly 12 request bytes")
-    action_id, source_uid = struct.unpack(">iq", body)
-    if action_id <= 0 or source_uid <= 0:
-        raise ValueError("Invalid item learning action or item UID")
-    from .inventory_owner import lock_inventory_character, lock_item_owner
-
-    routes = (
-        ("cosmetic", "native_cosmetic_learning_actions", "cosmetic_learning_receipts"),
-        ("title", "native_title_learning_actions", "title_learning_receipts"),
-        ("emote", "native_emote_learning_actions", "emote_learning_receipts"),
+LEARNING_ACTION_CLASSES = frozenset(
+    (
+        "bHv",
+        "bIA",
+        "bIB",
+        "bIs",
+        "bIt",
+        "bIv",
+        "bIw",
+        "bIx",
+        "bIz",
     )
-    with store.connection() as db:
-        db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
-        lock_inventory_character(store, db, account_id, generation, character_id)
-        row = None
-        # A successful request may already have consumed its last source unit.
-        # Dispatch by its account-owned receipt before resolving a live UID.
-        for kind, _, receipt_table in routes:
-            if db.execute(
-                f"SELECT 1 FROM {receipt_table} WHERE account_id=%s AND source_uid=%s",
-                (account_id, source_uid),
-            ).fetchone():
-                row = kind
-                break
-        furniture_receipt = db.execute(
-            "SELECT 1 FROM furniture_learning_receipts WHERE account_id=%s AND source_uid=%s",
-            (account_id, source_uid),
-        ).fetchone()
-        if row is None and furniture_receipt is None:
-            character_id = lock_item_owner(
-                store, db, account_id, generation, character_id, (source_uid,)
-            )
-            for kind, action_table, _ in routes:
-                if db.execute(
-                    f"SELECT 1 FROM inventory_items i JOIN {action_table} n "
-                    "ON n.item_ref=i.reference WHERE i.uid=%s AND i.character_id=%s",
-                    (source_uid, character_id),
-                ).fetchone():
-                    row = kind
-                    break
-    if row == "emote":
-        from wakfu_server.emote_learning import learn as learn_emote
+)
 
-        return learn_emote(store, account_id, generation, character_id, body)
-    if row in ("cosmetic", "title"):
-        return learn(store, account_id, generation, character_id, body, kind=row)
-    return learn_furniture(store, account_id, generation, character_id, body)
+
+def request_action_class(body):
+    """Classify original cqd13220 by its native action and exact suffix grammar.
+
+    bHv appends a selected equipment UID. The other eight learning classes
+    append nothing; bIi alone uses the existing planting coordinate suffix.
+    Neither unknown actions nor malformed learning requests enter planting.
+    """
+    if not isinstance(body, bytes) or len(body) not in (12, 20):
+        raise ValueError("Invalid native item action request size")
+    action_id, source_uid = struct.unpack_from(">iq", body)
+    if action_id <= 0 or source_uid <= 0:
+        raise ValueError("Invalid native item action or source UID")
+    from wakfu_server.haven_bag_furniture_knowledge import _rules
+
+    classes = {
+        row.get("use_action_class")
+        for row in _rules().values()
+        if row.get("use_action_id") == action_id
+    }
+    if len(classes) != 1:
+        raise ValueError("Unknown or ambiguous native item action")
+    native_class = classes.pop()
+    if native_class not in LEARNING_ACTION_CLASSES and native_class != "bIi":
+        raise ValueError("Unsupported native inventory action")
+    expected_size = 20 if native_class in ("bHv", "bIi") else 12
+    if len(body) != expected_size:
+        raise ValueError("Native item action request suffix does not match its class")
+    if native_class == "bHv" and struct.unpack_from(">q", body, 12)[0] <= 0:
+        raise ValueError("Invalid native mimic target UID")
+    return native_class
+
+
+def learn_item(store, account_id, generation, character_id, body):
+    """Dispatch cqd13220 by native class; each domain owns custody and replay.
+
+    The immutable action class is available even after consumption. Domain
+    handlers still lock the current lease/actual item or its account receipt,
+    so classification grants neither inventory ownership nor knowledge.
+    """
+    native_class = request_action_class(body)
+    if native_class == "bIi":
+        raise ValueError("Planting requires its native location authority")
+    if native_class in ("bIs", "bIt"):
+        return learn(
+            store,
+            account_id,
+            generation,
+            character_id,
+            body,
+            kind="title" if native_class == "bIs" else "cosmetic",
+        )
+    from importlib import import_module
+
+    module = {
+        "bHv": "mimisymbic_learning",
+        "bIA": "haven_ranch_building_knowledge",
+        "bIB": "recipe_learning",
+        "bIv": "haven_bag_view_learning",
+        "bIw": "emote_learning",
+        "bIx": "haven_bag_furniture_knowledge",
+        "bIz": "recipe_learning",
+    }[native_class]
+    handler = import_module("wakfu_server." + module).learn
+    return handler(store, account_id, generation, character_id, body)

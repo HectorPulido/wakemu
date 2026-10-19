@@ -10,7 +10,7 @@ import time
 import os
 from collections import deque
 from contextlib import nullcontext
-from copy import deepcopy
+from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from threading import Lock, RLock
 from .combat_multiplayer_wire import decode_join, added
@@ -57,6 +57,14 @@ class Transition:
     packets: tuple
 
 
+@dataclass(frozen=True, eq=False)
+class PendingWorldRecovery:
+    """In-memory provenance for a fresh world login taking over terminal PvE."""
+
+    session: object
+    fight_id: int
+
+
 @dataclass
 class SharedFight:
     fight: object
@@ -84,6 +92,7 @@ class SharedFight:
     checkpoint_terminal: bool = False
     disconnect_abort_pending: bool = False
     withdrawals: dict = field(default_factory=dict)
+    pending_world_recoveries: dict = field(default_factory=dict)
 
     def seed_checkpoint_revision(self, revision):
         """Initialize from a socket read without regressing a newer revision."""
@@ -519,12 +528,16 @@ class Registry:
                 self._remove_locked(self, shared)
                 return True
 
-    def lookup(self, fight_id):
-        with self.lock:
+    def lookup(self, fight_id, *, blocking=True):
+        if not self.lock.acquire(blocking=blocking):
+            return None
+        try:
             shared = self.fights.get(fight_id)
             if shared is None:
                 raise ValueError("Unknown shared fight")
             return shared
+        finally:
+            self.lock.release()
 
     def retire_unpublished_rift(self, fight_id):
         """Forget a failed initial party setup after its durable abort.
@@ -1014,6 +1027,42 @@ class Registry:
                     incident.result(True)
                 return True
 
+    def recover_timeline(self, fight_id, session, body, *, now_ms):
+        """Publish one explicit native coX recovery consistently to all owners.
+
+        A private socket must not clear shared presentation or advance shared
+        native action IDs without giving every peer the replacement timeline.
+        This supersedes ACK presentation explicitly; it never fabricates13510.
+        """
+        shared = self.lookup(fight_id)
+        with shared.lock:
+            self._member(shared, session)
+            candidate, runtime = deepcopy((shared.fight, shared.runtime))
+            packets = runtime.recover(
+                session.account_id,
+                body,
+                now_ms=now_ms,
+                preserve_armed_deadline=True,
+            )
+            if not packets:
+                return False
+            view = copy(shared)
+            view.ack = deepcopy(shared.ack)
+            view.ack.cancel_for_recovery()
+            prepared = self._prepare_publication(
+                view,
+                candidate,
+                runtime,
+                packets,
+                operation="Registry.recover_timeline",
+            )
+            shared.fight = prepared.fight
+            shared.runtime = prepared.runtime
+            shared.ack = prepared.ack
+            self._retire_join_aliases_locked(shared)
+            self._broadcast(shared, prepared.packets)
+            return True
+
     def expire_current_turn(self, fight_id, session, *, now_ms):
         """Run a timed shared turn end once and publish it to the whole roster.
 
@@ -1076,6 +1125,8 @@ class Registry:
         shared = self.lookup(fight_id)
         with shared.lock:
             self._member(shared, session)
+            if session.account_id in shared.pending_world_recoveries:
+                return []
             queue = shared.outboxes[session.account_id]
             batches = list(queue)
             queue.clear()
@@ -1083,18 +1134,25 @@ class Registry:
                 self._observe_delivery("record_drain", fight_id, session, batches)
             return batches
 
-    def dispatch_connected(self, fight_id, deliver):
+    def dispatch_connected(self, fight_id, deliver, *, blocking=True):
         """Drain and deliver every connected owner's batches in sequence order.
 
         The per-fight dispatch lock serializes socket batches, while the fight
         and Registry locks are released before ``deliver`` performs I/O.
+        Nonblocking idle polls return None when busy and leave queues intact.
         """
-        shared = self.lookup(fight_id)
-        with shared.dispatch_lock:
+        shared = self.lookup(fight_id, blocking=blocking)
+        if shared is None or not shared.dispatch_lock.acquire(blocking=blocking):
+            return None
+        try:
             dispatch_observation = None
-            with shared.lock:
+            if not shared.lock.acquire(blocking=blocking):
+                return None
+            try:
                 recipients = []
                 for account in sorted(shared.connected):
+                    if account in shared.pending_world_recoveries:
+                        continue
                     session = shared.participants.get(account)
                     queue = shared.outboxes.get(account)
                     if session is None or queue is None or not queue:
@@ -1106,6 +1164,8 @@ class Registry:
                     dispatch_observation = self._observe_delivery(
                         "begin_dispatch", fight_id, recipients
                     )
+            finally:
+                shared.lock.release()
             failure = None
             for session, batches in recipients:
                 try:
@@ -1136,6 +1196,8 @@ class Registry:
             if failure is not None:
                 raise failure
             return tuple(session for session, _ in recipients)
+        finally:
+            shared.dispatch_lock.release()
 
     def publish(self, fight_id, session, packets):
         """Append one public ordered batch for every connected participant."""
@@ -1152,6 +1214,7 @@ class Registry:
         *,
         persist_takeover=None,
         recover_disconnected=False,
+        fresh_world=False,
     ):
         self._live(session)
         shared = self.lookup(fight_id)
@@ -1178,6 +1241,13 @@ class Registry:
                 raise ValueError("Session already current")
             if self._lease_live(previous):
                 raise ValueError("Previous combat owner lease still live")
+            if fresh_world and (
+                shared.fight.phase != "finished"
+                or shared.settlement_ready
+                or getattr(shared, "is_duel", False)
+                or getattr(shared.runtime, "abandon_owner", None) is not None
+            ):
+                raise ValueError("Fresh world recovery requires unsettled terminal PvE")
             from .combat_delivery_boundary import prepare_reconnect
 
             prepared = prepare_reconnect(
@@ -1188,6 +1258,8 @@ class Registry:
                 now_ms=int(time.time() * 1000),
             )
             packets = prepared.packets
+            if fresh_world and packets:
+                raise ValueError("Fresh world recovery cannot bootstrap native combat")
             recover_pending_turn = prepared.recovered_pending_turn
             candidate, candidate_runtime, candidate_ack = (
                 prepared.fight,
@@ -1211,6 +1283,10 @@ class Registry:
                 shared.reconnect_turn_end_packets = None
                 shared.reconnect_remaining_turn_seconds = None
             shared.participants[session.account_id] = session
+            if fresh_world:
+                shared.pending_world_recoveries[
+                    session.account_id
+                ] = PendingWorldRecovery(session, fight_id)
             if recover_disconnected:
                 remaining = getattr(shared, "reconnect_remaining_turn_seconds", None)
                 if remaining is not None:
@@ -1744,7 +1820,7 @@ class Registry:
             if self.by_actor.get(actor.id) == fight_id:
                 self.by_actor.pop(actor.id, None)
 
-    def recover_settled_world(self, session, persist):
+    def recover_settled_world(self, session, persist, *, pending_world_recovery=None):
         """Complete one settled PvE owner directly into a freshly loaded world.
 
         A new world login has no native fight model to consume cached terminal
@@ -1763,23 +1839,34 @@ class Registry:
             shared.lock.acquire()
         try:
             previous = shared.participants.get(session.account_id)
+            current_recovery = (
+                pending_world_recovery is not None
+                and shared.pending_world_recoveries.get(session.account_id)
+                is pending_world_recovery
+                and previous == session
+                and session.account_id in shared.connected
+            )
+            if pending_world_recovery is not None and not current_recovery:
+                raise ValueError("Stale or foreign pending world recovery")
             if (
                 previous is None
                 or previous.character_id != session.character_id
                 or previous.generation == session.generation
+                and not current_recovery
                 or session.account_id in shared.returned
                 or not shared.settlement_ready
                 or shared.fight.phase != "finished"
                 or getattr(shared, "is_duel", False)
             ):
                 return None
-            if self._lease_live(previous):
+            if not current_recovery and self._lease_live(previous):
                 raise ValueError("Previous settled owner lease is still live")
             result = persist(previous, shared)
             shared.participants[session.account_id] = session
             shared.returned.add(session.account_id)
             shared.connected.discard(session.account_id)
             shared.outboxes[session.account_id].clear()
+            shared.pending_world_recoveries.pop(session.account_id, None)
         finally:
             shared.lock.release()
 

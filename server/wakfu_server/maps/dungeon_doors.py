@@ -98,7 +98,7 @@ def resolve(
     return source_room, destination_room, dict(destination)
 
 
-def advance(
+def _advance(
     store,
     account_id,
     generation,
@@ -110,6 +110,7 @@ def advance(
     in_fight,
     topology=None,
     on_arrival=None,
+    allowed_position_accounts=None,
 ):
     """Move the active party atomically within its authorized room frontier.
 
@@ -169,6 +170,10 @@ def advance(
             raise ValueError("Dungeon run cannot advance through a door")
         if [member["id"] for member in members] != member_ids:
             raise ValueError("Dungeon roster changed during door travel")
+        if allowed_position_accounts is not None and any(
+            member["account_id"] not in allowed_position_accounts for member in members
+        ):
+            raise ValueError("Dungeon door party changed outside position barrier")
         actor = next(
             (member for member in members if member["id"] == character_id), None
         )
@@ -278,3 +283,47 @@ def advance(
             transition_kind="door",
             members=tuple(member_ids),
         )
+
+
+def advance(
+    store,
+    account_id,
+    generation,
+    character_id,
+    body,
+    *,
+    source_allowed,
+    room_for_position,
+    in_fight,
+    topology=None,
+    on_arrival=None,
+    positions=None,
+):
+    """Travel through a door with the complete instance's positions fenced."""
+
+    def transition(allowed_accounts=None):
+        return _advance(
+            store,
+            account_id,
+            generation,
+            character_id,
+            body,
+            source_allowed=source_allowed,
+            room_for_position=room_for_position,
+            in_fight=in_fight,
+            topology=topology,
+            on_arrival=on_arrival,
+            allowed_position_accounts=allowed_accounts,
+        )
+
+    if positions is None:
+        return transition()
+    from .dungeon_position_barrier import run_manual_transition
+
+    return run_manual_transition(
+        store,
+        positions,
+        account_id,
+        character_id,
+        transition=transition,
+    )

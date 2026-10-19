@@ -120,3 +120,17 @@ def area_application(
         13497,
         struct.pack(">iiiih", fight_id, action_id, -1, effect_class, len(body)) + body,
     )
+
+
+def area_retirement(fight_id, action_id, area_uid):
+    """Native13726 cvE/cjp/aTW retires one actual Qs area and its visuals."""
+    if (
+        any(
+            type(value) is not int or not 0 < value < 1 << 31
+            for value in (fight_id, action_id)
+        )
+        or type(area_uid) is not int
+        or not 0 < area_uid < 1 << 63
+    ):
+        raise ValueError("Invalid native area retirement identity")
+    return 13726, struct.pack(">iiiq", fight_id, action_id, -1, area_uid)

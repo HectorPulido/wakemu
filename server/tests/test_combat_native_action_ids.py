@@ -54,6 +54,23 @@ class NativeActionIdTests(unittest.TestCase):
             [body[12:] for _, body in packets], [body[12:] for _, body in original]
         )
 
+    def test_multiple_area_retirements_receive_distinct_native_ids_and_keep_uids(self):
+        original = [
+            (13726, struct.pack(">iiiq", 91, 228, -1, uid))
+            for uid in (8101, 8102, 8103)
+        ]
+        packets, last = prepare_native_delivery(original, fight_id=91, previous_id=72)
+        self.assertEqual(last, 75)
+        self.assertEqual(
+            [struct.unpack_from(">i", body, 4)[0] for _, body in packets],
+            [73, 74, 75],
+        )
+        self.assertEqual(
+            [struct.unpack_from(">q", body, 12)[0] for _, body in packets],
+            [8101, 8102, 8103],
+        )
+        self.assertEqual([opcode for opcode, _ in packets], [13726] * 3)
+
     def test_unique_actions_preserve_payload_identity_and_turn_ack(self):
         original = self.block()
         packets, last = prepare_native_delivery(original, fight_id=91, previous_id=70)

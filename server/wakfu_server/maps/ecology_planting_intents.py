@@ -32,7 +32,8 @@ class EcologyPlantingIntents:
                 )
                 db.execute(
                     "INSERT INTO ecology_planting_intents(id,world_epoch,account_id,generation,"
-                    "character_id,body,actor_location) VALUES(%s,%s,%s,%s,%s,%s,%s)",
+                    "character_id,body,actor_location,created_at) "
+                    "VALUES(%s,%s,%s,%s,%s,%s,%s,clock_timestamp())",
                     (
                         identity,
                         self.world_epoch,
@@ -127,15 +128,18 @@ def prepare_intents(store, snapshot, *, limit=4):
     from wakfu_server.planting_cells import authorize
     from wakfu_server.combat_geometry import published_geometry
     from wakfu_server.haven_bag_garden import (
-        active_character,
         is_private_garden,
         authorize as garden_authorize,
     )
+    from wakfu_server.planting_location import active_character
     from wakfu_server.planting_probability import resolver
     from wakfu_server.planting_bonus import current
 
     if type(limit) is not int or not 1 <= limit <= 64:
         raise ValueError("Invalid planting intent batch")
+    started_at_ms = snapshot.get("started_at_ms")
+    if type(started_at_ms) is not int or not 0 < started_at_ms < 2**53:
+        raise ValueError("Missing or invalid planting snapshot start time")
     players = snapshot.get("players", ())
     open_policy = snapshot.get("open_planting", True)
     probability = resolver(
@@ -145,8 +149,9 @@ def prepare_intents(store, snapshot, *, limit=4):
     with store.connection() as db:
         rows = db.execute(
             "SELECT * FROM ecology_planting_intents WHERE world_epoch=%s AND status='pending' "
+            "AND created_at < to_timestamp(%s / 1000.0) "
             "ORDER BY intent_version LIMIT %s",
-            (snapshot["world_epoch"], limit),
+            (snapshot["world_epoch"], started_at_ms, limit),
         ).fetchall()
     for row in rows:
         envelope = dict(
@@ -199,7 +204,10 @@ def prepare_intents(store, snapshot, *, limit=4):
                 authorize_cell=authorize_cell,
                 open_test_policy=open_policy,
                 location_context=lambda stored: active_character(
-                    stored, players, store=store
+                    stored,
+                    players,
+                    store=store,
+                    expected_location=row["actor_location"],
                 ),
                 read_only=True,
             )

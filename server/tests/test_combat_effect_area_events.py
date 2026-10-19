@@ -304,7 +304,11 @@ class AreaEventTests(unittest.TestCase):
 
     def test_null_removal_entry_does_not_invent_coordinates_or_owner(self):
         runtime, row, calls = self.fixture("GLYPH", (10011,))
-        row["remaining_activations"] = 1
+        row.update(
+            remaining_activations=1,
+            native_qq_bhi=False,
+            native_qq_guard_source="Qq.constructor",
+        )
         self.assertEqual(runtime.removed(row), (True,))
         self.assertEqual(row["remaining_activations"], 0)
         self.assertEqual(calls, [])

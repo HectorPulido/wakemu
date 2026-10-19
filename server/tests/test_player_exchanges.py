@@ -9,6 +9,8 @@ from psycopg.types.json import Jsonb
 
 from wakfu_server import player_exchanges
 from wakfu_server.inventory_items import grant
+from wakfu_server import inventory_shards, exchange_snapshot
+from wakfu_server.exchange_wire import item as exchange_item
 from wakfu_server.wire import proto_field
 
 
@@ -1081,6 +1083,158 @@ class PlayerExchangeInvitationTests(PostgresCase):
                 0,
             )
 
+    def test_native_shard_item_offer_rolls_back_replays_bilaterally_and_transfers_exact_state(
+        self,
+    ):
+        inviter, invitee = self.player("shardofferfrom"), self.player("shardofferto")
+        exchange = self.active_exchange(inviter, invitee)
+        item = self.grant_item(inviter, 12)
+        shard_state = proto_field(
+            10,
+            proto_field(80, 1)
+            + proto_field(88, 2468)
+            + proto_field(96, 4)
+            + proto_field(112, 2),
+        )
+        with self.store.connection() as db:
+            inventory_shards.save(db, item["uid"], shard_state)
+
+        revision_before = self.fetchone(
+            "SELECT revision,delivery_sequence FROM player_exchanges WHERE id=%s",
+            (exchange["id"],),
+        )
+        outbox_before = self.fetchone(
+            "SELECT count(*) AS n FROM player_exchange_outbox WHERE exchange_id=%s",
+            (exchange["id"],),
+        )["n"]
+
+        # A serialization error while producing the durable outbox must roll
+        # back the offer mutation. A retry with the real JSONB encoder succeeds.
+        with patch(
+            "wakfu_server.player_exchanges.Jsonb",
+            side_effect=TypeError("injected JSON serialization failure"),
+        ):
+            with self.assertRaisesRegex(
+                TypeError, "injected JSON serialization failure"
+            ):
+                player_exchanges.offer_item(
+                    self.store,
+                    inviter["account"],
+                    inviter["generation"],
+                    inviter["character"]["id"],
+                    exchange["id"],
+                    item["uid"],
+                    1,
+                )
+        self.assertEqual(
+            revision_before,
+            self.fetchone(
+                "SELECT revision,delivery_sequence FROM player_exchanges WHERE id=%s",
+                (exchange["id"],),
+            ),
+        )
+        self.assertEqual(
+            outbox_before,
+            self.fetchone(
+                "SELECT count(*) AS n FROM player_exchange_outbox WHERE exchange_id=%s",
+                (exchange["id"],),
+            )["n"],
+        )
+        self.assertIsNone(
+            self.fetchone(
+                "SELECT uid FROM player_exchange_items WHERE exchange_id=%s AND uid=%s",
+                (exchange["id"], item["uid"]),
+            )
+        )
+
+        changed = player_exchanges.offer_item(
+            self.store,
+            inviter["account"],
+            inviter["generation"],
+            inviter["character"]["id"],
+            exchange["id"],
+            item["uid"],
+            1,
+        )
+        self.assertEqual(revision_before["revision"] + 1, changed["revision"])
+        outbox = self.fetchall(
+            "SELECT character_id,payload FROM player_exchange_outbox "
+            "WHERE exchange_id=%s AND revision=%s ORDER BY character_id",
+            (exchange["id"], changed["revision"]),
+        )
+        self.assertEqual(2, len(outbox))
+        expected_wire = exchange_item(
+            exchange["id"],
+            inviter["character"]["id"],
+            {
+                "uid": item["uid"],
+                "character_id": inviter["character"]["id"],
+                "reference": 12,
+                "quantity": 1,
+                "shard_state": shard_state,
+            },
+            1,
+        )
+        for row in outbox:
+            payload = row["payload"]
+            self.assertEqual(
+                shard_state.hex(), payload["items"][0]["unit"]["shard_state_hex"]
+            )
+            self.assertNotIn("shard_state", payload["items"][0]["unit"])
+            self.assertEqual(
+                [expected_wire],
+                [
+                    packet
+                    for packet in exchange_snapshot.packets(
+                        exchange["id"], changed["revision"], payload
+                    )
+                    if packet == expected_wire
+                ],
+            )
+
+        self.publish_current(exchange, inviter, invitee)
+        first = player_exchanges.confirm(
+            self.store,
+            inviter["account"],
+            inviter["generation"],
+            inviter["character"]["id"],
+            exchange["id"],
+        )
+        self.assertFalse(first["applied"])
+        self.assertEqual(
+            inviter["character"]["id"],
+            self.fetchone(
+                "SELECT character_id FROM inventory_items WHERE uid=%s", (item["uid"],)
+            )["character_id"],
+        )
+        done = player_exchanges.confirm(
+            self.store,
+            invitee["account"],
+            invitee["generation"],
+            invitee["character"]["id"],
+            exchange["id"],
+        )
+        self.assertTrue(done["applied"])
+        self.assertEqual(
+            invitee["character"]["id"],
+            self.fetchone(
+                "SELECT character_id FROM inventory_items WHERE uid=%s", (item["uid"],)
+            )["character_id"],
+        )
+        with self.store.connection() as db:
+            hydrated = inventory_shards.hydrate(
+                db,
+                [
+                    dict(
+                        self.fetchone(
+                            "SELECT uid,character_id,reference,quantity FROM inventory_items WHERE uid=%s",
+                            (item["uid"],),
+                        )
+                    )
+                ],
+            )[0]
+        self.assertEqual(shard_state, hydrated["shard_state"])
+
     def test_offer_snapshot_rolls_back_if_an_offered_unit_disappeared(self):
         inviter, invitee = self.player("vanishedofferfrom"), self.player(
             "vanishedofferto"
@@ -1358,6 +1512,116 @@ class PlayerExchangeInvitationTests(PostgresCase):
             self.fetchone(
                 "SELECT uid FROM inventory_item_bindings WHERE uid=%s", (second["uid"],)
             )
+        )
+
+    def test_bulk_offer_rejects_bad_duplicate_equipped_and_overflow_selections_atomically(
+        self,
+    ):
+        inviter, invitee = self.player("bulkfrom"), self.player("bulkto")
+        exchange = self.active_exchange(inviter, invitee)
+        first = self.grant_item(inviter, 12, quantity=3, slot=0)
+        second = self.grant_item(inviter, 12, quantity=2, slot=1)
+        equipped = self.grant_item(inviter, 12, quantity=1, slot=2)
+        equipment = proto_field(
+            10, proto_field(8, equipped["uid"]) + proto_field(16, 0)
+        )
+        sheet = b"".join(
+            proto_field(tag, value)
+            for tag, value in ((8, 2), (18, b"Inactive gear"), (24, 1), (56, 0))
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO character_builds(character_id,build_index,sheet,equipment,deck,aptitudes) "
+                "VALUES(%s,2,%s,%s,%s,%s)",
+                (inviter["character"]["id"], sheet, equipment, b"", b""),
+            )
+
+        before = self.fetchone(
+            "SELECT revision,delivery_sequence FROM player_exchanges WHERE id=%s",
+            (exchange["id"],),
+        )
+        outbox_before = self.fetchone(
+            "SELECT count(*) AS n FROM player_exchange_outbox WHERE exchange_id=%s",
+            (exchange["id"],),
+        )["n"]
+        invalid_batches = (
+            ([first["uid"], first["uid"]], "Duplicate"),
+            ([first["uid"], 9876543210123], "unavailable or foreign"),
+            ([first["uid"], second["uid"], equipped["uid"]], "every build"),
+        )
+        for uids, message in invalid_batches:
+            with self.subTest(uids=uids), self.assertRaisesRegex(ValueError, message):
+                player_exchanges.offer_items(
+                    self.store,
+                    inviter["account"],
+                    inviter["generation"],
+                    inviter["character"]["id"],
+                    exchange["id"],
+                    uids,
+                )
+            self.assertEqual(
+                before,
+                self.fetchone(
+                    "SELECT revision,delivery_sequence FROM player_exchanges WHERE id=%s",
+                    (exchange["id"],),
+                ),
+            )
+            self.assertEqual(
+                outbox_before,
+                self.fetchone(
+                    "SELECT count(*) AS n FROM player_exchange_outbox WHERE exchange_id=%s",
+                    (exchange["id"],),
+                )["n"],
+            )
+            self.assertEqual(
+                0,
+                self.fetchone(
+                    "SELECT count(*) AS n FROM player_exchange_items WHERE exchange_id=%s",
+                    (exchange["id"],),
+                )["n"],
+            )
+            self.assertIsNone(
+                self.fetchone(
+                    "SELECT uid FROM inventory_item_bindings WHERE uid=%s",
+                    (first["uid"],),
+                )
+            )
+
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='player_exchange_policy'",
+                (
+                    Jsonb(
+                        {
+                            "version": 1,
+                            "invitation_seconds": 60,
+                            "maximum_offer_items": 2,
+                        }
+                    ),
+                ),
+            )
+        with self.assertRaisesRegex(ValueError, "offer is full"):
+            player_exchanges.offer_items(
+                self.store,
+                inviter["account"],
+                inviter["generation"],
+                inviter["character"]["id"],
+                exchange["id"],
+                [first["uid"], second["uid"], equipped["uid"]],
+            )
+        self.assertEqual(
+            before,
+            self.fetchone(
+                "SELECT revision,delivery_sequence FROM player_exchanges WHERE id=%s",
+                (exchange["id"],),
+            ),
+        )
+        self.assertEqual(
+            outbox_before,
+            self.fetchone(
+                "SELECT count(*) AS n FROM player_exchange_outbox WHERE exchange_id=%s",
+                (exchange["id"],),
+            )["n"],
         )
 
     def test_bulk_withdrawal_validates_every_uid_before_removing_any_offer(self):

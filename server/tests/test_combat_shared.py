@@ -7,7 +7,12 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 from protocol_codec import decode_body
 from wakfu_server.combat_state import Actor, Fight
-from wakfu_server.combat_shared import Registry, Session, Transition
+from wakfu_server.combat_shared import (
+    PendingWorldRecovery,
+    Registry,
+    Session,
+    Transition,
+)
 from wakfu_server.combat_multiplayer_wire import (
     decode_added,
     decode_join,
@@ -794,11 +799,11 @@ class SharedCombatTests(unittest.TestCase):
             if isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
             and node.func.attr == "join"
-            and any(
-                isinstance(arg, ast.Name) and arg.id == "combat_session"
-                for arg in node.args
-            )
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "COMBAT_SESSIONS"
         )
+        self.assertIsInstance(join_call.args[0], ast.Name)
+        self.assertEqual(join_call.args[0].id, "candidate_session")
         expected = next(
             keyword.value
             for keyword in join_call.keywords
@@ -917,6 +922,74 @@ class SharedCombatTests(unittest.TestCase):
         self.assertEqual(len(delivered), 1)
         self.assertEqual(delivered[0][0], self.two)
         self.assertEqual(delivered[0][1][0].packets, ((12755, b"owner-result"),))
+
+    def test_nonblocking_idle_dispatch_defers_busy_locks_without_losing_batches(self):
+        self.join()
+        self.registry.drain(99, self.one)
+        self.registry.drain(99, self.two)
+        self.registry.publish(99, self.one, ((13482, b"first"),))
+        expected = {
+            account: tuple(queue) for account, queue in self.shared.outboxes.items()
+        }
+        delivered = []
+
+        for name, lock in (
+            ("registry", self.registry.lock),
+            ("dispatch", self.shared.dispatch_lock),
+            ("fight", self.shared.lock),
+        ):
+            with self.subTest(lock=name):
+                entered, release = threading.Event(), threading.Event()
+
+                def hold():
+                    with lock:
+                        entered.set()
+                        self.assertTrue(release.wait(3))
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                    held = pool.submit(hold)
+                    try:
+                        self.assertTrue(entered.wait(1))
+                        poll = pool.submit(
+                            self.registry.dispatch_connected,
+                            99,
+                            lambda *args: delivered.append(args),
+                            blocking=False,
+                        )
+                        # Completing while the other worker still holds the
+                        # lock proves the reader is not parked behind combat.
+                        self.assertIsNone(poll.result(timeout=0.5))
+                        self.assertFalse(release.is_set())
+                        self.assertEqual(delivered, [])
+                        self.assertEqual(
+                            {
+                                account: tuple(queue)
+                                for account, queue in self.shared.outboxes.items()
+                            },
+                            expected,
+                        )
+                        if name == "fight":
+                            self.assertTrue(self.shared.dispatch_lock.acquire(False))
+                            self.shared.dispatch_lock.release()
+                    finally:
+                        release.set()
+                        held.result(timeout=1)
+
+        self.registry.publish(99, self.one, ((13482, b"second"),))
+        owners = self.registry.dispatch_connected(
+            99, lambda *args: delivered.append(args), blocking=False
+        )
+        self.assertEqual(owners, (self.one, self.two))
+        for owner, batches in delivered:
+            self.assertEqual(
+                tuple(packet for batch in batches for packet in batch.packets),
+                ((13482, b"first"), (13482, b"second")),
+            )
+            self.assertEqual(batches[1].sequence, batches[0].sequence + 1)
+        # A successful poll of empty queues differs from a deferred busy poll.
+        self.assertEqual(
+            self.registry.dispatch_connected(99, lambda *args: None, blocking=False), ()
+        )
 
     def test_concurrent_drainers_preserve_batch_sequence_without_registry_lock_io(self):
         self.join()
@@ -1411,6 +1484,264 @@ class SharedCombatTests(unittest.TestCase):
         self.assertIs(self.registry.lookup_character(10), self.shared)
         self.assertEqual(self.shared.participants[1], self.one)
         self.assertIn(1, self.shared.connected)
+
+    def test_fresh_world_takeover_defers_outbox_then_recovers_after_settlement(self):
+        self.join()
+        self.registry.drain(99, self.one)
+        self.registry.drain(99, self.two)
+        self.shared.fight.phase = "finished"
+        self.shared.fight.winner = 0
+        self.live.remove(self.one)
+        replacement = Session(1, 10, "world-relogin", 1134, 0)
+        self.live.add(replacement)
+
+        self.registry.takeover(
+            99,
+            replacement,
+            lambda *args: (),
+            persist_takeover=lambda previous: self.assertEqual(previous, self.one),
+            recover_disconnected=True,
+            fresh_world=True,
+        )
+        token = self.shared.pending_world_recoveries[1]
+        self.assertIsInstance(token, PendingWorldRecovery)
+        self.assertIs(token.session, replacement)
+        self.assertEqual(token.fight_id, 99)
+        with self.assertRaisesRegex(ValueError, "session"):
+            self.registry.recover_settled_world(self.one, lambda *_: {"ok": True})
+
+        # The reconnecting socket must not receive cached combat/outbox data,
+        # while the still-connected peer continues to receive its own events.
+        self.registry.publish(99, replacement, ((12847, b"post-reconnect"),))
+        self.assertEqual(self.registry.drain(99, replacement), [])
+        delivered = []
+        self.registry.dispatch_connected(
+            99, lambda owner, batches: delivered.append((owner, batches))
+        )
+        self.assertEqual([owner for owner, _ in delivered], [self.two])
+        self.assertEqual(delivered[0][1][0].packets, ((12847, b"post-reconnect"),))
+
+        result_batches = {
+            1: ((12755, b"owner-result"),),
+            2: ((12755, b"peer-result"),),
+        }
+        self.assertTrue(
+            self.registry.settle_finished(
+                99, replacement, lambda _shared: result_batches
+            )
+        )
+        self.assertTrue(self.shared.settlement_ready)
+        self.assertEqual(self.registry.drain(99, replacement), [])
+
+        # Same-generation recovery without its provenance and copied/foreign
+        # tokens cannot retire the combat owner or clear its outbox.
+        self.assertIsNone(
+            self.registry.recover_settled_world(replacement, lambda *_: {"ok": True})
+        )
+        foreign = PendingWorldRecovery(self.two, 99)
+        with self.assertRaisesRegex(ValueError, "Stale or foreign"):
+            self.registry.recover_settled_world(
+                replacement, lambda *_: {"ok": True}, pending_world_recovery=foreign
+            )
+        self.assertTrue(self.shared.outboxes[1])
+        self.assertEqual(self.registry.by_character[10], 99)
+
+        calls = []
+
+        def fail_persist(previous, shared):
+            calls.append((previous, shared))
+            raise RuntimeError("injected return persistence failure")
+
+        with self.assertRaisesRegex(RuntimeError, "injected return"):
+            self.registry.recover_settled_world(
+                replacement, fail_persist, pending_world_recovery=token
+            )
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(self.shared.participants[1], replacement)
+        self.assertIn(1, self.shared.connected)
+        self.assertIs(self.shared.pending_world_recoveries[1], token)
+        self.assertTrue(self.shared.outboxes[1])
+        self.assertEqual(self.registry.by_character[10], 99)
+
+        recovered = self.registry.recover_settled_world(
+            replacement,
+            lambda previous, shared: {
+                "previous": previous,
+                "fight_id": shared.fight.id,
+            },
+            pending_world_recovery=token,
+        )
+        self.assertEqual(recovered["previous"], replacement)
+        self.assertEqual(recovered["fight_id"], 99)
+        self.assertNotIn(1, self.shared.pending_world_recoveries)
+        self.assertNotIn(1, self.shared.connected)
+        self.assertFalse(self.shared.outboxes[1])
+        self.assertNotIn(10, self.registry.by_character)
+        # The participant can enter a new fight even while the peer retains
+        # the old terminal result; retiring the old fight cannot erase it.
+        newer = Fight(
+            100,
+            [
+                Actor(10, 0, (0, 0, 0), 60, 6, 3, 100, 1, 1, True),
+                Actor(-300, 1, (1, 0, 0), 20, 4, 2, 1, 1),
+            ],
+            {(0, 0, 0), (1, 0, 0)},
+            {0: {(0, 0, 0)}, 1: {(1, 0, 0)}},
+        )
+        new_shared = self.registry.register(newer, replacement)
+        self.assertIs(self.registry.lookup_character(10), new_shared)
+        self.assertEqual(self.registry.by_character[10], 100)
+        with self.assertRaisesRegex(ValueError, "Stale or foreign"):
+            self.registry.recover_settled_world(
+                replacement, lambda *_: {"ok": True}, pending_world_recovery=token
+            )
+        self.assertTrue(self.registry.mark_returned(99, self.two))
+        self.assertIs(self.registry.fights[100], new_shared)
+
+    def test_fresh_world_takeover_guard_keeps_duel_settled_and_abandon_paths(self):
+        self.join()
+        self.live.remove(self.one)
+        replacement = Session(1, 10, "guarded", 1134, 0)
+        self.live.add(replacement)
+
+        self.shared.fight.phase = "finished"
+        self.shared.settlement_ready = True
+        with self.assertRaisesRegex(ValueError, "unsettled terminal PvE"):
+            self.registry.takeover(
+                99,
+                replacement,
+                lambda *args: (),
+                persist_takeover=lambda _previous: None,
+                recover_disconnected=True,
+                fresh_world=True,
+            )
+        self.assertEqual(self.shared.participants[1], self.one)
+        self.assertNotIn(1, self.shared.pending_world_recoveries)
+
+        self.shared.settlement_ready = False
+        self.shared.is_duel = True
+        with self.assertRaisesRegex(ValueError, "unsettled terminal PvE"):
+            self.registry.takeover(
+                99,
+                replacement,
+                lambda *args: (),
+                persist_takeover=lambda _previous: None,
+                recover_disconnected=True,
+                fresh_world=True,
+            )
+        self.shared.is_duel = False
+        self.shared.runtime = SimpleNamespace(abandon_owner=(1, 10))
+        with self.assertRaisesRegex(ValueError, "unsettled terminal PvE"):
+            self.registry.takeover(
+                99,
+                replacement,
+                lambda *args: (),
+                persist_takeover=lambda _previous: None,
+                recover_disconnected=True,
+                fresh_world=True,
+            )
+        self.assertEqual(self.shared.participants[1], self.one)
+        self.assertNotIn(1, self.shared.pending_world_recoveries)
+
+    def test_pending_world_recovery_local_helper_consumes_exact_registry_token(self):
+        source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        session = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "session"
+        )
+        helper = next(
+            node
+            for node in ast.walk(session)
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "recover_pending_terminal_world"
+        )
+        closure_names = (
+            "pending_terminal_world_recovery",
+            "combat_session",
+            "fight",
+            "fight_messages",
+            "group_lease",
+            "checkpoint_id",
+            "checkpoint_revision",
+            "checkpoint_terminal",
+        )
+        wrapper = ast.FunctionDef(
+            name="_make_pending_recovery",
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[ast.arg(arg=name) for name in closure_names],
+                kwonlyargs=[],
+                kw_defaults=[],
+                defaults=[],
+            ),
+            body=[helper, ast.Return(value=ast.Name(id=helper.name, ctx=ast.Load()))],
+            decorator_list=[],
+        )
+        module = ast.fix_missing_locations(ast.Module(body=[wrapper], type_ignores=[]))
+        namespace = {
+            "COMBAT_TEST_WP": 6,
+            "COMBAT_SESSIONS": None,
+            "character": {"id": 10, "account_id": 1},
+            "connection": object(),
+            "service": "world",
+            "send_batch": Mock(),
+            "record": Mock(),
+        }
+        exec(compile(module, str(source_path), "exec"), namespace)
+
+        pending = PendingWorldRecovery(self.one, 99)
+        shared = SimpleNamespace(settlement_ready=False)
+        registry = Mock()
+        registry.lookup.return_value = shared
+        adapter = Mock()
+        adapter.registry = registry
+        namespace["COMBAT_SESSIONS"] = adapter
+        recovery = {
+            "fight_id": 99,
+            "character": {"hp": 55},
+            "packets": (),
+            "applied": True,
+        }
+        adapter.recover_settled_world.return_value = recovery
+        fight = SimpleNamespace(id=99)
+        helper_fn = namespace["_make_pending_recovery"](
+            pending_terminal_world_recovery=pending,
+            combat_session=self.one,
+            fight=fight,
+            fight_messages=object(),
+            group_lease=object(),
+            checkpoint_id=99,
+            checkpoint_revision=4,
+            checkpoint_terminal=True,
+        )
+
+        self.assertFalse(helper_fn())
+        adapter.recover_settled_world.assert_not_called()
+        shared.settlement_ready = True
+        self.assertTrue(helper_fn())
+        adapter.recover_settled_world.assert_called_once_with(
+            self.one,
+            namespace["character"],
+            wp=6,
+            pending_world_recovery=pending,
+        )
+        state = inspect.getclosurevars(helper_fn).nonlocals
+        for name in (
+            "pending_terminal_world_recovery",
+            "combat_session",
+            "fight",
+            "fight_messages",
+            "group_lease",
+            "checkpoint_id",
+            "checkpoint_revision",
+        ):
+            self.assertIsNone(state[name])
+        self.assertFalse(state["checkpoint_terminal"])
+        namespace["send_batch"].assert_called_once_with(
+            namespace["connection"], namespace["service"], ()
+        )
 
     def test_native_ack_waits_for_both_sessions_not_only_current_owner(self):
         self.join()

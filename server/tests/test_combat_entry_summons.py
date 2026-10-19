@@ -35,9 +35,11 @@ class NativeSummonEntryContractTests(unittest.TestCase):
         )
         new = results["current"]
         self.assertEqual([op for op, _ in new.packets[:2]], [12588, 12678])
+        self.assertNotIn(13494, [op for op, _ in new.packets])
         self.assertTrue(new.outcomes)
         self.assertEqual(source_snapshot(fight), before)
         after = new.fight.actors[child]
+        self.assertEqual(after.direction, actor.direction)  # Native self-cell cast.
         self.assertIn(3434, {state.reference for state in after.state_ledger.entries})
         self.assertNotIn(
             3434, {state.reference for state in actor.state_ledger.entries}
@@ -165,7 +167,9 @@ class NativeSummonEntryContractTests(unittest.TestCase):
             rng=Random(0),
         )
         new = results["current"]
-        self.assertEqual([op for op, _ in new.packets[:2]], [12588, 12678])
+        self.assertEqual(
+            [op for op, _ in new.packets[:4]], [13494, 13420, 12588, 12678]
+        )
         self.assertTrue(new.outcomes)
         self.assertEqual(source_snapshot(fight), before)
         self.assertLess(new.fight.actors[7].hp, enemy.hp)

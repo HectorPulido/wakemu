@@ -2,10 +2,12 @@
 import struct
 
 
-def newly_registered_death_messages(runtime, *, after_sequence):
+def newly_registered_death_messages(runtime, *, after_sequence, prepare_delivery=True):
     """Deliver settled deaths from one private action, once per actor identity."""
     if type(after_sequence) is not int or after_sequence < 0:
         raise ValueError("Actual pre-action death sequence required")
+    if type(prepare_delivery) is not bool:
+        raise ValueError("Invalid death delivery preparation mode")
     identities = []
     reported = getattr(runtime, "_reported_deaths", set())
     for event in runtime.fight.events:
@@ -21,7 +23,8 @@ def newly_registered_death_messages(runtime, *, after_sequence):
             identities.append(identity)
     packets = []
     for identity in identities:
-        packets.extend(runtime.prepare_delivery(death_messages(runtime, identity)))
+        death = death_messages(runtime, identity)
+        packets.extend(runtime.prepare_delivery(death) if prepare_delivery else death)
     return packets
 
 

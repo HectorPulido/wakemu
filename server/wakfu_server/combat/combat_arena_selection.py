@@ -195,6 +195,8 @@ def compact_encounter(
     spread_opponents=False,
     automatic_cell_budget=MAX_CELL_BUDGET,
     dimensions_include_border=False,
+    member_radii=None,
+    player_radius=0,
 ):
     """Local encounter formation on one mutually reachable native component.
 
@@ -231,6 +233,9 @@ def compact_encounter(
         raise ValueError(
             "Encounter cell budget must be between2 and " + str(MAX_CELL_BUDGET)
         )
+    from .combat_placement_footprints import radii_for
+
+    radii = radii_for(originals, member_radii, player_radius)
     geometry = prepare_geometry(data)
     memoize = isinstance(data, PreparedGeometry)
     key = (
@@ -243,6 +248,8 @@ def compact_encounter(
         tuple(minimum_dimensions),
         spread_opponents,
         dimensions_include_border,
+        radii,
+        player_radius,
     )
     if memoize:
         with _compact_encounters_lock:
@@ -261,6 +268,8 @@ def compact_encounter(
         spread_opponents,
         memoize,
         dimensions_include_border,
+        radii,
+        player_radius,
     )
     if memoize:
         frozen = _freeze_compact_encounter(result)
@@ -305,6 +314,50 @@ def _thaw_compact_encounter(result):
     )
 
 
+class _FormationMobility:
+    """Cheap occupancy witnesses for initial placement, not cast/move authority."""
+
+    def __init__(self, cells, outgoing, by_xy):
+        self.cells, self.outgoing, self.by_xy = cells, outgoing, by_xy
+        self.moves = {}
+
+    def exits(self, center, radius, covered, occupied):
+        from .combat_placement_footprints import covered_cells
+
+        key = center, radius
+        if key not in self.moves:
+            moves = []
+            for target in self.outgoing.get(center, ()):
+                if target == center or target not in self.cells:
+                    continue
+                try:
+                    destination = covered_cells(
+                        target, radius, self.cells, by_xy=self.by_xy
+                    )
+                except ValueError:
+                    continue
+                # A move can retain part of its own registered footprint.
+                moves.append(destination - covered)
+            self.moves[key] = tuple(moves)
+        return tuple(move for move in self.moves[key] if move.isdisjoint(occupied))
+
+    def score(self, center, radius, covered, occupied, protected_exits, exit_owners):
+        affected = {owner for cell in covered for owner in exit_owners.get(cell, ())}
+        newly_trapped = sum(
+            all(not move.isdisjoint(covered) for move in protected_exits[owner])
+            for owner in affected
+        )
+        no_exit = not self.exits(center, radius, covered, occupied)
+        # Prefer one free cardinal cell between footprints. Further separation
+        # has no extra reward, so the existing cohesive formation remains local.
+        touching = any(
+            self.by_xy.get((cell[0] + dx, cell[1] + dy)) in occupied
+            for cell in covered
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+        )
+        return newly_trapped, no_exit, touching
+
+
 def _select_compact_encounter(
     geometry,
     origin,
@@ -316,6 +369,8 @@ def _select_compact_encounter(
     spread_opponents,
     memoize,
     dimensions_include_border,
+    member_radii,
+    player_radius,
 ):
     selected, ambiguous = encounter_component(geometry, origin, memoize=memoize)
     component = selected
@@ -332,6 +387,12 @@ def _select_compact_encounter(
         (1 + max(12, len(originals)) + 12)
         if dimensions_include_border
         else (12 + max(12, len(originals)) + 12),
+    )
+    target_cells = max(
+        target_cells,
+        (2 * player_radius + 1) ** 2
+        + sum((2 * radius + 1) ** 2 for radius in member_radii)
+        + 12,
     )
     rectangle = None
     if automatic_size:
@@ -417,33 +478,96 @@ def _select_compact_encounter(
             if target not in distances:
                 distances[target] = distances[current] + 1
                 pending.append(target)
-    free = selected - {origin}
+    from .combat_placement_footprints import covered_cells
+
+    by_xy = {cell[:2]: cell for cell in selected}
+    player_covered = covered_cells(origin, player_radius, selected, by_xy=by_xy)
+    free = selected - set(player_covered)
+    occupied = set(player_covered)
+    placed = [(origin, player_radius, player_covered)]
+    mobility = _FormationMobility(selected, geometry.outgoing, by_xy)
     interior = selected - cardinal_border_cells(selected)
-    separation = max(distances.values()) * 0.6
-    relocated = []
-    for original in originals:
-        if original in free and not spread_opponents:
+    # Scale separation to the selected rectangle, not a folded native detour.
+    # Existing arena side policy (normally 7--20) still controls encounter size.
+    separation = max(xmax - xmin + 1, ymax - ymin + 1) * 0.6
+    relocated = [None] * len(originals)
+    formation_distances = None
+    # Pack larger native footprints first, without changing roster output order.
+    for index in sorted(range(len(originals)), key=lambda i: (-member_radii[i], i)):
+        original, radius = originals[index], member_radii[index]
+        candidates = set()
+        footprints = {}
+        for center in free:
+            try:
+                covered = covered_cells(center, radius, selected, by_xy=by_xy)
+            except ValueError:
+                continue
+            if covered <= free and (radius == 0 or covered <= interior):
+                candidates.add(center)
+                footprints[center] = covered
+        if not candidates:
+            raise ValueError(
+                "Native arena lacks disjoint ordinary actor footprint capacity"
+            )
+        if original in candidates and not spread_opponents:
             chosen = original
-        else:
-            # Spread policy uses the distant native side and distributes NPCs;
-            # legacy callers retain their six-step source-near formation.
+        elif spread_opponents:
+            # Compare against each actor's currently available exits, so an
+            # already blocked actor is not counted as newly trapped. Include
+            # the player footprint and retain the complete native edge graph.
+            protected_exits = [
+                mobility.exits(center, size, covered, occupied)
+                for center, size, covered in placed
+            ]
+            # Only an actor with an exit intersecting the candidate body can
+            # lose mobility. Keep max-roster scoring local to those footprints.
+            exit_owners = defaultdict(set)
+            for owner, exits in enumerate(protected_exits):
+                for move in exits:
+                    for cell in move:
+                        exit_owners[cell].add(owner)
             chosen = min(
-                free & interior or free,
+                candidates,
                 key=lambda c: (
-                    distances[c] < separation if spread_opponents else False,
-                    -min(
-                        abs(c[0] - previous[0]) + abs(c[1] - previous[1])
-                        for previous in relocated
-                    )
-                    if spread_opponents and relocated
-                    else 0,
-                    -distances[c] if spread_opponents else abs(distances[c] - 6),
+                    *mobility.score(
+                        c, radius, footprints[c], occupied, protected_exits, exit_owners
+                    ),
+                    c not in interior,
+                    formation_distances.get(c, len(selected))
+                    if formation_distances is not None
+                    else abs(distances[c] - separation),
                     abs(c[0] - original[0]) + abs(c[1] - original[1]),
                     c,
                 ),
             )
-        relocated.append(chosen)
-        free.remove(chosen)
+        else:
+            # Separate the teams, then grow one cohesive native formation.
+            # Screen-space spacing must not scatter NPCs along a folded ramp.
+            chosen = min(
+                candidates & interior or candidates,
+                key=lambda c: (
+                    formation_distances.get(c, len(selected))
+                    if spread_opponents and formation_distances is not None
+                    else abs(distances[c] - separation)
+                    if spread_opponents
+                    else abs(distances[c] - 6),
+                    abs(c[0] - original[0]) + abs(c[1] - original[1]),
+                    c,
+                ),
+            )
+        relocated[index] = chosen
+        free.difference_update(footprints[chosen])
+        occupied.update(footprints[chosen])
+        placed.append((chosen, radius, footprints[chosen]))
+        if spread_opponents and formation_distances is None:
+            formation_distances = {chosen: 0}
+            pending = deque([chosen])
+            while pending:
+                current = pending.popleft()
+                for target in geometry.outgoing.get(current, ()):
+                    if target in selected and target not in formation_distances:
+                        formation_distances[target] = formation_distances[current] + 1
+                        pending.append(target)
     chosen_edges = edges_within(selected, geometry.outgoing)
     return dict(
         map_id=geometry.map_id,

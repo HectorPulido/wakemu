@@ -7,7 +7,11 @@ this module never infers completeness from the currently implemented families.
 from .combat_state_managers import state_manager, state_managers
 from .combat_summon_initialization import registered_or_detached_actor
 from dataclasses import dataclass
-from .combat_effect_removal import _identity_fields, running_effect_removal
+from .combat_effect_removal import (
+    _identity_fields,
+    _readonly_hex_identity_fields,
+    running_effect_removal,
+)
 from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
 
 
@@ -76,6 +80,13 @@ class NativeRetainedEffectView:
         self.fight = fight
         self.entries = tuple(entries)
         self.by_uid = {}
+        # Resolve each target once for this construction. Several retained Qf
+        # entries commonly share a manager; area-manager resolution refreshes
+        # and validates its native PV geometry, so repeating it per entry is
+        # both redundant and needlessly expensive. Keep this index local to the
+        # immutable view construction: later views must observe current fight
+        # state and re-run the authority checks.
+        target_managers = {}
         for entry in self.entries:
             if (
                 not isinstance(entry, RetainedEffect)
@@ -85,11 +96,15 @@ class NativeRetainedEffectView:
                 raise ValueError("Invalid native retained effect record")
             if entry.uid in self.by_uid:
                 raise ValueError("Duplicate native retained effect UID")
+            target_missing = False
+            if entry.target_id is not None:
+                if entry.target_id not in target_managers:
+                    target_managers[entry.target_id] = state_manager(
+                        fight, entry.target_id
+                    )
+                target_missing = target_managers[entry.target_id] is None
             if (
-                (
-                    entry.target_id is not None
-                    and state_manager(fight, entry.target_id) is None
-                )
+                target_missing
                 or type(entry.effect_class) is not int
                 or entry.effect_class <= 0
             ):
@@ -104,7 +119,7 @@ class NativeRetainedEffectView:
         pending = pending_state_uids(fight)
         known = {}
         for uid, row in fight.owned_stat_effects.items():
-            fields = _identity_fields(bytes.fromhex(row["payload"]))
+            fields = _readonly_hex_identity_fields(row["payload"])
             generic = fields.get(3)
             known[uid] = (
                 row["target_id"],
@@ -119,13 +134,13 @@ class NativeRetainedEffectView:
                 payload = fight.state_wire_payloads.get(state.uid)
                 if payload is None:
                     raise ValueError("Missing native carrier wire ownership")
-                fields = _identity_fields(bytes.fromhex(payload))
+                fields = _readonly_hex_identity_fields(payload)
                 generic = fields.get(3)
                 if generic == (1 << 64) - 1:
                     generic = -1
                 known[state.uid] = (actor.id, 310, generic, None)
         for uid, row in getattr(fight, "native_owned_group_effects", {}).items():
-            fields = _identity_fields(bytes.fromhex(row["payload"]))
+            fields = _readonly_hex_identity_fields(row["payload"])
             if row["target_id"] is None:
                 from .combat_subscription_runners import GROUP_SUBSCRIPTION_FAMILIES
 
@@ -163,7 +178,7 @@ class NativeRetainedEffectView:
             from .combat_private_target_aura import validate_private_target_aura
 
             validate_private_target_aura(fight, row)
-            fields = _identity_fields(bytes.fromhex(row["payload"]))
+            fields = _readonly_hex_identity_fields(row["payload"])
             entry = self.by_uid.get(uid)
             manager = row["caster_id"]
             if row["effect_class"] == 338:

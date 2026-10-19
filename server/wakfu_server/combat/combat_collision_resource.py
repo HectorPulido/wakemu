@@ -1,4 +1,5 @@
 """Native eXD.q: explicit synthetic eVI runner, shared eVZ execution."""
+from dataclasses import replace
 from .combat_effect_dispatch import EffectInvocation
 from .combat_resource_loss import collision_ap_packet
 
@@ -68,8 +69,12 @@ class NativeCollisionResourceExecutor:
             base_uid=0,
             native_retained_container={"present": False},
             native_explicit_target=True,
-            native_running_uid=self.handler.allocate_uid(),
         )
+        # Direct collision execution bypasses the ordinary dispatcher gate.
+        # A native corpse rejection must not masquerade as a prepared runner.
+        if not self.handler.native_eligibility(self.definition, invocation):
+            return False
+        invocation = replace(invocation, native_running_uid=self.handler.allocate_uid())
         values = {}
         try:
             selected = self.handler.prepare(self.definition, values, invocation)

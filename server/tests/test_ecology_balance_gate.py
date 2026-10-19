@@ -1,5 +1,6 @@
 import random
 import unittest
+from unittest.mock import patch
 from collections import Counter
 from unittest.mock import patch
 
@@ -273,26 +274,33 @@ class EcologyBalanceReceiptGate(PostgresCase):
             max_zone_groups=100,
         )
         indexed = (None, {(0, 0, 0): [(1, 0, 0)]})
-        first = monster_reproduction.attempt(
-            self.store,
-            ticket,
-            present=True,
-            indexed=indexed,
-            draw=0.0,
-            group_draw=0.0,
-            choose=lambda rows: rows[0],
-            configuration=configuration,
-        )
-        replay = monster_reproduction.attempt(
-            self.store,
-            ticket,
-            present=True,
-            indexed=indexed,
-            draw=0.9,
-            group_draw=0.9,
-            choose=lambda rows: rows[-1],
-            configuration=configuration,
-        )
+        # This test covers receipt idempotence after a candidate destination is
+        # selected. The synthetic edge index above is not map 1134's native
+        # topology, so bypass only the native-habitat eligibility query here.
+        with patch(
+            "wakfu_server.monster_habitat_cells.habitat_destination_allowed",
+            return_value=True,
+        ):
+            first = monster_reproduction.attempt(
+                self.store,
+                ticket,
+                present=True,
+                indexed=indexed,
+                draw=0.0,
+                group_draw=0.0,
+                choose=lambda rows: rows[0],
+                configuration=configuration,
+            )
+            replay = monster_reproduction.attempt(
+                self.store,
+                ticket,
+                present=True,
+                indexed=indexed,
+                draw=0.9,
+                group_draw=0.9,
+                choose=lambda rows: rows[-1],
+                configuration=configuration,
+            )
         self.assertFalse(first["duplicate"])
         self.assertTrue(replay["duplicate"])
         self.assertEqual(first["child_id"], replay["child_id"])

@@ -15,7 +15,8 @@ from .combat_arena_selection import (
     cardinal_border_cells,
 )
 from .combat_placement_cells import generate
-from .combat_geometry import published_geometry
+from .combat_arena_interior import safe_interior
+from .combat_geometry import published_geometry, prepare_geometry, coordinate
 from .combat_qi_surface_catalog import native_qi_surfaces, native_qi_surface_provenance
 from .combat_qi_surface_selection import native_surface_indices
 
@@ -71,6 +72,9 @@ def local_arena(
     stage_callback=None,
     automatic_cell_budget=2500,
     size_range=(7, 20),
+    allowed_cells=None,
+    member_radii=None,
+    player_radius=0,
 ):
     stage_started, stage_cpu = time.monotonic(), time.thread_time()
 
@@ -104,6 +108,22 @@ def local_arena(
         geometry = published_geometry(map_id)
         surfaces = None
         provenance = None
+    if allowed_cells is not None:
+        native = prepare_geometry(geometry)
+        cells = frozenset(coordinate(cell) for cell in allowed_cells)
+        if not cells or not cells.issubset(native.cells):
+            raise ValueError("Combat room cells are absent from native terrain")
+        geometry = prepare_geometry(
+            dict(
+                map_id=map_id,
+                cells=cells,
+                edges=tuple(
+                    (start, end)
+                    for start, end in native.edges
+                    if start in cells and end in cells
+                ),
+            )
+        )
     stage("geometry")
     if compact is None:
         compact = relocate_monsters
@@ -116,6 +136,14 @@ def local_arena(
         and all(type(v) is int for v in members)
     ):
         members = [members]
+    if allowed_cells is not None and any(
+        coordinate(position) not in geometry.cells
+        for position in [player_position, *members]
+    ):
+        raise ValueError("Combat participant is outside its pinned room")
+    from .combat_placement_footprints import radii_for, covered_cells
+
+    radii = radii_for(members, member_radii, player_radius)
     configured_radius = int(os.environ.get("WAKFU_COMBAT_ARENA_RADIUS", "89"))
     if compact:
         # Callers may supply a stable seed for retries; new fights vary by default.
@@ -145,6 +173,8 @@ def local_arena(
             else minimum_width * minimum_height,
             minimum_dimensions=(minimum_width, minimum_height),
             dimensions_include_border=dimensions_include_border,
+            member_radii=radii,
+            player_radius=player_radius,
             spread_opponents=relocate_monsters,
             automatic_cell_budget=automatic_cell_budget,
         )
@@ -160,20 +190,44 @@ def local_arena(
             members,
             radius=configured_radius,
         )
+    actual_positions = [
+        pair[1] for pair in selected.get("participant_positions", [])
+    ] or members
+    footprints = set(
+        covered_cells(tuple(player_position), player_radius, selected["cells"])
+    )
+    for position, radius in zip(actual_positions, radii):
+        occupied = covered_cells(tuple(position), radius, selected["cells"])
+        if footprints & occupied:
+            raise ValueError("Ordinary initial actor footprints overlap")
+        footprints.update(occupied)
     stage("selection")
     perimeter = cardinal_border_cells(selected["cells"]) if compact else frozenset()
-    placement = generate(
+    interior, borders = safe_interior(
         selected["cells"],
         selected["edges"],
+        selected["placement"],
+        perimeter,
+        reserved_cells=footprints,
+        placement_capacity=sum(
+            max(12, len(team)) for team in selected["placement"].values()
+        ),
+    )
+    placement = generate(
+        interior,
+        tuple(
+            (start, end)
+            for start, end in selected["edges"]
+            if start in interior and end in interior
+        ),
         seeds=selected["placement"],
         slots_per_team=12,
-        avoid_cells=perimeter,
+        avoid_cells=(),
         spread_teams=True,
+        occupied_cells=footprints,
     )
-    # Native walls and narrow components may not offer interior formation
-    # capacity. Preserve their collision rules, but never draw a combat border
-    # beneath an actor seed or any selectable placement cell.
-    borders = perimeter - placement[0] - placement[1]
+    # Placement and both teams share the same native hazard-free component.
+    # The complete arena remains available for movement and native effects.
     stage("placement")
     if surfaces is None:
         surfaces = native_qi_surfaces(map_id)

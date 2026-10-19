@@ -3,6 +3,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 import unittest
 import uuid
+from unittest.mock import patch
 
 from postgres_case import PostgresCase
 from psycopg.types.json import Jsonb
@@ -430,7 +431,7 @@ class PartyDispatchTests(PostgresCase):
         self,
     ):
         leader, member = self.player("leader"), self.player("member")
-        self._accept(leader, member)
+        party_id = self._accept(leader, member)
         with self.store.connection() as db:
             fight_id = db.execute(
                 "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
@@ -440,11 +441,73 @@ class PartyDispatchTests(PostgresCase):
                 (fight_id, leader["character"]["id"], leader["account"]),
             )
         self.sent.clear()
-        with self.assertRaisesRegex(ValueError, "snapshot is unavailable"):
+        with self.assertRaises(party_dispatch.PartySnapshotUnavailable) as raised:
             self.parties.refresh(
                 leader["account"], leader["generation"], leader["character"]["id"]
             )
+        self.assertEqual(
+            raised.exception.diagnostic(),
+            dict(
+                party_id=party_id,
+                character_id=leader["character"]["id"],
+                fight_id=fight_id,
+            ),
+        )
         self.assertEqual(self._roster_events(), [])
+
+    def test_refresh_online_defers_only_party_with_missing_fight_snapshot(self):
+        blocked_leader, blocked_member = self.player("blocked"), self.player("blockm")
+        blocked_party = self._accept(blocked_leader, blocked_member)
+        healthy_leader, healthy_member = self.player("healthy", map_id=81), self.player(
+            "healthym", map_id=999
+        )
+        healthy_party = self._accept(healthy_leader, healthy_member)
+        with self.store.connection() as db:
+            fight_id = db.execute(
+                "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
+            ).fetchone()["id"]
+            db.execute(
+                "INSERT INTO combat_fight_participants VALUES(%s,%s,%s,0)",
+                (
+                    fight_id,
+                    blocked_member["character"]["id"],
+                    blocked_member["account"],
+                ),
+            )
+
+        self.sent.clear()
+        result = self.parties.refresh_online()
+
+        self.assertEqual(result["refreshed"], 1)
+        self.assertEqual(
+            result["deferred"],
+            [
+                dict(
+                    party_id=blocked_party,
+                    character_id=blocked_member["character"]["id"],
+                    fight_id=fight_id,
+                )
+            ],
+        )
+        published = {peer for peer, _ in self._roster_events()}
+        self.assertEqual(
+            published,
+            {healthy_leader["peer"].name, healthy_member["peer"].name},
+        )
+        self.assertNotIn(blocked_leader["peer"].name, published)
+        self.assertNotIn(blocked_member["peer"].name, published)
+        self.assertEqual(healthy_party >> 56, 1)
+
+    def test_refresh_online_propagates_unrelated_publication_errors(self):
+        leader, member = self.player("raise"), self.player("raisem")
+        self._accept(leader, member)
+        with self.assertRaisesRegex(RuntimeError, "publication storage failure"):
+            with patch.object(
+                self.parties,
+                "_publish",
+                side_effect=RuntimeError("publication storage failure"),
+            ):
+                self.parties.refresh_online()
 
     def test_blocked_peer_does_not_hold_world_lock_or_block_an_unrelated_party(self):
         leader_a, member_a = self.player("alpha"), self.player("alpham", map_id=527)

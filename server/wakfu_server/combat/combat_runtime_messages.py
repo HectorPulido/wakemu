@@ -39,7 +39,7 @@ class RuntimeMessages:
     def __init__(
         self,
         fight,
-        turn_duration_ms=30000,
+        turn_duration_ms=60000,
         *,
         stats_serializer=None,
         runtime_stats_serializer=None,
@@ -464,6 +464,7 @@ class RuntimeMessages:
                         struct.pack(">i", self.fight.id),
                         deadline_ms=int(wall_time("runtime.turn_started.wall") * 1000)
                         + current_turn_duration(self.fight, self.duration),
+                        new_turn=True,
                         excluded_actor_ids=(
                             getattr(
                                 self,
@@ -475,6 +476,23 @@ class RuntimeMessages:
                         ),
                     ),
                     action_transition(self.fight.id),
+                    self._flush(),
+                ]
+            )
+            # Recovery restores BEGINNING rather than ON. Publish the original
+            # native begin action once so fyS per-turn/target counters reset;
+            # server callbacks above have already committed and are not rerun.
+            packets.extend(
+                [
+                    (
+                        13482,
+                        self._prefix()
+                        + struct.pack(
+                            ">qq",
+                            actor.id,
+                            current_turn_duration(self.fight, self.duration),
+                        ),
+                    ),
                     self._flush(),
                 ]
             )
@@ -711,18 +729,41 @@ class RuntimeMessages:
 
     @native_delivery_boundary
     @atomic_area_turn
-    def end_server_turn(self, actor_id, global_turn):
+    def end_server_turn(self, actor_id, global_turn, *, defensive_facing=None):
+        return self._end_server_boundary(
+            actor_id, global_turn, defensive_facing=defensive_facing, automatic=False
+        )
+
+    @native_delivery_boundary
+    @atomic_area_turn
+    def end_automatic_npc_turn(self, actor_id, global_turn):
+        return self._end_server_boundary(
+            actor_id, global_turn, defensive_facing=None, automatic=True
+        )
+
+    def _end_server_boundary(
+        self, actor_id, global_turn, *, defensive_facing, automatic
+    ):
         if self.awaiting_ack is not None:
             raise ValueError("Turn synchronization pending")
         actor = self.fight.current
+        from .combat_automatic_npc_turn import requires_automatic_npc_turn_end
+
         if (
             actor is None
             or actor.id != actor_id
-            or not effective_server_controlled(self.fight, actor)
+            or not (
+                requires_automatic_npc_turn_end(self.fight, actor)
+                if automatic
+                else effective_server_controlled(self.fight, actor)
+            )
+            or automatic
+            and self.pending
             or global_turn != self.fight.turn_id
         ):
             raise ValueError("Invalid server controlled turn")
         previous = self.fight.turn_id
+        facing_boundary = (self.fight.sequence, self.action_id)
         expiry = self._end_owned(actor)
         if self.fight.phase != "active":
             self.turn_deadline = self.deadline_turn = None
@@ -730,11 +771,41 @@ class RuntimeMessages:
         synchronized = self._synchronize_pre_end_death(actor_id, previous)
         if synchronized is not None:
             return expiry + synchronized
-        self.fight.end_server_turn(actor_id, global_turn)
-        packets = expiry + [
-            (12502, self._prefix() + struct.pack(">qii", actor_id, -1, 0)),
-            self._flush(),
-        ]
+        from .combat_ai_facing import apply as defensive_orientation
+
+        if isinstance(defensive_facing, dict) and facing_boundary != (
+            self.fight.sequence,
+            self.action_id,
+        ):
+            # Callback providers may adopt changed characteristics without a
+            # fight event. Their action boundary also invalidates forecasts;
+            # retain observer visibility and rank fresh offensive stats.
+            defensive_facing = dict(
+                defensive_facing,
+                rivals=[],
+                forecastInvalidated="native_end_turn_boundary_changed",
+            )
+        # End effects may move/retire opponents. Choose against this final
+        # registered state and publish voluntary facing before the turn ACK.
+        facing_packets = (
+            []
+            if automatic
+            else defensive_orientation(
+                self, self.fight.actors[actor_id], defensive_facing
+            )
+        )
+        if automatic:
+            self.fight.end_automatic_npc_turn(actor_id, global_turn)
+        else:
+            self.fight.end_server_turn(actor_id, global_turn)
+        packets = (
+            expiry
+            + facing_packets
+            + [
+                (12502, self._prefix() + struct.pack(">qii", actor_id, -1, 0)),
+                self._flush(),
+            ]
+        )
         self.pending = self.turn_started(arm_deadline=False)
         self.turn_deadline = self.deadline_turn = None
         self.awaiting_ack = global_turn
@@ -770,6 +841,7 @@ class RuntimeMessages:
                 struct.pack(">i", self.fight.id),
                 deadline_ms=int(wall_time("runtime.acknowledge_turn.wall") * 1000)
                 + current_turn_duration(self.fight, self.duration),
+                new_turn=True,
             )
             packets = [
                 restored if opcode == 12053 else (opcode, payload)
@@ -785,10 +857,11 @@ class RuntimeMessages:
         return packets
 
     @native_delivery_boundary
-    def recover(self, owner_id, body, *, now_ms):
-        """Native full timeline recovery, with a fresh explicit active-turn deadline.
+    def recover(self, owner_id, body, *, now_ms, preserve_armed_deadline=False):
+        """Native full recovery, optionally retaining an already armed shared clock.
 
-        This supersedes outstanding presentation/ACK state; the next legitimate
+        Standalone recovery retains its fresh-deadline policy. Shared callers
+        preserve an armed deadline and publish the replacement to every owner.
         TURN_END still checks the authoritative turn's exact sequence number.
         """
         if not any(
@@ -806,8 +879,34 @@ class RuntimeMessages:
 
         from .combat_turn_duration import current_turn_duration
 
+        if type(preserve_armed_deadline) is not bool:
+            raise ValueError("Invalid recovery clock policy")
         duration = current_turn_duration(self.fight, self.duration)
-        packet = recovery_packet(self.fight, body, deadline_ms=now_ms + duration)
+        preserve_clock = (
+            preserve_armed_deadline
+            and self.turn_deadline is not None
+            and self.deadline_turn == self.fight.turn_id
+        )
+        if preserve_clock:
+            import math
+
+            remaining = max(0, math.ceil((self.turn_deadline - self.clock()) * 1000))
+            deadline_ms = now_ms + remaining
+        else:
+            deadline_ms = now_ms + duration
+        pending_begins = [
+            packet
+            for packet in self.pending
+            if packet[0] == 13482
+            and len(packet[1]) == 28
+            and struct.unpack_from(">q", packet[1], 12)[0] == self.fight.current.id
+        ]
+        if len(pending_begins) > 1:
+            raise ValueError("Duplicate unpublished native turn begin")
+        first_begin = self.awaiting_ack is not None and bool(pending_begins)
+        packet = recovery_packet(
+            self.fight, body, deadline_ms=deadline_ms, new_turn=first_begin
+        )
         stats = (
             None
             if self.stats_serializer is None and self.runtime_stats_serializer is None
@@ -817,21 +916,39 @@ class RuntimeMessages:
                 else self.stats_serializer(self.fight.current)
             )
         )
+        # Successor callbacks have already committed before the prior turn ACK.
+        # Their native effects/creations/retirements are still unpublished here.
+        # Replace only the obsolete SU/phase/round/input boundaries; replaying
+        # callbacks would apply gameplay twice, while dropping them leaves ghosts.
+        superseded_turn_frames = {12053, 12514, 13337, 13482, 13477}
+        pending_effects = [
+            (opcode, payload)
+            for opcode, payload in self.pending
+            if opcode not in superseded_turn_frames
+        ]
         self.awaiting_ack = None
         self.pending = []
         self.round = timeline_round(self.fight)
         self.fight.native_table_turn = self.round
-        self._arm_turn()
-        packets = [packet]
+        if not preserve_clock:
+            self._arm_turn()
+        # Shared recovery broadcasts this replacement to every owner. Only an
+        # actual unpublished successor begin is retained; recovering a turn
+        # already delivered must never reset its remaining casts or targets.
+        packets = pending_effects + [packet]
         if stats is not None:
             actor = self.fight.current
             packets.append((12873, actor_state(12873, self.fight.id, actor.id, stats)))
             packets.append(self._flush())
-        # A restored SU already identifies the current actor. ACTION installs
-        # its controller without replaying buH.bp's turn-begin lifecycle.
+        # A restored SU identifies the current actor. ACTION installs its
+        # controller before any still-unpublished native begin is delivered.
         from .combat_phase import action_transition
 
         packets.extend([action_transition(self.fight.id), self._flush()])
+        if first_begin:
+            # aUN/buH.bp requires the original global ACTION phase installed
+            # before the restored SU enters its native fighter turn.
+            packets.extend([*pending_begins, self._flush()])
         self.native_timeline_removal_delivery_count = len(
             getattr(self.fight, "native_timeline_removed", ())
         )
