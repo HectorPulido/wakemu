@@ -27,6 +27,18 @@ def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell, acti
             if not area.native_running_effect_manager:
                 continue
         recipients.extend((identity, channel) for channel in (61, 41))
+    from .combat_encounter_table_listeners import frozen_table_listener_policy
+
+    frozen = frozen_table_listener_policy(fight)
+    calendar_callbacks = (
+        tuple(
+            row
+            for row in frozen.get("callbacks", ())
+            if row["timing"] == "owned_boss_post_start" and row["event_id"] == 1005
+        )
+        if frozen is not None
+        else ()
+    )
     outcomes = []
     from .combat_external_movement_recipient import (
         POLICY,
@@ -54,12 +66,59 @@ def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell, acti
         context["hour_boundary"] = dict(hour)
     with committed_movement_recipient_scope(fight, context):
         for identity, channel in recipients:
+            replay_options = {}
+            relevant_callbacks = tuple(
+                row for row in calendar_callbacks if row["channel"] == channel
+            )
+            if relevant_callbacks:
+                entries = tuple(dispatcher.native_retention.view().entries)
+                excluded = set()
+                manager = fight.actors.get(identity)
+                receipt = getattr(fight, "native_npc_initialization_receipts", {}).get(
+                    identity, {}
+                )
+                for callback in relevant_callbacks:
+                    if (
+                        manager is None
+                        or receipt.get("ref") != callback["owner_reference"]
+                    ):
+                        continue
+                    carriers = {
+                        state.uid
+                        for state in manager.state_ledger.entries
+                        if state.reference == callback["owner_state"]
+                        and state.caster_id == identity
+                        and state.target_id == identity
+                    }
+                    for entry in entries:
+                        if (
+                            entry.manager_id != identity
+                            or entry.generic_effect != callback["effect_reference"]
+                        ):
+                            continue
+                        original = (
+                            getattr(fight, "native_owned_group_effects", {})
+                            .get(entry.uid, {})
+                            .get("invocation", {})
+                        )
+                        if (
+                            original.get("reference") == callback["effect_reference"]
+                            and original.get("state_uid") in carriers
+                            and original.get("caster_id") == identity
+                            and original.get("target_id") == identity
+                        ):
+                            excluded.add(entry.uid)
+                if excluded:
+                    replay_options["eligible_uids"] = frozenset(
+                        entry.uid for entry in entries if entry.uid not in excluded
+                    )
             outcomes.extend(
                 dispatcher.replay_event(
                     NativeExternalEvent(
                         identity, (1005,), channel, movement_boundary_context=context
                     ),
                     authority=dispatcher.native_clone_authority,
+                    **replay_options,
                 )
             )
     return tuple(outcomes)

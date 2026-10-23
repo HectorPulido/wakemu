@@ -1,0 +1,1982 @@
+{
+  "source": "Original native metadata projection, retained from complete non-supreme closure; not a certified encounter scene",
+  "revision": "5a3aadd59a1f1abb126a919eb4b273f2694f01e2e2654cc673f3877ec98d4146",
+  "projection_path": ".runtime/monster-equipment-goal-20261017/general-monsters-v1/enabled-closure-v3.json",
+  "projection_sha256": "fcec0e00d6c4d97b200f674e933db277946f143c945ec5bccda5a08a11e0dff6",
+  "records": {
+    "182681": {
+      "path": "combat-state-definitions.json",
+      "locations": [
+        "combat-state-definitions.json"
+      ],
+      "data": {
+        "p0": [
+          0
+        ],
+        "p2": [
+          null
+        ],
+        "family": 330,
+        "children": [
+          182682
+        ],
+        "criteria": "GetCharacInPct(\"HP\", \"target\") <= 50"
+      }
+    },
+    "182682": {
+      "path": "combat-state-definitions.json",
+      "locations": [
+        "combat-state-definitions.json"
+      ],
+      "data": {
+        "p0": [
+          4405
+        ],
+        "p2": [
+          -1
+        ],
+        "family": 304,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "409300": {
+      "path": "combat-state-definitions.json",
+      "locations": [
+        "combat-state-definitions.json"
+      ],
+      "data": {
+        "p0": [
+          null
+        ],
+        "p2": [
+          null
+        ],
+        "family": 330,
+        "children": [
+          409301
+        ],
+        "criteria": ""
+      }
+    },
+    "409301": {
+      "path": "combat-state-definitions.json",
+      "locations": [
+        "combat-state-definitions.json"
+      ],
+      "data": {
+        "p0": [
+          null
+        ],
+        "p2": [
+          null
+        ],
+        "family": 330,
+        "children": [
+          409302
+        ],
+        "criteria": "GetEnnemyCountInRange(3) >= 2"
+      }
+    },
+    "409302": {
+      "path": "combat-state-definitions.json",
+      "locations": [
+        "combat-state-definitions.json"
+      ],
+      "data": {
+        "p0": [
+          1155
+        ],
+        "p2": [
+          null
+        ],
+        "family": 426,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "182855": {
+      "path": "combat-state-definitions.json",
+      "locations": [
+        "combat-state-definitions.json"
+      ],
+      "data": {
+        "p0": [
+          null
+        ],
+        "p2": [
+          null
+        ],
+        "family": 330,
+        "children": [
+          182856,
+          183343
+        ],
+        "criteria": "GetTeamId(\"triggeringCaster\") <> GetTeamId(\"target\") and False"
+      }
+    },
+    "196760": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json",
+        "combat-state-definitions.json"
+      ],
+      "data": {
+        "p0": [
+          0
+        ],
+        "p2": [
+          null
+        ],
+        "family": 330,
+        "children": [
+          196761,
+          198194
+        ],
+        "criteria": "!HasState(4866, \"target\")"
+      }
+    },
+    "196761": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json",
+        "combat-state-definitions.json"
+      ],
+      "data": {
+        "p0": [
+          6059
+        ],
+        "p2": [
+          null
+        ],
+        "family": 426,
+        "children": [],
+        "criteria": "GetEnnemyCountInRange(1, 2, \"caster\") >= 1"
+      }
+    },
+    "248379": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json",
+        "combat-state-definitions.json"
+      ],
+      "data": {
+        "p0": [
+          0
+        ],
+        "p2": [
+          null
+        ],
+        "family": 330,
+        "children": [
+          248380,
+          248381,
+          248495,
+          335882
+        ],
+        "criteria": "GetCharacInPct(\"HP\", \"caster\") <= 30"
+      }
+    },
+    "248467": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          0
+        ],
+        "p2": [
+          null
+        ],
+        "family": 330,
+        "children": [
+          248443,
+          248451,
+          248459
+        ],
+        "criteria": "GetCharacInPct(\"hp\", \"caster\") == 30"
+      }
+    },
+    "248443": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          1
+        ],
+        "p2": [
+          1
+        ],
+        "family": 349,
+        "children": [
+          248444,
+          248445,
+          248447,
+          248449
+        ],
+        "criteria": "IsTargetCellFree(True)"
+      }
+    },
+    "248445": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          0
+        ],
+        "p2": [
+          1
+        ],
+        "family": 844,
+        "children": [
+          248446
+        ],
+        "criteria": ""
+      }
+    },
+    "248446": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          5317
+        ],
+        "p2": [
+          -1
+        ],
+        "family": 304,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "240395": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          5
+        ],
+        "p2": [
+          1
+        ],
+        "family": 349,
+        "children": [
+          35200
+        ],
+        "criteria": "IsTargetCellFree()"
+      }
+    },
+    "35200": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          196
+        ],
+        "p2": [
+          null
+        ],
+        "family": 339,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "412418": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          4
+        ],
+        "p2": [
+          1
+        ],
+        "family": 349,
+        "children": [
+          412419
+        ],
+        "criteria": "IsTargetCellFree()"
+      }
+    },
+    "412419": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          196
+        ],
+        "p2": [
+          null
+        ],
+        "family": 339,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "412382": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          4
+        ],
+        "p2": [
+          1
+        ],
+        "family": 349,
+        "children": [
+          412383
+        ],
+        "criteria": "IsTargetCellFree()"
+      }
+    },
+    "412383": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          196
+        ],
+        "p2": [
+          null
+        ],
+        "family": 339,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "151349": {
+      "path": "PRIVATE-original-native-147-effect-closure",
+      "data": {
+        "family": 349,
+        "children": [
+          151350
+        ],
+        "criteria": "IsTargetCellFree()",
+        "p0": [
+          2
+        ],
+        "p2": [
+          1
+        ]
+      }
+    },
+    "151350": {
+      "path": "PRIVATE-original-native-147-effect-closure",
+      "data": {
+        "family": 307,
+        "children": [],
+        "criteria": "",
+        "p0": [
+          3538
+        ],
+        "p2": [
+          1
+        ]
+      }
+    },
+    "151347": {
+      "path": "PRIVATE-original-native-147-effect-closure",
+      "data": {
+        "family": 349,
+        "children": [
+          151348
+        ],
+        "criteria": "IsTargetCellFree()",
+        "p0": [
+          2
+        ],
+        "p2": [
+          1
+        ]
+      }
+    },
+    "151348": {
+      "path": "PRIVATE-original-native-147-effect-closure",
+      "data": {
+        "family": 307,
+        "children": [],
+        "criteria": "",
+        "p0": [
+          3537
+        ],
+        "p2": [
+          1
+        ]
+      }
+    },
+    "151351": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          1
+        ],
+        "p2": [
+          1
+        ],
+        "family": 349,
+        "children": [
+          151352
+        ],
+        "criteria": "IsTargetCellFree()"
+      }
+    },
+    "151352": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          3537
+        ],
+        "p2": [
+          1
+        ],
+        "family": 307,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "151353": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          2
+        ],
+        "p2": [
+          1
+        ],
+        "family": 349,
+        "children": [
+          151354
+        ],
+        "criteria": "IsTargetCellFree()"
+      }
+    },
+    "151354": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          3538
+        ],
+        "p2": [
+          1
+        ],
+        "family": 307,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "64488": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          10
+        ],
+        "p2": [
+          null
+        ],
+        "family": 258,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "64489": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          12
+        ],
+        "p2": [
+          null
+        ],
+        "family": 258,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "10104": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          6
+        ],
+        "p2": [
+          null
+        ],
+        "family": 307,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "182623": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          10
+        ],
+        "p2": [
+          null
+        ],
+        "family": 258,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "183264": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          12
+        ],
+        "p2": [
+          null
+        ],
+        "family": 258,
+        "children": [],
+        "criteria": ""
+      }
+    },
+    "328824": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          7155
+        ],
+        "p2": [
+          -1
+        ],
+        "family": 304,
+        "children": [],
+        "criteria": "GetCharacInPct(\"HP\", \"target\") >= 20"
+      }
+    },
+    "328825": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          null
+        ],
+        "p2": [
+          null
+        ],
+        "family": 330,
+        "children": [
+          328826
+        ],
+        "criteria": "GetCharacInPct(\"HP\", \"target\") < 20"
+      }
+    },
+    "327545": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          7155
+        ],
+        "p2": [
+          -1
+        ],
+        "family": 304,
+        "children": [],
+        "criteria": "GetCharacInPct(\"HP\", \"target\") >= 20"
+      }
+    },
+    "328820": {
+      "path": "native-npc-spell-effect-trees.json",
+      "locations": [
+        "native-npc-spell-effect-trees.json"
+      ],
+      "data": {
+        "p0": [
+          null
+        ],
+        "p2": [
+          null
+        ],
+        "family": 330,
+        "children": [
+          328821
+        ],
+        "criteria": "GetCharacInPct(\"HP\", \"target\") < 20"
+      }
+    }
+  },
+  "selected_monsters": {
+    "44": {
+      "reference": 44,
+      "name": "Jalat\u00f3 Real",
+      "category": "boss",
+      "admitted": true,
+      "native_level_range": [
+        23,
+        28
+      ],
+      "native_owned_spells": [
+        5774,
+        5775,
+        5779,
+        5781
+      ],
+      "initial_triples": [
+        4404,
+        30,
+        0,
+        5597,
+        1,
+        1
+      ]
+    },
+    "4086": {
+      "reference": 4086,
+      "name": "Jalabujero el Abandonado",
+      "category": "archmonster",
+      "admitted": true,
+      "native_level_range": [
+        23,
+        28
+      ],
+      "native_owned_spells": [
+        5774,
+        5775,
+        5779,
+        5781
+      ],
+      "initial_triples": [
+        4404,
+        30,
+        0
+      ]
+    },
+    "1259": {
+      "reference": 1259,
+      "name": "Tofu Real",
+      "category": "boss",
+      "admitted": true,
+      "native_level_range": [
+        23,
+        28
+      ],
+      "native_owned_spells": [
+        1155,
+        5786,
+        5791
+      ],
+      "initial_triples": [
+        4414,
+        1,
+        0,
+        5596,
+        1,
+        1
+      ]
+    },
+    "4101": {
+      "reference": 4101,
+      "name": "Ganchudo el Acerado",
+      "category": "archmonster",
+      "admitted": true,
+      "native_level_range": [
+        23,
+        28
+      ],
+      "native_owned_spells": [
+        1155,
+        5786,
+        5791
+      ],
+      "initial_triples": [
+        4414,
+        1,
+        0
+      ]
+    },
+    "5": {
+      "reference": 5,
+      "name": "Tofona",
+      "category": "common",
+      "admitted": true,
+      "native_level_range": [
+        10,
+        14
+      ],
+      "native_owned_spells": [
+        549,
+        1152
+      ],
+      "initial_triples": []
+    },
+    "41": {
+      "reference": 41,
+      "name": "Jalal\u00ednea",
+      "category": "common",
+      "admitted": true,
+      "native_level_range": [
+        10,
+        14
+      ],
+      "native_owned_spells": [
+        5770,
+        5771,
+        7362,
+        7363,
+        7364
+      ],
+      "initial_triples": [
+        4402,
+        40,
+        0
+      ]
+    },
+    "3539": {
+      "reference": 3539,
+      "name": "Xecordagovasme",
+      "category": "common",
+      "admitted": true,
+      "native_level_range": [
+        156,
+        156
+      ],
+      "native_owned_spells": [
+        4639,
+        4640,
+        4641
+      ],
+      "initial_triples": [
+        3239,
+        1,
+        0,
+        3389,
+        1,
+        0
+      ]
+    },
+    "2617": {
+      "reference": 2617,
+      "name": "Miaumiau blanco",
+      "category": "common",
+      "admitted": true,
+      "native_level_range": [
+        4,
+        6
+      ],
+      "native_owned_spells": [
+        2794,
+        3831
+      ],
+      "initial_triples": []
+    },
+    "95": {
+      "reference": 95,
+      "name": "Rosa demon\u00edaca",
+      "category": "common",
+      "admitted": true,
+      "native_level_range": [
+        40,
+        44
+      ],
+      "native_owned_spells": [
+        552,
+        1910
+      ],
+      "initial_triples": []
+    },
+    "135": {
+      "reference": 135,
+      "name": "Mala semilla de girasol",
+      "category": "common",
+      "admitted": true,
+      "native_level_range": [
+        38,
+        42
+      ],
+      "native_owned_spells": [
+        551
+      ],
+      "initial_triples": []
+    },
+    "4329": {
+      "reference": 4329,
+      "name": "Uhu, el Meloso",
+      "category": "archmonster",
+      "admitted": true,
+      "native_level_range": [
+        203,
+        208
+      ],
+      "native_owned_spells": [
+        6061,
+        6062,
+        6070,
+        6071
+      ],
+      "initial_triples": [
+        4786,
+        1,
+        0
+      ]
+    },
+    "4664": {
+      "reference": 4664,
+      "name": "Agon\u00eda Coraz\u00f3n Cristalino",
+      "category": "boss",
+      "admitted": true,
+      "native_level_range": [
+        203,
+        208
+      ],
+      "native_owned_spells": [
+        6386,
+        6388,
+        6389
+      ],
+      "initial_triples": [
+        5314,
+        1,
+        0,
+        5335,
+        1,
+        0,
+        5599,
+        1,
+        1
+      ]
+    }
+  },
+  "full_native_effects": {
+    "64488": {
+      "effect_class": 258,
+      "variant": 0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "criteria": "",
+      "parameters": [
+        10.0,
+        0.0
+      ],
+      "children": [],
+      "parameter_count": 1,
+      "probabilities": [
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0
+      ],
+      "parameter0_by_level": [
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10
+      ],
+      "parameters_by_level": [
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ],
+        [
+          10
+        ]
+      ],
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 129
+      },
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [
+          {
+            "id": 6,
+            "type": "PARTICLE_SYSTEM",
+            "native": "HMIParticleSystemAction{m_particleSystemId=-1005009870, m_alwaysActivated=false, m_localisation=NONE} HMIAction{m_id=6, m_targetOnly=false, m_isInstant=true} ",
+            "aYc": false,
+            "aYd": true
+          }
+        ],
+        "rzf": [],
+        "rzg": [],
+        "rzh": [
+          {
+            "id": 6,
+            "type": "PARTICLE_SYSTEM",
+            "native": "HMIParticleSystemAction{m_particleSystemId=-1005009870, m_alwaysActivated=false, m_localisation=NONE} HMIAction{m_id=6, m_targetOnly=false, m_isInstant=true} ",
+            "aYc": false,
+            "aYd": true
+          }
+        ]
+      },
+      "native_effect_flags": [
+        4
+      ],
+      "native_execution_mode": 2,
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "ryE": 0,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "esr": true
+      },
+      "native_localization_enabled": false,
+      "application_flag": "NONE",
+      "removal_flag": "NONE",
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "area_class": "anH",
+      "area_native": "ring-1-2"
+    }
+  },
+  "full_effect_source": {
+    "path": ".runtime/monster-audit-20261017/catalog-supplement/consolidated-private-v1/native-npc-spell-effect-trees.json",
+    "sha256": "ac940679b96d79b302b1c909f5ad9e35398f605996b4ffd704365a4033fbeab5"
+  }
+}

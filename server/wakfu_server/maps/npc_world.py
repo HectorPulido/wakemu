@@ -158,14 +158,12 @@ def begin(
     Unobserved unconditional initial choices retain the local close behavior.
     This is explicit local behavior, not an inferred official quest transition.
     """
+    initial = character_provider()
+    owner = (initial["id"], initial["account_id"])
     native = catalog() if native is None else native
     rows = validate_placements(rows_provider(), native)
     row = next((value for value in rows if value["actor_id"] == actor_id), None)
-    if (
-        row is None
-        or action_id not in row["action_ids"]
-        or not nearby(character_provider(), row)
-    ):
+    if row is None or action_id not in row["action_ids"] or not nearby(initial, row):
         raise ValueError("Unavailable nearby NPC dialogue action")
     nodes = {value["id"]: value for value in native["nodes"]}
     root = row["dialogue_root"]
@@ -175,14 +173,15 @@ def begin(
     action = next(value for value in speaker["actions"] if value["id"] == action_id)
 
     def available(criteria):
+        character = character_provider()
+        if (character.get("id"), character.get("account_id")) != owner:
+            return False
         if not criteria:
             return True
         return (
             facts_provider is not None
             and authorized_identity(row)
-            and npc_objective_facts.evaluate(
-                criteria, character_provider(), facts_provider()
-            )
+            and npc_objective_facts.evaluate(criteria, character, facts_provider())
         )
 
     if not available(action.get("criteria")):
@@ -206,6 +205,9 @@ def begin(
     speaker_type, speaker_identity = npc_protectors.speaker(row)
 
     def authorize(speaker_id, node_id):
+        character = character_provider()
+        if (character.get("id"), character.get("account_id")) != owner:
+            return False
         current = next(
             (value for value in rows_provider() if value["actor_id"] == actor_id), None
         )
@@ -214,7 +216,7 @@ def begin(
             and current == row
             and speaker_id == speaker_identity
             and node_id in allowed_nodes
-            and nearby(character_provider(), current)
+            and nearby(character, current)
             and available(action.get("criteria"))
             and available(nodes[root].get("criteria"))
         )

@@ -56,6 +56,7 @@ class NativeSummonHandler:
         self.event_lifecycle = None
         self.prepared_runners = {}
         self.retained_application = None
+        self.initialize_registered_gameplay = None
 
     def _phase(self, effect, invocation, runner, channel):
         if self.event_lifecycle is None:
@@ -258,4 +259,8 @@ class NativeSummonHandler:
         self._phase(effect, invocation, runner, 3)
         self._phase(effect, invocation, runner, 4)
         notify_runner_value(invocation, runner.value)
+        if self.initialize_registered_gameplay is not None:
+            self.initialize_registered_gameplay(
+                self.fight, actor, registration, effect, invocation
+            )
         return True

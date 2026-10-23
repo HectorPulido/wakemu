@@ -71,6 +71,21 @@ def compare_native_health(left, right):
     )
 
 
+def compare_native_health_descending(left, right):
+    """faJ.c: descending float percentage, but absent PA still sorts last."""
+    if not isinstance(left, NativeHealthOperand) or not isinstance(
+        right, NativeHealthOperand
+    ):
+        raise ValueError("Missing native health operand authority")
+    if not left.present:
+        return 1
+    if not right.present:
+        return -1
+    return -_java_float_compare(
+        native_health_percentage(left), native_health_percentage(right)
+    )
+
+
 def health_operand_for_pv(fight, target):
     """Read actual scoped PV/PA authority; unknown actors/areas fail closed."""
     from .combat_native_actor_lookup import native_actor

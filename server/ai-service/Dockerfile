@@ -11,4 +11,5 @@ RUN mkdir -p /native/server/ai-service /native/server/protocol \
     && python3 -m wakfu_ai.context.catalog_bootstrap --source-only --root /native/server --store /var/lib/wakfu-ai-context > /native/catalog-manifest.json
 ENV PYTHONUNBUFFERED=1 WAKFU_AI_BIND=0.0.0.0 WAKFU_AI_PORT=8090 WAKFU_AI_CONTEXT_ROOT=/var/lib/wakfu-ai-context WAKFU_CATALOG_REVISION=${CATALOG_REVISION}
 EXPOSE 8090
+HEALTHCHECK --interval=5s --timeout=3s --start-period=180s --retries=5 CMD ["python3", "-m", "wakfu_ai.transport.health"]
 CMD ["sh", "-c", "PYTHONPATH=/native/server:/app python3 -m wakfu_ai.context.catalog_bootstrap --root /native/server --store /var/lib/wakfu-ai-context > /native/catalog-manifest.json && exec python3 -m wakfu_ai"]

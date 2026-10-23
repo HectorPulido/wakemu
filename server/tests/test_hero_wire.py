@@ -273,9 +273,15 @@ class HeroWireTests(unittest.TestCase):
                 add_request(body)
 
     def test_native_switch_ack_and_company_activation(self):
+        from wakfu_server.company_authority import CompanySnapshot
+
         self.assertEqual(4, switch_request(struct.pack(">q", 4)))
         self.assertEqual((12587, b"\x01"), added_success())
-        opcode, body = company(2, 4)
+        with self.assertRaisesRegex(ValueError, "actual native company"):
+            company(2, 4)
+        opcode, body = company(
+            2, 4, company_snapshot=CompanySnapshot(2, 4, 0, 0, 1, True)
+        )
         self.assertEqual(13873, opcode)
         self.assertEqual((1, 1, 2, 4, 0, 0, 0, 1, 1), struct.unpack(">IIqqiqIiB", body))
 

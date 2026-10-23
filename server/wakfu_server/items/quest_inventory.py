@@ -13,6 +13,10 @@ if REFERENCES != frozenset(_SOURCE["quest_property_references"]) - frozenset(
     raise ValueError("Inconsistent native quest inventory classification")
 
 
+class QuestCapacity(ValueError):
+    """A valid native quest grant exceeds its owned quantity limit."""
+
+
 def load(db, character_id):
     return [
         dict(row)
@@ -79,7 +83,7 @@ def grant(db, character_id, reference, quantity):
         raise ValueError("Invalid native personal quest grant")
     before = {"id": character_id, "quest_items": load(db, character_id)}
     if _quantities(before).get(reference, 0) + quantity > MAXIMUMS[reference]:
-        raise ValueError("Native personal quest quantity capacity exceeded")
+        raise QuestCapacity("Native personal quest quantity capacity exceeded")
     row = db.execute(
         "INSERT INTO character_quest_items(character_id,reference,quantity) VALUES(%s,%s,%s) "
         "ON CONFLICT(character_id,reference) DO UPDATE SET "

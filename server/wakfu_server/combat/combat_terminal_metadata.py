@@ -18,8 +18,11 @@ def owner_characters_for_finish(store, shared, fight, active_characters):
     registrations = getattr(fight, "native_summon_registrations", {})
     if not isinstance(registrations, dict):
         raise ValueError("Terminal fight has invalid native summon registrations")
+    from .combat_companions import registered_companion_ids
+
+    companion_ids = registered_companion_ids(fight)
     for actor in fight.actors.values():
-        if not actor.controlled:
+        if not actor.controlled or actor.id in companion_ids:
             continue
         if actor.id in registrations:
             _registered_summon(fight, actor.id, registrations[actor.id])

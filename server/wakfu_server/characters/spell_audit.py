@@ -15,12 +15,20 @@ from pathlib import Path
 
 @lru_cache(maxsize=1)
 def catalog():
-    return protocol_catalog.load(DATA_ROOT / "spell-effect-trees.json")
+    from wakfu_server.combat_common_spell_catalog import merge_effect_catalog
+
+    return merge_effect_catalog(
+        protocol_catalog.load(DATA_ROOT / "spell-effect-trees.json")
+    )
 
 
 @lru_cache(maxsize=1)
 def costs_catalog():
-    return protocol_catalog.load(DATA_ROOT / "spell-costs.json")["spells"]
+    from wakfu_server.combat_common_spell_catalog import merge_cost_records
+
+    return merge_cost_records(
+        protocol_catalog.load(DATA_ROOT / "spell-costs.json")["spells"]
+    )
 
 
 @lru_cache(maxsize=1)

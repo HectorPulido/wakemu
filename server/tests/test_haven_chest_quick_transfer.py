@@ -134,8 +134,8 @@ class DepositEquippedFilterTests(unittest.TestCase):
         self.character = {
             "id": 42,
             "inventory_items": [
-                dict(uid=10, character_id=42, container=80, quantity=4),
-                dict(uid=11, character_id=42, container=80, quantity=5),
+                dict(uid=10, reference=2504, character_id=42, container=80, quantity=4),
+                dict(uid=11, reference=2504, character_id=42, container=80, quantity=5),
             ],
             "inventory_containers": [
                 dict(uid=80, character_id=42, kind=0),

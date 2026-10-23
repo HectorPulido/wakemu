@@ -231,6 +231,13 @@ class PersistentGroups:
             members = self._members(row)
             if not members:
                 raise ValueError("Group has no eligible ordinary monsters")
+            if any(
+                member.get("environmental_world_action_only") is True
+                for member in members
+            ):
+                raise ValueError(
+                    "Environmental interaction targets cannot enter combat"
+                )
             revision = row["revision"] + 1
             db.execute(
                 "UPDATE combat_groups SET status='fighting',generation=%s,fight_id=%s,revision=%s WHERE map_id=%s AND instance_id=%s AND group_id=%s",
@@ -247,6 +254,12 @@ class PersistentGroups:
                 return self.finish(lease, defeated=defeated, db=connection)
         if db.info.transaction_status != TransactionStatus.INTRANS:
             raise ValueError("Group settlement requires an active transaction")
+        from wakfu_server.item_test_spawns import retire_used
+
+        if retire_used(
+            db, key, fight_id=fight_id, generation=generation, revision=revision
+        ):
+            return True
         cursor = db.execute(
             "UPDATE combat_groups SET status=%s,generation=NULL,fight_id=NULL,revision=revision+1,defeated_at=%s WHERE map_id=%s AND instance_id=%s AND group_id=%s AND status='fighting' AND generation=%s AND fight_id=%s AND revision=%s",
             (
@@ -270,6 +283,16 @@ class PersistentGroups:
                     (generation,),
                 )
             )
+            from wakfu_server.item_test_spawns import retire_used
+
+            for prior in rows:
+                retire_used(
+                    db,
+                    (prior["map_id"], prior["instance_id"], prior["group_id"]),
+                    fight_id=prior["fight_id"],
+                    generation=generation,
+                    revision=prior["revision"],
+                )
             db.execute(
                 "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1 WHERE status='fighting' AND generation=%s",
                 (generation,),
@@ -301,6 +324,12 @@ class PersistentGroups:
             if row.get("ecology_admin_removed_ids"):
                 raise ValueError("Administratively removed groups cannot respawn")
             if db.execute(
+                "SELECT 1 FROM developer_item_test_groups WHERE map_id=%s "
+                "AND instance_id=%s AND group_id=%s",
+                key,
+            ).fetchone():
+                raise ValueError("Finite developer test groups cannot respawn")
+            if db.execute(
                 "SELECT 1 FROM objectives_challenge_runs WHERE map_id=%s "
                 "AND instance_id=%s AND group_id=%s",
                 key,
@@ -319,7 +348,22 @@ class PersistentGroups:
     def recover_reservations(self):
         """Startup-only abort of lost fights. Never call on a live second worker."""
         with self.lock, self.store.connection() as db:
+            from wakfu_server.item_test_spawns import retire_used
+
+            retired = 0
+            for row in db.execute(
+                "SELECT * FROM combat_groups WHERE status='fighting' FOR UPDATE"
+            ).fetchall():
+                retired += int(
+                    retire_used(
+                        db,
+                        (row["map_id"], row["instance_id"], row["group_id"]),
+                        fight_id=row["fight_id"],
+                        generation=row["generation"],
+                        revision=row["revision"],
+                    )
+                )
             cursor = db.execute(
                 "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1 WHERE status='fighting'"
             )
-            return cursor.rowcount
+            return retired + cursor.rowcount

@@ -1,0 +1,41 @@
+import importlib
+
+importlib.reload(importlib.import_module("wakfu_server.combat_groups"))
+importlib.reload(importlib.import_module("wakfu_server.combat_group_store"))
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_monster_actions")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_monster_destroy")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_group_population")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_group_publication")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_destroy_publication")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_reward_bands")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_simple_results")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_native_variables")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_storage")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_gameplay")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_company")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_service")
+)
+importlib.reload(importlib.import_module("test_environmental_destroy_lifecycle"))

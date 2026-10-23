@@ -61,7 +61,7 @@ def food_healing_amount(character, amount, *, rng=None):
     from wakfu_server.equipment_stats import bonuses
     from wakfu_server.combat.combat_damage_healing import healing_amount
 
-    stats = bonuses(character)["stats"]
+    stats = bonuses(character, include_consumable_buffs=True)["stats"]
     return healing_amount(
         amount,
         1,

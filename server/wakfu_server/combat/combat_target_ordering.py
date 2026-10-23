@@ -3,7 +3,8 @@
 Coordinates are the supplied effect target cell, rather than caster position.
 Only definitions exported from the installed native registry are accepted.
 Flag8 requires its separately exported identity and actual PA provider.
-Flag25 without8 and implicit area sorting remain separate audits.
+Flag25 uses the separately authenticated native faJ descending comparator.
+Implicit area sorting remains a separate audit.
 """
 from wakfu_server import native_catalog as protocol_catalog
 from functools import lru_cache
@@ -24,18 +25,31 @@ def native_health_target_ordering():
 
 def validate_native_target_ordering_identity(effect, reference, *, metadata=None):
     flags = effect.get("native_effect_flags", ())
-    health = 8 in flags
+    health = 8 in flags or 25 in flags
+    descending = 8 not in flags and 25 in flags
     if metadata is None:
-        metadata = (
-            native_health_target_ordering() if health else native_target_ordering()
-        )
+        if descending:
+            from .combat_health_ordering_authority import (
+                descending_health_target_ordering,
+            )
+
+            metadata = descending_health_target_ordering()
+        else:
+            metadata = (
+                native_health_target_ordering() if health else native_target_ordering()
+            )
     row = metadata.get(str(reference))
     if (
         row is None
         or row["effect_class"] != effect["effect_class"]
         or set(row["native_effect_flags"]) != set(flags)
         or health
-        and row.get("ordering_contract") != "faI.PV.a.sgC.PA.aYS.aYU.float32.asc.v1"
+        and row.get("ordering_contract")
+        != (
+            "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1"
+            if descending
+            else "faI.PV.a.sgC.PA.aYS.aYU.float32.asc.v1"
+        )
     ):
         prefix = "health-percent " if health else ""
         raise ValueError(
@@ -65,22 +79,24 @@ def order_native_targets(
 ):
     targets = tuple(targets)
     flags = effect.get("native_effect_flags", ())
-    if not set(flags).intersection((8, 14, 26)):
+    if not set(flags).intersection((8, 14, 25, 26)):
         return targets
-    if 25 in flags and 8 not in flags:
-        raise ValueError(
-            "Native health-percent ordering takes precedence and is unaudited"
-        )
     row = validate_native_target_ordering_identity(
         effect, invocation.reference, metadata=metadata
     )
     maximum = row["maximum_targets"]
     if type(maximum) is not int or not -128 <= maximum <= 127:
         raise ValueError("Native target count must be signed byte")
-    if 8 in flags:
+    if 8 in flags or 25 in flags:
         from .combat_target_health_ordering import (
             NativeHealthOperand,
             compare_native_health,
+            compare_native_health_descending,
+        )
+
+        # faK checks ascending8 first, descending25 second, then distance.
+        compare = (
+            compare_native_health if 8 in flags else compare_native_health_descending
         )
 
         if not callable(health_operand):
@@ -95,9 +111,7 @@ def order_native_targets(
             sorted(
                 targets,
                 key=cmp_to_key(
-                    lambda left, right: compare_native_health(
-                        operands[id(left)], operands[id(right)]
-                    )
+                    lambda left, right: compare(operands[id(left)], operands[id(right)])
                 ),
             )
         )

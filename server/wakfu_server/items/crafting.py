@@ -9,6 +9,7 @@ crafting or native criteria expressions whose semantics are not implemented.
 from __future__ import annotations
 
 import hashlib
+import re
 import struct
 import uuid
 from collections import defaultdict
@@ -98,26 +99,48 @@ def _station(catalog, character, table_id, station):
     return definition
 
 
-def _recipe(catalog, definition, recipe_id):
+def _recipe(catalog, definition, recipe_id, *, db=None, account_id=None):
     if not catalog.authorize_recipe(definition["definition_id"], recipe_id):
         raise ValueError("Recipe is not allowed at this native station")
     recipe = catalog.recipes.get(recipe_id)
     if not isinstance(recipe, dict) or recipe.get("recipe_id") != recipe_id:
         raise ValueError("Unknown native crafting recipe")
-    # Native loader passes raw_clT as eTx.rgD and raw_cvc as eTx.rgE.
-    # eTx.at evaluates rgE (raw_cvc); eTx.au calls at() and, when raw_cvd is
-    # true, also calls as() on rgD (raw_clT). Only the empty-expression
-    # fallback is implemented here; no parser/client-side truth is trusted.
-    if (
-        recipe.get("raw_clT") != ""
-        or recipe.get("raw_cvc") != ""
-        or recipe.get("raw_cvd") is not False
-    ):
-        raise ValueError("Unsupported native crafting recipe criterion")
-    # eTy flags include secret-recipe behavior. Until discovery/known-recipe
-    # authorization is implemented, any nonempty native flag list is denied.
-    if recipe.get("raw_ckE") != []:
-        raise ValueError("Unsupported native crafting recipe flags")
+    ordinary = (
+        recipe.get("raw_clT") == ""
+        and recipe.get("raw_cvc") == ""
+        and recipe.get("raw_cvd") is False
+        and recipe.get("raw_ckE") == []
+    )
+    if not ordinary:
+        # Native eOh checks the account's eTo learned-recipe collection;
+        # eTy.SECRET(0) uses that same fact to authorize discovery. Other
+        # expressions and AUTO_CONSUME_ITEM(1) require separate contracts.
+        expression = recipe.get("raw_clT")
+        known = (
+            re.fullmatch(
+                r"IsKnownRecipe\(\s*([0-9]+)\s*,\s*([0-9]+)\s*\)",
+                expression.strip(),
+            )
+            if isinstance(expression, str)
+            else None
+        )
+        if (
+            known is None
+            or recipe.get("raw_cvc") != ""
+            or recipe.get("raw_cvd") is not False
+            or recipe.get("raw_ckE") != [0]
+            or tuple(map(int, known.groups()))
+            != (recipe.get("profession_id"), recipe_id)
+        ):
+            raise ValueError("Unsupported native crafting recipe criterion or flags")
+        if db is None or type(account_id) is not int or account_id <= 0:
+            raise ValueError("Secret recipe requires authoritative account knowledge")
+        profession = db.execute(
+            "SELECT actions FROM account_professions WHERE account_id=%s AND profession_id=%s",
+            (account_id, recipe["profession_id"]),
+        ).fetchone()
+        if profession is None or recipe_id not in profession["actions"]:
+            raise ValueError("The native secret recipe has not been learned")
     if (
         type(recipe.get("minimum_level")) is not int
         or recipe["minimum_level"] < 0
@@ -198,6 +221,9 @@ def _plan(store, db, account_id, character_id, catalog, recipe, batch_count):
     character = store.character(account_id, character_id, db)
     _annotate_product_metadata(db, character["inventory_items"])
     protected = _offered_uids(db, character_id)
+    from .craft_upgrade_policy import protected_ingredients
+
+    protected.update(protected_ingredients(db, recipe, character))
     material_plan = plan(
         catalog,
         recipe["recipe_id"],
@@ -210,6 +236,24 @@ def _plan(store, db, account_id, character_id, catalog, recipe, batch_count):
     )
     if protected.intersection(row["uid"] for row in material_plan["consumed"]):
         raise ValueError("Crafting cannot consume an offered item")
+    from .craft_upgrade_policy import prepare
+
+    preserved = prepare(db, recipe, batch_count, character, material_plan)
+    if preserved:
+        material_plan = plan(
+            catalog,
+            recipe["recipe_id"],
+            batch_count,
+            character_id=character_id,
+            items=character["inventory_items"],
+            containers=character["inventory_containers"],
+            builds=character["builds"],
+            protected_uids=protected,
+            singleton_products={
+                reference: len(states) for reference, states in preserved.items()
+            },
+        )
+    material_plan["preserved_products"] = preserved
     return character, material_plan
 
 
@@ -255,6 +299,13 @@ def _annotate_product_metadata(db, items):
             or row["socketed"] not in (None, False)
         ):
             item["native_craft_recycling_state"] = dict(row)
+    for row in db.execute(
+        "SELECT source_uid,next_use FROM random_item_use_counters WHERE source_uid=ANY(%s)",
+        (list(by_uid),),
+    ):
+        # New craft products must not acquire the resident UID's draw cursor.
+        # The planner already keeps metadata-bearing targets separate.
+        by_uid[row["source_uid"]]["native_craft_random_state"] = dict(row)
 
 
 def _request(opcode, body):
@@ -297,7 +348,9 @@ def begin(
 
             station = resolve_current(character, table_id)
         definition = _station(catalog, character, table_id, station)
-        recipe = _recipe(catalog, definition, request["recipe_id"])
+        recipe = _recipe(
+            catalog, definition, request["recipe_id"], db=db, account_id=account_id
+        )
         batch_count, mode = _batch(opcode, request, recipe)
         from wakfu_server.profession_store import stored_level
 
@@ -350,12 +403,29 @@ def begin(
         character, material_plan = _plan(
             store, db, account_id, character_id, catalog, recipe, batch_count
         )
+        from wakfu_server.profession_consumable_modifiers import modifiers
+        from wakfu_server.native_world_context import is_battleground
+
+        consumable_speed = modifiers(
+            store,
+            db,
+            character_id,
+            recipe["profession_id"],
+            generation=generation,
+            is_battleground=is_battleground(character["map_id"]),
+        )["craft_speed"]
+        craft_speed_modifier += consumable_speed
         duration_ms = craft_duration_ms(
             recipe["raw_duration"], batch_count, craft_speed_modifier
         )
         token = uuid.uuid4()
+        from .craft_upgrade_policy import fingerprint as preservation_fingerprint
+
         snapshot = dict(
             consumed=material_plan["consumed"],
+            preserved_products_sha256=preservation_fingerprint(
+                material_plan["preserved_products"]
+            ),
             batch_count=batch_count,
             craft_speed_modifier=craft_speed_modifier,
             duration_policy="native_craft_speed_sequential_batch_v1",
@@ -526,7 +596,27 @@ def _apply_inventory(db, character_id, character, material_plan):
         if selected is not None:
             save(db, uid, selected)
             item.update(selected)
-        packets.append(insertion(item, notification=True))
+        preservation_index = placement.get("preservation_index")
+        if preservation_index is not None:
+            preservation = material_plan["preserved_products"][item["reference"]][
+                preservation_index
+            ]
+            from .craft_upgrade_policy import apply
+
+            apply(db, item, preservation)
+            from wakfu_server.combat_drop_delivery import _item_proto
+
+            proto = _item_proto(item)
+            packets.append(
+                (
+                    12471,
+                    struct.pack(">qhI", item["container"], item["slot"], len(proto))
+                    + proto
+                    + b"\x01",
+                )
+            )
+        else:
+            packets.append(insertion(item, notification=True))
     return packets
 
 
@@ -568,7 +658,9 @@ def complete(
             or station["instance_id"] != row["instance_id"]
         ):
             raise ValueError("Crafting station changed during occupation")
-        recipe = _recipe(catalog, definition, row["recipe_id"])
+        recipe = _recipe(
+            catalog, definition, row["recipe_id"], db=db, account_id=account_id
+        )
         from wakfu_server.profession_store import stored_level, award
 
         level = stored_level(db, account_id, recipe["profession_id"])
@@ -580,6 +672,13 @@ def complete(
         )
         if material_plan["consumed"] != row["inventory_snapshot"]["consumed"]:
             raise ValueError("Crafting ingredients changed during occupation")
+        from .craft_upgrade_policy import fingerprint as preservation_fingerprint
+
+        expected = row["inventory_snapshot"].get(
+            "preserved_products_sha256", preservation_fingerprint({})
+        )
+        if preservation_fingerprint(material_plan["preserved_products"]) != expected:
+            raise ValueError("Crafting precursor state changed during occupation")
         packets = _apply_inventory(db, character_id, character, material_plan)
         from wakfu_server.profession_rewards import base_xp
 
@@ -599,6 +698,8 @@ def complete(
             recipe["profession_id"],
             base_xp=base_reward,
             operation=f"craft:{token}",
+            action_category="recipe",
+            native_map_id=character["map_id"],
         )
         result_packet = craft_wire.result(0, 0, row["batch_count"])
         packets.append(result_packet)
@@ -617,6 +718,11 @@ def complete(
                 token,
                 version,
             ),
+        )
+        from wakfu_server.guild_daily_quests import settle_craft
+
+        packets.extend(
+            settle_craft(db, store, character, token, profession_level=level)
         )
         return dict(
             token=token,

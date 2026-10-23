@@ -64,6 +64,7 @@ class NativeCastingLOSTests(unittest.TestCase):
         row = dict(identity=["actor", 42], position=[1, 0, 0], radius=1)
         registry = SimpleNamespace(
             slots={2: row},
+            terrain=self.terrain(),
             snapshot=lambda: self.terrain(),
             ordered_U=lambda x, y: (2,),
         )

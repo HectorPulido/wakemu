@@ -44,11 +44,20 @@ def observe(
                 (map_id, instance_id),
             )
             return []
+        from .environmental_group_ecology import exclusion_sql, owned_monster_ids
+
+        owned_ids = owned_monster_ids(db, map_id, instance_id)
+        if owned_ids:
+            db.execute(
+                f"DELETE FROM {table} WHERE map_id=%s AND instance_id=%s AND monster_id=ANY(%s)",
+                (map_id, instance_id, sorted(owned_ids)),
+            )
         groups = db.execute(
             "SELECT group_id,members,status FROM combat_groups "
             "WHERE map_id=%s AND instance_id=%s AND NOT EXISTS("
             "SELECT 1 FROM objectives_public_hunts h WHERE h.map_id=combat_groups.map_id "
-            "AND combat_groups.instance_id=0 AND h.group_id=combat_groups.group_id) FOR UPDATE",
+            "AND combat_groups.instance_id=0 AND h.group_id=combat_groups.group_id) "
+            "AND " + exclusion_sql() + " FOR UPDATE",
             (map_id, instance_id),
         ).fetchall()
         from psycopg.types.json import Jsonb

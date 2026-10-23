@@ -64,7 +64,9 @@ class NpcWorldPostgresTests(PostgresCase):
         self.assertEqual(row["action_ids"], [1238])
         self.assertEqual(row["dialogue_root"], 5764)
         self.assertIn("Local initial-scene adaptation", row["provenance"])
-        character = dict(map_id=1387, instance_id=0, x=-11, y=0, z=2)
+        character = dict(
+            id=100, account_id=200, map_id=1387, instance_id=0, x=-11, y=0, z=2
+        )
 
         def snapshot():
             with self.store.connection() as db:

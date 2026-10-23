@@ -71,9 +71,13 @@ class CrowdedFormationTests(unittest.TestCase):
         self.assertIsNone(self.run_plan(radius=0))
 
     def test_habitat_rejection_cannot_be_bypassed(self):
-        self.assertIsNone(
-            self.run_plan(destination_allowed=lambda cell: cell != (-57, 9, 0))
+        result = self.run_plan(destination_allowed=lambda cell: cell != (-57, 9, 0))
+        self.assertIsNotNone(result)
+        self.assertEqual(point(result["members"][0]), point(self.members[0]))
+        self.assertTrue(
+            all(point(member) != (-57, 9, 0) for member in result["members"])
         )
+        self.assertEqual(len(result["packets"]), 1)
 
     def test_fallback_cannot_walk_through_held_companion(self):
         self.members = [dict(id=-1, x=0, y=0, z=0), dict(id=-2, x=1, y=0, z=0)]

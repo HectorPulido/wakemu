@@ -166,6 +166,9 @@ class CombatSessionAdapter:
         from wakfu_server import territory_bonuses
 
         with self.store.connection() as db:
+            character = territory_bonuses.reconcile_owned(
+                self.store, session.account_id, session.generation, character, db=db
+            )
             character = territory_bonuses.attach_character(db, character)
         resources = combat_resources(character)
         actor = Actor(
@@ -200,7 +203,11 @@ class CombatSessionAdapter:
 
         characters = {}
         decks = {}
-        summon_ids = registered_summon_actor_ids(fight)
+        from .combat_companions import registered_companion_ids
+
+        summon_ids = registered_summon_actor_ids(fight) | registered_companion_ids(
+            fight
+        )
         for actor in fight.actors.values():
             if (
                 not actor.controlled
@@ -291,6 +298,9 @@ class CombatSessionAdapter:
                     preview, action_id, characters, decks
                 )
                 packets.extend(encounter_packets)
+            from wakfu_server.combat_attachment_authority import for_characters
+
+            attachments = for_characters(self.store, characters)
             for index, actor_id in enumerate(actor_order):
                 actor = preview.actors[actor_id]
                 source = characters[actor_id]
@@ -305,6 +315,7 @@ class CombatSessionAdapter:
                     action_id=action_id,
                     player_characters=characters,
                     deck_blobs=decks,
+                    attachment_authority=attachments,
                     fight_start=bool(fight_start and index == len(actor_order) - 1),
                 )
                 packets.extend(owned_packets)
@@ -326,6 +337,10 @@ class CombatSessionAdapter:
                     actor, current, characters[session.character_id]["map_id"]
                 )
                 return observe_fact("ready_stats_serializer.summon", stats)
+            if str(actor.id) in getattr(current, "native_companion_sources", {}):
+                from .combat_companions import fighter_stats
+
+                return fighter_stats(current, actor)
             if actor.controlled:
                 source = characters.get(actor.id)
                 if source is None:
@@ -440,6 +455,10 @@ class CombatSessionAdapter:
 
             shared = self.registry.lookup(fight.id)
             stats = registered_summon_stats(actor, fight, shared.map_id)
+        elif str(actor.id) in getattr(fight, "native_companion_sources", {}):
+            from .combat_companions import fighter_stats
+
+            stats = fighter_stats(fight, actor)
         elif actor.controlled:
             character = self.store.character(actor.owner_id, actor.id)
             stats = actual_actor_stats(
@@ -475,9 +494,17 @@ class CombatSessionAdapter:
         now_milliseconds = time.time_ns() // 1000000
         if fight.phase == "active":
             from wakfu_server.combat_remote_effects import active_actor_effects
+            from wakfu_server.consumable_combat_snapshot import online_snapshot_view
 
             effects = active_actor_effects(
-                fight, actor.id, now_milliseconds=now_milliseconds
+                online_snapshot_view(
+                    self.store,
+                    fight,
+                    actor.id,
+                    now_ms=now_milliseconds,
+                ),
+                actor.id,
+                now_milliseconds=now_milliseconds,
             )
         else:
             from wakfu_server.combat_remote_effects import initial_npc_actor_effects
@@ -538,6 +565,7 @@ class CombatSessionAdapter:
         actor_payload=None,
         bootstrap_packets=None,
         expected_fight_id=None,
+        native_publication=None,
     ):
         """Persist a same-team placement member before publishing its outbox.
 
@@ -566,6 +594,11 @@ class CombatSessionAdapter:
             db.execute(
                 "SELECT id FROM accounts WHERE id=%s FOR UPDATE", (owner.account_id,)
             )
+            before_health = db.execute(
+                "SELECT id,account_id,hp,max_hp,hp_damage,health_dead FROM characters "
+                "WHERE id=%s AND account_id=%s",
+                (owner.character_id, owner.account_id),
+            ).fetchone()
             join_participant(
                 self.store,
                 db,
@@ -584,6 +617,25 @@ class CombatSessionAdapter:
                 candidate,
                 frozen_members=metadata.get("frozen_company_members"),
             )
+            from wakfu_server.neo_regeneration import align_entry_actor
+
+            joined = admission["fight"].actors[owner.character_id]
+            align_entry_actor(joined, before_health, admission["leader"])
+            from .combat_instance_publication import refresh_owned_encounter
+
+            refresh_owned_encounter(admission["fight"], publication=native_publication)
+            from .combat_companions import admit_owned_companions
+
+            companion_admission = admit_owned_companions(
+                db,
+                self.store,
+                owner,
+                admission["fight"],
+                owner_character=admission["leader"],
+            )
+            admission["fight"] = companion_admission["fight"]
+            admission["actors"] = (*admission["actors"], *companion_admission["actors"])
+            pending["companions"] = companion_admission
             from wakfu_server.health_store import timestamp
 
             now = timestamp(int(self.store.clock() * 1000))
@@ -608,11 +660,15 @@ class CombatSessionAdapter:
             serializer = (prior_shared.join_context or {}).get("hero_appearance")
             if sources and not callable(serializer):
                 raise ValueError("Native hero appearance serializer is unavailable")
-            return tuple(serializer(source) for source in sources.values()) + tuple(
-                (12436, health.packet(actor.id, actor.hp, 0))
-                for actor in (
-                    candidate.actors[owner.character_id],
-                    *pending["admission"]["actors"],
+            return (
+                tuple(serializer(source) for source in sources.values())
+                + pending["companions"]["packets"]
+                + tuple(
+                    (12436, health.packet(actor.id, actor.hp, 0))
+                    for actor in (
+                        candidate.actors[owner.character_id],
+                        *pending["admission"]["actors"],
+                    )
                 )
             )
 
@@ -628,10 +684,30 @@ class CombatSessionAdapter:
                     serializer(self.store.character(actor.owner_id, actor.id))
                     for actor in candidate.actors.values()
                     if actor.controlled
+                    and str(actor.id)
+                    not in getattr(candidate, "native_companion_sources", {})
                     and actor.owner_id is not None
                     and actor.id != owner.character_id
                     and not getattr(actor, "pve_withdrawn", False)
                 )
+            from .combat_companions import world_spawn
+
+            world_actors += tuple(
+                (
+                    12608,
+                    world_spawn(
+                        dict(
+                            source,
+                            x=candidate.actors[source["id"]].position[0],
+                            y=candidate.actors[source["id"]].position[1],
+                            z=candidate.actors[source["id"]].position[2],
+                        )
+                    ),
+                )
+                for source in getattr(
+                    candidate, "native_companion_sources", {}
+                ).values()
+            )
             from wakfu_server import health
 
             regeneration = tuple(

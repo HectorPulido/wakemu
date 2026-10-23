@@ -171,6 +171,32 @@ class EquipmentSnapshotRoleTests(unittest.TestCase):
             ordinary_turn_state_contract(source, self.compiled, self.registry)
         )
 
+    def test_generic_native_state_root_is_snapshot_neutral_but_source_bound(self):
+        character = deepcopy(self.character)
+        character["inventory_items"][0]["reference"] = 13574
+        character["builds"][0]["equipment"] = proto_field(
+            10, proto_field(8, 500) + proto_field(16, 8)
+        ).hex()
+        rows = equipment_stats.bonuses(character)["unsupported"]
+        roles = snapshot_roles(character, rows)
+        source = plan(character, ordinary_only=True)[0]
+        generic_roots = [
+            reference
+            for reference in source["roots"]
+            if source["effects"][str(reference)]["effect_class"] == 304
+        ]
+        self.assertTrue(generic_roots)
+        for reference in generic_roots:
+            self.assertEqual(
+                roles[(500, 13574, reference, 304)],
+                "deferred-owned-state-no-static-characteristic",
+            )
+        wrong_owner = [dict(row, uid=501) for row in rows]
+        self.assertNotIn(
+            (501, 13574, generic_roots[0], 304),
+            snapshot_roles(character, wrong_owner),
+        )
+
     def test_recovered_pin_rejects_changed_nested_turn_callback(self):
         execution = execution_contract_sha256(
             self.sources, self.compiled, self.registry

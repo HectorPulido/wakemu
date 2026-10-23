@@ -150,7 +150,12 @@ def _published_geometry(revision, map_id):
     # The revision is pinned by native_catalog. Mutable dictionaries from
     # map_geometry callers are never keys or sources of this reusable cache.
     from wakfu_server.prepared_geometry import published_artifact
+    from wakfu_server.haven_world_terrain import TEMPLATE_MAP_ID, geometry
 
+    if map_id == TEMPLATE_MAP_ID:
+        if protocol_catalog.exists(DATA_ROOT / "combat-maps" / f"{map_id}.json"):
+            raise ValueError("Internal Haven World geometry namespace collision")
+        return prepare_geometry(geometry())
     artifact = published_artifact(map_id)
     if artifact is not None:
         return artifact.geometry

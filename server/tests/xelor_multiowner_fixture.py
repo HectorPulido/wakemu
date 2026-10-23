@@ -33,6 +33,8 @@ class TwoXelorFixture:
         initialization_seed=0,
         native_target_ref=None,
         native_target_level=None,
+        native_target_initial_wounds=0,
+        extra_native_targets=(),
     ):
         from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
         from wakfu_server.combat_global_pv_collections import (
@@ -164,12 +166,21 @@ class TwoXelorFixture:
                 native_target_ref, native_target_level
             )
             values = native_target_values
+            if (
+                type(native_target_initial_wounds) is not int
+                or not 0 <= native_target_initial_wounds < values[1]["current"]
+            ):
+                raise ValueError(
+                    "Initial native fixture wounds must preserve a living target"
+                )
+            # Explicit wounded-admission fixture premise, before constructor
+            # snapshots, initial NPC states, QI and Ready. Keep native maxima.
             actors.append(
                 Actor(
                     -7,
                     1,
                     positions[-7],
-                    values[1]["current"],
+                    values[1]["current"] - native_target_initial_wounds,
                     values[2]["current"],
                     values[3]["current"],
                     1,
@@ -177,41 +188,92 @@ class TwoXelorFixture:
                     max_hp=values[1]["maximum"],
                 )
             )
+        monster = dict(
+            id=-7,
+            ref=5525 if native_target_values is None else native_target_ref,
+            map_id=1134,
+            level=actors[-1].effective_level,
+        )
+        monsters = {-7: monster}
+        npc_wp = {
+            -7: (0, 0)
+            if native_target_values is None
+            else (
+                native_target_values[4]["current"],
+                native_target_values[4]["maximum"],
+            )
+        }
+        for (
+            identity,
+            reference_id,
+            target_level,
+            target_position,
+        ) in extra_native_targets:
+            from wakfu_server.combat_actor_snapshot import native_npc_creation_values
+            from wakfu_server.monsters import reference
+
+            target_position = tuple(target_position)
+            if (
+                type(identity) is not int
+                or identity >= 0
+                or identity in positions
+                or target_position not in arena["validated_cells"]
+                or target_position in positions.values()
+            ):
+                raise ValueError(
+                    "Extra native target requires a unique valid native placement"
+                )
+            definition = reference(reference_id)
+            if not definition["min_level"] <= target_level <= definition["max_level"]:
+                raise ValueError("Extra native target outside published level range")
+            values = native_npc_creation_values(reference_id, target_level)
+            positions[identity] = target_position
+            actors.append(
+                Actor(
+                    identity,
+                    1,
+                    target_position,
+                    values[1]["current"],
+                    values[2]["current"],
+                    values[3]["current"],
+                    2,
+                    target_level,
+                    max_hp=values[1]["maximum"],
+                )
+            )
+            monsters[identity] = dict(
+                id=identity, ref=reference_id, map_id=1134, level=target_level
+            )
+            npc_wp[identity] = (values[4]["current"], values[4]["maximum"])
+        self.native_monsters = monsters
         fight = Fight(
             78,
             actors,
             arena["validated_cells"],
-            {0: {positions[7], positions[8], positions[9]}, 1: {positions[-7]}},
+            {
+                0: {positions[7], positions[8], positions[9]},
+                1: {positions[identity] for identity in monsters},
+            },
             arena["valid_edges"],
         )
         fight.native_qi_snapshot = {
             key: arena[key] for key in ("x", "y", "width", "height", "cell_masks")
         }
         fight.native_qi_surface_provenance = dict(arena["native_qi_surface_provenance"])
-        initialize_global_pv_collections(fight, (7, 8, 9, -7))
+        initialize_global_pv_collections(fight, tuple(actor.id for actor in actors))
         freeze_terrain(fight)
         fight.native_obstacle_cells = frozenset()
-        monster = dict(
-            id=-7,
-            ref=5525 if native_target_values is None else native_target_ref,
-            map_id=1134,
-        )
         initialize_fight_snapshots(
             fight,
             characters=characters,
-            monsters={-7: monster},
+            monsters=monsters,
             wp_resources={
                 7: (6, 6),
                 8: (6, 6),
                 9: (6, 6),
-                -7: (0, 0)
-                if native_target_values is None
-                else (
-                    native_target_values[4]["current"],
-                    native_target_values[4]["maximum"],
-                ),
+                **npc_wp,
             },
-            running_effects={7: (), 8: (), 9: (), -7: ()},
+            running_effects={identity: () for identity in positions},
             initial_effect_uid=1,
         )
         for owner in (3, 4, 5):
@@ -230,7 +292,7 @@ class TwoXelorFixture:
             for action_id, identity in enumerate((7, 8, 9), 1):
                 fight, _ = prepare_server_initialization(
                     characters[identity],
-                    {-7: monster},
+                    monsters,
                     fight,
                     characters[identity]["account_id"],
                     decks[identity],

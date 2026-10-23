@@ -101,6 +101,7 @@ def _has_specific_data(db, uid):
         "inventory_item_elements",
         "inventory_item_shards",
         "inventory_mounts",
+        "inventory_pets",
     ):
         if db.execute(f"SELECT 1 FROM {table} WHERE uid=%s", (uid,)).fetchone():
             return True
@@ -136,7 +137,10 @@ def learn(store, account_id, generation, character_id, body):
             (account_id, source_uid),
         ).fetchone()
         if prior is not None:
-            definition = _target_definition(db, prior["target_ref"])
+            # Original bJd.aW resolves an existing per-unit skin before its
+            # statistical template. A replay retains that learned appearance,
+            # even if the physical target has subsequently changed appearance.
+            definition = _target_definition(db, prior["appearance_ref"])
             if (
                 prior["action_id"] != ACTION_ID
                 or prior["source_ref"] != SOURCE_REF
@@ -184,7 +188,13 @@ def learn(store, account_id, generation, character_id, body):
         # The source-generated target descriptor attests native root type109
         # and the eSP accessory-only predicate. Storage ownership is checked by
         # the two account-owned inventory rows above.
-        definition = _target_definition(db, target["reference"])
+        appearance = db.execute(
+            "SELECT appearance_ref FROM inventory_item_appearances WHERE uid=%s FOR UPDATE",
+            (target_uid,),
+        ).fetchone()
+        definition = _target_definition(
+            db, appearance["appearance_ref"] if appearance else target["reference"]
+        )
         record = load(db, account_id)
         if record is None:
             raise ValueError("Missing account cosmetic schema")

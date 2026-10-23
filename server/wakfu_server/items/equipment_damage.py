@@ -65,7 +65,8 @@ def damage(
     localization=None,
     additional_final=0,
     additional_mastery=0,
-    additional_resistance=0
+    additional_resistance=0,
+    encounter_multiplier_bp=10000,
 ):
     """Compute the native normal-front result with caller-selected cast variant.
 
@@ -79,6 +80,10 @@ def damage(
         or element not in ELEMENT_STATS
     ):
         raise ValueError("Invalid native base damage or running-effect element")
+    if type(encounter_multiplier_bp) is not int or not 0 < encounter_multiplier_bp < (
+        1 << 31
+    ):
+        raise ValueError("Invalid explicit encounter damage multiplier")
     flags = (
         critical,
         single_target,
@@ -155,6 +160,10 @@ def damage(
         _float(100 + max(-50, final) - target.get(49, 0)) / _float(100)
     )
     value = _float(value * final_factor)
+    if encounter_multiplier_bp != 10000:
+        # Explicit encounter policy is independent of native final percentages.
+        # Keep float32 precision until the existing single floor/RNG decision.
+        value = _float(value * _float(_float(encounter_multiplier_bp) / _float(10000)))
     floor = math.floor(value)
     probability = value - floor
     # UP.bt/GT.l is stochastic rounding, not Math.round or truncation.

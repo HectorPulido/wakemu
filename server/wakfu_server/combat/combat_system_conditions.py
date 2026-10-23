@@ -59,11 +59,13 @@ def evaluate_system_predicate(context, name, key=None):
     callback = (
         context.pvp_query
         if name == "IsPvp"
+        else context.battleground_query
+        if name == "IsBattleground"
         else context.boolean_system_configuration_query
     )
     if not callable(callback):
         raise ValueError("Missing native system predicate authority: " + name)
-    value = callback() if name == "IsPvp" else callback(key)
+    value = callback() if name in ("IsPvp", "IsBattleground") else callback(key)
     if type(value) is not bool:
         raise ValueError("Invalid native system predicate boolean: " + name)
     return value

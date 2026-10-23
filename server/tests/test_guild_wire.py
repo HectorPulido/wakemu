@@ -2,6 +2,8 @@
 import struct
 import unittest
 
+from wakfu_server.company_authority import CompanySnapshot
+
 from wakfu_server.characters import guild_wire
 from wakfu_server.characters import hero_wire, social
 
@@ -243,23 +245,51 @@ class GuildWireTests(unittest.TestCase):
             guild_wire.local_actor_update(1 << 63, valid)
 
     def test_company_wire_carries_guild_identity_without_changing_neutral_xp(self):
-        _, hero_body = hero_wire.company(123, 456, guild_id=789)
+        _, hero_body = hero_wire.company(
+            123,
+            456,
+            guild_id=789,
+            company_snapshot=CompanySnapshot(123, 456, 0, 789, 1, True),
+        )
         self.assertEqual(
             (1, 1, 123, 456, 0, 789, 0, 1, 1),
             struct.unpack(">IIqqiqIiB", hero_body),
         )
-        _, hero_without_guild = hero_wire.company(123, 456)
+        _, hero_without_guild = hero_wire.company(
+            123, 456, company_snapshot=CompanySnapshot(123, 456, 0, 0, 1, True)
+        )
         self.assertEqual(0, struct.unpack(">IIqqiqIiB", hero_without_guild)[5])
 
-        character = {"id": 456, "guild_native": {"guildId": 789}}
+        character = {
+            "id": 456,
+            "guild_native": {"guildId": 789},
+            "equipment_criterion_context": {
+                "company_snapshot": CompanySnapshot(
+                    123, 456, 0, 789, 603, True
+                ).record()
+            },
+        }
         company_body = social.company(123, character)
         fields = struct.unpack(">qqiqIiB", company_body)
         self.assertEqual((123, 456, 0, 789), fields[:4])
-        self.assertEqual(1, fields[5])
+        self.assertEqual(603, fields[5])
         self.assertEqual(1, fields[6])
-        neutral = struct.unpack(">qqiqIiB", social.company(123, {"id": 456}))
+        neutral = struct.unpack(
+            ">qqiqIiB",
+            social.company(
+                123,
+                {
+                    "id": 456,
+                    "equipment_criterion_context": {
+                        "company_snapshot": CompanySnapshot(
+                            123, 456, 0, 0, 603, True
+                        ).record()
+                    },
+                },
+            ),
+        )
         self.assertEqual(0, neutral[3])
-        self.assertEqual(1, neutral[5])
+        self.assertEqual(603, neutral[5])
 
 
 if __name__ == "__main__":

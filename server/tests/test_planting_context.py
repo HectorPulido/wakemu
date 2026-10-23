@@ -13,9 +13,10 @@ class ContextTests(unittest.TestCase):
         self.assertEqual(struct.unpack_from(">iii", body, 8), (1, 1113, 0))
         context.authorize_family(1385, 93601, RESOURCES[823])
 
-    def test_wrong_native_region_does_not_enable_wonejo(self):
-        with self.assertRaises(ValueError):
-            context.authorize_family(1134, 79001, RESOURCES[823])
+    def test_non_native_families_can_be_planted_without_changing_region_display(self):
+        for resource in RESOURCES.values():
+            with self.subTest(resource=resource["resource_reference"]):
+                context.authorize_family(1134, 79001, resource)
         with self.assertRaises(ValueError):
             context.bootstrap(1134, 93601)
 
@@ -29,6 +30,36 @@ class ContextTests(unittest.TestCase):
 
 
 class NativeSurfaceTests(unittest.TestCase):
+    def test_planting_foreign_region_keeps_surface_and_occupation_checks(self):
+        from unittest.mock import MagicMock, patch
+        from wakfu_server import planting_cells
+
+        store = MagicMock()
+        db = store.connection.return_value.__enter__.return_value
+        db.execute.return_value.fetchone.return_value = None
+        character = {"map_id": 1134, "instance_id": 0}
+        request = {"x": 3, "y": 4}
+        surfaces = {(3, 4): [dict(z=0, ground_id=681, region_id=79001)]}
+        with patch.object(planting_cells, "cells", return_value=surfaces), patch.object(
+            planting_cells, "suitability", return_value=1
+        ):
+            self.assertEqual(
+                planting_cells.authorize(
+                    store, character, request, None, RESOURCES[823]
+                ),
+                0,
+            )
+            db.execute.return_value.fetchone.return_value = {"occupied": 1}
+            with self.assertRaises(ValueError):
+                planting_cells.authorize(
+                    store, character, request, None, RESOURCES[823]
+                )
+            surfaces[(3, 4)] = []
+            with self.assertRaises(ValueError):
+                planting_cells.authorize(
+                    store, character, request, None, RESOURCES[823]
+                )
+
     def test_exact_native_region_and_ground(self):
         from wakfu_server.planting_cells import surface, cells, suitability
 

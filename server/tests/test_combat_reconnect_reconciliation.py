@@ -310,14 +310,18 @@ class ReconnectReconciliationTests(unittest.TestCase):
         fight.turn_id = 2
         runtime = RuntimeMessages(fight, clock=lambda: 100.0)
         runtime.awaiting_ack = 1
-        runtime.pending = [(12502, b"stale-turn-end")]
+        self.pending_begin = (
+            13482,
+            struct.pack(">iiiqq", fight.id, 31, -1, fight.current.id, 60000),
+        )
+        runtime.pending = [self.pending_begin]
         runtime.turn_deadline = None
         runtime.deadline_turn = None
         runtime.native_action_id = 30
         self.shared.runtime = runtime
         self.shared.ack.arm(1, [self.old])
         self.shared.reconnect_turn_end_packets = (
-            (12502, b"stale-turn-end"),
+            (12502, struct.pack(">iiiq", fight.id, 30, -1, fight.current.id)),
             (13420, struct.pack(">i", fight.id)),
         )
         self.shared.join_context = {
@@ -356,7 +360,7 @@ class ReconnectReconciliationTests(unittest.TestCase):
                 fight,
                 shared,
                 session,
-                actor_payload=lambda *_: (b"current-stats", b"current-effects"),
+                actor_payload=lambda *_: (b"current-stats", bytes(2)),
             )
 
         registry.takeover(
@@ -410,7 +414,7 @@ class ReconnectReconciliationTests(unittest.TestCase):
         self.assertEqual(self.shared.ack.received, barrier.received)
         self.assertIsNone(self.shared.runtime.turn_deadline)
         self.assertEqual(self.shared.runtime.awaiting_ack, 1)
-        self.assertEqual(self.shared.runtime.pending, [(12502, b"stale-turn-end")])
+        self.assertEqual(self.shared.runtime.pending, [self.pending_begin])
 
     def test_placement_reconnect_bootstrap_is_owned_and_does_not_change_fight(self):
         from wakfu_server.combat.combat_session_adapter import CombatSessionAdapter
@@ -520,7 +524,7 @@ class ReconnectReconciliationTests(unittest.TestCase):
         )
         before = self._fight_state(self.shared)
         with patch.object(
-            self.adapter, "actor_payload", return_value=(b"current", b"effects")
+            self.adapter, "actor_payload", return_value=(b"current", bytes(2))
         ):
             packets = self.adapter.owned_reconnect_bootstrap(
                 fight,
@@ -530,7 +534,7 @@ class ReconnectReconciliationTests(unittest.TestCase):
 
         self.assertEqual(
             [opcode for opcode, _ in packets],
-            [12847, 13912, 12873, 13912, 12873, 12233, 12053, 12514, 12613],
+            [12847, 12233, 12514, 12053, 13912, 12873, 13912, 12873, 12613],
         )
         recovery = next(body for opcode, body in packets if opcode == 12053)
         restored_round, restored_turn, _, deadline_ms = struct.unpack_from(
@@ -799,16 +803,15 @@ class ReconnectReconciliationTests(unittest.TestCase):
             and node.func.value.id == "health_store"
             and node.func.attr == "initialize"
         )
-        coefficient = next(
+        exploration = next(
             keyword.value
             for keyword in initialize_call.keywords
-            if keyword.arg == "coefficient"
+            if keyword.arg == "exploration"
         )
-        self.assertIsInstance(coefficient, ast.IfExp)
-        self.assertIsInstance(coefficient.test, ast.Name)
-        self.assertEqual(coefficient.test.id, "live_reconnect")
-        self.assertEqual(coefficient.body.value, 0)
-        self.assertEqual(coefficient.orelse.value, 1)
+        self.assertIsInstance(exploration, ast.UnaryOp)
+        self.assertIsInstance(exploration.op, ast.Not)
+        self.assertIsInstance(exploration.operand, ast.Name)
+        self.assertEqual(exploration.operand.id, "live_reconnect")
 
     def test_live_reconnect_probe_requires_matching_live_owner_and_durable_phase(self):
         class Result:

@@ -58,6 +58,12 @@ def _permission(db, guild, character, definition, action):
         "WHERE m.guild_id=%s AND m.character_id=%s",
         (guild["id"], character),
     ).fetchone()
+    if definition.get("permission_model") == "native_guild_storage_v1":
+        from .guild_storage_policy import chest_permission
+
+        if row is None or not chest_permission(definition, row["permissions"], action):
+            raise ValueError("Guild chest permission denied: " + action)
+        return
     bit = definition.get("permission_bits", {}).get(action)
     if (
         row is None
@@ -228,7 +234,7 @@ def load(
     character_id,
     compartment_id,
     *,
-    expected_guild_id=None
+    expected_guild_id=None,
 ):
     """Internal snapshot API; native callers also require a valid open context."""
     with store.connection() as db:
@@ -247,7 +253,7 @@ def snapshot(
     character_id,
     compartment_ids,
     *,
-    expected_guild_id=None
+    expected_guild_id=None,
 ):
     """Read an entire authorized storage view under one guild aggregate lock."""
     if not isinstance(compartment_ids, (list, tuple)) or not compartment_ids:
@@ -307,12 +313,15 @@ def transfer_money(
     *,
     withdraw=False,
     operation_key,
-    expected_guild_id=None
+    expected_guild_id=None,
+    native_global_treasury=False,
 ):
     """Native chest treasury adapter; chest and treasury rights checked atomically."""
     from . import guild_economy as economy
 
     _integer(amount, "money amount", 1)
+    if type(native_global_treasury) is not bool:
+        raise ValueError("Invalid native guild treasury request scope")
     if type(withdraw) is not bool:
         raise ValueError("Invalid guild chest money direction")
     request = dict(
@@ -321,12 +330,27 @@ def transfer_money(
         amount=amount,
         withdraw=withdraw,
     )
+    if native_global_treasury:
+        request["native_global_treasury"] = True
     with store.connection() as db:
         _, guild, policy = _start(
             store, db, account_id, generation, character_id, expected_guild_id
         )
+        from wakfu_server.simple_item_actions import _idle
+
+        _idle(db, character_id, store.now())
         definition = _definition(policy, guild, compartment_id)
-        for action in ("view", "withdraw" if withdraw else "deposit"):
+        if (
+            native_global_treasury
+            and definition.get("permission_model") != "native_guild_storage_v1"
+        ):
+            raise ValueError("Native global treasury requires qualified storage rights")
+        actions = (
+            ("view",)
+            if native_global_treasury
+            else ("view", "withdraw" if withdraw else "deposit")
+        )
+        for action in actions:
             _permission(db, guild, character_id, definition, action)
         economic_policy = economy._policy(db, "treasury_enabled")
         economy._member(
@@ -386,7 +410,7 @@ def transfer(
     deposit,
     operation_key,
     expected_revision,
-    expected_guild_id=None
+    expected_guild_id=None,
 ):
     """Conserve inventory + guild custody with durable deduplication and CAS."""
     request = dict(
@@ -400,6 +424,9 @@ def transfer(
         service, guild, policy = _start(
             store, db, account_id, generation, character_id, expected_guild_id
         )
+        from wakfu_server.simple_item_actions import _idle
+
+        _idle(db, character_id, store.now())
         definition = _definition(policy, guild, compartment_id)
         for action in ("view", "deposit" if deposit else "withdraw"):
             _permission(db, guild, character_id, definition, action)
@@ -520,7 +547,7 @@ def move(
     *,
     operation_key,
     expected_revisions,
-    expected_guild_id=None
+    expected_guild_id=None,
 ):
     request = dict(
         operation="move",
@@ -536,10 +563,18 @@ def move(
         service, guild, policy = _start(
             store, db, account_id, generation, character_id, expected_guild_id
         )
+        from wakfu_server.simple_item_actions import _idle
+
+        _idle(db, character_id, store.now())
         chests = {}
         for identity in sorted({source_compartment_id, destination_compartment_id}):
             definition = _definition(policy, guild, identity)
-            for action in ("view", "move", "withdraw", "deposit"):
+            actions = (
+                ("view", "move", "deposit")
+                if definition.get("permission_model") == "native_guild_storage_v1"
+                else ("view", "move", "withdraw", "deposit")
+            )
+            for action in actions:
                 _permission(db, guild, character_id, definition, action)
             chests[identity] = _chest(db, guild, identity, definition)
         if _receipt(db, character_id, operation_key, guild, request):

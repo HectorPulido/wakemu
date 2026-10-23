@@ -35,3 +35,40 @@ class EffectUIDTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.fight.allocate_effect_uid()
             self.assertEqual(self.fight.native_effect_uid_next, value)
+
+    def test_running_counter_crosses_active_and_retired_area_pv_ids(self):
+        self.fight.native_effect_uid_next = 8983
+        self.fight.native_effect_areas[8984] = dict(uid=8984)
+        self.fight.native_retired_area_managers[8990] = dict(uid=8990, reference=2067)
+        preview = deepcopy(self.fight)
+        self.assertEqual(
+            [preview.allocate_effect_uid() for _ in range(8)], list(range(8983, 8991))
+        )
+        self.assertEqual(preview.native_effect_uid_next, 8991)
+        self.assertEqual(self.fight.native_effect_uid_next, 8983)
+        self.assertEqual(preview.native_effect_areas, self.fight.native_effect_areas)
+        self.assertEqual(
+            preview.native_retired_area_managers,
+            self.fight.native_retired_area_managers,
+        )
+        self.fight = preview
+        self.assertEqual(self.fight.allocate_effect_uid(), 8991)
+
+    def test_real_owned_runner_collisions_remain_atomic_in_every_registry(self):
+        for registry in (
+            "state_wire_payloads",
+            "owned_stat_effects",
+            "native_owned_group_effects",
+            "native_owned_area_effects",
+            "native_owned_spatial_effects",
+        ):
+            with self.subTest(registry=registry):
+                fight = deepcopy(self.fight)
+                fight.native_effect_uid_next = 8990
+                getattr(fight, registry)[8990] = {}
+                with self.assertRaisesRegex(
+                    ValueError, "collides with an owned effect"
+                ):
+                    fight.allocate_effect_uid()
+                self.assertEqual(fight.native_effect_uid_next, 8990)
+                self.assertIn(8990, getattr(fight, registry))

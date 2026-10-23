@@ -23,13 +23,15 @@ def snapshot(character):
     return (packet(character["id"], character.get("ecology_value", 0)),)
 
 
-def apply(db, character_id, *, operation, delta, evidence):
+def apply(db, character_id, *, operation, delta, evidence, national_action=False):
     packet(character_id, 0)
     value(delta)
     if not isinstance(operation, str) or not 1 <= len(operation) <= 128:
         raise ValueError("Invalid ecology operation")
     if type(evidence) is not dict:
         raise ValueError("Invalid ecological evidence")
+    if type(national_action) is not bool:
+        raise ValueError("Invalid live national ecology action")
     actor = db.execute(
         "SELECT ecology_value,ecology_revision FROM characters WHERE id=%s FOR UPDATE",
         (character_id,),
@@ -61,6 +63,10 @@ def apply(db, character_id, *, operation, delta, evidence):
         "UPDATE characters SET ecology_value=%s,ecology_revision=%s WHERE id=%s",
         (after, revision, character_id),
     )
+    if national_action:
+        from .national_earnings import ecology
+
+        ecology(db, character_id, operation)
     return {
         "duplicate": False,
         "receipt": dict(receipt),

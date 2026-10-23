@@ -1,0 +1,5391 @@
+{
+  "items": {
+    "10279": {
+      "143486": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 143486,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            12.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            12,
+            71
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            12,
+            71
+          ],
+          "ordinal": 1,
+          "parameter_count": 2,
+          "parameters": [
+            12.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "reference": 143486,
+          "variant": 0
+        }
+      }
+    },
+    "10365": {
+      "254697": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254697,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            71
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            71
+          ],
+          "ordinal": 1,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "reference": 254697,
+          "variant": 0
+        }
+      },
+      "254698": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254698,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            72.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            72
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            72
+          ],
+          "ordinal": 2,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            72.0,
+            0.0
+          ],
+          "reference": 254698,
+          "variant": 0
+        }
+      },
+      "254699": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254699,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            73
+          ],
+          "ordinal": 3,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 254699,
+          "variant": 0
+        }
+      },
+      "254700": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254700,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            74
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            74
+          ],
+          "ordinal": 4,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "reference": 254700,
+          "variant": 0
+        }
+      },
+      "254701": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254701,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            75.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            75
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            75
+          ],
+          "ordinal": 5,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            75.0,
+            0.0
+          ],
+          "reference": 254701,
+          "variant": 0
+        }
+      },
+      "43754": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 43754,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            64
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            64
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "reference": 43754,
+          "variant": 0
+        }
+      }
+    },
+    "10559": {
+      "45853": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2002,
+          "has_triggers": false,
+          "id": 45853,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            20.0,
+            0.0,
+            40.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            20,
+            40
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2002,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            20,
+            40
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            20.0,
+            0.0,
+            40.0,
+            0.0
+          ],
+          "reference": 45853,
+          "variant": 0
+        }
+      }
+    },
+    "10560": {
+      "45854": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2002,
+          "has_triggers": false,
+          "id": 45854,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            20.0,
+            0.0,
+            76.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            20,
+            76
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2002,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            20,
+            76
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            20.0,
+            0.0,
+            76.0,
+            0.0
+          ],
+          "reference": 45854,
+          "variant": 0
+        }
+      }
+    },
+    "10561": {
+      "45855": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2002,
+          "has_triggers": false,
+          "id": 45855,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            20.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            20,
+            64
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2002,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            20,
+            64
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            20.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "reference": 45855,
+          "variant": 0
+        }
+      }
+    },
+    "10609": {
+      "177281": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177281,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            30.0,
+            0.0,
+            75.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            30,
+            75
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            30,
+            75
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            30.0,
+            0.0,
+            75.0,
+            0.0
+          ],
+          "reference": 177281,
+          "variant": 0
+        }
+      }
+    },
+    "10610": {
+      "177266": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177266,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            30.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            30,
+            71
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            30,
+            71
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            30.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "reference": 177266,
+          "variant": 0
+        }
+      }
+    },
+    "10611": {
+      "177272": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177272,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            30.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            30,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            30,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            30.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 177272,
+          "variant": 0
+        }
+      }
+    },
+    "12433": {
+      "60781": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 60781,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            12.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            12,
+            71
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            12,
+            71
+          ],
+          "ordinal": 5,
+          "parameter_count": 2,
+          "parameters": [
+            12.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "reference": 60781,
+          "variant": 0
+        }
+      }
+    },
+    "13657": {
+      "67247": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 67247,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 67247,
+          "variant": 0
+        }
+      }
+    },
+    "13666": {
+      "67810": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 67810,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            74
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            74
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "reference": 67810,
+          "variant": 0
+        }
+      }
+    },
+    "15098": {
+      "80994": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 80994,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.8,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.8,
+            73.0,
+            0.0
+          ],
+          "reference": 80994,
+          "variant": 0
+        }
+      }
+    },
+    "22551": {
+      "327193": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 327193,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.8,
+            74.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            74
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            74
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.8,
+            74.0,
+            0.0
+          ],
+          "reference": 327193,
+          "variant": 0
+        }
+      }
+    },
+    "2292": {
+      "177273": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177273,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            64
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            64
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "reference": 177273,
+          "variant": 0
+        }
+      }
+    },
+    "2293": {
+      "177270": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177270,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 177270,
+          "variant": 0
+        }
+      }
+    },
+    "23881": {
+      "254708": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254708,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            5.0,
+            0.4,
+            64.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            5,
+            64
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            5,
+            64
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            5.0,
+            0.4,
+            64.0,
+            0.0
+          ],
+          "reference": 254708,
+          "variant": 0
+        }
+      },
+      "254709": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254709,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            5.0,
+            0.4,
+            71.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            5,
+            71
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            5,
+            71
+          ],
+          "ordinal": 1,
+          "parameter_count": 2,
+          "parameters": [
+            5.0,
+            0.4,
+            71.0,
+            0.0
+          ],
+          "reference": 254709,
+          "variant": 0
+        }
+      },
+      "254710": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254710,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            5.0,
+            0.4,
+            72.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            5,
+            72
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            5,
+            72
+          ],
+          "ordinal": 2,
+          "parameter_count": 2,
+          "parameters": [
+            5.0,
+            0.4,
+            72.0,
+            0.0
+          ],
+          "reference": 254710,
+          "variant": 0
+        }
+      },
+      "254711": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254711,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            5.0,
+            0.4,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            5,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            5,
+            73
+          ],
+          "ordinal": 3,
+          "parameter_count": 2,
+          "parameters": [
+            5.0,
+            0.4,
+            73.0,
+            0.0
+          ],
+          "reference": 254711,
+          "variant": 0
+        }
+      },
+      "254712": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254712,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            5.0,
+            0.4,
+            74.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            5,
+            74
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            5,
+            74
+          ],
+          "ordinal": 4,
+          "parameter_count": 2,
+          "parameters": [
+            5.0,
+            0.4,
+            74.0,
+            0.0
+          ],
+          "reference": 254712,
+          "variant": 0
+        }
+      },
+      "254713": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 254713,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            5.0,
+            0.4,
+            75.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            5,
+            75
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            5,
+            75
+          ],
+          "ordinal": 5,
+          "parameter_count": 2,
+          "parameters": [
+            5.0,
+            0.4,
+            75.0,
+            0.0
+          ],
+          "reference": 254713,
+          "variant": 0
+        }
+      }
+    },
+    "2408": {
+      "177264": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177264,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            71
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            71
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "reference": 177264,
+          "variant": 0
+        }
+      }
+    },
+    "27310": {
+      "290548": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 290548,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.8,
+            71.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            71
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            71
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.8,
+            71.0,
+            0.0
+          ],
+          "reference": 290548,
+          "variant": 0
+        }
+      }
+    },
+    "27311": {
+      "290549": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 290549,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.8,
+            64.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            64
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            64
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.8,
+            64.0,
+            0.0
+          ],
+          "reference": 290549,
+          "variant": 0
+        }
+      }
+    },
+    "27540": {
+      "293999": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 293999,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.8,
+            75.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            75
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            75
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.8,
+            75.0,
+            0.0
+          ],
+          "reference": 293999,
+          "variant": 0
+        }
+      }
+    },
+    "27541": {
+      "294000": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 294000,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.8,
+            72.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            72
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            72
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.8,
+            72.0,
+            0.0
+          ],
+          "reference": 294000,
+          "variant": 0
+        }
+      }
+    },
+    "2895": {
+      "24507": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2000,
+          "has_triggers": false,
+          "id": 24507,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 1,
+          "params": [
+            1000.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            1000
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2000,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            1000
+          ],
+          "ordinal": 0,
+          "parameter_count": 1,
+          "parameters": [
+            1000.0,
+            0.0
+          ],
+          "reference": 24507,
+          "variant": 0
+        }
+      }
+    },
+    "30840": {
+      "346180": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 346180,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            30.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            30,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            30,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            30.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 346180,
+          "variant": 0
+        }
+      }
+    },
+    "30841": {
+      "346181": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 346181,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            64
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            64
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "reference": 346181,
+          "variant": 0
+        }
+      },
+      "346182": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 346182,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            71
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            71
+          ],
+          "ordinal": 1,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "reference": 346182,
+          "variant": 0
+        }
+      },
+      "346183": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 346183,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            72.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            72
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            72
+          ],
+          "ordinal": 2,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            72.0,
+            0.0
+          ],
+          "reference": 346183,
+          "variant": 0
+        }
+      },
+      "346184": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 346184,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            73
+          ],
+          "ordinal": 3,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 346184,
+          "variant": 0
+        }
+      },
+      "346185": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 346185,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            74
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            74
+          ],
+          "ordinal": 4,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "reference": 346185,
+          "variant": 0
+        }
+      },
+      "346186": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 346186,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            50.0,
+            0.0,
+            75.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50,
+            75
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50,
+            75
+          ],
+          "ordinal": 5,
+          "parameter_count": 2,
+          "parameters": [
+            50.0,
+            0.0,
+            75.0,
+            0.0
+          ],
+          "reference": 346186,
+          "variant": 0
+        }
+      }
+    },
+    "32704": {
+      "409513": {
+        "equipment_effect": {
+          "effect_criteria": true,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 409513,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 1,
+          "params": [
+            50.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_native": "eOk@74cadd41",
+          "criterion_raw": "IsNeoServer()",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 1
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50
+          ],
+          "ordinal": 5,
+          "parameter_count": 1,
+          "parameters": [
+            50.0,
+            0.0
+          ],
+          "reference": 409513,
+          "variant": 0
+        }
+      }
+    },
+    "32705": {
+      "409522": {
+        "equipment_effect": {
+          "effect_criteria": true,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 409522,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 1,
+          "params": [
+            50.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_native": "eOk@878452d",
+          "criterion_raw": "IsNeoServer()",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 1
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50
+          ],
+          "ordinal": 6,
+          "parameter_count": 1,
+          "parameters": [
+            50.0,
+            0.0
+          ],
+          "reference": 409522,
+          "variant": 0
+        }
+      }
+    },
+    "32706": {
+      "409532": {
+        "equipment_effect": {
+          "effect_criteria": true,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 409532,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 1,
+          "params": [
+            50.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_native": "eOk@665e9289",
+          "criterion_raw": "IsNeoServer()",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 1
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50
+          ],
+          "ordinal": 7,
+          "parameter_count": 1,
+          "parameters": [
+            50.0,
+            0.0
+          ],
+          "reference": 409532,
+          "variant": 0
+        }
+      }
+    },
+    "32707": {
+      "409543": {
+        "equipment_effect": {
+          "effect_criteria": true,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 409543,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 1,
+          "params": [
+            50.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            50
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_native": "eOk@277f7dd3",
+          "criterion_raw": "IsNeoServer()",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 1
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            50
+          ],
+          "ordinal": 8,
+          "parameter_count": 1,
+          "parameters": [
+            50.0,
+            0.0
+          ],
+          "reference": 409543,
+          "variant": 0
+        }
+      }
+    },
+    "4220": {
+      "327101": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 327101,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            25.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            25,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            25,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            25.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 327101,
+          "variant": 0
+        }
+      }
+    },
+    "5002": {
+      "24535": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2008,
+          "has_triggers": false,
+          "id": 24535,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 1,
+          "params": [
+            1000.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            1000
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2008,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            1000
+          ],
+          "ordinal": 1,
+          "parameter_count": 1,
+          "parameters": [
+            1000.0,
+            0.0
+          ],
+          "reference": 24535,
+          "variant": 0
+        }
+      },
+      "24536": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2006,
+          "has_triggers": false,
+          "id": 24536,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 1,
+          "params": [
+            1000.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            1000
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2006,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 2
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            1000
+          ],
+          "ordinal": 2,
+          "parameter_count": 1,
+          "parameters": [
+            1000.0,
+            0.0
+          ],
+          "reference": 24536,
+          "variant": 0
+        }
+      }
+    },
+    "8051": {
+      "177276": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177276,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            74
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            74
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "reference": 177276,
+          "variant": 0
+        }
+      }
+    },
+    "8052": {
+      "177269": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177269,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.0,
+            72.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            72
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            72
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.0,
+            72.0,
+            0.0
+          ],
+          "reference": 177269,
+          "variant": 0
+        }
+      }
+    },
+    "8077": {
+      "177279": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177279,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            10.0,
+            0.0,
+            75.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            10,
+            75
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            10,
+            75
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            10.0,
+            0.0,
+            75.0,
+            0.0
+          ],
+          "reference": 177279,
+          "variant": 0
+        }
+      }
+    },
+    "8264": {
+      "177280": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177280,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            20.0,
+            0.0,
+            75.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            20,
+            75
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            20,
+            75
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            20.0,
+            0.0,
+            75.0,
+            0.0
+          ],
+          "reference": 177280,
+          "variant": 0
+        }
+      }
+    },
+    "8265": {
+      "177277": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177277,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            20.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            20,
+            74
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            20,
+            74
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            20.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "reference": 177277,
+          "variant": 0
+        }
+      }
+    },
+    "8266": {
+      "177275": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177275,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            20.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            20,
+            64
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            20,
+            64
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            20.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "reference": 177275,
+          "variant": 0
+        }
+      }
+    },
+    "8267": {
+      "177265": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177265,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            20.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            20,
+            71
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            20,
+            71
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            20.0,
+            0.0,
+            71.0,
+            0.0
+          ],
+          "reference": 177265,
+          "variant": 0
+        }
+      }
+    },
+    "8268": {
+      "177271": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177271,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            20.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            20,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            20,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            20.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 177271,
+          "variant": 0
+        }
+      }
+    },
+    "8269": {
+      "177268": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177268,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            20.0,
+            0.0,
+            72.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            20,
+            72
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            20,
+            72
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            20.0,
+            0.0,
+            72.0,
+            0.0
+          ],
+          "reference": 177268,
+          "variant": 0
+        }
+      }
+    },
+    "9172": {
+      "143565": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 143565,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            25.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            25,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            25,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            25.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 143565,
+          "variant": 0
+        }
+      }
+    },
+    "9173": {
+      "143566": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 143566,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            25.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            25,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            25,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            25.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 143566,
+          "variant": 0
+        }
+      }
+    },
+    "9174": {
+      "143573": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 143573,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            25.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            25,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            25,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            25.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 143573,
+          "variant": 0
+        }
+      }
+    },
+    "9175": {
+      "143580": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 143580,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            25.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            25,
+            73
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            25,
+            73
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            25.0,
+            0.0,
+            73.0,
+            0.0
+          ],
+          "reference": 143580,
+          "variant": 0
+        }
+      }
+    },
+    "9626": {
+      "177267": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177267,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            30.0,
+            0.0,
+            72.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            30,
+            72
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            30,
+            72
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            30.0,
+            0.0,
+            72.0,
+            0.0
+          ],
+          "reference": 177267,
+          "variant": 0
+        }
+      }
+    },
+    "9629": {
+      "177278": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177278,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            30.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            30,
+            74
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            30,
+            74
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            30.0,
+            0.0,
+            74.0,
+            0.0
+          ],
+          "reference": 177278,
+          "variant": 0
+        }
+      }
+    },
+    "9630": {
+      "177274": {
+        "equipment_effect": {
+          "effect_criteria": false,
+          "generic": 2001,
+          "has_triggers": false,
+          "id": 177274,
+          "native_active_effect": false,
+          "native_variant": 0,
+          "parameter_count": 2,
+          "params": [
+            30.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "runner": "eXx",
+          "stat_id": -1,
+          "stat_limit": -1,
+          "stat_name": "",
+          "target_mask": 0,
+          "values": [
+            30,
+            64
+          ]
+        },
+        "native_root": {
+          "child_definitions": [],
+          "children": [],
+          "criterion_raw": "",
+          "effect_class": 2001,
+          "maximum_level": 32767,
+          "metadata": {
+            "application_flag": "NONE",
+            "area_class": "anA",
+            "area_native": "empty",
+            "native_active_effect": false,
+            "native_definition_class": "eVE",
+            "native_effect_flags": [],
+            "native_execution_mode": 0,
+            "native_hmi_actions": {
+              "rzc": [],
+              "rzd": [],
+              "rze": [],
+              "rzf": [],
+              "rzg": [],
+              "rzh": []
+            },
+            "native_localization_enabled": false,
+            "native_target_selector": {
+              "class": "fcE",
+              "mask": 0
+            },
+            "native_timing_definition": {
+              "clock_on_caster": false,
+              "clock_on_target": true
+            },
+            "probability_base": 100.0,
+            "probability_per_level": 0.0,
+            "removal_flag": "NONE",
+            "target_masks": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "minimum_level": 0,
+          "native_values_at_fresh_item_level": [
+            30,
+            64
+          ],
+          "ordinal": 0,
+          "parameter_count": 2,
+          "parameters": [
+            30.0,
+            0.0,
+            64.0,
+            0.0
+          ],
+          "reference": 177274,
+          "variant": 0
+        }
+      }
+    }
+  },
+  "source": "Original complete eXx equipment roots + native scalar export, 2026-10-20"
+}

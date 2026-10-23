@@ -26,7 +26,9 @@ class NpcWorldTests(unittest.TestCase):
             action_ids=[515],
             enabled=True,
         )
-        self.character = dict(map_id=1134, instance_id=0, x=-12, y=-8, z=-1)
+        self.character = dict(
+            id=100, account_id=200, map_id=1134, instance_id=0, x=-12, y=-8, z=-1
+        )
         self.native = {
             "nodes": [
                 {
@@ -96,6 +98,54 @@ class NpcWorldTests(unittest.TestCase):
         self.assertFalse(nearby(self.character, self.row))
         with self.assertRaises(ValueError):
             session.choose(6274, 14075)
+        self.assertIsNone(session.node_id)
+
+    def test_dialogue_freezes_owner_identity_across_provider_replacement_and_in_place_mutation(
+        self,
+    ):
+        original = dict(self.character)
+        for changed, replace_provider in (
+            ({"id": original["id"] + 1}, True),
+            ({"id": original["id"] + 1}, False),
+            ({"account_id": original["account_id"] + 1}, False),
+        ):
+            with self.subTest(changed=changed, replace_provider=replace_provider):
+                current = [dict(original)]
+                session, packet = begin(
+                    lambda: current[0],
+                    lambda: [self.row],
+                    self.row["actor_id"],
+                    515,
+                    self.native,
+                )
+                self.assertEqual(packet[0], 12969)
+                if replace_provider:
+                    current[0] = dict(current[0], **changed)
+                else:
+                    current[0].update(changed)
+                self.assertEqual(
+                    {
+                        key: current[0][key]
+                        for key in ("map_id", "instance_id", "x", "y", "z")
+                    },
+                    {
+                        key: original[key]
+                        for key in ("map_id", "instance_id", "x", "y", "z")
+                    },
+                )
+                with self.assertRaises(ValueError):
+                    session.choose(6274, 14075)
+                self.assertIsNone(session.node_id)
+                self.assertIsNone(session.speaker_id)
+        # Movement itself must not invalidate an otherwise owned dialogue.
+        current = dict(original)
+        session, packet = begin(
+            lambda: current, lambda: [self.row], self.row["actor_id"], 515, self.native
+        )
+        self.assertEqual(packet[0], 12969)
+        current["x"] += 1
+        self.assertTrue(nearby(current, self.row))
+        self.assertIsNone(session.choose(6274, 14075))
         self.assertIsNone(session.node_id)
 
     def test_rejects_duplicate_identity_positions_and_foreign_native_roots(self):

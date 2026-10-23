@@ -3,9 +3,9 @@ import unittest
 from copy import deepcopy
 from unittest.mock import patch
 
-from wakfu_server.combat.combat_equipment_initialization import plan
-from wakfu_server.combat.combat_copied_equipment_plan import SOURCE
-from wakfu_server.combat.combat_effect_dispatch import UnsupportedEffectExecution
+from wakfu_server.combat_equipment_initialization import plan
+from wakfu_server.combat_copied_equipment_plan import SOURCE
+from wakfu_server.combat_effect_dispatch import UnsupportedEffectExecution
 from wakfu_server.wire import proto_field
 
 
@@ -105,6 +105,28 @@ class CombatEquipmentInitializationTests(unittest.TestCase):
                 ]
             },
         }
+        # The shared classifier needs the same scalar/profession ownership
+        # summary fields as the actual native catalog, even for unknown roots.
+        roots = {
+            row["reference"]: row
+            for definition in self.native_catalog["definitions"].values()
+            for row in definition["ordered_effects"]
+        }
+        for template in self.templates.values():
+            for effect in template["effects"]:
+                effect.update(
+                    generic=roots[effect["id"]]["effect_class"],
+                    runner="fixture",
+                    params=[],
+                    values=[],
+                    parameter_count=0,
+                    stat_id=-1,
+                    stat_limit=-1,
+                    stat_name="",
+                    has_triggers=False,
+                    effect_criteria=False,
+                    target_mask=0,
+                )
         shard_state = proto_field(24, 27123) + proto_field(32, 27123)
         self.character = {
             "level": 100,
@@ -158,7 +180,7 @@ class CombatEquipmentInitializationTests(unittest.TestCase):
                 for row in rows
             ],
             [
-                (100, None, (1001,)),
+                (100, None, (1001, 1002, 1005)),
                 (27123, 24, (271231,)),
                 (27123, 32, (271231,)),
             ],
@@ -175,13 +197,38 @@ class CombatEquipmentInitializationTests(unittest.TestCase):
             self.assertEqual(row["uid"], 500)
             self.assertEqual(row["reference"], 100)
             self.assertEqual(row["native_retained_container"], expected_parent)
-        self.assertEqual(set(rows[0]["effects"]), {"1001", "10011"})
+        self.assertEqual(set(rows[0]["effects"]), {"1001", "10011", "1002", "1005"})
         self.assertEqual(rows[0]["effects"]["1001"]["children"], [10011])
         self.assertEqual(set(rows[1]["effects"]), {"271231", "2712311"})
         self.assertEqual(rows[1]["effects"]["271231"]["children"], [2712311])
         adjusted = self.validate_sheet_mock.call_args.args[0]
         self.assertEqual(adjusted["level"], 80)
         self.effective_level_mock.assert_called_once_with(self.character, 0)
+
+    def test_ordinary_snapshot_ownership_and_both_authorized_slots_are_combined(self):
+        rows = self.make_plan(
+            ordinary_only=True,
+            include_attachments=True,
+            attachment_authority=self.authority,
+        )
+        self.assertEqual([row["attachment_field"] for row in rows], [None, 24, 32])
+        self.assertTrue(all(row["unplanned_passive_effect_ids"] == () for row in rows))
+        self.assertEqual(rows[1]["roots"], (271231,))
+        self.assertEqual(
+            rows[2]["native_retained_container"], rows[0]["native_retained_container"]
+        )
+        ordinary = self.make_plan(ordinary_only=True)
+        self.assertEqual(rows[0], ordinary[0])
+        disabled = self.make_plan(
+            ordinary_only=True,
+            include_attachments=True,
+            attachment_authority=lambda *_args: False,
+        )
+        self.assertEqual(disabled, ordinary)
+        with self.assertRaisesRegex(
+            UnsupportedEffectExecution, "eligibility authority"
+        ):
+            self.make_plan(ordinary_only=True, include_attachments=True)
 
     def test_missing_or_non_boolean_attachment_authority_fails_closed(self):
         with self.subTest(authority="missing"):
@@ -197,19 +244,21 @@ class CombatEquipmentInitializationTests(unittest.TestCase):
         rows = self.make_plan(attachment_authority=lambda *_args: False)
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["source_reference"], 100)
-        self.assertEqual(rows[0]["roots"], (1001,))
+        self.assertEqual(rows[0]["roots"], (1001, 1002, 1005))
 
-    def test_native_passive_filter_keeps_ordinary_304_only_and_drops_variants(self):
+    def test_native_passive_filter_keeps_operators_and_drops_active_or_variant_actions(
+        self,
+    ):
         rows = self.make_plan(attachment_authority=self.authority)
         ordinary = rows[0]
-        self.assertEqual(ordinary["roots"], (1001,))
-        # Sublimations use the same native identity filters but do not apply the
-        # ordinary equipment's effect-class 304 restriction.
+        self.assertEqual(ordinary["roots"], (1001, 1002, 1005))
+        # Unknown operator roots remain planned for the later capability gate;
+        # active actions and nonzero variants remain excluded from Ready.
         self.assertTrue(all(row["roots"] == (271231,) for row in rows[1:]))
-        self.assertTrue(all(1002 not in row["roots"] for row in rows))
+        self.assertIn(1002, ordinary["roots"])
         self.assertTrue(all(1003 not in row["roots"] for row in rows))
         self.assertTrue(all(1004 not in row["roots"] for row in rows))
-        self.assertTrue(all(1005 not in row["roots"] for row in rows))
+        self.assertIn(1005, ordinary["roots"])
         self.assertTrue(all(271232 not in row["roots"] for row in rows))
         self.assertTrue(all(271233 not in row["roots"] for row in rows))
 

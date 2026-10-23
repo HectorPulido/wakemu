@@ -378,16 +378,46 @@ class QuerySessions:
                 self._release(entry)
         return dict(cancelled=True, requestId=identity)
 
-    @staticmethod
-    def _reply(identity, entry):
+    def _reply(self, identity, entry):
         metrics = entry.get("initializationMetrics")
         diagnostics = {} if metrics is None else dict(backendPreparation=metrics)
         if entry["final"] is not None:
             return dict(status="decided", decision=entry["final"], **diagnostics)
+        query = entry["query"]
+        # Freeze the allowance with this exact source-bound query, so retries
+        # remain identical. World also clamps it to its real local deadline;
+        # network delay can never buy search time from the commit reserve.
+        if (
+            entry["ownerDeadline"] is not None
+            and entry.get("allowanceQueryId") != query["id"]
+        ):
+            reserve = entry["initial"]["policy"].get("commitReserveMs", 500)
+            if type(reserve) is not int or not 0 <= reserve <= 10000:
+                raise ValueError("Invalid native commit reserve")
+            allowance = max(
+                0.0, (entry["ownerDeadline"] - self.clock()) * 1000 - reserve
+            )
+            if "searchAllowanceMs" in query:
+                explicit = query["searchAllowanceMs"]
+                if (
+                    type(explicit) not in (int, float)
+                    or not math.isfinite(explicit)
+                    or explicit < 0
+                ):
+                    raise ValueError("Invalid native query search allowance")
+                allowance = min(allowance, explicit)
+            query = dict(query, searchAllowanceMs=allowance)
+            entry["query"] = query
+            entry["allowanceQueryId"] = query["id"]
+        incumbent = query.get("incumbent")
+        public_query = {
+            key: value for key, value in query.items() if key != "incumbent"
+        }
         return dict(
             status="query",
             requestId=identity,
             sourceKey=entry["source"],
-            queries=[entry["query"]],
+            queries=[public_query],
+            **({"incumbent": incumbent} if "incumbent" in query else {}),
             **diagnostics,
         )

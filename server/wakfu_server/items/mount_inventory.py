@@ -84,7 +84,16 @@ def equipped(character):
     saved = character.get("builds", {}).get(index, {})
     blob = bytes.fromhex(saved.get("equipment", ""))
     level = effective_sheet_level(character, index)
-    selected = validate_sheet(dict(character, level=level, effective_level=level), blob)
+    selected = validate_sheet(
+        dict(
+            character,
+            real_level=character.get("real_level", character["level"]),
+            level=level,
+            effective_level=level,
+        ),
+        blob,
+        strict=False,
+    )
     units = {item["uid"]: item for item in character.get("inventory_items", [])}
     for entry in selected:
         if entry["slot"] == 24:
@@ -97,12 +106,14 @@ def equipped(character):
 
 
 def actor_pet(character):
-    """No companion-pet authority exists yet; preserve its explicit absence."""
+    """Publish independent original companion and mount records in rw order."""
     from .mount_codec import pet_section
+    from .pet_inventory import actor_pet as companion_pet
 
+    companion = companion_pet(character)
     unit = equipped(character)
     if unit is None:
-        return b"\x00\x00"
+        return companion + b"\x00"
     state = unit["mount"]
     record = character.get("owned_cosmetics")
     if record is not None:
@@ -121,4 +132,4 @@ def actor_pet(character):
             state = dict(
                 state, color_item_ref=color, equipped_item_ref=accessory or reference
             )
-    return pet_section(state)
+    return companion + pet_section(state)[1:]

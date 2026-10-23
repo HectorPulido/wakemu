@@ -12,18 +12,21 @@ class World:
         deliver_batch=None,
         delivery_failure=None,
         state_packets=None,
+        refresh_state_packets=None,
     ):
         self.lock = threading.RLock()
         self.players = {}
         self._ecology_inactive = set()
         self._presence_generation = {}
         self._presence_sequence = 0
+        self._ranch_scene_refresh_sequence = 0
         self.spawn = spawn
         self.remove = remove
         self.deliver = deliver
         self.deliver_batch = deliver_batch
         self.delivery_failure = delivery_failure
         self.state_packets = state_packets or (lambda character: ())
+        self.refresh_state_packets = refresh_state_packets
 
     @staticmethod
     def location(character):
@@ -43,8 +46,15 @@ class World:
                 for generation, _, character in self.players.values()
             ]
 
-    def update_territory_projection(self, generation, character, *, peer, bonuses):
-        """Merge derived stats only while the exact owner/location lease is live."""
+    def update_territory_projection(
+        self, generation, character, *, peer, bonuses, regional_state_id=None
+    ):
+        """Merge derived stats/icons while the exact owner/location lease is live."""
+        if regional_state_id is not None and (
+            type(regional_state_id) is not int
+            or regional_state_id not in (1915, 1916, 1917)
+        ):
+            raise ValueError("Invalid native regional state projection")
         with self.lock:
             entry = self.players.get(character["id"])
             if (
@@ -59,6 +69,19 @@ class World:
                 return False
             entry[2]["territory_stat_bonuses"] = dict(bonuses)
             entry[2]["_published_territory_stat_bonuses"] = dict(bonuses)
+            entry[2]["territory_state_id"] = regional_state_id
+            entry[2]["_published_territory_state_id"] = regional_state_id
+            for key in (
+                "hp",
+                "max_hp",
+                "hp_damage",
+                "health_dead",
+                "hp_zero_valid",
+                "territory_health_projection",
+                "equipment_hp_projection",
+            ):
+                if key in character:
+                    entry[2][key] = character[key]
             return True
 
     def ecology_snapshot(self):
@@ -75,6 +98,11 @@ class World:
                 for generation, _, character in self.players.values()
                 if (character["id"], generation) not in self._ecology_inactive
             ]
+
+    def scope_presence(self, map_id, instance_id):
+        """Constant-time live occupancy episode, absent after the last departure."""
+        with self.lock:
+            return self._presence_generation.get((map_id, instance_id))
 
     def deactivate_ecology(self, character_id, generation):
         """Stop simulation authority immediately without disrupting combat cleanup."""
@@ -150,7 +178,9 @@ class World:
             )
             return None if entry is None else (entry[0], deepcopy(entry[2]))
 
-    def set_guild_projection(self, character_id, generation, model, factor):
+    def set_guild_projection(
+        self, character_id, generation, model, factor, *, member_bonus_records=None
+    ):
         """Update social fields for future spawns without replacing combat data."""
         from copy import deepcopy
 
@@ -161,6 +191,9 @@ class World:
             character = dict(entry[2])
             character["guild_native"] = deepcopy(model)
             character["guild_moderation_factor"] = factor
+            character["guild_member_bonus_records"] = deepcopy(
+                {} if member_bonus_records is None else member_bonus_records
+            )
             self.players[character_id] = (entry[0], entry[1], character)
             return True
 
@@ -173,7 +206,11 @@ class World:
                 return {}
             return {
                 key: deepcopy(entry[2][key])
-                for key in ("guild_native", "guild_moderation_factor")
+                for key in (
+                    "guild_native",
+                    "guild_moderation_factor",
+                    "guild_member_bonus_records",
+                )
                 if key in entry[2]
             }
 
@@ -198,6 +235,40 @@ class World:
                 return False
             peer = entry[1]
         return self._send_batch(peer, tuple(packets))
+
+    def request_ranch_scene_refresh(
+        self, map_id, instance_id, *, exclude_generation=None
+    ):
+        """Queue a scoped Ranch scene rebuild for peers currently at a location.
+
+        This only records work on each current connection. The socket worker
+        checks the captured lease and location before sending; repeated requests
+        coalesce by replacing the pending tuple with a newer nonce.
+        """
+        if type(map_id) is not int or type(instance_id) is not int:
+            raise ValueError("Ranch scene refresh requires an exact map location")
+        queued = 0
+        with self.lock:
+            for generation, peer, character in self.players.values():
+                if self.location(character) != (map_id, instance_id) or (
+                    exclude_generation is not None and generation == exclude_generation
+                ):
+                    continue
+                self._ranch_scene_refresh_sequence += 1
+                request = (
+                    character["id"],
+                    generation,
+                    map_id,
+                    instance_id,
+                    self._ranch_scene_refresh_sequence,
+                )
+                try:
+                    peer.ranch_scene_refresh = request
+                except (AttributeError, TypeError):
+                    # Only production Connection objects own the idle worker.
+                    continue
+                queued += 1
+        return queued
 
     def private_chat(
         self,
@@ -354,10 +425,31 @@ class World:
                 raise ValueError("Character is no longer in this world session")
             if self.location(character) != self.location(existing[2]):
                 raise ValueError("Map transition requires leave/join")
+            refresh_states = ()
+            if self.refresh_state_packets is not None and opcode in (15548, 13713):
+                from .planting_bonus_publisher import reset_actor
+
+                if reset_actor(opcode, body) == character["id"]:
+                    refresh_states = tuple(self.refresh_state_packets(character))
             self.players[character["id"]] = (generation, existing[1], dict(character))
-            self.broadcast(
-                generation, character["id"], opcode, body, include_sender=include_sender
-            )
+            if refresh_states:
+                # A native format10/11 reconstruction clears actor effects.
+                # Keep reset and food-only replay adjacent for exactly the
+                # original audience, including the observer-only policy.
+                packets = ((opcode, body), *refresh_states)
+                for _, peer, other in self.players.values():
+                    if (
+                        include_sender or other["id"] != character["id"]
+                    ) and self.location(other) == self.location(character):
+                        self._send_batch(peer, packets)
+            else:
+                self.broadcast(
+                    generation,
+                    character["id"],
+                    opcode,
+                    body,
+                    include_sender=include_sender,
+                )
 
     def refresh_location(self, generation, character):
         """Publish canonical owner coordinates without sending a synthetic walk."""

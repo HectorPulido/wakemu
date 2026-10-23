@@ -20,7 +20,7 @@ _REGISTRY_LOCK = threading.RLock()
 _GUILD_LOCKS = [threading.RLock() for _ in range(256)]
 
 
-STORAGE_OPCODES = frozenset((12844, 12004, 14616, 12531))
+STORAGE_OPCODES = frozenset((12844, 12004, 14616, 12531, 13994))
 
 
 def access_policy(store):
@@ -77,6 +77,24 @@ def validate_access(character, body, objects, access_points, *, blocked=False):
         or len(set(compartments)) != len(compartments)
     ):
         raise ValueError("Invalid guild chest access configuration")
+    if "use_cells" in point:
+        cells = point["use_cells"]
+        expected_position = point.get("object_position")
+        if (
+            not isinstance(cells, list)
+            or not cells
+            or any(
+                not isinstance(cell, list)
+                or len(cell) != 3
+                or any(type(value) is not int for value in cell)
+                for cell in cells
+            )
+            or [row.get(key) for key in ("x", "y", "z")] != expected_position
+        ):
+            raise ValueError("Invalid native guild chest use-cell authority")
+        position = [character.get(key) for key in ("x", "y", "z")]
+        if any(type(value) is not int for value in position) or position not in cells:
+            raise ValueError("Stand at a native guild chest interaction cell")
     if row.get("map_id") != character["map_id"] or (
         max(abs(character["x"] - row["x"]), abs(character["y"] - row["y"])) > distance
         or abs(character["z"] - row["z"]) > height
@@ -250,6 +268,13 @@ class GuildChestSession:
 
         self.validate(character, objects, blocked=blocked)
         request = guild_wire.decode_storage_request(opcode, body)
+        if opcode == 13994:
+            # The native bQE treasury buttons have no compartment field.
+            # Bind them to an actually visible, open compartment server-side.
+            visible = [chest["id"] for chest in self.chests if chest.get("enabled")]
+            if not visible:
+                raise ValueError("Guild treasury requires an available open chest")
+            request["compartment_id"] = visible[0]
         compartments = self.context["compartment_ids"]
         requested = (
             (request["source_compartment_id"], request["destination_compartment_id"])
@@ -298,7 +323,7 @@ class GuildChestSession:
                 request["destination_slot"],
                 operation_key=key,
                 expected_revisions=revisions,
-                expected_guild_id=self.guild_id
+                expected_guild_id=self.guild_id,
             )
         elif request.get("operation") in (3, 4):
             previous = self.money_retry
@@ -315,7 +340,8 @@ class GuildChestSession:
                 request["amount"],
                 withdraw=request["operation"] == 4,
                 operation_key=key,
-                expected_guild_id=self.guild_id
+                expected_guild_id=self.guild_id,
+                native_global_treasury=opcode == 13994,
             )
         elif request.get("operation") == 2:
             previous = self.cell_retry
@@ -350,7 +376,7 @@ class GuildChestSession:
                 request["slot"],
                 operation_key=key,
                 expected_revisions=revisions,
-                expected_guild_id=self.guild_id
+                expected_guild_id=self.guild_id,
             )
         elif retry is not None:
             planned, deposit, revision = retry[3:]
@@ -361,7 +387,7 @@ class GuildChestSession:
                 deposit=deposit,
                 operation_key=key,
                 expected_revision=revision,
-                expected_guild_id=self.guild_id
+                expected_guild_id=self.guild_id,
             )
         elif request["operation"] in (0, 1):
             deposit = request["operation"] == 0
@@ -401,7 +427,7 @@ class GuildChestSession:
                 deposit=deposit,
                 operation_key=key,
                 expected_revision=revision,
-                expected_guild_id=self.guild_id
+                expected_guild_id=self.guild_id,
             )
         else:
             raise ValueError("Guild chest operation is not supported")

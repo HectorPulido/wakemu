@@ -143,7 +143,7 @@ def confirm(runtime, before, diagnostics):
     ]
     for diagnostic in diagnostics:
         action = diagnostic.get("action") or {}
-        if action.get("type") in ("cast", "move"):
+        if action.get("type") in ("cast", "move", "portal_travel"):
             corridors = [
                 row for row in corridors if row.get("ownerId") != before["actorId"]
             ]

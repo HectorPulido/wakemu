@@ -151,9 +151,44 @@ def validate(character, index, blobs):
     cap = character["level"] if signed32(data[24]) == -1 else signed32(data[24])
     validation_character = dict(character, level=cap, effective_level=cap)
     if blobs["equipment"]:
-        from wakfu_server.equipment import validate_sheet
+        from wakfu_server.equipment import validate_sheet, physical_sheet
+        from wakfu_server.equipment_conditions import catalog
 
-        validate_sheet(validation_character, blobs["equipment"])
+        physical = physical_sheet(validation_character, blobs["equipment"])
+        owned = {row["uid"]: row for row in character.get("inventory_items", [])}
+        candidate = dict(
+            validation_character,
+            active_build_index=index,
+            builds={
+                **character.get("builds", {}),
+                index: {key: blobs[key].hex() for key in KEYS},
+            },
+        )
+        if any(
+            "GetCharac"
+            in (
+                catalog().get(str(owned[row["uid"]]["reference"]), {}).get("EQUIP")
+                or ""
+            )
+            for row in physical
+        ):
+            from wakfu_server.equipment_eligibility import precheck_new
+
+            precheck_new(
+                candidate,
+                physical,
+                previous_character=character,
+                build_index=index,
+                include_consumable_buffs=True,
+            )
+
+        selected = validate_sheet(candidate, blobs["equipment"], strict=True)
+        from wakfu_server.pet_hibernation import validate_equipment_change
+
+        previous = bytes.fromhex(
+            character.get("builds", {}).get(index, {}).get("equipment", "")
+        )
+        validate_equipment_change(validation_character, previous, selected)
     if blobs["aptitudes"]:
         from wakfu_server.aptitudes import validate as validate_aptitudes
 
@@ -161,7 +196,7 @@ def validate(character, index, blobs):
     if blobs["deck"]:
         from wakfu_server.spells import validate_deck
 
-        validate_deck(blobs["deck"], character["breed"], cap)
+        validate_deck(blobs["deck"], character["breed"], cap, character=character)
 
 
 def validated_saved_blobs(character, index, blobs):

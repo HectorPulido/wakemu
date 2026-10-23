@@ -73,7 +73,9 @@ def _authorize(store, db, account_id, generation, character, session):
     return bag_id
 
 
-def _destination(db, bag_id, request, chunks, geometry, *, excluding=None):
+def _destination(
+    db, bag_id, request, chunks, geometry, *, account_id, biome_id=1, excluding=None
+):
     if geometry.get("map_id") != 1440:
         raise ValueError("Wrong native Ranch placement geometry")
     x, y = request["x"], request["y"]
@@ -101,6 +103,23 @@ def _destination(db, bag_id, request, chunks, geometry, *, excluding=None):
         (bag_id, x, y),
     ).fetchone():
         raise ValueError("Ranch furniture destination contains a garden plant")
+    from wakfu_server.ranch_native_geometry import (
+        building_footprint_cells,
+        deployed_creature_cells,
+    )
+
+    building_rows = tuple(
+        dict(row)
+        for row in db.execute(
+            "SELECT uid,building_ref,mode_id,view_kind,view_value,x,y "
+            "FROM account_ranch_buildings WHERE account_id=%s AND biome_id=%s",
+            (account_id, biome_id),
+        )
+    )
+    if (x, y) in building_footprint_cells(biome_id, building_rows):
+        raise ValueError("Ranch furniture destination overlaps a native building")
+    if (x, y) in deployed_creature_cells(db, account_id, biome_id):
+        raise ValueError("Ranch furniture destination overlaps a deployed creature")
     return area, z
 
 
@@ -142,7 +161,15 @@ def deploy(
             raise ValueError(
                 "Unknown library furniture or unsupported native placement criterion"
             )
-        area, z = _destination(db, bag_id, request, chunks, geometry)
+        area, z = _destination(
+            db,
+            bag_id,
+            request,
+            chunks,
+            geometry,
+            account_id=account_id,
+            biome_id=session.biome_id,
+        )
         item = dict(
             request,
             item_uid=allocate(db),
@@ -196,21 +223,58 @@ def snapshot(store, account_id, generation, character, *, session, now_ms):
             raise ValueError("Foreign Ranch snapshot instance")
         bag_id = row["character_id"]
         document, _, _ = _policy(db)
+        from wakfu_server.ranch_native_geometry import (
+            account_buildings_by_sector,
+            bootstrap_account_sectors,
+            validate_initial_area_policy,
+        )
+
+        biome_id = session.biome_id
+        area_ids = validate_initial_area_policy(biome_id, document["areas"])
+        # Account locking makes first-entry native sector creation stable across
+        # multiple selected heroes. It never materializes fBm.gxg slot records
+        # as player-owned buildings.
+        bootstrap_account_sectors(db, host_account, biome_id)
         items = _rows(db, bag_id)
         from wakfu_server.haven_ranch_bridges import snapshot as bridge_snapshot
         from wakfu_server.haven_bag_furniture_world import ranch_upsert
 
         buildings = bridge_snapshot(db, bag_id)
+        building_rows = account_buildings_by_sector(db, host_account, biome_id)
+        from .haven_ranch_herd import paddocks, synchronize_paddocks
+
+        # Existing fences can predate the herd schema. Initialize their real
+        # enclosures before the client evaluates whether deployment is allowed.
+        if any(building_rows.values()) and not paddocks(db, host_account, biome_id):
+            synchronize_paddocks(
+                db,
+                host_account,
+                biome_id,
+                [row for rows in building_rows.values() for row in rows],
+            )
+        from .haven_ranch_building_knowledge import herd_sectors
+        from .ranch_reward_retrieval import records as reward_records
+
+        creatures_by_sector, paddocks_by_sector = herd_sectors(
+            db,
+            host_account,
+            biome_id,
+            area_ids,
+        )
 
         return dict(
             items=items,
             packet=context(
                 host_account,
                 1440,
-                [area["id"] for area in document["areas"]],
+                area_ids,
                 items,
                 now_ms,
                 building_states=buildings,
+                buildings_by_sector=building_rows,
+                creatures_by_sector=creatures_by_sector,
+                paddocks_by_sector=paddocks_by_sector,
+                rewards=reward_records(db, host_account),
             ),
             scene_packets=[ranch_upsert(bag_id, item) for item in items],
         )
@@ -256,7 +320,14 @@ def edit(store, account_id, generation, character, opcode, body, *, session, geo
                 direction=3 if 1 <= item["direction"] < 3 else 1,
             )
         area, z = _destination(
-            db, bag_id, request, chunks, geometry, excluding=item["item_uid"]
+            db,
+            bag_id,
+            request,
+            chunks,
+            geometry,
+            account_id=account_id,
+            biome_id=session.biome_id,
+            excluding=item["item_uid"],
         )
         if request["z"] != z:
             raise ValueError("Ranch move height differs from native terrain")

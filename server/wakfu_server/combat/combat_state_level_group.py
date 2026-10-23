@@ -23,6 +23,34 @@ def float_parameter(raw, index, level):
     return _float32(base + increment)
 
 
+def level_from_state(
+    effect, parameters, parent_level, matched_level, *, return_native_override=False
+):
+    """Original eYr arithmetic shared by live lookup and bounded capability proof."""
+    count = len(parameters)
+    factor = (
+        float_parameter(effect["parameters"], 8, parent_level) if count >= 9 else 1.0
+    )
+    constant = _float32(parameters[9]) if count >= 10 else 0.0
+    if matched_level is None:
+        result = (
+            _integer(math.floor(constant))
+            if count >= 10
+            else (-1 if return_native_override else parent_level)
+        )
+    else:
+        amount = _float32(constant + _float32(factor * matched_level))
+        result = (
+            _integer(math.floor(amount)) if math.isfinite(amount) else _integer(amount)
+        )
+    # eVt.SP(-1) is the no-level-override sentinel.
+    if return_native_override:
+        return result
+    if result == -1:
+        return parent_level
+    return ((result + 32768) % 65536) - 32768
+
+
 def child_level(
     effect, values, invocation, actors, *, return_native_override=False, resolve_pv=None
 ):
@@ -41,12 +69,6 @@ def child_level(
     if actor is None:
         # Native null PV returns the parent eVt without writing SP.
         return -1 if return_native_override else invocation.level
-    factor = (
-        float_parameter(effect["parameters"], 8, invocation.level)
-        if count >= 9
-        else 1.0
-    )
-    constant = _float32(parameters[9]) if count >= 10 else 0.0
     ledger = actor.state_ledger
     if ledger is None and not (
         getattr(actor, "native_is_area", False) is True
@@ -61,33 +83,63 @@ def child_level(
         ),
         None,
     )
-    if entry is None:
-        result = (
-            _integer(math.floor(constant))
-            if count >= 10
-            else (-1 if return_native_override else invocation.level)
-        )
-    else:
-        amount = _float32(constant + _float32(factor * entry.level))
-        result = (
-            _integer(math.floor(amount)) if math.isfinite(amount) else _integer(amount)
-        )
-    # eVt.SP(-1) is the no-level-override sentinel.
-    if return_native_override:
-        return result
-    if result == -1:
-        return invocation.level
-    return ((result + 32768) % 65536) - 32768
+    return level_from_state(
+        effect,
+        parameters,
+        invocation.level,
+        None if entry is None else entry.level,
+        return_native_override=return_native_override,
+    )
 
 
 def runtime_child_level(
-    effect, values, invocation, fight, *, return_native_override=False
+    effect,
+    values,
+    invocation,
+    fight,
+    *,
+    return_native_override=False,
+    level_source_resolver=None,
 ):
     """Resolve actual PV identity separately from its nullable native Qf."""
     from .combat_native_actor_lookup import native_actor
     from .combat_state_managers import registered_area_pv
 
+    level_source = None
+    if level_source_resolver is None:
+        from .combat_encounter_area_seed_source import seed_program_level_source
+        from .combat_encounter_area_callback_source import callback_program_level_source
+
+        if (
+            getattr(fight, "native_encounter_area_seed_policy", None) is not None
+            or getattr(fight, "native_encounter_area_callback_programs", None)
+            is not None
+        ):
+
+            def level_source_resolver(fight, effect, values, invocation):
+                return seed_program_level_source(
+                    fight, effect, values, invocation
+                ) or callback_program_level_source(fight, effect, values, invocation)
+
+    if level_source_resolver is not None:
+        level_source = level_source_resolver(fight, effect, values, invocation)
+        if level_source is not None:
+            # registered_area_pv is an execution-local projection, not a
+            # cached object. Its real owned Qf supplies the identity anchor.
+            actual = registered_area_pv(fight, level_source.id)
+            if (
+                actual is None
+                or getattr(level_source, "native_is_area", None) is not True
+                or actual.state_ledger is not level_source.state_ledger
+                or actual.position != level_source.position
+            ):
+                raise UnsupportedEffectExecution(
+                    "State-level operand is not the actual registered Qq"
+                )
+
     def resolve(identity):
+        if level_source is not None and identity == invocation.caster_id:
+            return level_source
         if identity is None:
             return None
         actor = native_actor(fight, identity)

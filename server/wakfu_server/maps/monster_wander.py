@@ -7,6 +7,7 @@ PersistentGroups owns PostgreSQL CAS movement; no memory fallback.
 import random
 import struct
 import math
+from collections import Counter, deque
 from copy import deepcopy
 from protocol_codec import DIRECTIONS
 
@@ -93,29 +94,108 @@ def group_neighbor_index(groups):
     """Index one leader per group once per map/instance planning batch."""
     buckets = {}
     for group in groups:
-        if group["members"]:
+        if group.get("status") != "defeated" and group["members"]:
             cell = point(group["members"][0])
             buckets.setdefault(
                 (cell[0] // DISPERSION_RADIUS, cell[1] // DISPERSION_RADIUS), []
-            ).append(cell)
+            ).append((group["members"][0].get("id"), cell))
     return buckets
 
 
-def nearest_group(origin, buckets):
+def nearest_group(origin, buckets, *, exclude_id=None):
     bx, by = origin[0] // DISPERSION_RADIUS, origin[1] // DISPERSION_RADIUS
-    candidates = (
-        cell
-        for x in range(bx - 1, bx + 2)
-        for y in range(by - 1, by + 2)
-        for cell in buckets.get((x, y), ())
-        if cell != origin
-        and max(abs(cell[0] - origin[0]), abs(cell[1] - origin[1])) <= DISPERSION_RADIUS
-    )
-    return min(
+    candidates = []
+    for x in range(bx - 1, bx + 2):
+        for y in range(by - 1, by + 2):
+            for entry in buckets.get((x, y), ()):
+                # Accept plain cells from older synthetic caller fixtures.
+                actor_id, cell = entry if len(entry) == 2 else (None, entry)
+                if actor_id == exclude_id if exclude_id is not None else cell == origin:
+                    continue
+                if (
+                    max(abs(cell[0] - origin[0]), abs(cell[1] - origin[1]))
+                    <= DISPERSION_RADIUS
+                ):
+                    candidates.append((actor_id, cell))
+    nearest = min(
         candidates,
-        key=lambda cell: (cell[0] - origin[0]) ** 2 + (cell[1] - origin[1]) ** 2,
+        key=lambda entry: (
+            (entry[1][0] - origin[0]) ** 2 + (entry[1][1] - origin[1]) ** 2,
+            entry[1],
+            entry[0] if entry[0] is not None else 0,
+        ),
         default=None,
     )
+    return nearest[1] if nearest is not None else None
+
+
+def separating_movement(expected, moved, othergroups):
+    """Certify increased leader distance from its nearest initial living group.
+
+    Identify the own group by its stable first actor, including when different
+    groups share a cell. The same deterministic neighbor selection is used by
+    planning and World. Overlap with any actor is allowed only for this escape;
+    native terrain and packet validation remain separate caller requirements.
+    """
+    if not expected or len(expected) != len(moved):
+        return False
+    if [member.get("id") for member in expected] != [
+        member.get("id") for member in moved
+    ]:
+        return False
+    origin = point(expected[0])
+    target = nearest_group(
+        origin, group_neighbor_index(othergroups), exclude_id=expected[0]["id"]
+    )
+    if target is None:
+        return False
+
+    def distance(cell):
+        return (cell[0] - target[0]) ** 2 + (cell[1] - target[1]) ** 2
+
+    return distance(point(moved[0])) > distance(origin)
+
+
+def _external_cells(members, players, other_groups):
+    own_id = members[0]["id"] if members else None
+    return {point(player) for player in players} | {
+        point(member)
+        for group in other_groups
+        if group.get("status") != "defeated"
+        and group["members"]
+        and group["members"][0].get("id") != own_id
+        for member in group["members"]
+    }
+
+
+def _overlap_count(members, players, other_groups):
+    cells = Counter(point(member) for member in members)
+    external = _external_cells(members, players, other_groups)
+    return sum(
+        cells[point(member)] > 1 or point(member) in external for member in members
+    )
+
+
+def has_overlap(members, players, other_groups):
+    """Identify actual current actor overlap, excluding defeated group history."""
+    return _overlap_count(members, players, other_groups) > 0
+
+
+def clear_destination(members, players, other_groups):
+    """Require every final member cell to be distinct and free of other actors."""
+    return not has_overlap(members, players, other_groups)
+
+
+def overlap_escape_valid(expected, moved, players, othergroups):
+    """Require strict reduction of actual overlapping actors with stable IDs."""
+    if not expected or len(expected) != len(moved):
+        return False
+    if [member.get("id") for member in expected] != [
+        member.get("id") for member in moved
+    ]:
+        return False
+    before = _overlap_count(expected, players, othergroups)
+    return before > 0 and _overlap_count(moved, players, othergroups) < before
 
 
 def choose_step(candidates, rng, away_from=None, origin=None):
@@ -164,7 +244,7 @@ def plan(
         a = origins[0]
         delta = tuple(y - x for x, y in zip(a, b))
         destinations = [tuple(x + d for x, d in zip(o, delta)) for o in origins]
-        if len(set(destinations)) != len(destinations) or any(
+        if len(set(destinations)) < len(set(origins)) or any(
             d in blocked for d in destinations
         ):
             continue
@@ -244,7 +324,7 @@ COHESION_RADIUS = 4
 
 
 def _flexible_group_step(members, players, indexed, options):
-    """Try the leader's directions once, letting blocked companions hold.
+    """Try the leader's directions once, letting blocked members hold.
 
     This bounded fallback keeps a crowded formation from becoming a permanent
     wall. It adds no actor path searches or independent movement decisions.
@@ -276,12 +356,13 @@ def _flexible_group_step(members, players, indexed, options):
                 except ValueError:
                     destination = origin
             destinations.append(destination)
-        if destinations[0] != leader_destination or not packets:
+        if not packets:
             continue
-        if len(set(destinations)) != len(destinations) or any(
+        anchor = destinations[0]
+        if len(set(destinations)) < len(set(origins)) or any(
             max(
-                abs(cell[0] - leader_destination[0]),
-                abs(cell[1] - leader_destination[1]),
+                abs(cell[0] - anchor[0]),
+                abs(cell[1] - anchor[1]),
             )
             > COHESION_RADIUS
             for cell in destinations
@@ -291,26 +372,230 @@ def _flexible_group_step(members, players, indexed, options):
         for member, destination in zip(moved, destinations):
             member.update(zip(("x", "y", "z"), destination))
         candidates.append(dict(members=moved, packets=packets))
+    advancing = [
+        candidate
+        for candidate in candidates
+        if point(candidate["members"][0]) != origins[0]
+    ]
     return choose_step(
-        candidates, options.get("rng") or random, options.get("away_from"), origins[0]
+        advancing or candidates,
+        options.get("rng") or random,
+        options.get("away_from"),
+        origins[0],
     )
 
 
+def _path_result(members, paths):
+    moved = deepcopy(list(members))
+    packets = []
+    for member, path in zip(moved, paths):
+        member.update(zip(("x", "y", "z"), path[-1]))
+        if path[-1] == path[0]:
+            continue
+        deltas = bytearray(
+            movement_packet(member["id"], origin, destination)[1][-1]
+            for origin, destination in zip(path, path[1:])
+            if destination != origin
+        )
+        packets.append(
+            (13852, struct.pack(">qiihB", member["id"], *path[0], len(deltas)) + deltas)
+        )
+    return dict(members=moved, packets=packets)
+
+
+def _overlap_escape_path(members, players, other_groups, indexed, options):
+    """Find short native escape routes with distinct reserved endpoints.
+
+    Native cells alone constrain intermediate steps. A bounded endpoint matching
+    resolves all actors together, so clearing one member cannot strand a second
+    member when another assignment of the same reachable cells resolves both.
+    """
+    _, adjacent = indexed
+    rng = options.get("rng") or random
+    allowed = options.get("destination_allowed")
+    depth = min(3, options.get("max_steps", 3))
+    external = _external_cells(members, players, other_groups)
+    routes = []
+    choices = []
+    for member in members:
+        origin = point(member)
+        found = {origin: [origin]}
+        queue = deque([origin])
+        while queue:
+            cell = queue.popleft()
+            path = found[cell]
+            if len(path) > depth:
+                continue
+            neighbors = list(adjacent.get(cell, ()))
+            while neighbors:
+                destination = rng.choice(neighbors)
+                neighbors.remove(destination)
+                if destination in found or (
+                    allowed is not None and not allowed(destination)
+                ):
+                    continue
+                try:
+                    movement_packet(member["id"], cell, destination)
+                except ValueError:
+                    continue
+                found[destination] = path + [destination]
+                queue.append(destination)
+        routes.append(found)
+        # BFS insertion order provides shortest paths with random tie ordering.
+        choices.append([cell for cell in found if cell not in external])
+
+    endpoints = {}
+    assigned = {}
+
+    def assign(actor, visited):
+        candidates = sorted(choices[actor], key=lambda cell: cell in endpoints)
+        for cell in candidates:
+            if cell in visited:
+                continue
+            visited.add(cell)
+            previous = endpoints.get(cell)
+            if previous is None or assign(previous, visited):
+                endpoints[cell] = actor
+                assigned[actor] = cell
+                return True
+        return False
+
+    # Place clear actors first; their zero-step route stays preferred unless a
+    # different matching is necessary to give an overlapping actor a free cell.
+    counts = Counter(point(member) for member in members)
+    order = sorted(
+        range(len(members)),
+        key=lambda index: counts[point(members[index])] > 1
+        or point(members[index]) in external,
+    )
+    for actor in order:
+        assign(actor, set())
+    paths = [
+        routes[index][assigned[index]] if index in assigned else [point(member)]
+        for index, member in enumerate(members)
+    ]
+    result = _path_result(members, paths)
+    if result["packets"] and overlap_escape_valid(
+        members, result["members"], players, other_groups
+    ):
+        result["overlap_escape"] = True
+        return result
+    return None
+
+
+def _dispersal_path(members, players, other_groups, indexed, target, options):
+    """Cross actors on bounded native steps away, retaining a clear endpoint."""
+    _, adjacent = indexed
+    rng = options.get("rng") or random
+    allowed = options.get("destination_allowed")
+    moved = deepcopy(list(members))
+    paths = [[point(member)] for member in members]
+    last_clear = None
+    anchor = point(members[0])
+    cohesion = max(
+        COHESION_RADIUS,
+        max(
+            max(abs(member["x"] - anchor[0]), abs(member["y"] - anchor[1]))
+            for member in members
+        ),
+    )
+
+    def distance(cell):
+        return (cell[0] - target[0]) ** 2 + (cell[1] - target[1]) ** 2
+
+    for _ in range(
+        rng.randint(options.get("min_steps", 1), options.get("max_steps", 3))
+    ):
+        if not any(
+            max(abs(player["x"] - member["x"]), abs(player["y"] - member["y"]))
+            <= options.get("radius", 20)
+            for player in players
+            for member in moved
+        ):
+            break
+        origins = [point(member) for member in moved]
+        candidates = []
+        for destination in adjacent.get(origins[0], ()):
+            if distance(destination) <= distance(origins[0]):
+                continue
+            delta = tuple(b - a for a, b in zip(origins[0], destination))
+            destinations = []
+            for origin in origins:
+                candidate = tuple(a + b for a, b in zip(origin, delta))
+                if candidate not in adjacent.get(origin, ()) or (
+                    allowed is not None and not allowed(candidate)
+                ):
+                    candidate = origin
+                destinations.append(candidate)
+            if destinations[0] != destination or any(
+                max(abs(cell[0] - destination[0]), abs(cell[1] - destination[1]))
+                > cohesion
+                for cell in destinations
+            ):
+                continue
+            try:
+                for member, origin, cell in zip(moved, origins, destinations):
+                    if cell != origin:
+                        movement_packet(member["id"], origin, cell)
+            except ValueError:
+                continue
+            candidates.append(destinations)
+        if not candidates:
+            break
+        destinations = rng.choice(candidates)
+        for member, path, destination in zip(moved, paths, destinations):
+            member.update(zip(("x", "y", "z"), destination))
+            path.append(destination)
+        if clear_destination(moved, players, other_groups):
+            last_clear = [list(path) for path in paths]
+    return _path_result(members, last_clear) if last_clear is not None else None
+
+
 def plan_group_path(members, players, valid_edges, **options):
-    """Translate compact groups; safely draw distant companions to their leader.
+    """Wander, disperse from another group, or regroup distant companions.
 
     Regrouping holds the stable first roster member in place. Each follower uses
     a native directed edge that strictly reduces its distance; blocked routes
     wait for a later cadence rather than teleporting or detaching companions.
+    Certified dispersal alone permits actor overlap along native walk edges.
     """
     if not members or not players or options.get("radius", 20) <= 0:
         return None
     anchor = point(members[0])
     options = dict(options)
     neighbors = options.pop("neighbor_index", None)
+    other_groups = options.pop("other_groups", None)
+    radius = options.get("radius", 20)
+    if not any(
+        max(abs(player["x"] - member["x"]), abs(player["y"] - member["y"])) <= radius
+        for player in players
+        for member in members
+    ):
+        return None
+    if neighbors is None and other_groups is not None:
+        neighbors = group_neighbor_index(other_groups)
+    if other_groups is not None and has_overlap(members, players, other_groups):
+        indexed = options.get("indexed")
+        if indexed is None:
+            indexed = edge_index(valid_edges)
+        # Existing overlap has priority over all ordinary stochastic decisions.
+        return _overlap_escape_path(members, players, other_groups, indexed, options)
     # Movement probability is decided by the caller BEFORE this conditional mix.
     if neighbors is not None and (options.get("rng") or random).random() < 0.5:
-        options["away_from"] = nearest_group(anchor, neighbors)
+        target = nearest_group(anchor, neighbors, exclude_id=members[0]["id"])
+        options["away_from"] = target
+        if target is not None and other_groups is not None:
+            indexed = options.get("indexed")
+            if indexed is None:
+                indexed = edge_index(valid_edges)
+            result = _dispersal_path(
+                members, players, other_groups, indexed, target, options
+            )
+            if result is not None and separating_movement(
+                members, result["members"], other_groups
+            ):
+                result["dispersal"] = True
+                return result
 
     def distance(cell):
         return max(abs(cell[0] - anchor[0]), abs(cell[1] - anchor[1]))

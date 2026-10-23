@@ -6,6 +6,7 @@ execution context. Geometry uses the same independent eYE range predicates.
 """
 from .combat_damage_parameters import (
     interpret_damage_parameters,
+    damage_parameter_specification,
     damage_mastery_context,
 )
 
@@ -23,6 +24,7 @@ def interpret_healing_parameters(parameters, level, *, hp_context, rng):
 
 
 healing_mastery_context = damage_mastery_context
+healing_parameter_specification = damage_parameter_specification
 
 
 def interpret_healing_flags(

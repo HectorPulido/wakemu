@@ -84,6 +84,13 @@ class OwnedDeathEventsTests(unittest.TestCase):
                     )
                 deliveries.append(source)
                 return ()
+            if source.event_ids == (1012,):
+                self.assertEqual(source.channel, 61)
+                self.assertEqual(
+                    (source.uid, source.caster_id, source.target_id), (123, 7, -7)
+                )
+                deliveries.append(source)
+                return ()
             self.assertEqual(
                 (source.manager_actor_id, source.event_ids, source.channel),
                 (-7, (1013,), 6),
@@ -134,6 +141,32 @@ class OwnedDeathEventsTests(unittest.TestCase):
             deliveries.index(
                 next(row for row in deliveries if row.event_ids == (1013,))
             ),
+        )
+        global_deaths = [
+            row for row in deliveries if row.event_ids == (1012,) and row.channel == 61
+        ]
+        self.assertEqual(
+            [row.manager_actor_id for row in global_deaths],
+            list(global_pv_iterator(fight, caster_id=7)),
+        )
+        self.assertLess(
+            max(deliveries.index(row) for row in global_rows),
+            min(deliveries.index(row) for row in global_deaths),
+        )
+        self.assertLess(
+            max(deliveries.index(row) for row in global_deaths),
+            deliveries.index(
+                next(row for row in deliveries if row.event_ids == (1013,))
+            ),
+        )
+        self.assertTrue(
+            all(row.channel == 61 for row in deliveries if row.event_ids == (1012,))
+        )
+        self.assertEqual(
+            next(iter(fight.native_death_event_deliveries.values()))[
+                "global_death_event_id"
+            ],
+            1012,
         )
         fight.native_death_event_deliveries = json.loads(
             json.dumps(fight.native_death_event_deliveries)

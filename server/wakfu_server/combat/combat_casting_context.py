@@ -8,6 +8,11 @@ from types import SimpleNamespace
 from wakfu_server.paths import DATA_ROOT
 from .combat_conditions import UnknownCondition, evaluate_condition
 from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
+from .combat_pointer_qi_registry import (
+    registered_slot,
+    registered_terrain,
+    registered_population,
+)
 from .combat_casting_eligibility import (
     NativeCastingFlags,
     native_casting_distance,
@@ -28,8 +33,13 @@ def casting_root_catalog():
         merge_casting_roots,
     )
 
+    from .combat_common_spell_catalog import casting_roots as common_casting_roots
+
     return merge_casting_roots(
-        merge_casting_roots(data, morph_casting_roots()), captured_casting_roots()
+        merge_casting_roots(
+            merge_casting_roots(data, morph_casting_roots()), captured_casting_roots()
+        ),
+        common_casting_roots(),
     )
 
 
@@ -82,7 +92,7 @@ class NativeOwnedCastingContext:
         registry = self.registry()
         self.target = None
         for slot in registry.ordered_U(*self.cell[:2]):
-            row = registry.slots[slot]
+            row = registered_slot(registry, slot)
             if row is None or row["identity"][0] != "actor":
                 continue
             actor = self.fight.actors[row["identity"][1]]
@@ -178,7 +188,9 @@ class NativeOwnedCastingContext:
             minimum=self.rule["minimum"],
             maximum=self.rule["maximum"],
             same_cell_category=metadata["categories"]["tya"] in self.rule["categories"],
-            cell_occupants=lambda x, y: self.qi().U(x, y) or frozenset(),
+            cell_occupants=lambda x, y: frozenset(
+                registered_population(self.registry())[1](x, y)
+            ),
             los_required=lambda: selected(None)["line_of_sight"],
             linear_required=lambda cell: selected(cell)["linear"],
             visible=visible,
@@ -243,19 +255,21 @@ class NativeOwnedCastingContext:
         return self.ordinary_range_accepts() and ordinary
 
     def qi_in_bounds(self):
-        return self.qi().aK(*self.cell[:2])
+        return registered_terrain(self.registry()).aK(*self.cell[:2])
 
     def qi_p(self):
-        return self.qi().P(*self.cell[:2])
+        return registered_terrain(self.registry()).P(*self.cell[:2])
 
     def qi_r(self):
-        return self.qi().R(*self.cell[:2])
+        return registered_terrain(self.registry()).R(*self.cell[:2])
 
     def qi_j(self):
         from .combat_qi_surface_catalog import native_qi_surfaces
 
         metadata = self.adapter._actor(self.fight, self.source)
-        return native_qi_surfaces(metadata.native_instance_id).j(self.qi(), *self.cell)
+        return native_qi_surfaces(metadata.native_instance_id).j(
+            registered_terrain(self.registry()), *self.cell
+        )
 
     def criterion_present(self):
         value = self.rule["cast_criterion_native_present"]
@@ -328,6 +342,10 @@ class NativeOwnedCastingContext:
 
     def root_record(self, root):
         record = casting_root_catalog()["roots"].get(str(root))
+        if record is None:
+            from wakfu_server.native_casting_roots import supplemental_root
+
+            record = supplemental_root(root, spell_reference=self.plan["spell_id"])
         if not isinstance(record, dict):
             raise UnknownCondition("Missing native casting root fKX/aZF metadata")
         return record
@@ -351,19 +369,21 @@ class NativeOwnedCastingContext:
             reference=self.source.position,
             direction=self.source.direction,
         )
-        qi = self.qi()
+        registry = self.registry()
+        qi, occupants = registered_population(registry)
         for dx, dy in offsets:
             from .combat_casting_range import int32
 
             x, y = int32(self.cell[0] + dx), int32(self.cell[1] + dy)
             # QI.V is non-null iff its first QL byte resolves an actual QK;
             # current_registry proves all indexed bytes resolve a live slot.
-            if not qi.R(x, y) or qi.U(x, y):
+            if not qi.R(x, y) or occupants(x, y):
                 return False
         return True
 
     def qi_g(self):
-        qi = self.qi()
+        registry = self.registry()
+        qi, occupants = registered_population(registry)
         if not qi.aK(*self.cell[:2]) or qi.Z(*self.cell[:2]):
             return True
         override = getattr(self.fight, "native_qi_movement_override", None)
@@ -373,8 +393,8 @@ class NativeOwnedCastingContext:
         if override:
             return False
         return any(
-            slot not in ignored and self.registry().slots[slot]["movement_blocking"]
-            for slot in (qi.U(*self.cell[:2]) or ())
+            slot not in ignored and registered_slot(registry, slot)["movement_blocking"]
+            for slot in occupants(*self.cell[:2])
         )
 
     def target_fighter_present(self):
@@ -481,7 +501,10 @@ class NativeOwnedCastingContext:
                 registry = self.registry()
                 if isinstance(registry, PointerRegistryCompatibility):
                     registry.validate_exclusion_target(target)
-                elif registry.slots[slot]["identity"] != ["actor", target.id]:
+                elif registered_slot(registry, slot)["identity"] != [
+                    "actor",
+                    target.id,
+                ]:
                     raise UnknownCondition("Missing actual Sn target QK registration")
                 ignored = getattr(self.fight, "native_qi_ignored_slots", None)
                 if not isinstance(ignored, list):
@@ -498,7 +521,7 @@ class NativeOwnedCastingContext:
                 radius=self.source.physical_radius,
                 jump=getattr(self.source, "native_jump_height", None),
                 physical_column=columns.column,
-                qi_z=self.qi().Z,
+                qi_z=registered_terrain(self.registry()).Z,
                 is_qi=True,
                 target_obstacle_present=target is not None,
                 target_exclusion=exclusion if target is not None else None,
@@ -654,7 +677,7 @@ def enemy_cell_affiliations(adapter, fight, caster_id, cell):
     order = registry.ordered_U(*cell[:2])
     if not order:
         return ()
-    row = registry.slots[order[0]]
+    row = registered_slot(registry, order[0])
     if row is None or row["identity"][0] != "actor":
         return ()  # Actual Qq QK is not eHg.
     actor = fight.actors[row["identity"][1]]
@@ -691,7 +714,7 @@ def resolve_criterion_cell_invocation(adapter, fight, invocation):
     if invocation.cell is not None:
         registry = current_registry(fight)
         for slot in registry.ordered_U(*invocation.cell[:2]):
-            row = registry.slots[slot]
+            row = registered_slot(registry, slot)
             if row is None or row["identity"][0] != "actor":
                 continue
             actor = fight.actors[row["identity"][1]]

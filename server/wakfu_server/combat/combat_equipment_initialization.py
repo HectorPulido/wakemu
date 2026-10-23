@@ -17,14 +17,17 @@ def plan(
     attachment_authority=None,
     catalog=None,
     templates=None,
-    ordinary_only=False
+    ordinary_only=False,
+    include_attachments=False,
+    _selected_entries=None,
 ):
     """Return ordered owned source groups with complete native definitions.
 
     attachment_authority(gear, shard_state, reference, field_tag) must return an
     explicit bool after validating native pattern compatibility and enablement.
     Unknown authority rejects; it never silently activates a persisted scroll.
-    Ordinary roots are limited to passive304; flat bonuses remain snapshot-owned.
+    Ordinary roots retain every non-snapshot passive operator;
+    scalar, profession and ordered-group bonuses remain snapshot-owned.
     Callers still must execute the complete closure transactionally through the
     native dispatcher, whose unsupported families remain fail-closed.
     """
@@ -40,10 +43,25 @@ def plan(
     sheet = character.get("builds", {}).get(index, {})
     # No ordinary equipped source requires no build-level or native metadata.
     # Attached-source preparation retains its original validation path.
-    if ordinary_only and sheet.get("equipment", "") == "":
+    if type(include_attachments) is not bool:
+        raise ValueError("Explicit attachment inclusion policy must be boolean")
+    if ordinary_only and _selected_entries is None and sheet.get("equipment", "") == "":
         return ()
-    adjusted = dict(character, level=effective_sheet_level(character, index))
-    selected = validate_sheet(adjusted, bytes.fromhex(sheet.get("equipment", "")))
+    adjusted = dict(
+        character,
+        real_level=character.get("real_level", character["level"]),
+        level=effective_sheet_level(character, index),
+    )
+    # Eligibility already checked physical ownership/slots before constructing
+    # its static PA context. Rebuilding eligibility here would recurse through
+    # the same owned-state projection. Ordinary callers retain validation.
+    selected = (
+        validate_sheet(
+            adjusted, bytes.fromhex(sheet.get("equipment", "")), strict=False
+        )
+        if _selected_entries is None
+        else _selected_entries
+    )
     if not selected:
         return ()
     owned = {item["uid"]: item for item in character.get("inventory_items", [])}
@@ -51,7 +69,7 @@ def plan(
     summaries = CATALOG if templates is None else templates
     result = []
 
-    def source(gear, source_reference, tag, roots, parent):
+    def source(gear, source_reference, tag, roots, parent, definition):
         if not roots:
             return
         closure = equipment_effect_definitions({"roots": roots})
@@ -72,11 +90,15 @@ def plan(
             )
 
             result[-1]["unplanned_passive_effect_ids"] = unplanned_passive_effect_ids(
-                source_reference, parent, result[-1]["roots"], templates=summaries
+                source_reference, definition, result[-1]["roots"], templates=summaries
             )
 
     def passive_roots(reference, native_plan, *, ordinary):
         summary = summaries.get(reference)
+        if summary is None:
+            from wakfu_server.empty_equipment_effects import template
+
+            summary = template(reference)
         if summary is None:
             raise UnsupportedEffectExecution(
                 "Missing native equipment filter authority"
@@ -91,15 +113,23 @@ def plan(
                 or type(identity.get("native_active_effect")) is not bool
             ):
                 raise UnsupportedEffectExecution("Missing native eHi passive identity")
-            if identity["native_variant"] != 0 or identity["native_active_effect"]:
-                continue
-            if ordinary and root["effect_class"] != 304:
+            if ordinary:
+                from .combat_equipment_root_roles import root_role
+
+                if root_role(reference, root, identity) != "runtime-operator":
+                    continue
+            elif identity["native_variant"] != 0 or identity["native_active_effect"]:
                 continue
             result.append(root)
         return result
 
-    for entry in selected:
+    for entry in sorted(selected, key=lambda row: row["slot"]):
         gear = owned[entry["uid"]]
+        if "pet" in gear:
+            from wakfu_server.pet_hibernation import active as pet_active
+
+            if not pet_active(gear["pet"]):
+                continue  # Original eHi/fnM suppresses inactive companion sources.
         parent = copied_equipment_plan(gear["reference"], native)
         if parent["status"] != "explicit_self_effects":
             raise UnsupportedEffectExecution(
@@ -111,8 +141,9 @@ def plan(
             None,
             passive_roots(gear["reference"], parent, ordinary=True),
             parent,
+            parent,
         )
-        if ordinary_only:
+        if ordinary_only and not include_attachments:
             continue
         state = gear.get("shard_state")
         if state is None:
@@ -149,5 +180,6 @@ def plan(
                 tag,
                 passive_roots(reference, attached, ordinary=False),
                 parent,
+                attached,
             )
     return tuple(result)

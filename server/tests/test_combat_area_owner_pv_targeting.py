@@ -41,6 +41,8 @@ def simple_row(identity, owner_id, definition, *, affiliation=None):
         native_simple_constructor=simple_area_constructor(definition),
         native_running_effect_manager=False,
         native_obstacle_id=-1,
+        native_qq_bhi=False,
+        native_qq_guard_source="Qq.constructor",
     )
     if affiliation is not None:
         row["native_fight_affiliation"] = affiliation

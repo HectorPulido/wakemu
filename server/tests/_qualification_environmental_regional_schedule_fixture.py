@@ -1,0 +1,4 @@
+import importlib
+import test_environmental_regional_schedule
+
+importlib.reload(test_environmental_regional_schedule)

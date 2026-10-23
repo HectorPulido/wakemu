@@ -64,7 +64,13 @@ def compartment_proto(chest):
             raise ValueError("Duplicate guild item or items in disabled compartment")
         slots.add(slot)
         uids.add(item["uid"])
-        result += _blob(3, _blob(1, item_proto(item)) + _scalar(2, slot))
+        from wakfu_server.item_binding import from_custody
+
+        result += _blob(
+            3,
+            _blob(1, item_proto(from_custody(item, entry.get("metadata", {}))))
+            + _scalar(2, slot),
+        )
     # Optional kd.field4 is omitted: the native loader defaults it to -1.
     return result
 

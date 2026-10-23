@@ -36,6 +36,23 @@ def corpse_collect_actions(monster_ref):
     raise ValueError("Corpse breed missing native collection catalog")
 
 
+def _native_actor_fields(monster):
+    """Separate the exact trusted interaction marker from native actor fields.
+
+    The marker prevents combat admission in the group registry. It is server
+    metadata, not an extra native characteristic or a relaxed actor descriptor.
+    """
+    if "environmental_world_action_only" not in monster:
+        return monster
+    if monster["environmental_world_action_only"] is not True:
+        raise ValueError("Invalid world-action-only NPC marker")
+    return {
+        key: value
+        for key, value in monster.items()
+        if key != "environmental_world_action_only"
+    }
+
+
 def world_actor(
     monster,
     *,
@@ -45,6 +62,8 @@ def world_actor(
     members=None,
     dead=False,
     summon_identity=False,
+    companion_source=None,
+    world_context=None,
 ):
     """Encode eHj format-11 appearance for an owned world actor.
 
@@ -65,7 +84,21 @@ def world_actor(
         team=monster["team"],
         instance_id=monster["instance_id"],
     )
-    if monster != verified or (monster["id"] >= 0 and not summon_identity):
+    if companion_source is not None:
+        from .combat_companions import COMPANION_BREEDS
+
+        if (
+            companion_source.get("id") != monster["id"]
+            or companion_source.get("ref") != monster["ref"]
+            or monster["ref"] not in COMPANION_BREEDS
+            or companion_source.get("native_actor_type") != 5
+            or type(companion_source.get("owner_character_id")) is not int
+            or companion_source["owner_character_id"] <= 0
+        ):
+            raise ValueError("Missing companion world ownership")
+    if _native_actor_fields(monster) != verified or (
+        monster["id"] >= 0 and not summon_identity and companion_source is None
+    ):
         raise ValueError("Expected verified own negative NPC instance")
     if (
         type(group_id) is not int
@@ -82,7 +115,13 @@ def world_actor(
     # ID, IDENTITY, NAME, BREED, empty guild sections.
     out = (
         b"\x0b"
-        + struct.pack(">qBqH", monster["id"], 1, -1, len(encoded_name))
+        + struct.pack(
+            ">qBqH",
+            monster["id"],
+            5 if companion_source is not None else 1,
+            companion_source["account_id"] if companion_source is not None else -1,
+            len(encoded_name),
+        )
         + encoded_name
         + struct.pack(">h", monster["ref"])
     )
@@ -91,7 +130,7 @@ def world_actor(
         monster["x"],
         monster["y"],
         monster["z"],
-        monster["map_id"],
+        _world_position_identity(monster, world_context),
         direction,
         0,
     )
@@ -126,10 +165,10 @@ def world_actor(
             instance_id=member["instance_id"],
         )
         if (
-            member != actual
+            _native_actor_fields(member) != actual
             or member["map_id"] != monster["map_id"]
             or member["instance_id"] != monster["instance_id"]
-            or (member["id"] >= 0 and not summon_identity)
+            or (member["id"] >= 0 and not summon_identity and companion_source is None)
         ):
             raise ValueError("Group member is not a verified own NPC on this map")
     out += struct.pack(">qH", group_id, len(members)) + b"".join(
@@ -143,25 +182,41 @@ def world_actor(
         struct.pack(">i", identity) for identity in disabled
     )  # sR is the native disabled collection action set, consumed by bjh.
     out += b"\x00\x00"  # current movement py absent.
-    out += bytes(16)  # companion controller sL (none).
+    # sL.ZF supplies bje.ika (owner), sL.ZG supplies bje.ikb (collection ID).
+    out += (
+        bytes(16)
+        if companion_source is None
+        else struct.pack(
+            ">qq", companion_source["owner_character_id"], companion_source["id"]
+        )
+    )
     out += bytes(2) + b"\x00"  # downscale pK0, hero qpfalse.
     return out
 
 
-def spawn_monster(monster, *, group_id, name=None, direction=3, summon_identity=False):
+def spawn_monster(
+    monster,
+    *,
+    group_id,
+    name=None,
+    direction=3,
+    summon_identity=False,
+    world_context=None,
+):
     blob = world_actor(
         monster,
         group_id=group_id,
         name=name,
         direction=direction,
         summon_identity=summon_identity,
+        world_context=world_context,
     )
     if len(blob) > 65535:
         raise ValueError("NPC appearance too large")
     return b"\x00\x01" + struct.pack(">BqH", 1, monster["id"], len(blob)) + blob
 
 
-def spawn_group(members, *, group_id, direction=3):
+def spawn_group(members, *, group_id, direction=3, world_context=None):
     """Publish eligible ordinary actors with one consistent native roster."""
     members = tuple(members)
     if not members or len(members) > 127:
@@ -169,7 +224,11 @@ def spawn_group(members, *, group_id, direction=3):
     entries = []
     for member in members:
         blob = world_actor(
-            member, group_id=group_id, direction=direction, members=members
+            member,
+            group_id=group_id,
+            direction=direction,
+            members=members,
+            world_context=world_context,
         )
         if len(blob) > 65535:
             raise ValueError("NPC appearance too large")
@@ -188,7 +247,11 @@ def spawn_group(members, *, group_id, direction=3):
         entries = []
         for member in eligible:
             blob = world_actor(
-                member, group_id=group_id, direction=direction, members=eligible
+                member,
+                group_id=group_id,
+                direction=direction,
+                members=eligible,
+                world_context=world_context,
             )
             if len(blob) > 65535:
                 raise ValueError("NPC appearance too large")
@@ -210,3 +273,15 @@ def remove_message(actor_ids):
     return 12304, bytes([0, 0, len(actor_ids)]) + b"".join(
         struct.pack(">Bq", 1, identity) for identity in actor_ids
     )
+
+
+def _world_position_identity(monster, world_context):
+    from wakfu_server.guild_haven_world import world_identity
+
+    if world_context is None:
+        return world_identity(monster)
+    if not isinstance(world_context, dict) or any(
+        world_context.get(k) != monster.get(k) for k in ("map_id", "instance_id")
+    ):
+        raise ValueError("NPC position belongs to a different world scope")
+    return world_identity(world_context)

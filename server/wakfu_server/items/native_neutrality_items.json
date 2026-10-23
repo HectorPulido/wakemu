@@ -1,0 +1,47 @@
+{
+  "current_pvp_authority": "native_zero_not_implemented",
+  "items": [
+    {
+      "action_id": 4280,
+      "consumes_source": true,
+      "criterion": "",
+      "event_id": 19332,
+      "item_ref": 16979,
+      "scenario_id": 2318
+    },
+    {
+      "action_id": 4278,
+      "consumes_source": true,
+      "criterion": "",
+      "event_id": 19332,
+      "item_ref": 16980,
+      "scenario_id": 2318
+    },
+    {
+      "action_id": 4279,
+      "consumes_source": true,
+      "criterion": "",
+      "event_id": 19332,
+      "item_ref": 16981,
+      "scenario_id": 2318
+    },
+    {
+      "action_id": 4238,
+      "consumes_source": true,
+      "criterion": "",
+      "event_id": 19332,
+      "item_ref": 16982,
+      "scenario_id": 2318
+    },
+    {
+      "action_id": 10234,
+      "consumes_source": true,
+      "criterion": "",
+      "event_id": 19332,
+      "item_ref": 24836,
+      "scenario_id": 2318
+    }
+  ],
+  "native_class": "bIn",
+  "script_sha256": "f679c88c6ce5d59a5951507b84dfe71c6c9cbb26deb69660f90c75f562a89f77"
+}

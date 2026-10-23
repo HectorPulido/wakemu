@@ -79,7 +79,8 @@ def plan(
     items,
     containers,
     builds,
-    protected_uids=()
+    protected_uids=(),
+    singleton_products=None
 ):
     """Plan material use and product placement without mutating inputs.
 
@@ -137,6 +138,15 @@ def plan(
         ):
             raise ValueError("Invalid native crafting product")
         product_totals[product["item_id"]] += product["quantity"] * batch_count
+
+    singleton_products = {} if singleton_products is None else singleton_products
+    if not isinstance(singleton_products, dict) or any(
+        type(ref) is not int
+        or type(count) is not int
+        or not 1 <= count <= product_totals.get(ref, 0)
+        for ref, count in singleton_products.items()
+    ):
+        raise ValueError("Invalid inherited crafting singleton counts")
 
     bag_by_uid = {}
     seen_kinds = set()
@@ -244,6 +254,35 @@ def plan(
             raise ValueError("Unknown native crafting product stack rule")
         remaining = total
         initial_elements = product_elements(reference) or {}
+        for index in range(singleton_products.get(reference, 0)):
+            destination = None
+            for bag in ordered_bags:
+                slot = next(
+                    (
+                        candidate
+                        for candidate in range(bag["capacity"])
+                        if candidate not in occupancy[bag["uid"]]
+                    ),
+                    None,
+                )
+                if slot is not None:
+                    destination = (bag["uid"], slot)
+                    break
+            if destination is None:
+                raise ValueError("Inherited crafting product inventory is full")
+            container, slot = destination
+            occupancy[container].add(slot)
+            by_product.append(
+                dict(
+                    reference=reference,
+                    quantity=1,
+                    container=container,
+                    slot=slot,
+                    merge_uid=None,
+                    preservation_index=index,
+                )
+            )
+            remaining -= 1
         if rule.get("minimal_mergeable") is True:
             for _, _, uid, existing_ref, _ in sorted(eligible):
                 target = final_items.get(uid)

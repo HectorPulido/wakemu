@@ -44,6 +44,7 @@ def _plain_item(db, uid):
         "inventory_item_elements",
         "inventory_item_shards",
         "inventory_mounts",
+        "inventory_pets",
     ):
         if db.execute(f"SELECT 1 FROM {table} WHERE uid=%s", (uid,)).fetchone():
             raise ValueError("Furniture item has unsupported specific data")
@@ -64,6 +65,7 @@ def deploy(
         "Decoration",
         "FxDecoration",
         "BackgroundDisplay",
+        "DimensionalBagBackgroundDisplay",
         "PortableCraftTable",
     }:
         raise ValueError(
@@ -172,6 +174,9 @@ def deploy(
                 deployed=False,
                 room=0,
             )
+            from .portable_item_custody import hold
+
+            hold(db, item, uid=unit_uid, account_id=account_id, kind="furniture")
             config["furniture"].append(unit)
             physical_request = struct.pack(
                 ">iqiihi",
@@ -268,20 +273,25 @@ def edit(store, account_id, generation, character_id, opcode, body, *, location)
                 "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(%s,%s,%s,1,%s,%s)",
                 (packed["item_uid"], character_id, packed["item_ref"], container, slot),
             )
+            from .portable_item_custody import restore
+
+            restore(
+                db,
+                uid=packed["item_uid"],
+                account_id=account_id,
+                character_id=character_id,
+                reference=packed["item_ref"],
+                kind="furniture",
+            )
             from .inventory_items import insertion
 
-            packets.append(
-                insertion(
-                    dict(
-                        uid=packed["item_uid"],
-                        character_id=character_id,
-                        reference=packed["item_ref"],
-                        quantity=1,
-                        container=container,
-                        slot=slot,
-                    )
-                )
+            restored = store.character(account_id, character_id, db)
+            restored_item = next(
+                item
+                for item in restored["inventory_items"]
+                if item["uid"] == packed["item_uid"]
             )
+            packets.append(insertion(restored_item))
             furniture.remove(packed)
         _persist(db, bag_id, furniture)
         return {

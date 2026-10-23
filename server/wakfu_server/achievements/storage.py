@@ -184,6 +184,23 @@ def record_event(db, character_id, event_key, payload):
 
 def enqueue_reward(db, character_id, achievement_id, cycle_key, reward_key, payload):
     """Reserve a unique reward for a transaction-scoped delivery hook."""
+    if isinstance(payload, dict) and payload.get("aeV") == 17:
+        from .scaled_xp import reserve
+
+        # A missing policy or invalid native parameter must not leave an
+        # unpriced entitlement behind when the caller handles the exception.
+        with db.transaction():
+            inserted = _enqueue_reward(
+                db, character_id, achievement_id, cycle_key, reward_key, payload
+            )
+            reserve(db, character_id, achievement_id, cycle_key, reward_key, payload)
+        return inserted
+    return _enqueue_reward(
+        db, character_id, achievement_id, cycle_key, reward_key, payload
+    )
+
+
+def _enqueue_reward(db, character_id, achievement_id, cycle_key, reward_key, payload):
     if type(achievement_id) is not int or not 0 < achievement_id < 2**31:
         raise ValueError("Invalid achievement reward owner")
     _key(cycle_key)

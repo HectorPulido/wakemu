@@ -40,9 +40,11 @@ class NativeSpellGrantHandler:
         if effect["effect_class"] != 649 or len(effect["parameters"]) != 8:
             raise ValueError("Unsupported native eWn parameters")
         actor = self.fight.actors.get(invocation.target_id)
+        from .combat_state_managers import registered_source_pv
+
         if (
             actor is None
-            or invocation.caster_id not in self.fight.actors
+            or registered_source_pv(self.fight, invocation.caster_id) is None
             or self.fight.phase != "active"
         ):
             raise ValueError("Invalid native eWn actor")

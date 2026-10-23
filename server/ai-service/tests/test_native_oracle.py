@@ -1113,6 +1113,10 @@ class NativeOracleTests(unittest.TestCase):
 
         rng_type = random.Random
 
+        class SeededRandom(rng_type):
+            def __init__(self, *args, **kwargs):
+                super().__init__(1)
+
         def setup():
             character, monster, fight = SpellTransactionTests().native_server_fixture(
                 2, 19, native_qi=True
@@ -1158,7 +1162,7 @@ class NativeOracleTests(unittest.TestCase):
             self.assertLess(native.fight.actors[-7].hp, before_hp)
             with patch(
                 "wakfu_ai.native.native_oracle.random.Random",
-                side_effect=lambda: rng_type(1),
+                new=SeededRandom,
             ):
                 packets = oracle.commit(
                     action, stats_serializer=lambda actor, fight: b""
@@ -1183,7 +1187,7 @@ class NativeOracleTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "fixture serializer failure"):
                 with patch(
                     "wakfu_ai.native.native_oracle.random.Random",
-                    side_effect=lambda: rng_type(1),
+                    new=SeededRandom,
                 ):
                     oracle.commit(action, stats_serializer=failing_serializer)
         self.assertEqual(encode(runtime), source_before)

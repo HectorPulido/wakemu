@@ -10,6 +10,7 @@ from .combat_effect_dispatch import EffectInvocation
 from .combat_effect_area_queries import _rows
 from .combat_effect_area_geometry import contains_area_cell
 from .combat_area_removal_masks import area_removal_masks, removal_mask_matches
+from contextlib import contextmanager
 
 SUPPORTED_AREA_EVENTS = frozenset({10000, 10001, 10002, 10006, 10008, 10011})
 
@@ -30,11 +31,104 @@ class NativeAreaEventRuntime:
         self.microbot_network_changed = None
         self.microbot_rail_removed = None
         self.area_removed = None
+        self._dying_area_uids = set()
+        self._dead_wall_retirements = set()
+        self._wall_retirement_depth = 0
+        self._flushing_wall_retirements = False
+
+    @contextmanager
+    def wall_retirement_scope(self):
+        """Wakemu policy: retire lethally completed walls after entry children.
+
+        Native Qq death and Qs spatial removal are distinct recovered calls.
+        Scheduling their join here is server policy, not a recovered client
+        callsite. Nested roots retain their actual PV until the outer scope.
+        """
+        self._wall_retirement_depth += 1
+        try:
+            yield
+        except BaseException:
+            if self._wall_retirement_depth == 1:
+                self._dead_wall_retirements.clear()
+            raise
+        else:
+            if self._wall_retirement_depth == 1:
+                self._flush_dead_walls()
+        finally:
+            self._wall_retirement_depth -= 1
+
+    def _flush_dead_walls(self):
+        if self._flushing_wall_retirements:
+            return
+        self._flushing_wall_retirements = True
+        try:
+            while self._dead_wall_retirements:
+                uid = min(self._dead_wall_retirements)
+                self._dead_wall_retirements.remove(uid)
+                row = getattr(self.fight, "native_effect_areas", {}).get(uid)
+                if row is None:
+                    continue  # An actual removal mask already retired this PV.
+                if (
+                    row.get("native_area_contract") != "fbd"
+                    or row.get("native_qq_bhi") is not True
+                    or row.get("native_qq_guard_source") != "Qq.b"
+                    or row.get("native_wall_hp_current") != 0
+                ):
+                    raise ValueError("Changed lethally completed native wall authority")
+                self.remove_parent(row)
+        finally:
+            self._flushing_wall_retirements = False
+
+    def wall_death(self, row, source_id):
+        """Qe.bbZ -> faV.b(10014) -> Qq.b; Qs retirement is separate."""
+        from .combat_wall_area import verified_wall_constructor, wall_hp_state
+
+        if row.get("native_area_contract") != "fbd":
+            raise ValueError("Native fbd death contract required")
+        uid = row["uid"]
+        if getattr(self.fight, "native_effect_areas", {}).get(uid) is not row:
+            raise ValueError("Missing actual registered native wall death target")
+        definition = self._definition(row)
+        constructor = verified_wall_constructor(row, definition, fight=self.fight)
+        hp = wall_hp_state(row, constructor)["current"]
+        completed = row.get("native_qq_bhi")
+        if type(completed) is not bool or row.get("native_qq_guard_source") not in (
+            "Qq.constructor",
+            "Qq.b",
+        ):
+            raise ValueError("Missing native Qq completion-state authority")
+        source = self.fight.actors.get(source_id)
+        if source is None:
+            raise ValueError("Missing actual native wall death source")
+        if hp > 0 or completed or uid in self._dying_area_uids:
+            return False
+        self._dying_area_uids.add(uid)
+        try:
+            # faV.b delivers its own area mask before Qq.b sets bhi. A mask
+            # may remove this same PV; keep the actual object on that stack.
+            from .combat_state_managers import selected_area_pv_scope
+
+            with selected_area_pv_scope(self.fight, (uid,)):
+                self._deliver_event(row, definition, source, 10014)
+                row["native_qq_bhi"] = True
+                row["native_qq_guard_source"] = "Qq.b"
+                if getattr(self.fight, "native_effect_areas", {}).get(uid) is row:
+                    self._dead_wall_retirements.add(uid)
+            return True
+        finally:
+            self._dying_area_uids.remove(uid)
 
     def _definition(self, row):
         definition = self.definitions.get(str(row["reference"]))
         if definition is None:
             raise ValueError("Missing installed effect-area prototype")
+        if (
+            definition.get("type") == "ARTIFACT"
+            or row.get("native_area_contract") == "faM"
+        ):
+            from .combat_artifact_area import verify_artifact_area
+
+            verify_artifact_area(row, definition)
         removal_masks = area_removal_masks(definition)
         if (
             "native_removal_masks" in row
@@ -54,12 +148,11 @@ class NativeAreaEventRuntime:
         return definition
 
     def _requires_area_source(self, reference):
-        """Server policy: preserve Qq identity for immediate owner selectors.
+        """Preserve the actual Qq source for native owner selectors.
 
-        The client area callbacks are visual no-ops. Installed root groups
-        whose immediate child requests fcE bit46 need the actual Qq source
-        before that child can select its owner. Other glyph source policy is
-        intentionally unchanged; this is not inferred from a class or spell.
+        Installed root groups whose immediate child requests fcE bit46 need
+        the actual Qq source before that child can select its owner. Seed
+        callback level operands are resolved separately by the844 getter.
         """
         effects = getattr(self.dispatcher, "effects", {})
         root = effects.get(str(reference), {})
@@ -304,8 +397,9 @@ class NativeAreaEventRuntime:
     def _exit(self, row, target):
         # faV.g: target Qf removes effects whose PL is this area. Recorded
         # roots/descendants are owned by this exact UID, never by prototype.
-        if row.get("native_area_contract") == "fbc":
-            return False  # Actual fbc.n(amP) is null: no exit recipients.
+        if row.get("native_area_contract") in ("fbc", "faM"):
+            # Actual fbc.n(amP) and faM.d(amP) supply no exit recipients.
+            return False
         if row.get("native_area_contract") == "fbd":
             from .combat_effect_area import native_effect_areas
             from .combat_wall_area import verified_wall_constructor
@@ -466,18 +560,42 @@ class NativeAreaEventRuntime:
         target = self.fight.actors.get(target_id)
         if target is None:
             raise ValueError("Missing native area-event target")
+        rows = _rows(self.fight)
         plan = plan_area_movement(
-            _rows(self.fight),
+            rows,
             self._definition,
             target,
             from_cell=from_cell,
             to_cell=to_cell,
         )
-        return deliver_area_movement(
+        # The original texts specify walking onto an artifact to collect it,
+        # and its original Qq subscribes to2243. The server producer callsite
+        # is unavailable: this explicit Wakemu join preserves the original
+        # faM consumer and children, rather than aliasing2243 to10001 globally.
+        # Capture actual Qq objects before any callback can mutate Qs.
+        from .combat_effect_area_geometry import contains_area_actor
+
+        artifact_entries = tuple(
+            (row, self._definition(row))
+            for row in rows
+            if row.get("native_area_contract") == "faM"
+            and not contains_area_cell(row, from_cell)
+            and contains_area_actor(row, to_cell, target.physical_radius)
+        )
+        results = deliver_area_movement(
             plan,
             target,
             lambda row, definition, entrant, event_id: self._deliver_event(
                 row, definition, entrant, event_id, movement_contact=True
+            ),
+        )
+        if not artifact_entries:
+            return results
+        return results + (
+            tuple(
+                outcome
+                for row, definition in artifact_entries
+                for outcome in self._deliver_event(row, definition, target, 2243)
             ),
         )
 

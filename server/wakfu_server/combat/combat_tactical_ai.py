@@ -10,11 +10,10 @@ from dataclasses import dataclass
 from .combat_effective_control import effective_server_controlled, effective_affiliation
 import hashlib
 import json
-import os
 import random
 import time
 import uuid
-import urllib.request
+from .combat_ai_transport import request as request_ai
 from functools import lru_cache
 from pathlib import Path
 from datetime import date, datetime
@@ -1019,18 +1018,7 @@ def validate_response(runtime, request, response, provider):
 
 
 def transport(request):
-    url = os.environ.get("WAKFU_AI_URL", "http://127.0.0.1:18090").rstrip("/")
-    call = urllib.request.Request(
-        url + "/v2/decide",
-        data=json.dumps(request, allow_nan=False, separators=(",", ":")).encode(),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(call, timeout=1) as reply:
-        data = reply.read(1024 * 1024 + 1)
-    if len(data) > 1024 * 1024:
-        raise ValueError("Tactical AI response exceeds budget")
-    return json.loads(data)
+    return request_ai("/v2/decide", request)
 
 
 def step(

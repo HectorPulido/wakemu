@@ -19,10 +19,27 @@ _EVENTS = protocol_catalog.load(
 )["effects"]
 
 
+def _target_pv(handler, identity):
+    target = registered_or_detached_actor(handler.fight, identity)
+    if target is None:
+        from .combat_state_managers import registered_area_pv
+
+        target = registered_area_pv(handler.fight, identity)
+    return target
+
+
+def _absent_area_characteristic(handler, target, stat):
+    if not getattr(target, "native_is_area", False):
+        return False
+    from .combat_maximum_resource import _reduction_area_lacks_characteristic
+
+    return _reduction_area_lacks_characteristic(handler.fight, target.id, stat)
+
+
 def _context(handler, effect, invocation):
     from .combat_stat_handler import StatExecutionContext
 
-    target = registered_or_detached_actor(handler.fight, invocation.target_id)
+    target = _target_pv(handler, invocation.target_id)
     source = registered_or_detached_actor(handler.fight, invocation.caster_id)
     if source is None:
         from .combat_state_managers import registered_area_pv
@@ -48,7 +65,13 @@ def _context(handler, effect, invocation):
         or type(context.retained) is not bool
     ):
         raise ValueError("Unverified native current-stat guards")
-    if context.executable:
+    if (
+        getattr(target, "native_is_area", False)
+        and target.native_running_effect_manager is not True
+    ):
+        # An actual null-Qf PV executes without registering an owned Qe.
+        context = replace(context, retained=False)
+    if context.executable and not getattr(target, "native_is_area", False):
         from .combat_runner_target_life import verify_runner_target_life
 
         verify_runner_target_life(handler.fight, target, effect, invocation=invocation)
@@ -153,80 +176,90 @@ def apply_current_stat_runner(handler, effect, values, invocation):
             _event_ids=_events(handler, effect),
             runner_modifier=runner,
         )
-    target = registered_or_detached_actor(handler.fight, invocation.target_id)
+    target = _target_pv(handler, invocation.target_id)
     if target is None:
         raise ValueError("Missing current-stat target after native L2 callbacks")
     stat = plan["stat_id"]
-    minimum, maximum = _bounds(target, stat)
-    result = apply_current_stat(
-        family=row["runner"],
-        current=_current(target, stat),
-        minimum=minimum,
-        maximum=maximum,
-        requested=value if runner is None else runner.value,
-        percent=plan["percent"],
-        executable=True,
-        frozen=stat in target.effect_frozen,
-        source_guards_verified=True,
-        limit_policy="NORMAL"
-        if row["limit_policy"] == "RESISTANCE_CAP"
-        else row["limit_policy"],
-    )
-    if getattr(target, "native_copy_pa_source", None) is not None:
-        from .combat_copied_pa import copied_current_stat_result
-
-        result = copied_current_stat_result(
-            target,
-            stat,
-            value if runner is None else runner.value,
+    absent_area_pa = _absent_area_characteristic(handler, target, stat)
+    if absent_area_pa:
+        # eWW.c: PV.a(PC)==false calls mu(true), preserving calculated aSg.
+        # No PA mutation, percentage conversion, fc(0), or PR is performed.
+        result = {"actual": value if runner is None else runner.value}
+    else:
+        minimum, maximum = _bounds(target, stat)
+        result = apply_current_stat(
             family=row["runner"],
+            current=_current(target, stat),
+            minimum=minimum,
+            maximum=maximum,
+            requested=value if runner is None else runner.value,
             percent=plan["percent"],
+            executable=True,
+            frozen=stat in target.effect_frozen,
+            source_guards_verified=True,
+            limit_policy="NORMAL"
+            if row["limit_policy"] == "RESISTANCE_CAP"
+            else row["limit_policy"],
         )
-    elif (
-        stat in (2, 3)
-        and getattr(target, "effect_resource_raw_currents", None) is not None
-    ):
-        from .combat_resource_pa_notifications import resource_shift_result
-        import math
-        from wakfu_server.equipment_damage import _float
+        if getattr(target, "native_copy_pa_source", None) is not None:
+            from .combat_copied_pa import copied_current_stat_result
 
-        requested = value if runner is None else runner.value
-        amount = (
-            math.trunc(
-                _float(
-                    _float(_float(_current(target, stat)) / _float(100))
-                    * _float(requested)
-                )
+            result = copied_current_stat_result(
+                target,
+                stat,
+                value if runner is None else runner.value,
+                family=row["runner"],
+                percent=plan["percent"],
             )
-            if plan["percent"]
-            else requested
-        )
-        raw, current, actual = resource_shift_result(
-            target, stat, amount, subtract=row["runner"] == "eWR"
-        )
-        result.update(raw_current=raw, current=current, actual=actual)
-    elif stat == 1:
-        from .combat_hp_raw import hp_raw_present, hp_shift_result
-
-        if hp_raw_present(target):
+        elif (
+            stat in (2, 3)
+            and getattr(target, "effect_resource_raw_currents", None) is not None
+        ):
+            from .combat_resource_pa_notifications import resource_shift_result
             import math
             from wakfu_server.equipment_damage import _float
 
             requested = value if runner is None else runner.value
             amount = (
                 math.trunc(
-                    _float(_float(_float(target.hp) / _float(100)) * _float(requested))
+                    _float(
+                        _float(_float(_current(target, stat)) / _float(100))
+                        * _float(requested)
+                    )
                 )
                 if plan["percent"]
                 else requested
             )
-            raw, current, actual = hp_shift_result(
-                target, amount, subtract=row["runner"] == "eWR"
+            raw, current, actual = resource_shift_result(
+                target, stat, amount, subtract=row["runner"] == "eWR"
             )
             result.update(raw_current=raw, current=current, actual=actual)
+        elif stat == 1:
+            from .combat_hp_raw import hp_raw_present, hp_shift_result
+
+            if hp_raw_present(target):
+                import math
+                from wakfu_server.equipment_damage import _float
+
+                requested = value if runner is None else runner.value
+                amount = (
+                    math.trunc(
+                        _float(
+                            _float(_float(target.hp) / _float(100)) * _float(requested)
+                        )
+                    )
+                    if plan["percent"]
+                    else requested
+                )
+                raw, current, actual = hp_shift_result(
+                    target, amount, subtract=row["runner"] == "eWR"
+                )
+                result.update(raw_current=raw, current=current, actual=actual)
     actual = result["actual"]
     if runner is not None:
         runner.set_applied(actual)
+        if absent_area_pa:
+            runner.notification_suppressed = True
         # eWR.d: fc(0); zero actual with fMz=true suppresses PR, not Qe/PT.
         if (
             row["runner"] == "eWR"
@@ -234,7 +267,7 @@ def apply_current_stat_runner(handler, effect, values, invocation):
             and row["zero_initial_amount_rejected"]
         ):
             runner.notification_suppressed = True
-    status = 0 if row["runner"] == "eWR" else None
+    status = 0 if row["runner"] == "eWR" and not absent_area_pa else None
 
     def payload_for(value):
         return owned_effect_payload(
@@ -251,21 +284,22 @@ def apply_current_stat_runner(handler, effect, values, invocation):
         )
 
     payload = payload_for(actual)
-    _write(
-        handler.fight,
-        invocation.caster_id,
-        target,
-        stat,
-        result.get("raw_current", result["current"]),
-    )
-    handler.fight._event(
-        "characteristic_changed",
-        source_id=invocation.caster_id,
-        target_id=target.id,
-        stat_id=stat,
-        actual=actual,
-        current=result["current"],
-    )
+    if not absent_area_pa:
+        _write(
+            handler.fight,
+            invocation.caster_id,
+            target,
+            stat,
+            result.get("raw_current", result["current"]),
+        )
+        handler.fight._event(
+            "characteristic_changed",
+            source_id=invocation.caster_id,
+            target_id=target.id,
+            stat_id=stat,
+            actual=actual,
+            current=result["current"],
+        )
     if context.retained:
         handler.fight.owned_stat_effects[uid] = dict(
             uid=uid,
@@ -281,7 +315,9 @@ def apply_current_stat_runner(handler, effect, values, invocation):
             state_uid=invocation.state_uid,
             timer=None if context.timer is None else dict(vars(context.timer)),
         )
-    if runner is None or not runner.notification_suppressed:
+    if context.retained and absent_area_pa:
+        handler.fight.owned_stat_effects[uid]["native_absent_characteristic"] = True
+    if not absent_area_pa and (runner is None or not runner.notification_suppressed):
         handler.packets.append(
             evaluated_effect_delivery(
                 handler.fight.id,
@@ -321,3 +357,30 @@ def apply_current_stat_runner(handler, effect, values, invocation):
 
     notify_runner_value(invocation, final)
     return True
+
+
+def remove_absent_current_stat(handler, uid):
+    """eWW.bbR skips PA restoration for an actual PV lacking this PC."""
+    from .combat_effect_removal import running_effect_removal
+
+    entry = handler.fight.owned_stat_effects[uid]
+    if (
+        entry.get("family") not in ("eWQ", "eWR")
+        or entry.get("native_absent_characteristic") is not True
+    ):
+        raise ValueError("Missing native absent-PA current-stat receipt")
+    target = _target_pv(handler, entry["target_id"])
+    if target is None or not _absent_area_characteristic(
+        handler, target, entry["stat_id"]
+    ):
+        raise ValueError("Missing native absent-PA current-stat owner")
+    packet = running_effect_removal(
+        handler.fight.id,
+        handler.action_id,
+        effect_class=entry["effect_class"],
+        target_id=target.id,
+        uid=uid,
+        running_effect_payload=bytes.fromhex(entry["payload"]),
+    )
+    del handler.fight.owned_stat_effects[uid]
+    handler.packets.append((13560, packet))

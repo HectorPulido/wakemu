@@ -61,12 +61,15 @@ def provision(world="wakfu-local-world-1", ai="wakfu-local-ai-1"):
         )
     )
     seal_code = """
-import json, sys, urllib.request
-payload=json.dumps({'sha256':sys.argv[1]}).encode()
-request=urllib.request.Request('http://127.0.0.1:8090/v3/context/seal',data=payload,
-                              headers={'Content-Type':'application/json'})
-with urllib.request.urlopen(request,timeout=120) as response:
-    result=json.load(response)
+import json, os, sys
+from wakfu_ai.transport.framed import FramedClient
+client=FramedClient('127.0.0.1',int(os.environ.get('WAKFU_AI_PORT','8090')),timeout=120)
+try:
+    status,result=client.request('/v3/context/seal',{'sha256':sys.argv[1]})
+    if status != 200:
+        raise RuntimeError('Live world catalogue seal was rejected')
+finally:
+    client.close()
 if result.get('complete') is not True:
     raise RuntimeError('Live world catalogue is incomplete')
 print(json.dumps(result))

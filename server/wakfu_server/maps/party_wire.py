@@ -12,11 +12,13 @@ def _identity(value):
     return value
 
 
-def member_request(body):
+def member_request(body, *, allow_companions=False):
     """Shared layout for removal1074 and leader transfer1066."""
     if not isinstance(body, bytes) or len(body) != 16:
         raise ValueError("Invalid party member request")
     group_id, member_id = struct.unpack(">qq", body)
+    if allow_companions and type(member_id) is int and -(2**63) < member_id < 0:
+        return {"group_id": _identity(group_id), "member_id": member_id}
     return {"group_id": _identity(group_id), "member_id": _identity(member_id)}
 
 
@@ -90,12 +92,17 @@ def invitation(inviter_id, inviter_name):
     return 1072, bytes((1, len(encoded))) + encoded + struct.pack(">q", inviter_id)
 
 
-def removed(group_id, member_ids):
+def removed(group_id, member_ids, *, allow_companions=False):
     """Encode OH1049: group followed by IDs, without a count field."""
     _identity(group_id)
     if not isinstance(member_ids, (list, tuple)) or not member_ids:
         raise ValueError("Missing removed party members")
-    identities = [_identity(member_id) for member_id in member_ids]
+    identities = [
+        member_id
+        if allow_companions and type(member_id) is int and -(2**63) < member_id < 0
+        else _identity(member_id)
+        for member_id in member_ids
+    ]
     if len(set(identities)) != len(identities):
         raise ValueError("Duplicate removed party member")
     return 1049, struct.pack(">q", group_id) + b"".join(
@@ -108,7 +115,8 @@ def roster(group_id, leader_id, members):
 
     Association remains an explicit native input, not a guessed account ID.
     Portrait variant and identity flag remain explicit native inputs.
-    No companion section6 is emitted for human characters.
+    Companion rows use negative party IDs and original eSA section6 records.
+    Human rows retain their original encoding.
     """
     _identity(group_id)
     _identity(leader_id)
@@ -120,7 +128,22 @@ def roster(group_id, leader_id, members):
     for member in members:
         if not isinstance(member, dict):
             raise ValueError("Invalid party member")
-        identity = _identity(member.get("id"))
+        companion = member.get("companion_record")
+        if companion is None:
+            identity = _identity(member.get("id"))
+        else:
+            from wakfu_server.companions import record as companion_record
+
+            if (
+                not isinstance(companion, dict)
+                or type(member.get("id")) is not int
+                or member["id"] != -companion.get("id", 0)
+                or companion["id"] <= 0
+                or member.get("breed") != companion.get("breed_ref")
+                or member.get("name") != companion.get("name")
+            ):
+                raise ValueError("Invalid native companion party identity")
+            identity = member["id"]
         association = _identity(member.get("association_id"))
         name = member.get("name")
         if not isinstance(name, str) or not name or "\x00" in name:
@@ -168,6 +191,8 @@ def roster(group_id, leader_id, members):
             (5, struct.pack(">iiii", hp, maximum, 0, 0)),
             (7, struct.pack(">h", member["level"])),
         ]
+        if companion is not None:
+            sections.insert(-1, (6, companion_record(companion)))
         offset = 1 + len(sections) * 5
         directory, payload = [], []
         for tag, section in sections:

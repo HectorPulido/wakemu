@@ -262,6 +262,13 @@ def complete(
             "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
             ("planting-cell:" + ":".join(map(str, cell)),),
         )
+        from wakfu_server.objectives.environmental_resource_population import (
+            assert_cell_available,
+        )
+
+        assert_cell_available(
+            db, map_id=cell[0], instance_id=cell[1], x=cell[2], y=cell[3]
+        )
         if db.execute(
             "SELECT 1 FROM mining_vein_slots "
             "WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s AND enabled",
@@ -362,6 +369,8 @@ def complete(
                 base_xp=base_xp(db, "planting"),
                 operation="planting:" + sha256(operation_id.encode()).hexdigest(),
                 territory_percent=territory_percent,
+                action_category="planting",
+                native_map_id=current["map_id"],
             )
             if definition["monster_resource"]:
                 from wakfu_server.custom_tasks.adapters import monster_planting
@@ -379,6 +388,21 @@ def complete(
                 )
         else:
             progress = dict(packets=[])
+        environmental_updates = ()
+        if success:
+            from wakfu_server.objectives.environmental_gameplay import (
+                committed_planting,
+            )
+
+            environmental_updates = committed_planting(
+                db,
+                account_id=account,
+                character_id=character["id"],
+                operation_id=operation_id,
+                source_scene=dict(
+                    map_id=resource["map_id"], instance_id=resource["instance_id"]
+                ),
+            )
     # cgN12954 calls bJt.d/e, which only displays item.selfDrop; it does not
     # mutate the inventory. Publish the committed quantity delta exactly once.
     return dict(
@@ -386,6 +410,7 @@ def complete(
         success=success,
         probability=probability,
         duplicate=False,
+        environmental_updates=environmental_updates,
         group=group if success else None,
         packets=([resource_packet(resource)] if success else [])
         + [

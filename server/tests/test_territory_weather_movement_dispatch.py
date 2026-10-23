@@ -24,6 +24,8 @@ def production_function(name, namespace):
 def refresh_bonuses(character, packets):
     character["territory_stat_bonuses"] = {}
     character["_published_territory_stat_bonuses"] = {}
+    character["territory_state_id"] = 0
+    character["_published_territory_state_id"] = 0
     return packets
 
 
@@ -186,6 +188,68 @@ class TerritoryWeatherMovementDispatchTests(unittest.TestCase):
             if any(child is calls[0] for child in ast.walk(node))
         )
         self.assertGreater(call_index, commit_index)
+
+    def test_initial_region_icon_marker_waits_for_complete_successful_send(self):
+        from wakfu_server import ecology_context, territory_bonuses, territory_weather
+
+        character = {
+            "id": 40,
+            "map_id": 1134,
+            "instance_id": 0,
+            "x": 1,
+            "y": 2,
+            "z": 0,
+            "hp": 471,
+        }
+        registry = SimpleNamespace(
+            lock=RLock(),
+            players={
+                40: ("lease", "peer", dict(character)),
+            },
+            update_territory_projection=unittest.mock.Mock(return_value=True),
+        )
+        sent = []
+
+        def send(peer, service, opcode, payload):
+            sent.append(opcode)
+            if opcode == 12613:
+                raise RuntimeError("injected icon send failure")
+
+        namespace = {
+            "STORE": object(),
+            "OPEN_PLANTING": False,
+            "send": send,
+            "record": unittest.mock.Mock(),
+            "send_native_planting_bonus": lambda *_: None,
+            "WORLD": registry,
+            "REGIONAL_BONUSES": SimpleNamespace(
+                mark_context_refreshed=unittest.mock.Mock()
+            ),
+        }
+        publish = production_function("send_planting_context", namespace)
+        refreshed = dict(
+            character,
+            territory_stat_bonuses={33: -10},
+            territory_state_id=1915,
+            _published_territory_stat_bonuses={33: -10},
+            _published_territory_state_id=1915,
+        )
+        with (
+            patch.object(ecology_context, "packet", return_value=(12789, b"ecology")),
+            patch.object(
+                territory_bonuses,
+                "refresh_world",
+                return_value=[(13046, b"stats"), (12613, b"regional-icon")],
+            ),
+            patch.object(territory_weather, "context"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "icon send failure"):
+                publish("peer", character, include_weather=False)
+        self.assertNotIn("_published_territory_state_id", character)
+        self.assertNotIn("territory_state_id", character)
+        registry.update_territory_projection.assert_not_called()
+        namespace["REGIONAL_BONUSES"].mark_context_refreshed.assert_not_called()
+        self.assertEqual([12789, 13046, 12613], sent)
 
 
 if __name__ == "__main__":

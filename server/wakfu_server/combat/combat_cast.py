@@ -72,6 +72,11 @@ def _resolve_actor_spell_action(request, character, fight, actor, deck_blob, own
     from .combat_morph_spellbook import morph_record, resolve_morph_action
 
     if morph_record(fight, actor_id) is not None:
+        if str(actor_id) in getattr(fight, "native_companion_sources", {}):
+            from .combat_companions import resolve_action
+
+            reference, level = resolve_action(fight, actor, character, owner_id, uid)
+            return actor, reference, level
         if actor_id != character["id"]:
             from .combat_summon_spellbook import validate_controlled_owner
 
@@ -86,6 +91,11 @@ def _resolve_actor_spell_action(request, character, fight, actor, deck_blob, own
         if granted:
             return actor, spell_id, temporary["level"]
         reference, level = resolve_controller_action(fight, actor, owner_id, uid)
+        return actor, reference, level
+    if str(actor_id) in getattr(fight, "native_companion_sources", {}):
+        from .combat_companions import resolve_action
+
+        reference, level = resolve_action(fight, actor, character, owner_id, uid)
         return actor, reference, level
     summon_level = None
     if actor_id != character["id"]:
@@ -105,7 +115,9 @@ def _resolve_actor_spell_action(request, character, fight, actor, deck_blob, own
     elif not granted:
         if uid != (actor_id << 32) | spell_id:
             raise ValueError("Spell UID belongs to another actor or expired grant")
-        deck = validate_deck(deck_blob, character["breed"], character["level"])
+        deck = validate_deck(
+            deck_blob, character["breed"], character["level"], character=character
+        )
         if spell_id not in deck["active"]:
             raise ValueError("Spell is absent from current deck")
     evaluation_level = (
@@ -182,7 +194,9 @@ def _prepare_resolved_spell_cast(
     from .combat_cast_diagnostics import casting_diagnostics
 
     try:
-        owner_deck = validate_deck(deck_blob, character["breed"], character["level"])
+        owner_deck = validate_deck(
+            deck_blob, character["breed"], character["level"], character=character
+        )
     except ValueError:
         # Diagnostics do not add an ordinary-deck gate to grants or morphs.
         owner_deck = None

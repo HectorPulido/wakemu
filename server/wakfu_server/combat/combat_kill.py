@@ -9,6 +9,7 @@ from .combat_trigger_value_modifier import NativeRunnerAmount
 from .combat_property_stack import add_property
 from .combat_maximum_resource import effective_maximum
 from .combat_actor_snapshot import native_actor_catalog
+from .combat_state_managers import registered_source_pv
 
 
 def kill_parameters(effect, level):
@@ -56,7 +57,7 @@ class NativeKillHandler:
             raise ValueError("Wrong native eXc family")
         if (
             self.fight.phase != "active"
-            or invocation.caster_id not in self.fight.actors
+            or registered_source_pv(self.fight, invocation.caster_id) is None
         ):
             raise ValueError("Invalid native eXc fight/caster")
         if invocation.target_id not in self.fight.actors:
@@ -161,6 +162,8 @@ class NativeKillHandler:
             self.cancel_prepared(invocation)
 
     def _apply(self, effect, invocation):
+        from copy import deepcopy
+
         context = self._context(effect, invocation)
         uid = invocation.native_running_uid
         if uid is not None and uid not in self.prepared:
@@ -268,9 +271,19 @@ class NativeKillHandler:
         else:
             actor.hp = after
             actor.effect_stats[1] = after
+        native_container = deepcopy(invocation.native_retained_container)
+        if invocation.state_uid is not None:
+            from .combat_native_container import resolve_state_container
+
+            state_container = resolve_state_container(self.fight, invocation.state_uid)
+            native_container = dict(
+                present=True, type=1, is_state=True, state_id=state_container.reference
+            )
         self.fight._event(
             "kill_hp_minimum_update",
             effect_class=28,
+            generic_effect=invocation.reference,
+            native_container=native_container,
             uid=uid,
             source_id=invocation.caster_id,
             target_id=actor.id,

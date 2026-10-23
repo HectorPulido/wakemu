@@ -6,12 +6,13 @@ inverse transforms in the client; do not substitute enumerated membership.
 """
 import math
 import re
+from functools import lru_cache
 from .combat_parameters import _float32
 
 DIRECTIONS = ((1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1))
 
 
-def native_area_shape(effect):
+def _build_native_area_shape(effect):
     kind, text = effect.get("area_class"), effect.get("area_native") or ""
     if kind == "anz" and (
         match := re.fullmatch(r"Directed rectangle-(\d+)x(\d+)", text)
@@ -118,6 +119,67 @@ def native_area_shape(effect):
     return None
 
 
+def _cacheable_area_text(text):
+    # Bound retained coordinate populations, not accepted gameplay geometry.
+    # Larger/custom descriptions still execute through the uncached builder.
+    return (
+        type(text) is str
+        and len(text) <= 160
+        and all(abs(int(value)) <= 32 for value in re.findall(r"-?\d+", text))
+    )
+
+
+def _shape_identity(effect):
+    kind, text = effect.get("area_class"), effect.get("area_native") or ""
+    if type(kind) is not str or not _cacheable_area_text(text):
+        return None
+    points = None
+    if kind in ("anE", "anJ") and "native_area_points" in effect:
+        points = effect["native_area_points"]
+        if (
+            not isinstance(points, (list, tuple))
+            or len(points) > 4096
+            or any(
+                not isinstance(point, (list, tuple))
+                or len(point) != 2
+                or any(
+                    type(value) is not int or not -(1 << 31) <= value < (1 << 31)
+                    for value in point
+                )
+                for point in points
+            )
+        ):
+            return None
+        points = tuple(tuple(point) for point in points)
+    return kind, text, points
+
+
+def _shape_data(effect):
+    shape = _build_native_area_shape(effect)
+    return shape, None if shape is None else frozenset(shape[0])
+
+
+@lru_cache(maxsize=128)
+def _cached_shape_data(kind, text, points):
+    effect = {"area_class": kind, "area_native": text}
+    if points is not None:
+        effect["native_area_points"] = points
+    return _shape_data(effect)
+
+
+def _native_area_data(effect):
+    identity = _shape_identity(effect)
+    return _shape_data(effect) if identity is None else _cached_shape_data(*identity)
+
+
+def native_area_shape(effect):
+    """Reuse immutable offsets by full shape content, never effect identity."""
+    identity = _shape_identity(effect)
+    if identity is None:
+        return _build_native_area_shape(effect)
+    return _cached_shape_data(*identity)[0]
+
+
 def native_area_rotation(origin, reference, direction):
     dx, dy = origin[0] - reference[0], origin[1] - reference[1]
     if not dx and not dy:
@@ -137,6 +199,17 @@ def native_area_rotation(origin, reference, direction):
     return (-1, 0)
 
 
+def _oriented_offsets(offsets, dx, dy):
+    return tuple(dict.fromkeys((dx * x - dy * y, dy * x + dx * y) for x, y in offsets))
+
+
+@lru_cache(maxsize=256)
+def _cached_oriented_offsets(identity, dx, dy):
+    shape, _ = _cached_shape_data(*identity)
+    offsets = _oriented_offsets(shape[0], dx, dy)
+    return offsets, frozenset(offsets)
+
+
 def oriented_area_offsets(effect, *, origin, reference, direction=None):
     shape = native_area_shape(effect)
     if shape is None:
@@ -145,11 +218,29 @@ def oriented_area_offsets(effect, *, origin, reference, direction=None):
     if isotropic:
         return offsets
     dx, dy = native_area_rotation(origin, reference, direction)
-    return tuple(dict.fromkeys((dx * x - dy * y, dy * x + dx * y) for x, y in offsets))
+    identity = _shape_identity(effect)
+    if identity is not None:
+        return _cached_oriented_offsets(identity, dx, dy)[0]
+    return _oriented_offsets(offsets, dx, dy)
+
+
+def oriented_area_offset_set(effect, *, origin=None, reference=None, direction=None):
+    """Immutable enumerated cells; do not substitute for transpose membership."""
+    shape, raw = _native_area_data(effect)
+    if shape is None:
+        raise ValueError("Unknown native oriented area")
+    offsets, isotropic = shape
+    if isotropic:
+        return raw
+    dx, dy = native_area_rotation(origin, reference, direction)
+    identity = _shape_identity(effect)
+    if identity is not None:
+        return _cached_oriented_offsets(identity, dx, dy)[1]
+    return frozenset(_oriented_offsets(offsets, dx, dy))
 
 
 def native_area_contains(effect, *, origin, reference, point, direction=None, radius=0):
-    shape = native_area_shape(effect)
+    shape, raw = _native_area_data(effect)
     if shape is None:
         raise ValueError("Unknown native oriented area")
     offsets, isotropic = shape
@@ -160,7 +251,6 @@ def native_area_contains(effect, *, origin, reference, point, direction=None, ra
     if type(radius) is not int or not -128 <= radius <= 127:
         raise ValueError("Native area membership requires signed-byte physical radius")
     radius = max(0, radius)
-    raw = frozenset(offsets)
     return any(
         (x + dx, y + dy) in raw
         for dx in range(-radius, radius + 1)

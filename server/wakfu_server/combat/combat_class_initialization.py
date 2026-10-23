@@ -83,7 +83,7 @@ def plan(character, deck_blob, spell_catalog, state_catalog, *, zero_catalog=Non
     definition = BREEDS.get(breed)
     if definition is None:
         raise ValueError("Unknown installed breed definition")
-    deck = validate_deck(deck_blob, breed, level)
+    deck = validate_deck(deck_blob, breed, level, character=character)
     effective = level if deck["level_cap"] == -1 else min(level, deck["level_cap"])
     innates = []
     for row in definition["innate_states"]:

@@ -129,7 +129,9 @@ def activate(db, groups, resource_uid):
     applied = (
         None
         if evaluation is None
-        else apply(db, character_id, operation=operation, **evaluation)
+        else apply(
+            db, character_id, operation=operation, national_action=True, **evaluation
+        )
     )
     return dict(
         character_id=character_id,

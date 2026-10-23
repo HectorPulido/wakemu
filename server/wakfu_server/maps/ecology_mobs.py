@@ -126,7 +126,8 @@ def prepare(store, snapshot, limit=16):
     # The worker advances wander cadence after a successful planning pass. Reserve
     # one scope-batch slot so publications or lifecycle tickets cannot fill the
     # whole budget before movement gets examined.
-    wander_slots = min(1, len(scopes)) if allow_wander else 0
+    # Overlap recovery runs on the next tick, even between wandering cadences.
+    wander_slots = min(1, len(scopes))
     background_limit = limit - wander_slots
     proposals = (
         prepare_cleanup(store, snapshot, limit=background_limit)
@@ -360,7 +361,7 @@ def prepare(store, snapshot, limit=16):
         if indexed is None:
             indexed = _edges(scope[0])
         configuration = policies["wander"]
-        if not allow_wander or _proposal_slots(proposals) >= limit:
+        if _proposal_slots(proposals) >= limit:
             continue
         wander_groups = wander.visible_groups(
             groups,
@@ -373,9 +374,31 @@ def prepare(store, snapshot, limit=16):
         # Build the live occupancy once per scope. Rewalking every member in
         # every other group for each candidate costs O(population * moved).
         scope_occupied = {
-            wander.point(member) for group in groups for member in group["members"]
+            wander.point(member)
+            for group in living_groups
+            for member in group["members"]
         }
-        neighbors = wander.group_neighbor_index(groups)
+        from collections import Counter
+
+        occupants = Counter(
+            wander.point(member)
+            for group in living_groups
+            for member in group["members"]
+        )
+        player_cells = {wander.point(player) for player in scoped}
+        overlapping_groups = {
+            group["group_id"]
+            for group in living_groups
+            if any(
+                occupants[wander.point(member)] > 1
+                or wander.point(member) in player_cells
+                for member in group["members"]
+            )
+        }
+        neighbors = wander.group_neighbor_index(living_groups)
+        wander_groups.sort(
+            key=lambda group: group["group_id"] not in overlapping_groups
+        )
         moved_member_count = 0
         packet_bytes = 0
         plan_deadline = time.monotonic() + MAX_WANDER_BATCH_SECONDS
@@ -394,7 +417,10 @@ def prepare(store, snapshot, limit=16):
             # increasing the distance between companions on every cadence.
             if moved_member_count + len(members) > MAX_WANDER_BATCH_MOVED_MEMBERS:
                 continue
-            if random.random() >= configuration["move_probability"]:
+            overlap = group["group_id"] in overlapping_groups
+            if not overlap and (
+                not allow_wander or random.random() >= configuration["move_probability"]
+            ):
                 continue
             own_cells = {wander.point(member) for member in members}
             result = wander.plan_group_path(
@@ -403,6 +429,7 @@ def prepare(store, snapshot, limit=16):
                 (),
                 occupied=scope_occupied - own_cells,
                 neighbor_index=neighbors,
+                other_groups=living_groups,
                 radius=configuration["radius"],
                 min_steps=configuration["min_steps"],
                 max_steps=configuration["max_steps"],
@@ -432,6 +459,10 @@ def prepare(store, snapshot, limit=16):
                     moved_members=candidate,
                     packets=[[opcode, payload.hex()] for opcode, payload in packets],
                 )
+                if result.get("dispersal") is True:
+                    move["dispersal"] = True
+                if result.get("overlap_escape") is True:
+                    move["overlap_escape"] = True
                 batch = dict(
                     kind="wander_bulk",
                     world_epoch=epoch,
@@ -468,12 +499,22 @@ def _validate_bulk_wander_move(move):
     """Return decoded per-group movement data, or reject just this group."""
     from protocol_codec import decode_body
 
-    if not isinstance(move, dict) or set(move) != {
+    required = {
         "group_id",
         "expected_members",
         "moved_members",
         "packets",
-    }:
+    }
+    if (
+        not isinstance(move, dict)
+        or not required <= set(move) <= required | {"dispersal", "overlap_escape"}
+        or any(
+            move[key] is not True
+            for key in ("dispersal", "overlap_escape")
+            if key in move
+        )
+        or ("dispersal" in move and "overlap_escape" in move)
+    ):
         raise ValueError("Invalid bulk wander group fields")
     group_id = move["group_id"]
     expected = move["expected_members"]
@@ -541,7 +582,45 @@ def _validate_bulk_wander_move(move):
     cells = _path_cells([[opcode, payload.hex()] for opcode, payload in packets])
     if not cells:
         raise ValueError("Bulk wander path is empty")
-    return group_id, expected, moved, packets, cells, len(changed_ids), packet_bytes
+    return (
+        group_id,
+        expected,
+        moved,
+        packets,
+        cells,
+        len(changed_ids),
+        packet_bytes,
+        move.get("dispersal", False),
+        move.get("overlap_escape", False),
+    )
+
+
+def _valid_dispersal_path(expected, moved, paths_by_actor, current_groups):
+    """Actor overlap is allowed only for steps away from a current live group."""
+    from . import monster_wander as wander
+
+    if not wander.separating_movement(expected, moved, current_groups):
+        return False
+    origin = wander.point(expected[0])
+    neighbor = wander.nearest_group(
+        origin,
+        wander.group_neighbor_index(current_groups),
+        exclude_id=expected[0]["id"],
+    )
+    if neighbor is None:
+        return False
+
+    def distance(cell):
+        return (cell[0] - neighbor[0]) ** 2 + (cell[1] - neighbor[1]) ** 2
+
+    leader_path = paths_by_actor.get(expected[0]["id"], ())
+    previous = distance(origin)
+    for cell in leader_path:
+        current = distance(cell)
+        if current <= previous:
+            return False
+        previous = current
+    return bool(leader_path)
 
 
 def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch):
@@ -583,6 +662,7 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
             invalid_groups += 1
             continue
         expected_by_id = {member["id"]: member for member in decoded[1]}
+        paths_by_actor = {}
         try:
             paths_by_actor = _path_cells_by_actor(
                 [[opcode, payload.hex()] for opcode, payload in decoded[3]]
@@ -604,12 +684,22 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
                 for actor_id, path in paths_by_actor.items()
                 for cell in path
             )
+            if decoded[7] or decoded[8]:
+                native_edges = _edges(scope[0])[0]
+                for actor_id, path in paths_by_actor.items():
+                    origin = wander.point(expected_by_id[actor_id])
+                    if len(path) > configuration["max_steps"]:
+                        habitat_valid = False
+                    for destination in path:
+                        if (origin, destination) not in native_edges:
+                            habitat_valid = False
+                        origin = destination
         except (KeyError, TypeError, ValueError):
             habitat_valid = False
         seen_group_ids.add(decoded[0])
         moved_members += decoded[5]
         packet_bytes += decoded[6]
-        decoded_moves.append((*decoded, habitat_valid))
+        decoded_moves.append((*decoded, habitat_valid, paths_by_actor))
 
     with groups.lock, harvests.lock, getattr(world, "lock", nullcontext()):
         players = _scoped_players(world.snapshot(), tuple(scope))
@@ -629,7 +719,10 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
             cells,
             _count,
             _size,
+            dispersal,
+            overlap_escape,
             habitat_valid,
+            paths_by_actor,
         ) in enumerate(decoded_moves):
             if time.monotonic() >= deadline:
                 skipped_groups += len(decoded_moves) - index
@@ -655,6 +748,17 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
             if not habitat_valid:
                 skipped_groups += 1
                 continue
+            if dispersal:
+                if not _valid_dispersal_path(
+                    expected, moved, paths_by_actor, current_groups
+                ) or not wander.clear_destination(moved, players, current_groups):
+                    skipped_groups += 1
+                    continue
+            if overlap_escape and not wander.overlap_escape_valid(
+                expected, moved, players, current_groups
+            ):
+                skipped_groups += 1
+                continue
             occupied = {wander.point(player) for player in players}
             occupied |= {
                 wander.point(member)
@@ -663,7 +767,7 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
                 for member in group["members"]
                 if member["id"] not in expected_ids
             }
-            if cells & occupied:
+            if not (dispersal or overlap_escape) and cells & occupied:
                 skipped_groups += 1
                 continue
             if not groups.move_members((*scope, group_id), expected, moved):

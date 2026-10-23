@@ -87,6 +87,63 @@ class CombatDropMathTests(unittest.TestCase):
                     rng=Draws(0),
                 )
 
+    def test_terminal_nox_multiplier_composes_once_and_keeps_native_rolls(self):
+        from wakfu_server.combat_boss_score_policy import (
+            NOX_SCORE,
+            RUSHU_SCORE,
+            score_drop_rate_bp,
+        )
+
+        args = dict(
+            monsters=[{"actor_id": -11, "reference": 1}],
+            character_id=7,
+            prospecting_bonus=100,
+            can_loot=True,
+            catalog=catalog_for(drop_row("0.008", roll_count=2)),
+        )
+        baseline = plan_player_drops(
+            **args,
+            fight_context={"dungeon_drop_rate_bp": 20000},
+            rng=Draws(DRAW_DENOMINATOR - 1, DRAW_DENOMINATOR - 1),
+        )
+        for score, expected in (
+            (49999, 10000),
+            (50000, 10050),
+            (2999999, 12950),
+            (3000000, 13000),
+            (3049999, 13000),
+            (3050000, 13050),
+        ):
+            with self.subTest(score=score):
+                self.assertEqual(score_drop_rate_bp(NOX_SCORE, score), expected)
+                draws = Draws(DRAW_DENOMINATOR - 1, DRAW_DENOMINATOR - 1)
+                selected = plan_player_drops(
+                    **args,
+                    fight_context={
+                        "score": score,
+                        "dungeon_drop_rate_bp": 20000,
+                        "boss_score_drop_rate_bp": expected,
+                    },
+                    rng=draws,
+                )
+                self.assertEqual(len(selected), len(baseline))
+                self.assertEqual(draws.bounds, [DRAW_DENOMINATOR, DRAW_DENOMINATOR])
+                for before, after in zip(baseline, selected):
+                    self.assertEqual(
+                        after.effective_probability,
+                        before.effective_probability * Decimal(expected) / 10000,
+                    )
+                    self.assertEqual(after.base_probability, before.base_probability)
+                    self.assertEqual(after.quantity, before.quantity)
+        self.assertEqual(score_drop_rate_bp(RUSHU_SCORE, 3000000), 10000)
+        for context in (
+            {"boss_score_drop_rate_bp": 13000},
+            {"score": 3000000, "boss_score_drop_rate_bp": True},
+            {"score": 3000000, "boss_score_drop_rate_bp": 9999},
+        ):
+            with self.assertRaises(ValueError):
+                plan_player_drops(**args, fight_context=context, rng=Draws(0, 0))
+
     def test_native_wakfu_catalog_keeps_exact_jalato_hat_probability_and_rows(self):
         catalog = native_drop_catalog()
         matches = []
@@ -556,7 +613,7 @@ class CombatDropPostgresTests(PostgresCase):
                 (self.generation, self.fight_id, self.character["id"], self.account_id),
             )
 
-    def _resolve(self, db, *, rng):
+    def _resolve(self, db, *, rng, companion_rolls=()):
         return resolve(
             self.store,
             db,
@@ -569,7 +626,88 @@ class CombatDropPostgresTests(PostgresCase):
             can_loot=True,
             fight_context={},
             rng=rng,
+            companion_rolls=companion_rolls,
         )
+
+    def test_two_owned_companions_add_atomic_replayable_loot_lines(self):
+        from wakfu_server import combat_drop_delivery
+
+        profiles = []
+        with self.store.connection() as db:
+            for breed in (2828, 2829):
+                companion = db.execute(
+                    "INSERT INTO account_companions(account_id,breed_ref,owner_character_id,name,hp,max_hp) "
+                    "VALUES(%s,%s,%s,'Loot Sidekick',50,50) RETURNING id",
+                    (self.account_id, breed, self.character["id"]),
+                ).fetchone()["id"]
+                db.execute(
+                    "INSERT INTO combat_fight_companions(fight_id,companion_id,account_id,"
+                    "owner_character_id,session_generation,team) VALUES(%s,%s,%s,%s,%s,0)",
+                    (
+                        self.fight_id,
+                        companion,
+                        self.account_id,
+                        self.character["id"],
+                        self.generation,
+                    ),
+                )
+                profiles.append(
+                    dict(
+                        actor_id=companion,
+                        prospecting_bonus=0,
+                        shop_consumable_factor=100,
+                    )
+                )
+
+        with self.assertRaisesRegex(RuntimeError, "delivery rollback"):
+            with self.store.connection() as db:
+                self._resolve(db, rng=lambda upper: 0, companion_rolls=profiles)
+                raise RuntimeError("delivery rollback")
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute("SELECT count(*) AS n FROM fight_drop_awards").fetchone()[
+                    "n"
+                ],
+                0,
+            )
+            batch = self._resolve(db, rng=lambda upper: 0, companion_rolls=profiles)
+            ordinary = [row for row in batch.decisions if row.attempt_index < 1000]
+            self.assertTrue(ordinary)
+            self.assertEqual(len(batch.decisions), len(ordinary) * 3)
+            self.assertEqual(
+                {row.attempt_index // 1000 for row in batch.decisions}, {0, 1, 2}
+            )
+            self.assertEqual(
+                [1000, 2000],
+                [row["attempt_offset"] for row in batch.snapshot["companion_rolls"]],
+            )
+            line_loots = [
+                report_loots(batch, loot_actor_id=identity)
+                for identity in (
+                    self.character["id"],
+                    *(row["actor_id"] for row in profiles),
+                )
+            ]
+            self.assertEqual(sum(map(len, line_loots)), len(report_loots(batch)))
+            combat_drop_delivery.apply(self.store, db, batch)
+            receipt_count = db.execute(
+                "SELECT count(*) AS n FROM fight_drop_delivery_receipts"
+            ).fetchone()["n"]
+
+        def no_reroll(_upper):
+            raise AssertionError("A committed companion loot batch was rolled again")
+
+        with self.store.connection() as db:
+            replay = self._resolve(db, rng=no_reroll, companion_rolls=profiles)
+            self.assertTrue(replay.replayed)
+            self.assertEqual(replay.decisions, batch.decisions)
+            combat_drop_delivery.apply(self.store, db, replay)
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_drop_delivery_receipts"
+                ).fetchone()["n"],
+                receipt_count,
+            )
 
     def test_ordinary_company_resolves_all_three_pcs_under_one_main_session(self):
         from wakfu_server.characters import heroes

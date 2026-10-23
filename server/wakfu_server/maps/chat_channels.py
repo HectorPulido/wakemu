@@ -106,6 +106,14 @@ class Channels:
                 }
             elif opcode in (13702, 12387):
                 nation_id = load_nation(db, character_id)
+                from wakfu_server.chat_sender_eligibility import require
+
+                sender = (
+                    self.store.character(account_id, character_id, db)
+                    if opcode == 12387
+                    else live[1]
+                )
+                require(opcode, character=sender, nation_id=nation_id)
                 identities = {
                     row["character_id"]
                     for row in db.execute(

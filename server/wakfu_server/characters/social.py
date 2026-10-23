@@ -2,7 +2,7 @@
 import struct
 import zlib
 from protocol_codec import Reader
-from .nation_state import nation_id
+from wakfu_server.nation_state import nation_id
 
 ACCOUNT_DEFAULTS = {
     7: bytes(9),
@@ -21,18 +21,30 @@ ACCOUNT_DEFAULTS = {
 
 
 def company(account_id, character):
-    # eSO.qD uses native rank ranges beginning at XP=1. XP=0 falls through
-    # to the highest rank and produces negative progress in the client.
-    return struct.pack(
-        ">qqiqIiB",
-        account_id,
-        character["id"] if character else 0,
-        nation_id(character),
-        (character.get("guild_native") or {}).get("guildId", 0) if character else 0,
-        0,
-        1,
-        int(character is not None),
+    from wakfu_server.company_authority import CompanySnapshot, preselection_packet
+
+    if character is None:
+        return preselection_packet(account_id)[1][8:]
+    record = (character.get("equipment_criterion_context") or {}).get(
+        "company_snapshot"
     )
+    snapshot = CompanySnapshot.from_record(record)
+    snapshot.require_owner(account_id).require_chief(character["id"])
+    # A current explicit identity overrides the same load's company identity;
+    # absent UI components do not erase the proven membership component.
+    current_nation = (
+        nation_id(character) if "nation_id" in character else snapshot.nation_id
+    )
+    guild = character.get("guild_native")
+    guild_id = guild.get("guildId", 0) if guild is not None else snapshot.guild_id
+    return CompanySnapshot(
+        account_id,
+        character["id"],
+        current_nation,
+        guild_id,
+        snapshot.score,
+        snapshot.active,
+    ).packet()[1][8:]
 
 
 def adapt(opcode, body, account_id, character=None, owned=None, cosmetic_record=None):

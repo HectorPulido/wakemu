@@ -737,3 +737,102 @@ class CheckpointTests(PostgresCase):
         row = self.checkpoints.read(self.account, 77)
         self.assertEqual(row["status"], "aborted")
         self.assertEqual(row["snapshot"]["actors"]["-200"]["hp"], 7)
+
+    def test_consumable_xp_handoff_checkpoint_is_atomic_and_never_refreshes(self):
+        from wakfu_server import consumable_buffs
+        from wakfu_server.consumable_catalog import load_plan
+
+        with self.store.connection() as db:
+            plan = load_plan(db, 22146)
+            row = consumable_buffs.apply_states(
+                self.store,
+                db,
+                self.character,
+                plan["states"],
+                source_item_ref=22146,
+                source_item_uid=77146,
+                generation=self.generation,
+                now_ms=1000000,
+            )[0]
+            consumable_buffs.enter_combat(
+                self.store,
+                db,
+                self.character,
+                77,
+                generation=self.generation,
+                now_ms=1000000,
+            )
+        revision = self.checkpoints.save(self.account, self.generation, self.fight)
+        self.fight.native_consumable_initializations = {
+            self.character: (
+                dict(
+                    world_uid=row["uid"],
+                    combat_uid=9002,
+                    state_id=6874,
+                    clock="online",
+                    handoff_target=plan["states"][0]["metadata"][
+                        "native_handoff_target"
+                    ],
+                    handoff=dict(
+                        source_state_id=4872,
+                        source_combat_uid=9001,
+                        effect_id=316701,
+                        applied_at_ms=1000000,
+                    ),
+                ),
+            )
+        }
+        with self.assertRaisesRegex(ValueError, "Stale or foreign"):
+            self.checkpoints.save(
+                self.account,
+                self.generation,
+                self.fight,
+                expected_revision=revision + 1,
+            )
+        with self.store.connection() as db:
+            before = db.execute(
+                "SELECT * FROM character_consumable_buffs WHERE uid=%s", (row["uid"],)
+            ).fetchone()
+        self.assertEqual(before["state_id"], 4872)
+        self.assertFalse(getattr(self.fight, "native_consumable_handoff_committed", ()))
+        saved_revision = self.checkpoints.save(
+            self.account,
+            self.generation,
+            self.fight,
+            expected_revision=revision,
+        )
+        with self.store.connection() as db:
+            migrated = db.execute(
+                "SELECT * FROM character_consumable_buffs WHERE uid=%s", (row["uid"],)
+            ).fetchone()
+        self.assertEqual(
+            (migrated["state_id"], migrated["level"], migrated["remaining_ms"]),
+            (6874, 100, 7200000),
+        )
+        self.assertEqual(
+            (migrated["source_item_ref"], migrated["source_item_uid"]), (22146, 77146)
+        )
+        self.store.clock = lambda: 1001
+        # Simulate recovery without the post-commit query cache. The durable
+        # reference remains the authoritative once-only timer-reset fence.
+        self.fight.native_consumable_handoff_committed = frozenset()
+        self.checkpoints.save(
+            self.account,
+            self.generation,
+            self.fight,
+            expected_revision=saved_revision,
+        )
+        with self.store.connection() as db:
+            repeated = db.execute(
+                "SELECT * FROM character_consumable_buffs WHERE uid=%s", (row["uid"],)
+            ).fetchone()
+            current = consumable_buffs.active_states(
+                self.store,
+                db,
+                self.character,
+                generation=self.generation,
+                now_ms=1001000,
+            )[0]
+        self.assertEqual(repeated["online_anchor_ms"], migrated["online_anchor_ms"])
+        self.assertEqual(repeated["remaining_ms"], migrated["remaining_ms"])
+        self.assertEqual(current["remaining_ms"], 7199000)

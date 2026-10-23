@@ -35,6 +35,12 @@ class CommandPermissionTests(PostgresCase):
             [],
         )
 
+    def test_chest_depositall_is_available_to_an_ordinary_account_only_as_builtin(self):
+        self.assertFalse(is_admin(self.store, self.account))
+        authorize_command(self.store, self.account, "!chest depositall")
+        with self.assertRaises(PermissionError):
+            authorize_command(self.store, self.account, "!nuke")
+
     def test_english_aliases_preserve_the_existing_authorization(self):
         authorize_command(self.store, self.account, "!help")
         authorize_command(self.store, self.account, "!position")

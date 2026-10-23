@@ -37,6 +37,7 @@ def validate(document):
             raise ValueError("Invalid achievement breed binding")
         variables[breed] = variable
     for rule in document["definitions"]:
+        chest_rule = rule.get("event_policy") == "authenticated_native_chest_open_v1"
         identity = rule["definition_id"]
         if type(identity) is not int or identity <= 0 or identity in definitions:
             raise ValueError("Invalid achievement identity")
@@ -45,15 +46,23 @@ def validate(document):
         import re
 
         if (
-            rule.get("mission_dependency") is not False
+            (
+                type(rule.get("mission_dependency")) is not bool
+                or rule["mission_dependency"]
+                and not chest_rule
+            )
             or rule.get("native_repeatable") is not False
             or rule.get("native_period") != 0
         ):
             raise ValueError("Unqualified mission or recurring achievement")
         for expression in rule.get("source_criteria", {}).values():
-            if expression and not re.fullmatch(
-                r"IsAchievementComplete\([1-9][0-9]*\)", expression
-            ):
+            allowed = r"IsAchievementComplete\([1-9][0-9]*\)"
+            if chest_rule:
+                allowed = (
+                    r"(?:GetRealLevel\(\) >= [1-9][0-9]* and )?"
+                    r"IsAchievementComplete\([1-9][0-9]*\)"
+                )
+            if expression and not re.fullmatch(allowed, expression):
                 raise ValueError("Unqualified achievement activation criterion")
         if not rule["objectives"]:
             raise ValueError("Achievement requires qualified objectives")
@@ -68,12 +77,24 @@ def validate(document):
                 int("variable_id" in objective)
                 + int("dungeon_id" in objective)
                 + int("breed_id" in objective and "variable_id" not in objective)
+                + int("chest_binding_id" in objective)
             )
             if selectors != 1 or (
                 "variable_id" in objective and "required_kills" in objective
             ):
                 raise ValueError("Achievement objective requires one event selector")
-            if "variable_id" in objective:
+            if "chest_binding_id" in objective:
+                if (
+                    not chest_rule
+                    or type(objective["chest_binding_id"]) is not int
+                    or objective["chest_binding_id"] <= 0
+                ):
+                    raise ValueError("Unqualified chest achievement binding")
+            elif chest_rule:
+                raise ValueError(
+                    "Chest policy cannot authorize unrelated event selectors"
+                )
+            elif "variable_id" in objective:
                 if "breed_id" in objective and (
                     type(objective["breed_id"]) is not int
                     or variables.get(objective["breed_id"]) != objective["variable_id"]

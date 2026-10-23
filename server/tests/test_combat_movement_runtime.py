@@ -3,6 +3,7 @@ import os
 import threading
 from unittest.mock import patch
 from tests.test_ai_service import service
+from wakfu_ai.transport.framed_server import FramedServer
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_runtime_messages import RuntimeMessages
 from wakfu_server.combat_movement_runtime import apply_client, decode_request
@@ -229,13 +230,13 @@ class MovementRuntimeTests(unittest.TestCase):
 class AIMovementRuntimeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.http = service.ThreadingHTTPServer(("127.0.0.1", 0), service.Handler)
-        cls.thread = threading.Thread(target=cls.http.serve_forever, daemon=True)
+        cls.channel = FramedServer(("127.0.0.1", 0))
+        cls.thread = threading.Thread(target=cls.channel.serve_forever, daemon=True)
         cls.thread.start()
         cls.environment = patch.dict(
             os.environ,
             {
-                "WAKFU_AI_URL": "http://127.0.0.1:" + str(cls.http.server_port),
+                "WAKFU_AI_URL": "tcp://127.0.0.1:" + str(cls.channel.server_address[1]),
             },
         )
         cls.environment.start()
@@ -245,8 +246,8 @@ class AIMovementRuntimeTests(unittest.TestCase):
         try:
             cls.environment.stop()
         finally:
-            cls.http.shutdown()
-            cls.http.server_close()
+            cls.channel.shutdown()
+            cls.channel.server_close()
             cls.thread.join(2)
 
     def setup_fight(self):

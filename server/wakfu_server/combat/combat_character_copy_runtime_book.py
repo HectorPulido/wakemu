@@ -20,7 +20,9 @@ def copied_class_source_deck(ordinary, actor_id):
         or character.get("id") != actor_id
     ):
         raise ValueError("Missing actual source-copy raw fzf deck")
-    parsed = validate_deck(blobs[actor_id], character["breed"], character["level"])
+    parsed = validate_deck(
+        blobs[actor_id], character["breed"], character["level"], character=character
+    )
     if ordinary.decks.get(actor_id) != frozenset(
         parsed["active"] + parsed["passive"]
     ) or ordinary.deck_caps.get(actor_id) != (

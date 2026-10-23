@@ -28,6 +28,8 @@ wakfu_server/__pycache__/
 
 !migrations/
 !migrations/*.sql
+!seeds/
+!seeds/*.sql
 !tools/
 !tools/migrate_postgres.py
 !tools/manage_permissions.py
@@ -35,6 +37,8 @@ wakfu_server/__pycache__/
 !tools/plan_initial_monster_habitat.py
 !tools/generate_initial_monster_population.py
 !tools/import_native_catalogs.py
+!tools/import_bootstrap_capture.py
+!tools/export_installation_seed.py
 !tools/equip_test_finisher.py
 !tools/performance_report.py
 !tools/prepare_geometry_artifacts.py
@@ -57,3 +61,5 @@ wakfu_server/__pycache__/
 **/._*
 
 !wakfu_server/items/native_quest_items.json
+
+!tools/install_environmental_profiles.py

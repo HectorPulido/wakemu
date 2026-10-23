@@ -1,4 +1,4 @@
-"""Audited eXE/eYg delayed runners through existing Qf and ordinary callbacks."""
+"""Audited eXE/eYg/eZi delayed runners through owned Qf and callbacks."""
 from contextlib import contextmanager
 from contextvars import ContextVar
 from copy import deepcopy
@@ -6,7 +6,7 @@ from dataclasses import replace
 from .combat_native_delay_queue import enqueue, deliver, cancel, validate
 
 _SCOPE = ContextVar("native_Tu_execution", default=None)
-SUPPORTED = frozenset({330, 400})
+SUPPORTED = frozenset({321, 330, 400})
 
 
 def scope_for(effect):
@@ -123,14 +123,28 @@ class NativeDelayedEffects:
         ):
             raise ValueError("Missing actual delayed clock actor")
         # Capture PL before returning from the native fyW child traversal.
+        initial_value = 0
+        if effect["effect_class"] == 321:
+            handler = self.dispatcher._operation_handler(321)
+            invocation, initial_value = handler.prepare_delayed(
+                effect, values, invocation
+            )
+            invocation = replace(
+                invocation, native_delayed_uid=invocation.native_running_uid
+            )
         with timing_scope(effect, "registration"):
             timing = native_definition_timing(effect, invocation.level)
-            pending = self.retention.begin_group(effect, values, invocation)
+            pending = self.retention.begin_group(
+                effect, values, invocation, initial_value=initial_value
+            )
         if pending is None or pending.get("native_null_qf"):
             raise ValueError("Delayed runner lacks actual Qf registration")
         uid = pending["uid"]
         pending["native_delayed"] = True
-        self._phase(effect, invocation, uid=uid, value=0, channel=1)
+        if effect["effect_class"] == 321:
+            pending["native_delayed_value"] = initial_value
+        else:
+            self._phase(effect, invocation, uid=uid, value=0, channel=1)
         with timing_scope(effect, "registration", uid):
             self.retention.finish_group(pending)
         order = tuple(self.fight.order)
@@ -186,7 +200,14 @@ class NativeDelayedEffects:
             )
             from .combat_definitions import effect_profile
 
-            if not corpse_gate_bypassed(
+            if effect["effect_class"] == 321:
+                eligible = self.dispatcher._operation_handler(321).native_eligibility(
+                    effect, invocation
+                )
+                if not eligible:
+                    self.retention.remove_group(uid)
+                    return False
+            elif not corpse_gate_bypassed(
                 effect, fight=self.fight, invocation=invocation
             ):
                 raise ValueError(

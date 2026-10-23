@@ -15,7 +15,13 @@ FURNITURE_TEMPLATES = {
         "templates"
     ]
     if item["java_type"].split(":")[0]
-    in {"Decoration", "FxDecoration", "BackgroundDisplay", "PortableCraftTable"}
+    in {
+        "Decoration",
+        "FxDecoration",
+        "BackgroundDisplay",
+        "DimensionalBagBackgroundDisplay",
+        "PortableCraftTable",
+    }
 }
 
 

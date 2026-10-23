@@ -485,7 +485,12 @@ def repair(db, proof, *, backup, skip_already_alive=False):
     if skip_already_alive and character["health_dead"] is False and character["hp"] > 0:
         if (
             non_health_guards(current) != non_health_guards(proof["guards"])
-            or health_policy.visible(character["max_hp"], character["hp_damage"], False)
+            or health_policy.visible(
+                character["max_hp"],
+                character["hp_damage"],
+                False,
+                character.get("hp_zero_valid", False),
+            )
             != character["hp"]
         ):
             raise ValueError(

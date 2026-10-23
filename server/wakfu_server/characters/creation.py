@@ -16,7 +16,12 @@ def create(store, account_id, generation, body):
         raise ValueError("Authentication required")
     request = decode_body("out", 22296, body)
     if request["character_id"] != -1:
-        return 101, None  # Existing-character modification is a separate flow.
+        from wakfu_server.character_recustomization import complete
+
+        try:
+            return 0, complete(store, account_id, generation, request)
+        except ValueError:
+            return 101, None
     try:
         character = store.create_character(
             account_id,

@@ -7,6 +7,8 @@ import copy
 import re
 
 POLICY_MODE = "generated_native_species_policy"
+NON_ORDINARY_PROPERTIES = frozenset((13, 43, 45, 49, 99, 115))
+BOSS_PROPERTIES = frozenset((43, 49, 99))
 
 
 def draft(
@@ -19,6 +21,7 @@ def draft(
     generation_target=8,
     generation_targets=None,
     boss_references=(),
+    admission_policy=None,
 ):
     """Return an optional policy artifact; never an installable configuration."""
     if type(capacity) is not int or not 1 <= capacity <= 121:
@@ -67,6 +70,22 @@ def draft(
     ]
     if not pool:
         raise ValueError("Native dungeon has no usable species grade bounds")
+    from wakfu_server.dungeon_monster_admission import admitted, current_policy, require
+
+    admission_policy = (
+        current_policy() if admission_policy is None else admission_policy
+    )
+    eligible = {
+        ref
+        for ref in pool
+        if admitted(
+            admission_policy,
+            ref,
+            catalog[ref]["min_level"],
+            catalog[ref]["max_level"],
+            native=catalog[ref],
+        )
+    }
     original = copy.deepcopy(plan)
     known_rooms = tuple(plan.get("rooms", ()))
     if known_rooms:
@@ -100,7 +119,7 @@ def draft(
     # species ultimate-boss definition. A species pool is never a room roster.
     bosses = set(boss_references)
     # Species pools include bosses without assigning them to a room. Native
-    # BOSS world property 43 is identity evidence, unlike reference ordering
+    # BOSS43, ULTIMATE49 and RAID99 are role evidence, unlike reference ordering
     # or level. Keep these actors out of generated ordinary-room slots even
     # when the preparation caller has no separate reviewed boss list.
     native_role_properties = {
@@ -115,12 +134,12 @@ def draft(
     native_specials = {
         ref
         for ref, properties in native_role_properties.items()
-        if properties & {13, 43, 45, 115}
+        if properties & NON_ORDINARY_PROPERTIES
     }
     native_bosses = {
         ref
         for ref, properties in native_role_properties.items()
-        if 43 in properties and not properties & {45, 115}
+        if properties & BOSS_PROPERTIES and not properties & {45, 115}
     }
     if any(type(ref) is not int or ref not in pool for ref in bosses):
         raise ValueError("Explicit boss identity is outside the native species pool")
@@ -135,7 +154,7 @@ def draft(
             ordinary_families = {
                 catalog[ref]["family_id"]
                 for ref, properties in native_role_properties.items()
-                if not properties & {13, 43, 45, 115}
+                if not properties & NON_ORDINARY_PROPERTIES
                 and type(catalog[ref].get("family_id")) is int
             }
             matching = {
@@ -154,7 +173,28 @@ def draft(
     ultimate = definition.get("type") == "ULTIMATE_BOSS"
     if ultimate and not bosses and len(pool) == 1:
         bosses.update(pool)
-    regular_pool = [ref for ref in pool if ref not in bosses | native_specials]
+    for ref in bosses:
+        require(
+            admission_policy,
+            ref,
+            catalog[ref]["min_level"],
+            catalog[ref]["max_level"],
+            native=catalog[ref],
+        )
+    for room in known_rooms:
+        for row in room.get("monsters", ()):
+            ref = row.get("ref_id")
+            if ref in catalog:
+                require(
+                    admission_policy,
+                    ref,
+                    catalog[ref]["min_level"],
+                    catalog[ref]["max_level"],
+                    native=catalog[ref],
+                )
+    regular_pool = [
+        ref for ref in pool if ref in eligible and ref not in bosses | native_specials
+    ]
     if ultimate and len(bosses) != 1:
         raise ValueError("Ultimate boss requires one resolved boss identity")
     rooms = []
@@ -310,6 +350,9 @@ def draft(
         "room_count": count,
         "room_count_source": count_source,
         "species_pool": pool,
+        "admitted_species_pool": sorted(eligible),
+        "excluded_unadmitted_references": sorted(set(pool) - eligible),
+        "admission_policy": "native-npc-activation-v1",
         "species_pool_provenance": "guide_verified_native_references"
         if legacy
         else "native_aKU_raw_cno",

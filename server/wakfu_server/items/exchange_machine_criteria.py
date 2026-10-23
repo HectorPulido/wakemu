@@ -40,6 +40,7 @@ def _cosmetic_owned(db, character, reference):
 
 def _guild_bonus(db, character, reference, now_ms):
     from wakfu_server.characters.guild_economy import bonus_snapshot
+    from wakfu_server.guild_bonus_authority import active_identity
 
     guild = db.execute(
         "SELECT g.id FROM guild_members m JOIN guilds g ON g.id=m.guild_id "
@@ -49,17 +50,8 @@ def _guild_bonus(db, character, reference, now_ms):
     if guild is None:
         return False
     record = bonus_snapshot(db, guild["id"]).get(str(reference))
-    if record is None:
-        return False
-    if not isinstance(record, dict) or type(record.get("active")) is not bool:
-        raise ValueError("Malformed native exchange guild bonus authority")
-    if not record["active"]:
-        return False
-    activated = record.get("activated_at_ms")
-    if type(activated) is not int or activated <= 0:
-        raise ValueError("Missing native exchange guild bonus activation date")
     # eMq -> bkZ -> fhU.s includes only a defined activation date <= now.
-    return activated <= now_ms
+    return active_identity(record, now_ms)
 
 
 def evaluate(db, store, character, expression):

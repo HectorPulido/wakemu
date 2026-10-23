@@ -248,7 +248,12 @@ class HavenRanchGardenTests(unittest.TestCase):
         from wakfu_server.planting_cells import assert_private_furniture_unoccupied
 
         db = MagicMock()
-        db.execute.return_value.fetchone.side_effect = [{"character_id": 77}, None]
+        db.execute.return_value.fetchone.side_effect = [
+            {"character_id": 77},
+            None,
+            {"account_id": 4},
+        ]
+        db.execute.return_value.fetchall.return_value = []
         visitor = dict(self.character, haven_bag_visitor=True)
         assert_private_furniture_unoccupied(
             db, visitor, {"x": 29, "y": 6}, lock_owner=True

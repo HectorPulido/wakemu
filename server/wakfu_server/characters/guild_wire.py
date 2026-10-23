@@ -161,6 +161,17 @@ def creation_ack(name):
     return 1000, bytes((len(payload),)) + payload
 
 
+def identity_change_ack(field, value):
+    """Original chs success notifications also close the identity dialog."""
+    if field == "name":
+        payload = _text(value, 127)
+        return 1162, bytes((len(payload),)) + payload
+    if field == "blazon":
+        _integer(value, 64)
+        return 1053, b""
+    raise ValueError("Unknown guild identity change")
+
+
 def delta_envelope(guild_id, deltas):
     """Frame externally verified (kind, payload) pairs; never infer payloads."""
     if not isinstance(deltas, (list, tuple)) or len(deltas) > 2147483647:
@@ -296,9 +307,15 @@ def decode_storage_request(opcode, body):
     """
     from protocol_codec import Reader
 
-    if type(body) is not bytes or opcode not in (12844, 12004, 14616, 12531):
+    if type(body) is not bytes or opcode not in (12844, 12004, 14616, 12531, 13994):
         raise ValueError("Unsupported shared storage request")
     reader = Reader(body)
+    if opcode == 13994:
+        amount = reader.number("q")
+        reader.finish()
+        if amount == 0 or amount == -(1 << 63):
+            raise ValueError("Invalid native guild treasury amount")
+        return dict(operation=4 if amount < 0 else 3, amount=abs(amount))
     if opcode == 14616:
         fields = dict(
             source_compartment_id=reader.number("i"),

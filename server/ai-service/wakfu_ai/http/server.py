@@ -174,6 +174,7 @@ class Handler(BaseHTTPRequestHandler):
             "/v3/context/status",
             "/v3/context/manifest",
             "/v3/context/seal",
+            "/v3/context/continue",
         ):
             self._json(404, dict(error="Unknown AI endpoint"))
             return
@@ -213,6 +214,12 @@ class Handler(BaseHTTPRequestHandler):
                     result = _QUERY_SESSIONS.decide(snapshot, context_store())
                 elif self.path == "/v3/cancel":
                     result = _QUERY_SESSIONS.cancel(snapshot)
+                elif self.path == "/v3/context/continue":
+                    from ..transport.context_bundle import continue_request
+
+                    result = continue_request(
+                        snapshot, context_store(), _QUERY_SESSIONS
+                    )
                 elif self.path.startswith("/v3/context/"):
                     result = context_request(self.path, snapshot)
                 else:
@@ -236,13 +243,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    host = os.environ.get("WAKFU_AI_BIND", "0.0.0.0")
-    port = int(os.environ.get("WAKFU_AI_PORT", "8090"))
-    server = BoundedHTTPServer((host, port), Handler)
-    try:
-        server.serve_forever()
-    finally:
-        server.server_close()
+    # Stable legacy import path; production no longer creates an HTTP server.
+    from ..transport.framed_server import main as tcp_main
+
+    tcp_main()
 
 
 if __name__ == "__main__":

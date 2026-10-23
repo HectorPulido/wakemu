@@ -133,6 +133,20 @@ def validate_controlled_owner(fight, actor, character_id, owner_id):
     seen = set()
     current = actor
     while current.id != character_id:
+        companion = getattr(fight, "native_companion_sources", {}).get(str(current.id))
+        if companion is not None:
+            from .combat_companions import registered_source
+
+            registered_source(fight, current, companion)
+            if (
+                current.id in seen
+                or companion["account_id"] != owner_id
+                or companion["owner_character_id"] != character_id
+            ):
+                raise ValueError("Companion summon root belongs to another owner")
+            seen.add(current.id)
+            current = fight.actors[character_id]
+            continue
         row = registrations.get(current.id)
         source = getattr(current, "native_summon_source", None)
         authority = row.get("authority") if isinstance(row, dict) else None
@@ -145,7 +159,13 @@ def validate_controlled_owner(fight, actor, character_id, owner_id):
             or authority.get("is_player") is not False
             or authority.get("breed_id") != source.get("ref")
             or authority.get("native_real_level") != source.get("level")
-            or authority.get("summon_root_id") != character_id
+            or (
+                authority.get("summon_root_id") != character_id
+                and getattr(fight, "native_companion_sources", {})
+                .get(str(authority.get("summon_root_id")), {})
+                .get("owner_character_id")
+                != character_id
+            )
             or row.get("controller_id") != source.get("controller_id")
             or row.get("controller_id")
             != getattr(current, "native_controller_id", None)

@@ -9,6 +9,52 @@ from wakfu_server.combat_native_timing_context import native_time_payload
 
 
 class TriggerValueHandlerTests(unittest.TestCase):
+    def test_event_clone_uses_allocated_uid_without_retaining_another_listener(self):
+        from wakfu_server.combat_effect_dispatch import EffectDispatcher
+
+        fight, handler, effect, invocation = self.fixture(retained=True)
+        effect.update(
+            parameter_count=3,
+            probability_base=100,
+            probability_per_level=0,
+            minimum_level=1,
+            maximum_level=200,
+            children=[],
+            criteria="",
+            target_masks=[[], [67, 69], [], [], [], [], []],
+        )
+        seen = []
+
+        def apply(effect, values, selected):
+            seen.append(selected.native_running_uid)
+            return handler(effect, values, selected)
+
+        dispatcher = EffectDispatcher(
+            {"123": effect},
+            {430: apply},
+            resolve=lambda effect, selected: (selected,),
+            condition_context=lambda selected: None,
+            probability_accepts=lambda probability, selected: True,
+            group_cells=lambda *args: (),
+            actor_position=lambda actor: (0, 0, 0),
+        )
+        runner = NativeRunnerAmount(1, 1013, rng=lambda: 0.5, value=100)
+        source = SimpleNamespace(uid=1, effect_action_id=1013, runner_modifier=runner)
+        with final_modifier_source(source):
+            for uid in (901, 902):
+                self.assertTrue(
+                    dispatcher.execute_activation(
+                        invocation,
+                        source=source,
+                        condition_context=lambda *args: None,
+                        executable=True,
+                        allocate_uid=lambda uid=uid: uid,
+                    )
+                )
+        self.assertEqual(seen, [901, 902])
+        self.assertEqual(runner.value, 150)
+        self.assertEqual(fight.owned_stat_effects, {})
+
     def fixture(self, *, retained=False):
         fight = SimpleNamespace(
             phase="active", actors={7: object(), 8: object()}, owned_stat_effects={}

@@ -1,0 +1,96 @@
+{
+  "record_class": "aKK",
+  "registry_class": "eSN",
+  "lookup_class": "eSO",
+  "table_id": 138,
+  "rows": [
+    {
+      "rank": 1,
+      "cmE": 0,
+      "cmF": 0,
+      "minimum_score": 1,
+      "maximum_score": 180
+    },
+    {
+      "rank": 2,
+      "cmE": 0,
+      "cmF": 1,
+      "minimum_score": 181,
+      "maximum_score": 300
+    },
+    {
+      "rank": 3,
+      "cmE": 0,
+      "cmF": 2,
+      "minimum_score": 301,
+      "maximum_score": 500
+    },
+    {
+      "rank": 4,
+      "cmE": 0,
+      "cmF": 3,
+      "minimum_score": 501,
+      "maximum_score": 800
+    },
+    {
+      "rank": 5,
+      "cmE": 0,
+      "cmF": 4,
+      "minimum_score": 801,
+      "maximum_score": 1200
+    },
+    {
+      "rank": 6,
+      "cmE": 0,
+      "cmF": 5,
+      "minimum_score": 1201,
+      "maximum_score": 1700
+    },
+    {
+      "rank": 7,
+      "cmE": 0,
+      "cmF": 6,
+      "minimum_score": 1701,
+      "maximum_score": 2200
+    },
+    {
+      "rank": 8,
+      "cmE": 0,
+      "cmF": 7,
+      "minimum_score": 2201,
+      "maximum_score": 2750
+    },
+    {
+      "rank": 9,
+      "cmE": 0,
+      "cmF": 8,
+      "minimum_score": 2751,
+      "maximum_score": 3350
+    },
+    {
+      "rank": 10,
+      "cmE": 0,
+      "cmF": 9,
+      "minimum_score": 3351,
+      "maximum_score": 4000
+    },
+    {
+      "rank": 12,
+      "cmE": 0,
+      "cmF": 10,
+      "minimum_score": 4001,
+      "maximum_score": 32767
+    }
+  ],
+  "native_probe_ranks": {
+    "-1": 12,
+    "0": 12,
+    "1": 1,
+    "2": 1,
+    "100": 1,
+    "500": 3,
+    "1000": 5,
+    "2000": 7,
+    "10000": 12
+  }
+}

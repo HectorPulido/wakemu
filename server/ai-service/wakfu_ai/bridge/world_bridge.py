@@ -24,13 +24,23 @@ import weakref
 import re
 import threading
 import time
+import math
 from types import SimpleNamespace
 from contextvars import ContextVar
 from contextlib import contextmanager
+from copy import deepcopy
 
 from ..context.native_context import encode, encode_bytes
 from ..context.native_fingerprint import fingerprint
-from ..native.native_deadline import check, remaining
+from ..native.native_deadline import (
+    check,
+    remaining,
+    query_budget,
+    NativeSearchAllowanceExceeded,
+    clock_now,
+)
+from ..planning import turn_continuation
+from ..native.repertoire_metadata import SpellMetadataCache
 
 
 def _json_bytes(value):
@@ -607,6 +617,67 @@ class ContextTransport:
         if type(native_graph_parts) is not bool:
             raise ValueError("Invalid native graph parts switch")
         self.native_graph_parts = native_graph_parts
+        self._context_bundle = None
+
+    def begin_context_bundle(self):
+        """Stage only final context blocks for the next query continuation."""
+        if getattr(self, "_context_bundle", None) is not None:
+            raise ValueError("Native context bundle already active")
+        self._context_bundle = []
+
+    def abort_context_bundle(self):
+        self._context_bundle = None
+
+    def _flush_context_block(self, block):
+        reply = self._retry_request("/v3/context/block", block)
+        if reply != dict(complete=True, offset=block["size"]):
+            raise ValueError("Incomplete deferred native context attachment")
+
+    def continue_with_context(self, payload):
+        from ..transport.context_bundle import BUNDLE_LIMIT, bundle_size
+
+        blocks = getattr(self, "_context_bundle", None)
+        if not blocks:
+            reply = self._retry_request("/v3/decide", payload)
+            self._context_bundle = None
+            return reply
+        bundle = dict(request=payload, blocks=blocks)
+        # Continuation descriptions are not truncated to fit a frame. Flush
+        # earlier objects normally until the complete envelope fits instead.
+        while blocks and bundle_size(payload, blocks) > BUNDLE_LIMIT:
+            self._flush_context_block(blocks[0])
+            del blocks[0]
+        if not blocks:
+            reply = self._retry_request("/v3/decide", payload)
+        else:
+            reply = self._retry_request("/v3/context/continue", bundle)
+        self._context_bundle = None
+        return reply
+
+    def _defer_context_block(self, block):
+        from ..transport.context_bundle import (
+            BUNDLE_LIMIT,
+            MAX_ATTACHMENTS,
+            bundle_size,
+        )
+
+        blocks = getattr(self, "_context_bundle", None)
+        if blocks is None:
+            return False
+        # A single object may be registered twice in a query. Its immutable
+        # digest still needs only one final attachment.
+        if any(entry == block for entry in blocks):
+            return True
+        while blocks and (
+            len(blocks) >= MAX_ATTACHMENTS
+            or bundle_size({}, blocks + [block]) > BUNDLE_LIMIT
+        ):
+            self._flush_context_block(blocks[0])
+            del blocks[0]
+        if bundle_size({}, [block]) > BUNDLE_LIMIT:
+            return False
+        blocks.append(block)
+        return True
 
     def instance_parts(self, parts):
         manifest, blobs = parts
@@ -773,14 +844,17 @@ class ContextTransport:
             block = source.read(min(self.block_bytes, size - offset))
             if not block and offset < size:
                 raise ValueError("Native context source ended before declared size")
+            attachment = dict(
+                sha256=digest,
+                size=size,
+                offset=offset,
+                data=base64.b64encode(block).decode("ascii"),
+            )
+            if offset + len(block) == size and self._defer_context_block(attachment):
+                return digest
             reply = self._retry_request(
                 "/v3/context/block",
-                dict(
-                    sha256=digest,
-                    size=size,
-                    offset=offset,
-                    data=base64.b64encode(block).decode("ascii"),
-                ),
+                attachment,
             )
             expected = offset + len(block)
             if (
@@ -965,6 +1039,14 @@ class NativeSession:
         self.request_id = uuid.uuid4().hex
         self.states = {}
         self.state_identities = {}
+        metadata_cache_key = ("spell-metadata", catalogue_key, self.catalog)
+        self._spell_metadata_cache = (
+            catalogue_scope.setdefault(metadata_cache_key, SpellMetadataCache())
+            if catalogue_scope is not None
+            else SpellMetadataCache()
+        )
+        self._certified_root_actions = set()
+        self.needs_cleanup = False
         # Forecasts keep the complete native world for legality, but may not
         # teach the planner where an unseen opponent is, or which guessed
         # area attack would damage it. Freeze this observer scope for this
@@ -1016,6 +1098,16 @@ class NativeSession:
         self.source = self._measure_preparation("source_hash", capture_source_baseline)
         self.root = self._measure_preparation(
             "root_register", lambda: self.register(oracle.runtime)
+        )
+        self.continuation_binding = turn_continuation.binding(
+            oracle.runtime,
+            instance=self.fight_instance_id,
+            catalog=self.catalog,
+            policy_version=self.policy_version,
+            policy=self.policy,
+            source=self.source,
+            root=self.root,
+            request=self.request_id,
         )
 
     def _measure_preparation(self, stage, operation):
@@ -1286,6 +1378,12 @@ class NativeSession:
                     )
                 ],
             )
+        holder = turn_continuation.current()
+        continuation = (
+            holder.proposal(self.oracle.runtime, self.continuation_binding)
+            if holder is not None
+            else None
+        )
         return dict(
             protocol=3,
             requestId=self.request_id,
@@ -1303,6 +1401,7 @@ class NativeSession:
             root=root,
             teamContext=coordination,
             operations=list(self.OPERATIONS),
+            **({"warmStart": continuation} if continuation is not None else {}),
             **self._budget_hint()
         )
 
@@ -1313,9 +1412,42 @@ class NativeSession:
         if type(max_queries) is not int or max_queries < 1:
             raise ValueError("Invalid native query budget")
         payload, count = self.envelope(), 0
+        incumbent = None
+        backend_started = False
+        begin_bundle = getattr(self.transport, "begin_context_bundle", None)
+        continue_bundle = getattr(self.transport, "continue_with_context", None)
+        abort_bundle = getattr(self.transport, "abort_context_bundle", None)
+        bundled = all(
+            callable(method)
+            for method in (
+                begin_bundle,
+                continue_bundle,
+                abort_bundle,
+            )
+        )
         while True:
             self.guard()
-            reply = self.transport._retry_request("/v3/decide", payload)
+            rpc_started = clock_now()
+            try:
+                with query_budget(reserve_ms=self.policy.get("commitReserveMs", 500)):
+                    backend_started = True
+                    reply = (
+                        continue_bundle(payload)
+                        if bundled
+                        else self.transport._retry_request("/v3/decide", payload)
+                    )
+            except TimeoutError:
+                if bundled:
+                    abort_bundle()
+                self.needs_cleanup = backend_started
+                return self._partial_decision(incumbent)
+            except urllib.error.URLError as error:
+                if not isinstance(error.reason, TimeoutError):
+                    raise
+                if bundled:
+                    abort_bundle()
+                self.needs_cleanup = backend_started
+                return self._partial_decision(incumbent)
             if not isinstance(reply, dict):
                 raise ValueError("Invalid AI native search reply")
             if reply.get("status") == "decided":
@@ -1345,19 +1477,148 @@ class NativeSession:
                 or len(queries) != 1
             ):
                 raise ValueError("Invalid AI native search query exchange")
+            if "incumbent" in reply:
+                if reply["incumbent"] is None:
+                    # Risk evaluation explicitly retires an earlier raw
+                    # outcome until a comparable assessed option is ready.
+                    incumbent = None
+                else:
+                    proposed = self._certified_incumbent(reply["incumbent"])
+                    if proposed is not None:
+                        incumbent = proposed
             count += 1
             if count > max_queries:
                 raise ValueError("Native AI query budget exhausted")
-            response = self.query(queries[0])
+            query = queries[0]
+            allowance = (
+                query.get("searchAllowanceMs") if isinstance(query, dict) else None
+            )
+            if (
+                type(allowance) in (int, float)
+                and math.isfinite(allowance)
+                and allowance >= 0
+            ):
+                # A frozen retry reply must not restart an old risk/search
+                # slice after network delay. Subtract the full observed RPC
+                # interval conservatively, without comparing remote clocks.
+                query = dict(
+                    query,
+                    searchAllowanceMs=max(
+                        0.0, allowance - max(0.0, clock_now() - rpc_started) * 1000
+                    ),
+                )
+            if bundled:
+                begin_bundle()
+            try:
+                response = self.query(query)
+            except BaseException:
+                if bundled:
+                    abort_bundle()
+                raise
+            if bundled and (
+                not isinstance(response, dict) or response.get("supported") is not True
+            ):
+                # A rejected query cannot refer to partially produced context.
+                abort_bundle()
             payload = dict(
                 requestId=self.request_id, sourceKey=self.source, response=response
             )
 
+    @staticmethod
+    def _action_key(action):
+        try:
+            return json.dumps(
+                action, sort_keys=True, separators=(",", ":"), allow_nan=False
+            )
+        except (TypeError, ValueError):
+            return None
+
+    def _certified_incumbent(self, candidate):
+        """Accept only a current-source first action already previewed by World."""
+        required = {
+            "protocol",
+            "requestId",
+            "sourceKey",
+            "rootState",
+            "action",
+            "plan",
+            "partial",
+            "unknownDependencies",
+        }
+        if (
+            not isinstance(candidate, dict)
+            or set(candidate) != required
+            or type(candidate["protocol"]) is not int
+            or candidate["protocol"] != 3
+            or candidate["requestId"] != self.request_id
+            or candidate["sourceKey"] != self.source
+            or candidate["rootState"] != self.root
+            or candidate["partial"] is not True
+            or not isinstance(candidate["action"], dict)
+            or not isinstance(candidate["plan"], list)
+            or len(candidate["plan"]) != 1
+            or candidate["plan"][0] != candidate["action"]
+            or not isinstance(candidate["unknownDependencies"], list)
+            or not 1 <= len(candidate["unknownDependencies"]) <= 16
+            or any(
+                not isinstance(value, str) or len(value) > 256
+                for value in candidate["unknownDependencies"]
+            )
+        ):
+            return None
+        identity = self._action_key(candidate["action"])
+        if identity is None or identity not in getattr(
+            self, "_certified_root_actions", ()
+        ):
+            return None
+        return deepcopy(candidate)
+
+    def _partial_decision(self, incumbent):
+        # The owner deadline and complete source guard still apply. A timed
+        # out RPC never authorizes a forecast adoption or revives the turn.
+        self.guard()
+        decision = dict(
+            protocol=3,
+            requestId=self.request_id,
+            sourceKey=self.source,
+            rootState=self.root,
+            action=dict(type="end_turn"),
+            plan=[],
+            partial=True,
+            reason="native_search_allowance_exhausted",
+            unknownDependencies=["native_search_budget_partial"],
+        )
+        if incumbent is not None:
+            try:
+                # Mandatory even when decide(certify=False) was requested:
+                # timeout recovery must recertify its earlier first action.
+                self.oracle.preview(self.oracle.runtime, incumbent["action"])
+            except ValueError:
+                decision["unknownDependencies"].append(
+                    "native_partial_action_recertification_rejected"
+                )
+            else:
+                decision["action"] = deepcopy(incumbent["action"])
+                decision["plan"] = [deepcopy(incumbent["action"])]
+                decision["unknownDependencies"] = list(
+                    dict.fromkeys(
+                        incumbent["unknownDependencies"]
+                        + decision["unknownDependencies"]
+                    )
+                )
+        self.guard()
+        return decision
+
     def cancel(self):
         # One bounded attempt; retries must not extend an exhausted turn.
-        return self.transport.request(
+        abort_bundle = getattr(self.transport, "abort_context_bundle", None)
+        if callable(abort_bundle):
+            abort_bundle()
+        response = self.transport.request(
             "/v3/cancel", dict(requestId=self.request_id, sourceKey=self.source)
         )
+        self.needs_cleanup = False
+        return response
 
     def query(self, request):
         self.guard()
@@ -1369,7 +1630,19 @@ class NativeSession:
         if operation not in self.OPERATIONS:
             raise ValueError("Unknown native oracle operation")
         try:
-            result = self._query(operation, key, request)
+            with query_budget(
+                allowance_ms=request.get("searchAllowanceMs"),
+                reserve_ms=self.policy.get("commitReserveMs", 500),
+            ):
+                result = self._query(operation, key, request)
+        except NativeSearchAllowanceExceeded:
+            self.guard()
+            return dict(
+                id=request["id"],
+                supported=False,
+                unknownDependencies=["native_search_allowance_exhausted"],
+                **self._budget_hint()
+            )
         except ValueError as error:
             # An illegal or unsupported native candidate is a query outcome.
             # Source mismatch and foreign references remain fatal above/below.
@@ -1381,6 +1654,12 @@ class NativeSession:
                 **self._budget_hint()
             )
         self.guard()
+        if operation == "preview" and key == getattr(self, "root", None):
+            identity = self._action_key(request.get("action"))
+            if identity is not None:
+                if not hasattr(self, "_certified_root_actions"):
+                    self._certified_root_actions = set()
+                self._certified_root_actions.add(identity)
         return dict(
             id=request["id"], supported=True, result=result, **self._budget_hint()
         )
@@ -1411,7 +1690,11 @@ class NativeSession:
         action = request.get("action")
         if operation == "preview" and isinstance(action, dict):
             kind = action.get("type")
-            name += ":" + (kind if kind in ("cast", "move", "end_turn") else "other")
+            name += ":" + (
+                kind
+                if kind in ("cast", "move", "portal_travel", "end_turn")
+                else "other"
+            )
         from wakfu_server.combat_observation_scope import unobserved_area_forecast
 
         # This encloses preview, fallback previews, and every projected turn
@@ -1442,6 +1725,7 @@ class NativeSession:
                 private, packets, transaction = self._measure_native_query(
                     "preview_execution", lambda: self.oracle.preview(runtime, action)
                 )
+            check()
             result = self.describe(
                 self.register(
                     private,
@@ -1489,17 +1773,25 @@ class NativeSession:
             owned = self.oracle.owned_spells(runtime.fight, actor_id)
             metadata = dict(
                 actorId=actor_id,
-                spells=[
-                    dict(
+                spells=self._spell_metadata_cache.rows(
+                    owned,
+                    lambda spell, level: dict(
                         spellId=spell,
                         level=level,
                         casting=native_casting().get(str(spell)),
                         classDefinition=native_effects()["spells"].get(str(spell)),
                         classInventory=SPELLS.get(spell),
                         advisoryCapabilities=_advisory_spell_capabilities(spell, level),
-                    )
-                    for spell, level in sorted(owned.items())
-                ],
+                    ),
+                ),
+            )
+            from ..native.native_portal_travel import portal_destinations
+
+            metadata["nativePortalTravel"] = self._measure_native_query(
+                "repertoire_portal_travel",
+                lambda: portal_destinations(
+                    self.oracle, runtime, actor_id, source_state=key
+                ),
             )
             prerequisite_provider = getattr(
                 self.oracle, "native_casting_root_prerequisites", None

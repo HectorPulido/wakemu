@@ -1,7 +1,26 @@
 import copy
 import unittest
 
-from wakfu_server.dungeon_local_roster_policy import draft
+from wakfu_server.dungeon_local_roster_policy import draft as native_draft
+
+
+def draft(plan, definition, native, **kwargs):
+    kwargs.setdefault(
+        "admission_policy",
+        {
+            "schema": "native-npc-activation-v1",
+            "enabled_monsters": {
+                str(row["ref"]): {
+                    "min_level": 1,
+                    "max_level": 32767,
+                    "spell_ids": [549],
+                }
+                for row in native
+            },
+        },
+    )
+    native = [dict(row, native_abilities=[{"spell_id": 549}]) for row in native]
+    return native_draft(plan, definition, native, **kwargs)
 
 
 class DungeonLocalRosterPolicyTests(unittest.TestCase):

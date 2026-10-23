@@ -1,0 +1,796 @@
+{
+  "source": "Original installed JVM ProbeNationScores plus exact16indexedEQUIP descriptors; component premises, not earned gameplay.",
+  "jvm_source_sha256": "89bff63987a7fce2806aa85d2851cefe96b08e24ee22e67d9a39ab63de9c4400",
+  "jvm_component": {
+    "fresh_current_nation": 0,
+    "fresh_rank_id": 0,
+    "fresh_scores": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "set_scores": [
+      500,
+      0,
+      -70
+    ],
+    "after_reset_rank_id": 7,
+    "after_reset_scores": [
+      0,
+      0,
+      0
+    ],
+    "rank_matrix": [
+      {
+        "current_id": 0,
+        "required_id": 0,
+        "has_rank": true,
+        "current_threshold": 0,
+        "required_threshold": 0
+      },
+      {
+        "current_id": 0,
+        "required_id": 1,
+        "has_rank": false,
+        "current_threshold": 0,
+        "required_threshold": 2000
+      },
+      {
+        "current_id": 0,
+        "required_id": 2,
+        "has_rank": false,
+        "current_threshold": 0,
+        "required_threshold": 4000
+      },
+      {
+        "current_id": 0,
+        "required_id": 3,
+        "has_rank": false,
+        "current_threshold": 0,
+        "required_threshold": 6000
+      },
+      {
+        "current_id": 0,
+        "required_id": 4,
+        "has_rank": false,
+        "current_threshold": 0,
+        "required_threshold": 8000
+      },
+      {
+        "current_id": 0,
+        "required_id": 5,
+        "has_rank": false,
+        "current_threshold": 0,
+        "required_threshold": 10000
+      },
+      {
+        "current_id": 0,
+        "required_id": 6,
+        "has_rank": false,
+        "current_threshold": 0,
+        "required_threshold": 12000
+      },
+      {
+        "current_id": 0,
+        "required_id": 7,
+        "has_rank": false,
+        "current_threshold": 0,
+        "required_threshold": 14000
+      },
+      {
+        "current_id": 0,
+        "required_id": 8,
+        "has_rank": false,
+        "current_threshold": 0,
+        "required_threshold": 16000
+      },
+      {
+        "current_id": 0,
+        "required_id": 9,
+        "has_rank": false,
+        "current_threshold": 0,
+        "required_threshold": 18000
+      },
+      {
+        "current_id": 1,
+        "required_id": 0,
+        "has_rank": true,
+        "current_threshold": 2000,
+        "required_threshold": 0
+      },
+      {
+        "current_id": 1,
+        "required_id": 1,
+        "has_rank": true,
+        "current_threshold": 2000,
+        "required_threshold": 2000
+      },
+      {
+        "current_id": 1,
+        "required_id": 2,
+        "has_rank": false,
+        "current_threshold": 2000,
+        "required_threshold": 4000
+      },
+      {
+        "current_id": 1,
+        "required_id": 3,
+        "has_rank": false,
+        "current_threshold": 2000,
+        "required_threshold": 6000
+      },
+      {
+        "current_id": 1,
+        "required_id": 4,
+        "has_rank": false,
+        "current_threshold": 2000,
+        "required_threshold": 8000
+      },
+      {
+        "current_id": 1,
+        "required_id": 5,
+        "has_rank": false,
+        "current_threshold": 2000,
+        "required_threshold": 10000
+      },
+      {
+        "current_id": 1,
+        "required_id": 6,
+        "has_rank": false,
+        "current_threshold": 2000,
+        "required_threshold": 12000
+      },
+      {
+        "current_id": 1,
+        "required_id": 7,
+        "has_rank": false,
+        "current_threshold": 2000,
+        "required_threshold": 14000
+      },
+      {
+        "current_id": 1,
+        "required_id": 8,
+        "has_rank": false,
+        "current_threshold": 2000,
+        "required_threshold": 16000
+      },
+      {
+        "current_id": 1,
+        "required_id": 9,
+        "has_rank": false,
+        "current_threshold": 2000,
+        "required_threshold": 18000
+      },
+      {
+        "current_id": 2,
+        "required_id": 0,
+        "has_rank": true,
+        "current_threshold": 4000,
+        "required_threshold": 0
+      },
+      {
+        "current_id": 2,
+        "required_id": 1,
+        "has_rank": true,
+        "current_threshold": 4000,
+        "required_threshold": 2000
+      },
+      {
+        "current_id": 2,
+        "required_id": 2,
+        "has_rank": true,
+        "current_threshold": 4000,
+        "required_threshold": 4000
+      },
+      {
+        "current_id": 2,
+        "required_id": 3,
+        "has_rank": false,
+        "current_threshold": 4000,
+        "required_threshold": 6000
+      },
+      {
+        "current_id": 2,
+        "required_id": 4,
+        "has_rank": false,
+        "current_threshold": 4000,
+        "required_threshold": 8000
+      },
+      {
+        "current_id": 2,
+        "required_id": 5,
+        "has_rank": false,
+        "current_threshold": 4000,
+        "required_threshold": 10000
+      },
+      {
+        "current_id": 2,
+        "required_id": 6,
+        "has_rank": false,
+        "current_threshold": 4000,
+        "required_threshold": 12000
+      },
+      {
+        "current_id": 2,
+        "required_id": 7,
+        "has_rank": false,
+        "current_threshold": 4000,
+        "required_threshold": 14000
+      },
+      {
+        "current_id": 2,
+        "required_id": 8,
+        "has_rank": false,
+        "current_threshold": 4000,
+        "required_threshold": 16000
+      },
+      {
+        "current_id": 2,
+        "required_id": 9,
+        "has_rank": false,
+        "current_threshold": 4000,
+        "required_threshold": 18000
+      },
+      {
+        "current_id": 3,
+        "required_id": 0,
+        "has_rank": true,
+        "current_threshold": 6000,
+        "required_threshold": 0
+      },
+      {
+        "current_id": 3,
+        "required_id": 1,
+        "has_rank": true,
+        "current_threshold": 6000,
+        "required_threshold": 2000
+      },
+      {
+        "current_id": 3,
+        "required_id": 2,
+        "has_rank": true,
+        "current_threshold": 6000,
+        "required_threshold": 4000
+      },
+      {
+        "current_id": 3,
+        "required_id": 3,
+        "has_rank": true,
+        "current_threshold": 6000,
+        "required_threshold": 6000
+      },
+      {
+        "current_id": 3,
+        "required_id": 4,
+        "has_rank": false,
+        "current_threshold": 6000,
+        "required_threshold": 8000
+      },
+      {
+        "current_id": 3,
+        "required_id": 5,
+        "has_rank": false,
+        "current_threshold": 6000,
+        "required_threshold": 10000
+      },
+      {
+        "current_id": 3,
+        "required_id": 6,
+        "has_rank": false,
+        "current_threshold": 6000,
+        "required_threshold": 12000
+      },
+      {
+        "current_id": 3,
+        "required_id": 7,
+        "has_rank": false,
+        "current_threshold": 6000,
+        "required_threshold": 14000
+      },
+      {
+        "current_id": 3,
+        "required_id": 8,
+        "has_rank": false,
+        "current_threshold": 6000,
+        "required_threshold": 16000
+      },
+      {
+        "current_id": 3,
+        "required_id": 9,
+        "has_rank": false,
+        "current_threshold": 6000,
+        "required_threshold": 18000
+      },
+      {
+        "current_id": 4,
+        "required_id": 0,
+        "has_rank": true,
+        "current_threshold": 8000,
+        "required_threshold": 0
+      },
+      {
+        "current_id": 4,
+        "required_id": 1,
+        "has_rank": true,
+        "current_threshold": 8000,
+        "required_threshold": 2000
+      },
+      {
+        "current_id": 4,
+        "required_id": 2,
+        "has_rank": true,
+        "current_threshold": 8000,
+        "required_threshold": 4000
+      },
+      {
+        "current_id": 4,
+        "required_id": 3,
+        "has_rank": true,
+        "current_threshold": 8000,
+        "required_threshold": 6000
+      },
+      {
+        "current_id": 4,
+        "required_id": 4,
+        "has_rank": true,
+        "current_threshold": 8000,
+        "required_threshold": 8000
+      },
+      {
+        "current_id": 4,
+        "required_id": 5,
+        "has_rank": false,
+        "current_threshold": 8000,
+        "required_threshold": 10000
+      },
+      {
+        "current_id": 4,
+        "required_id": 6,
+        "has_rank": false,
+        "current_threshold": 8000,
+        "required_threshold": 12000
+      },
+      {
+        "current_id": 4,
+        "required_id": 7,
+        "has_rank": false,
+        "current_threshold": 8000,
+        "required_threshold": 14000
+      },
+      {
+        "current_id": 4,
+        "required_id": 8,
+        "has_rank": false,
+        "current_threshold": 8000,
+        "required_threshold": 16000
+      },
+      {
+        "current_id": 4,
+        "required_id": 9,
+        "has_rank": false,
+        "current_threshold": 8000,
+        "required_threshold": 18000
+      },
+      {
+        "current_id": 5,
+        "required_id": 0,
+        "has_rank": true,
+        "current_threshold": 10000,
+        "required_threshold": 0
+      },
+      {
+        "current_id": 5,
+        "required_id": 1,
+        "has_rank": true,
+        "current_threshold": 10000,
+        "required_threshold": 2000
+      },
+      {
+        "current_id": 5,
+        "required_id": 2,
+        "has_rank": true,
+        "current_threshold": 10000,
+        "required_threshold": 4000
+      },
+      {
+        "current_id": 5,
+        "required_id": 3,
+        "has_rank": true,
+        "current_threshold": 10000,
+        "required_threshold": 6000
+      },
+      {
+        "current_id": 5,
+        "required_id": 4,
+        "has_rank": true,
+        "current_threshold": 10000,
+        "required_threshold": 8000
+      },
+      {
+        "current_id": 5,
+        "required_id": 5,
+        "has_rank": true,
+        "current_threshold": 10000,
+        "required_threshold": 10000
+      },
+      {
+        "current_id": 5,
+        "required_id": 6,
+        "has_rank": false,
+        "current_threshold": 10000,
+        "required_threshold": 12000
+      },
+      {
+        "current_id": 5,
+        "required_id": 7,
+        "has_rank": false,
+        "current_threshold": 10000,
+        "required_threshold": 14000
+      },
+      {
+        "current_id": 5,
+        "required_id": 8,
+        "has_rank": false,
+        "current_threshold": 10000,
+        "required_threshold": 16000
+      },
+      {
+        "current_id": 5,
+        "required_id": 9,
+        "has_rank": false,
+        "current_threshold": 10000,
+        "required_threshold": 18000
+      },
+      {
+        "current_id": 6,
+        "required_id": 0,
+        "has_rank": true,
+        "current_threshold": 12000,
+        "required_threshold": 0
+      },
+      {
+        "current_id": 6,
+        "required_id": 1,
+        "has_rank": true,
+        "current_threshold": 12000,
+        "required_threshold": 2000
+      },
+      {
+        "current_id": 6,
+        "required_id": 2,
+        "has_rank": true,
+        "current_threshold": 12000,
+        "required_threshold": 4000
+      },
+      {
+        "current_id": 6,
+        "required_id": 3,
+        "has_rank": true,
+        "current_threshold": 12000,
+        "required_threshold": 6000
+      },
+      {
+        "current_id": 6,
+        "required_id": 4,
+        "has_rank": true,
+        "current_threshold": 12000,
+        "required_threshold": 8000
+      },
+      {
+        "current_id": 6,
+        "required_id": 5,
+        "has_rank": true,
+        "current_threshold": 12000,
+        "required_threshold": 10000
+      },
+      {
+        "current_id": 6,
+        "required_id": 6,
+        "has_rank": true,
+        "current_threshold": 12000,
+        "required_threshold": 12000
+      },
+      {
+        "current_id": 6,
+        "required_id": 7,
+        "has_rank": false,
+        "current_threshold": 12000,
+        "required_threshold": 14000
+      },
+      {
+        "current_id": 6,
+        "required_id": 8,
+        "has_rank": false,
+        "current_threshold": 12000,
+        "required_threshold": 16000
+      },
+      {
+        "current_id": 6,
+        "required_id": 9,
+        "has_rank": false,
+        "current_threshold": 12000,
+        "required_threshold": 18000
+      },
+      {
+        "current_id": 7,
+        "required_id": 0,
+        "has_rank": true,
+        "current_threshold": 14000,
+        "required_threshold": 0
+      },
+      {
+        "current_id": 7,
+        "required_id": 1,
+        "has_rank": true,
+        "current_threshold": 14000,
+        "required_threshold": 2000
+      },
+      {
+        "current_id": 7,
+        "required_id": 2,
+        "has_rank": true,
+        "current_threshold": 14000,
+        "required_threshold": 4000
+      },
+      {
+        "current_id": 7,
+        "required_id": 3,
+        "has_rank": true,
+        "current_threshold": 14000,
+        "required_threshold": 6000
+      },
+      {
+        "current_id": 7,
+        "required_id": 4,
+        "has_rank": true,
+        "current_threshold": 14000,
+        "required_threshold": 8000
+      },
+      {
+        "current_id": 7,
+        "required_id": 5,
+        "has_rank": true,
+        "current_threshold": 14000,
+        "required_threshold": 10000
+      },
+      {
+        "current_id": 7,
+        "required_id": 6,
+        "has_rank": true,
+        "current_threshold": 14000,
+        "required_threshold": 12000
+      },
+      {
+        "current_id": 7,
+        "required_id": 7,
+        "has_rank": true,
+        "current_threshold": 14000,
+        "required_threshold": 14000
+      },
+      {
+        "current_id": 7,
+        "required_id": 8,
+        "has_rank": false,
+        "current_threshold": 14000,
+        "required_threshold": 16000
+      },
+      {
+        "current_id": 7,
+        "required_id": 9,
+        "has_rank": false,
+        "current_threshold": 14000,
+        "required_threshold": 18000
+      },
+      {
+        "current_id": 8,
+        "required_id": 0,
+        "has_rank": true,
+        "current_threshold": 16000,
+        "required_threshold": 0
+      },
+      {
+        "current_id": 8,
+        "required_id": 1,
+        "has_rank": true,
+        "current_threshold": 16000,
+        "required_threshold": 2000
+      },
+      {
+        "current_id": 8,
+        "required_id": 2,
+        "has_rank": true,
+        "current_threshold": 16000,
+        "required_threshold": 4000
+      },
+      {
+        "current_id": 8,
+        "required_id": 3,
+        "has_rank": true,
+        "current_threshold": 16000,
+        "required_threshold": 6000
+      },
+      {
+        "current_id": 8,
+        "required_id": 4,
+        "has_rank": true,
+        "current_threshold": 16000,
+        "required_threshold": 8000
+      },
+      {
+        "current_id": 8,
+        "required_id": 5,
+        "has_rank": true,
+        "current_threshold": 16000,
+        "required_threshold": 10000
+      },
+      {
+        "current_id": 8,
+        "required_id": 6,
+        "has_rank": true,
+        "current_threshold": 16000,
+        "required_threshold": 12000
+      },
+      {
+        "current_id": 8,
+        "required_id": 7,
+        "has_rank": true,
+        "current_threshold": 16000,
+        "required_threshold": 14000
+      },
+      {
+        "current_id": 8,
+        "required_id": 8,
+        "has_rank": true,
+        "current_threshold": 16000,
+        "required_threshold": 16000
+      },
+      {
+        "current_id": 8,
+        "required_id": 9,
+        "has_rank": false,
+        "current_threshold": 16000,
+        "required_threshold": 18000
+      },
+      {
+        "current_id": 9,
+        "required_id": 0,
+        "has_rank": true,
+        "current_threshold": 18000,
+        "required_threshold": 0
+      },
+      {
+        "current_id": 9,
+        "required_id": 1,
+        "has_rank": true,
+        "current_threshold": 18000,
+        "required_threshold": 2000
+      },
+      {
+        "current_id": 9,
+        "required_id": 2,
+        "has_rank": true,
+        "current_threshold": 18000,
+        "required_threshold": 4000
+      },
+      {
+        "current_id": 9,
+        "required_id": 3,
+        "has_rank": true,
+        "current_threshold": 18000,
+        "required_threshold": 6000
+      },
+      {
+        "current_id": 9,
+        "required_id": 4,
+        "has_rank": true,
+        "current_threshold": 18000,
+        "required_threshold": 8000
+      },
+      {
+        "current_id": 9,
+        "required_id": 5,
+        "has_rank": true,
+        "current_threshold": 18000,
+        "required_threshold": 10000
+      },
+      {
+        "current_id": 9,
+        "required_id": 6,
+        "has_rank": true,
+        "current_threshold": 18000,
+        "required_threshold": 12000
+      },
+      {
+        "current_id": 9,
+        "required_id": 7,
+        "has_rank": true,
+        "current_threshold": 18000,
+        "required_threshold": 14000
+      },
+      {
+        "current_id": 9,
+        "required_id": 8,
+        "has_rank": true,
+        "current_threshold": 18000,
+        "required_threshold": 16000
+      },
+      {
+        "current_id": 9,
+        "required_id": 9,
+        "has_rank": true,
+        "current_threshold": 18000,
+        "required_threshold": 18000
+      }
+    ],
+    "fresh_rk_hex": "000000000000000000000000000000000000000000000000000000",
+    "fresh_qt_hex": "00000000"
+  },
+  "equipment_conditions": [
+    {
+      "reference": 9615,
+      "criterion": "GetCrimeScore() >= 500"
+    },
+    {
+      "reference": 9616,
+      "criterion": "GetCrimeScore() >= 500"
+    },
+    {
+      "reference": 9728,
+      "criterion": "GetCrimeScore() > 99"
+    },
+    {
+      "reference": 10040,
+      "criterion": "GetCrimeScore() <= -70"
+    },
+    {
+      "reference": 18921,
+      "criterion": "GetNationId() == 32 and HasPvpRank(1)"
+    },
+    {
+      "reference": 18922,
+      "criterion": "GetNationId() == 32 and HasPvpRank(4)"
+    },
+    {
+      "reference": 18923,
+      "criterion": "GetNationId() == 32 and HasPvpRank(7)"
+    },
+    {
+      "reference": 18924,
+      "criterion": "GetNationId() == 33 and HasPvpRank(1)"
+    },
+    {
+      "reference": 18925,
+      "criterion": "GetNationId() == 33 and HasPvpRank(4)"
+    },
+    {
+      "reference": 18926,
+      "criterion": "GetNationId() == 33 and HasPvpRank(7)"
+    },
+    {
+      "reference": 18927,
+      "criterion": "GetNationId() == 31 and HasPvpRank(1)"
+    },
+    {
+      "reference": 18928,
+      "criterion": "GetNationId() == 31 and HasPvpRank(4)"
+    },
+    {
+      "reference": 18929,
+      "criterion": "GetNationId() == 31 and HasPvpRank(7)"
+    },
+    {
+      "reference": 18930,
+      "criterion": "GetNationId() == 30 and HasPvpRank(1)"
+    },
+    {
+      "reference": 18931,
+      "criterion": "GetNationId() == 30 and HasPvpRank(4)"
+    },
+    {
+      "reference": 18932,
+      "criterion": "GetNationId() == 30 and HasPvpRank(7)"
+    }
+  ]
+}

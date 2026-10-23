@@ -239,6 +239,72 @@ _CONTRACTS = (
         (DependencySpec("state", 0, relation="removes"),),
     ),
     _contract(
+        "fight.property",
+        (447,),
+        "combat_fight_property.NativeFightPropertyHandler",
+        (
+            "registered native eGj actor",
+            "published fight-property enum",
+            "complete property counter authority",
+            "property-specific native side effects when required",
+            "owned retained-effect lifecycle",
+        ),
+        ("fight-property counter", "property-specific native side effect"),
+        ("native property application and exact owned removal",),
+        ("evaluated property enum", "property counter multiplicity", "retained UID"),
+        ("test_combat_fight_property",),
+        variants=(
+            "counter",
+            "AP/MP minimum",
+            "timeline",
+            "visibility",
+            "WP notification",
+        ),
+        variant_validation=(
+            "combat_fight_property.NativeFightPropertyHandler.__call__",
+        ),
+    ),
+    _contract(
+        "spellbook.morph",
+        (933,),
+        "combat_morph_handler.NativeMorphHandler",
+        (
+            "original native morph profile and complete casting dependencies",
+            "registered actor and actual retained inverse ownership",
+            "native context and phase-1/2 profile-value mutation authority",
+        ),
+        ("temporary native spellbook", "retained transformation UID"),
+        ("native source runner phases",),
+        ("original casting UIDs", "native transformation additional fields"),
+        ("test_combat_morph_spellbook", "test_equipment_morph_characteristic_parsers"),
+    ),
+    _contract(
+        "world.property",
+        (449,),
+        "combat_world_property_handler.NativeWorldPropertyHandler",
+        (
+            "registered native eGj actor",
+            "published eHQ world-property enum and mapped fight property",
+            "complete world/fight property counter authority",
+            "native PN kind and owned retained lifecycle",
+        ),
+        (
+            "world-property counter",
+            "mapped fight-property counter",
+            "native property presentation",
+        ),
+        ("owned application and native asymmetric removal",),
+        ("world property enum", "retained UID", "evaluated amount"),
+        ("test_combat_world_property_handler", "test_combat_world_property_runtime"),
+        variants=(
+            "eHQ counter",
+            "mapped ffe application/removal",
+        ),
+        variant_validation=(
+            "combat_world_property_handler.NativeWorldPropertyHandler.__call__",
+        ),
+    ),
+    _contract(
         "effect.dispel",
         (421,),
         "combat_dispel.NativeDispelHandler",
@@ -251,6 +317,46 @@ _CONTRACTS = (
         ("owned removal",),
         ("running effect removal", "container identity"),
         ("test_combat_dispel",),
+    ),
+    _contract(
+        "effect.triggering_final_modifier",
+        (1093,),
+        "combat_final_modifier.NativeFinalModifierHandler",
+        (
+            "exact live triggering Qe identity",
+            "native faq source and execution-local accumulator",
+            "registered native recipient PVs",
+            "source guards and native timing",
+        ),
+        ("triggering runner final modifier",),
+        ("scoped native source reaction",),
+        ("13497 modifier runner application",),
+        ("test_combat_final_modifier", "test_equipment_parity_final_pipeline"),
+        variants=("native signed amount parameter pair",),
+        variant_validation=(
+            "combat_final_modifier.NativeFinalModifierHandler.__call__",
+            "combat_final_modifier.update_triggering_final",
+        ),
+    ),
+    _contract(
+        "effect.triggering_amount",
+        (430,),
+        "combat_trigger_value_handler.NativeTriggerValueHandler",
+        (
+            "exact live triggering Qe identity",
+            "native source-owner mutation contract",
+            "source guards and native timing",
+            "owner-specific float32 arithmetic and rounding RNG",
+        ),
+        ("triggering runner amount",),
+        ("scoped native runner reaction",),
+        ("modifier runner suppresses its own PR notification",),
+        ("test_combat_trigger_value_handler", "test_combat_trigger_value_modifier"),
+        variants=("native mode/amount/replace parameter triple",),
+        variant_validation=(
+            "combat_trigger_value_handler.NativeTriggerValueHandler.__call__",
+            "combat_trigger_value_modifier.mutate_triggering_runner",
+        ),
     ),
     _contract(
         "state.cleanup",
@@ -380,6 +486,50 @@ _CONTRACTS = (
 
 # These families are supplied by the published native registry at the caller's
 # boundary. Importing this module must not load catalogs or duplicate their IDs.
+_CONTRACTS += (
+    _contract(
+        "resource.maximum_percentage",
+        (986,),
+        "combat_maximum_resource.NativePercentageHPHandler",
+        ("native PA bounds/percentage/current", "owned timing and source guards"),
+        ("additive maximum percentage", "optional protected current", "owned inverse"),
+        ("native characteristic reactions",),
+        ("owned running UID", "evaluated percentage and actual current"),
+        ("test_combat_maximum_resource",),
+    ),
+    _contract(
+        "resource.armor",
+        (1013,),
+        "combat_armor.NativeArmorHandler",
+        (
+            "native armor mode/element",
+            "actual actor stats",
+            "player cap authority",
+            "transaction RNG",
+        ),
+        ("armor97", "owned running value"),
+        ("native armor/healing reactions",),
+        ("owned UID", "actual armor delta", "original removal"),
+        ("test_combat_armor",),
+    ),
+    _contract(
+        "spatial.orientation",
+        (303,),
+        "combat_orientation_effect.NativeOrientationHandler",
+        (
+            "native orientation mode",
+            "actual directions/positions",
+            "property authority",
+            "transaction RNG",
+        ),
+        ("actual actor direction", "owned forced-characteristic lifetime"),
+        ("native direction publication",),
+        ("owned UID", "actual orientation"),
+        ("test_combat_orientation_effect",),
+    ),
+)
+
+
 CURRENT_RESOURCE = _contract(
     "resource.current",
     (),
@@ -937,11 +1087,28 @@ def assess_operation(
         ), "combat_minimum_resource.NativeMinimumResourceHandler.__call__"
     elif family in (923, 1065, 1066):
         counts, source = (4,), contract.executor
+    elif family == 430:
+        if len(parameters) < 6 or len(parameters) % 2:
+            return SupportAssessment(
+                "unsupported",
+                ("Native eZL requires at least three parameter pairs",),
+                prerequisites,
+            )
+        counts, source = None, contract.executor
+    elif family in (449, 1093):
+        counts, source = (2,), contract.executor
     elif family == 321:
         counts, source = (
             2,
             4,
         ), "combat_state_decurse.NativeStateDecurseHandler._parameters"
+    elif family == 447:
+        if len(parameters) < 2 or len(parameters) % 2:
+            return SupportAssessment(
+                "unsupported",
+                ("Native eWt property operation requires its first parameter pair",),
+                prerequisites,
+            )
     elif family == 304:
         if len(parameters) % 2 or len(parameters) < 6:
             return SupportAssessment(

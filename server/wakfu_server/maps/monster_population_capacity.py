@@ -44,13 +44,42 @@ def pending_growth_groups(db, map_id, instance_id, *, existing_group_ids=()):
     ]
 
 
+def physical_groups(db, map_id, instance_id):
+    """All living scene blockers, including non-ecological developer actors."""
+    return list(
+        db.execute(
+            "SELECT group_id,members FROM combat_groups WHERE map_id=%s "
+            "AND instance_id=%s AND status!='defeated'",
+            (map_id, instance_id),
+        )
+    )
+
+
+def physical_cells(db, map_id, instance_id):
+    """Complete native footprints; ecological eligibility never erases collision."""
+    from wakfu_server.combat_actor_snapshot import native_actor_catalog
+    from wakfu_server.combat_obstacle_condition import footprint
+
+    profiles = native_actor_catalog()["npc_profiles"]
+    return frozenset(
+        (x, y, member["z"])
+        for group in physical_groups(db, map_id, instance_id)
+        for member in group["members"]
+        for x, y in footprint(
+            (member["x"], member["y"]), profiles[str(member["ref"])]["physical_radius"]
+        )
+    )
+
+
 def snapshot(db, map_id, instance_id, *, groups=None):
     """Count living groups and durable growth reservations in one SQL scope."""
     if groups is None:
         groups = list(
             db.execute(
                 "SELECT group_id,members FROM combat_groups "
-                "WHERE map_id=%s AND instance_id=%s AND status!='defeated'",
+                "WHERE map_id=%s AND instance_id=%s AND status!='defeated' "
+                "AND NOT EXISTS(SELECT 1 FROM developer_item_test_groups t WHERE "
+                "(t.map_id,t.instance_id,t.group_id)=(combat_groups.map_id,combat_groups.instance_id,combat_groups.group_id))",
                 (map_id, instance_id),
             )
         )
@@ -60,6 +89,21 @@ def snapshot(db, map_id, instance_id, *, groups=None):
     reservations = pending_growth_groups(
         db, map_id, instance_id, existing_group_ids=existing_ids
     )
+    # Count reservations and supplied rosters through the same exact ownership
+    # fence. This never changes physical_groups/physical_cells collision data.
+    candidate_ids = sorted(existing_ids | {row["key"][2] for row in reservations})
+    owned_ids = set()
+    if candidate_ids:
+        owned_ids = {
+            row["group_id"]
+            for row in db.execute(
+                "SELECT group_id FROM environmental_owned_groups WHERE map_id=%s "
+                "AND world_instance_id=%s AND retired_at_ms IS NULL AND group_id=ANY(%s)",
+                (map_id, instance_id, candidate_ids),
+            )
+        }
+    groups = [row for row in groups if row.get("group_id") not in owned_ids]
+    reservations = [row for row in reservations if row["key"][2] not in owned_ids]
     return dict(
         groups=groups,
         reservations=reservations,

@@ -233,7 +233,16 @@ class NativeEffectTimingProvider:
         level = application.level if application.accepted else requested_level
         profile = state_profile(self.catalog, reference, level)
         if profile["realtime_duration"] > 0:
-            raise ValueError("Realtime state clock requires a verified scheduler")
+            from .combat_consumable_handoff import source_binding
+            from .combat_external_retained_state import (
+                source_binding as external_binding,
+            )
+
+            if (
+                source_binding(preview, invocation, reference, level) is None
+                and external_binding(preview, invocation, reference, level) is None
+            ):
+                raise ValueError("Realtime state clock requires a verified scheduler")
         clock = (
             invocation.caster_id
             if definition["clock_actor"] == "caster"

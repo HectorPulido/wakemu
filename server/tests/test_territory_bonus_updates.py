@@ -35,7 +35,9 @@ class World:
         self.lock = threading.RLock()
         self.players = {character["id"]: ("lease", peer, copy.deepcopy(character))}
 
-    def update_territory_projection(self, generation, character, *, peer, bonuses):
+    def update_territory_projection(
+        self, generation, character, *, peer, bonuses, regional_state_id=None
+    ):
         with self.lock:
             entry = self.players.get(character["id"])
             if (
@@ -50,6 +52,8 @@ class World:
                 return False
             entry[2]["territory_stat_bonuses"] = dict(bonuses)
             entry[2]["_published_territory_stat_bonuses"] = dict(bonuses)
+            entry[2]["territory_state_id"] = regional_state_id
+            entry[2]["_published_territory_state_id"] = regional_state_id
         return True
 
 
@@ -107,8 +111,16 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
             ).encode(),
         )
 
-    def proposal(self, *, revision=5, bonuses=None, epoch="epoch", observed=None):
-        return dict(
+    def proposal(
+        self,
+        *,
+        revision=5,
+        bonuses=None,
+        states="__unspecified__",
+        epoch="epoch",
+        observed=None,
+    ):
+        proposal = dict(
             domain="bonuses",
             operation="regional_snapshot",
             world_epoch=epoch,
@@ -119,6 +131,9 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
             observed_at=time.time() if observed is None else observed,
             observation_bucket=int(time.time() // 2),
         )
+        if states != "__unspecified__":
+            proposal["region_states"] = {"56601": states}
+        return proposal
 
     def apply(self, **kwargs):
         result = self.manager.apply(self.proposal(**kwargs), world_epoch="epoch")
@@ -219,6 +234,48 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
         self.assertFalse(
             self.manager.acknowledge(self.character, "lease", self.peer, packets)
         )
+
+    def test_native_state_attach_change_negative_and_removal_wait_for_ack(self):
+        sequence = iter((1915, 1916, 1917, None))
+        for current in sequence:
+            self.now += 1
+            proposal = self.proposal(
+                observed=time.time() + self.now / 100000,
+                bonuses={"33": -10, "36": -10},
+                states=current,
+            )
+            self.assertEqual(
+                "applied", self.manager.apply(proposal, world_epoch="epoch")["status"]
+            )
+            packets = self.manager.packets_for(self.character, "lease", self.peer)
+            self.assertTrue(packets)
+            # A failed socket write leaves the exact native delta pending.
+            self.assertEqual(
+                packets, self.manager.packets_for(self.character, "lease", self.peer)
+            )
+            state_before = self.character.get("_published_territory_state_id")
+            expected = (
+                [12613] * 5 + [13420]
+                if state_before is None and current is not None
+                else [13560] * 5 + [13420]
+                if current is None
+                else [13560] * 5 + [12613] * 5 + [13420]
+            )
+            self.assertEqual(
+                expected, [opcode for opcode, _ in packets[-len(expected) :]]
+            )
+            self.assertTrue(
+                self.manager.acknowledge(self.character, "lease", self.peer, packets)
+            )
+            self.assertEqual(current, self.character.get("territory_state_id"))
+            self.assertEqual(
+                current, self.character.get("_published_territory_state_id")
+            )
+            self.assertEqual(
+                {33: -10, 36: -10}, self.character["territory_stat_bonuses"]
+            )
+            if state_before is not None and state_before != current:
+                self.assertTrue(any(opcode == 13560 for opcode, _ in packets))
 
     def test_new_cache_supersedes_pending_batch_and_expired_cache_is_not_sent(self):
         self.apply()
@@ -401,6 +458,79 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
                 covered.append(proposals[0]["instance_id"])
         self.assertEqual(covered, list(range(80)))
         self.assertEqual(read.call_count, 80)
+
+    def test_fresh_policy_proposal_reconciles_once_and_retries_identical_owned_batch(
+        self,
+    ):
+        self.character["account_id"] = 7
+        self.world.players[10][2]["account_id"] = 7
+        policy = [0]
+        calls = []
+
+        def reconcile(_store, account, generation, character, *, region, bonuses):
+            calls.append((account, generation, region["state_id"]))
+            return dict(
+                character,
+                territory_stat_bonuses={**bonuses, 1: policy[0]},
+                territory_health_projection={"applied_flat": policy[0]},
+                territory_state_id=region["state_id"],
+            )
+
+        with patch.object(
+            updates.territory_bonuses, "reconcile_owned", side_effect=reconcile
+        ), patch.object(
+            updates.territory_bonuses,
+            "world_packets",
+            side_effect=lambda character: (self.packet(character),),
+        ):
+            self.apply(states=1916, bonuses={"1": 0, "33": 30, "36": 30})
+            first = self.manager.packets_for(self.character, "lease", self.peer)
+            self.assertTrue(first)
+            self.assertEqual(len(calls), 1)
+            self.assertTrue(
+                self.manager.acknowledge(self.character, "lease", self.peer, first)
+            )
+            # A fresh worker proposal carries the freshly read policy; an
+            # unchanged UI proposal must not hydrate the owner every tick.
+            policy[0] = 2
+            self.now += 1
+            self.apply(states=1916, bonuses={"1": 2, "33": 30, "36": 30})
+            changed = self.manager.packets_for(self.character, "lease", self.peer)
+            self.assertTrue(changed)
+            self.assertNotEqual(changed, first)
+            self.assertEqual(len(calls), 2)
+            identity = self.manager._identity(self.character, "lease", self.peer)
+            pending = self.manager.pending[identity]
+            self.assertEqual(
+                self.manager.packets_for(self.character, "lease", self.peer), changed
+            )
+            self.assertIs(self.manager.pending[identity], pending)
+            self.assertEqual(len(calls), 2)
+            self.assertTrue(
+                self.manager.acknowledge(self.character, "lease", self.peer, changed)
+            )
+            self.assertEqual(
+                self.manager.packets_for(self.character, "lease", self.peer), []
+            )
+            self.assertEqual(len(calls), 2)
+            self.now += 1
+            self.apply(states=1916, bonuses={"1": 2, "33": 30, "36": 30})
+            self.assertEqual(
+                self.manager.packets_for(self.character, "lease", self.peer), []
+            )
+            self.assertEqual(len(calls), 2)
+            # An in-flight old proposal is reconciled against current policy
+            # once and cannot restore an obsolete HP contribution on retry.
+            self.now += 1
+            self.apply(states=1916, bonuses={"1": 0, "33": 30, "36": 30})
+            self.assertEqual(
+                self.manager.packets_for(self.character, "lease", self.peer), []
+            )
+            self.assertEqual(len(calls), 3)
+            self.assertEqual(
+                self.manager.packets_for(self.character, "lease", self.peer), []
+            )
+            self.assertEqual(len(calls), 3)
 
 
 if __name__ == "__main__":

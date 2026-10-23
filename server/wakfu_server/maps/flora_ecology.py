@@ -87,7 +87,9 @@ def change(db, character_id, resource, *, operation, action):
     )
     result["evidence"]["resource_uid"] = resource["resource_uid"]
     result["evidence"]["resource_reference"] = resource["resource_reference"]
-    applied = apply(db, character_id, operation=operation, **result)
+    applied = apply(
+        db, character_id, operation=operation, national_action=True, **result
+    )
     packets = [applied["packet"]]
     if not applied["duplicate"]:
         packets.append(information(describe(applied["receipt"])))

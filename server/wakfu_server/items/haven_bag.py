@@ -153,6 +153,14 @@ def leave_messages(template, character):
     ]
 
 
+def _interior_character(character):
+    """A transient bag scene cannot inherit its exterior world's scope proof."""
+    inside = dict(character)
+    inside.pop("native_world_id", None)
+    inside.pop("_native_haven_world_position", None)
+    return inside
+
+
 class HavenBagSession:
     """Interior location stays in memory; PostgreSQL retains the exterior return point."""
 
@@ -164,16 +172,18 @@ class HavenBagSession:
         self.is_owner = self.owner["account_id"] == outside["account_id"]
         self.outside = dict(outside)
         self.character_id = outside["id"]
-        self.inside = {
-            **outside,
-            "map_id": 9,
-            "instance_id": self.bag_instance_id,
-            "haven_bag": self.owner.get("haven_bag", outside.get("haven_bag")),
-            "haven_bag_visitor": not self.is_owner,
-            "x": 3,
-            "y": 3,
-            "z": 0,
-        }
+        self.inside = _interior_character(
+            {
+                **outside,
+                "map_id": 9,
+                "instance_id": self.bag_instance_id,
+                "haven_bag": self.owner.get("haven_bag", outside.get("haven_bag")),
+                "haven_bag_visitor": not self.is_owner,
+                "x": 3,
+                "y": 3,
+                "z": 0,
+            }
+        )
 
     @property
     def exterior_actor_id(self):
@@ -210,14 +220,19 @@ class HavenBagSession:
             or (self.is_owner and instance_id(saved) != self.bag_instance_id)
         ):
             raise ValueError("Hero cannot adopt this haven bag session")
-        inside = {
-            **saved,
-            **{key: character[key] for key in ("map_id", "instance_id", "x", "y", "z")},
-            "haven_bag": character.get(
-                "haven_bag", self.owner.get("haven_bag", saved.get("haven_bag"))
-            ),
-            "haven_bag_visitor": not self.is_owner,
-        }
+        inside = _interior_character(
+            {
+                **saved,
+                **{
+                    key: character[key]
+                    for key in ("map_id", "instance_id", "x", "y", "z")
+                },
+                "haven_bag": character.get(
+                    "haven_bag", self.owner.get("haven_bag", saved.get("haven_bag"))
+                ),
+                "haven_bag_visitor": not self.is_owner,
+            }
+        )
         self.character_id = saved["id"]
         self.outside = dict(saved)
         self.inside = inside
@@ -241,12 +256,17 @@ class HavenBagSession:
         if not self.owns(character) or saved["id"] != self.character_id:
             raise ValueError("Character is outside its own haven bag")
         self.outside = dict(saved)
-        self.inside = {
-            **saved,
-            **{key: character[key] for key in ("map_id", "instance_id", "x", "y", "z")},
-            "haven_bag_visitor": not self.is_owner,
-            **({"haven_bag": self.owner["haven_bag"]} if not self.is_owner else {}),
-        }
+        self.inside = _interior_character(
+            {
+                **saved,
+                **{
+                    key: character[key]
+                    for key in ("map_id", "instance_id", "x", "y", "z")
+                },
+                "haven_bag_visitor": not self.is_owner,
+                **({"haven_bag": self.owner["haven_bag"]} if not self.is_owner else {}),
+            }
+        )
         return dict(self.inside)
 
 

@@ -6,6 +6,9 @@ import java.util.*;
 public class ExportCharacteristicConditionAliases {
     public static void main(String[] args) throws Exception {
         Set<String> candidates=new TreeSet<>(Files.readAllLines(Path.of(args[0])));
+        // Preserve the non-ASCII eJy.tt branch that ASCII candidate scans omit.
+        // The original resolver still decides whether the alias exists.
+        candidates.add("contrôle");
         for(ffw stat:ffw.values()) candidates.add(stat.toString());
         Map<String,Object> aliases=new TreeMap<>();
         for(String candidate:candidates) {

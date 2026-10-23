@@ -1,0 +1,183 @@
+{
+  "source": "Original aLO/cpW + aLQ.coa + bHM, utility export 2026-10-19",
+  "recall_policy": {
+    "kind": "user_authorized_temporary_astrub",
+    "destination": {
+      "map_id": 527,
+      "x": 0,
+      "y": 32,
+      "z": 0
+    }
+  },
+  "arrival_policy": "nearest_manhattan_xy_then_altitude_then_xyz_v1",
+  "items": [
+    {
+      "item_ref": 14306,
+      "action_id": 2645,
+      "native_class": "bIr",
+      "criteria": "",
+      "parameters": [],
+      "native_destination": null
+    },
+    {
+      "item_ref": 14315,
+      "action_id": 2544,
+      "native_class": "bIq",
+      "criteria": "",
+      "parameters": [
+        "{4,1,25}",
+        "1089"
+      ],
+      "native_destination": {
+        "map_id": 1089,
+        "x": 4,
+        "y": 1,
+        "z": 25
+      }
+    },
+    {
+      "item_ref": 16944,
+      "action_id": 4100,
+      "native_class": "bIq",
+      "criteria": "",
+      "parameters": [
+        "{0,0,0}",
+        "552"
+      ],
+      "native_destination": {
+        "map_id": 552,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "item_ref": 19016,
+      "action_id": 7131,
+      "native_class": "bIq",
+      "criteria": "",
+      "parameters": [
+        "{-10,-10,-1}",
+        "1134"
+      ],
+      "native_destination": {
+        "map_id": 1134,
+        "x": -10,
+        "y": -10,
+        "z": -1
+      }
+    },
+    {
+      "item_ref": 19017,
+      "action_id": 7132,
+      "native_class": "bIq",
+      "criteria": "",
+      "parameters": [
+        "{1,26,-50}",
+        "1136"
+      ],
+      "native_destination": {
+        "map_id": 1136,
+        "x": 1,
+        "y": 26,
+        "z": -50
+      }
+    },
+    {
+      "item_ref": 19018,
+      "action_id": 7133,
+      "native_class": "bIq",
+      "criteria": "",
+      "parameters": [
+        "{-8,16,-60}",
+        "1135"
+      ],
+      "native_destination": {
+        "map_id": 1135,
+        "x": -8,
+        "y": 16,
+        "z": -60
+      }
+    },
+    {
+      "item_ref": 19019,
+      "action_id": 7134,
+      "native_class": "bIq",
+      "criteria": "",
+      "parameters": [
+        "{3,-91,0}",
+        "1137"
+      ],
+      "native_destination": {
+        "map_id": 1137,
+        "x": 3,
+        "y": -91,
+        "z": 0
+      }
+    },
+    {
+      "item_ref": 19021,
+      "action_id": 7136,
+      "native_class": "bIq",
+      "criteria": "",
+      "parameters": [
+        "{2,20,0}",
+        "527"
+      ],
+      "native_destination": {
+        "map_id": 527,
+        "x": 2,
+        "y": 20,
+        "z": 0
+      }
+    },
+    {
+      "item_ref": 19748,
+      "action_id": 7609,
+      "native_class": "bIq",
+      "criteria": "",
+      "parameters": [
+        "{0,-14,24}",
+        "967"
+      ],
+      "native_destination": {
+        "map_id": 967,
+        "x": 0,
+        "y": -14,
+        "z": 24
+      }
+    },
+    {
+      "item_ref": 32778,
+      "action_id": 14841,
+      "native_class": "bIq",
+      "criteria": "",
+      "parameters": [
+        "{165,-120,0}",
+        "1459"
+      ],
+      "native_destination": {
+        "map_id": 1459,
+        "x": 165,
+        "y": -120,
+        "z": 0
+      }
+    },
+    {
+      "item_ref": 32838,
+      "action_id": 14917,
+      "native_class": "bIq",
+      "criteria": "",
+      "parameters": [
+        "{1,-5,0}",
+        "1464"
+      ],
+      "native_destination": {
+        "map_id": 1464,
+        "x": 1,
+        "y": -5,
+        "z": 0
+      }
+    }
+  ]
+}

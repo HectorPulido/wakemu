@@ -62,6 +62,23 @@ def ordered_offsets(effect, *, origin=None, reference=None, direction=None):
         ordered = [(0, 0)]
         for dx, dy in ((0, -1), (0, 1), (1, 0), (-1, 0)):
             ordered.extend((dx * n, dy * n) for n in range(1, radius + 1))
+    elif kind == "anx":
+        top, bottom, left, right = map(
+            int,
+            re.fullmatch(
+                r"crossDiag-h(-?\d+)b(-?\d+)-g(-?\d+)d(-?\d+)", description
+            ).groups(),
+        )
+        # Original anx.p appends center, g, d, h, b; bEj=true means world XY.
+        # Its positive-index loops preserve empty nonpositive arms.
+        ordered = [(0, 0)]
+        for length, (dx, dy) in (
+            (left, (-1, 1)),
+            (right, (1, -1)),
+            (top, (-1, -1)),
+            (bottom, (1, 1)),
+        ):
+            ordered.extend((dx * n, dy * n) for n in range(1, length + 1))
     else:
         raise UnsupportedEffectArea("Missing native group area order")
     # Verify no accidental difference with the resolver's proven geometry.

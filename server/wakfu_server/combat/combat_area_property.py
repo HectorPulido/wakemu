@@ -9,6 +9,10 @@ from .combat_value_transfer import apply_context_value
 
 
 def area_properties(row, definition):
+    if definition.get("type") == "ARTIFACT" or row.get("native_area_contract") == "faM":
+        from .combat_artifact_area import verify_artifact_area
+
+        verify_artifact_area(row, definition)
     values = row.get("native_current_area_properties")
     if values is None:
         values = definition.get("native_area_properties")

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "policy": "native_item_mission_initial_activation_v1",
+  "actions": [
+    {
+      "item_ref": 14539,
+      "action_id": 2594,
+      "definition_id": 652,
+      "minimum_real_level": 95,
+      "native_action_criterion": "",
+      "native_definition_criterion": "GetRealLevel()>=95",
+      "native_definition_availability": "",
+      "positional_suffix": false,
+      "consumes_source": false,
+      "repeatable": false,
+      "period": 0,
+      "duration": 0,
+      "objective_ids": [
+        1397,
+        1418
+      ],
+      "scope": "initial_activation_only",
+      "native_use_criterion": "",
+      "native_use_has_criteria": false
+    },
+    {
+      "item_ref": 16471,
+      "action_id": 3773,
+      "definition_id": 1197,
+      "minimum_real_level": 105,
+      "native_action_criterion": "!IsAchievementActive(1197)",
+      "native_definition_criterion": "GetRealLevel() >= 105",
+      "native_definition_availability": "",
+      "positional_suffix": true,
+      "consumes_source": false,
+      "repeatable": false,
+      "period": 0,
+      "duration": 0,
+      "objective_ids": [
+        2157
+      ],
+      "scope": "initial_activation_only",
+      "native_use_criterion": "",
+      "native_use_has_criteria": false
+    }
+  ]
+}

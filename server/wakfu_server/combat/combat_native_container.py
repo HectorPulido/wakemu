@@ -97,7 +97,7 @@ def owned_state_container(fight, uid):
     """Attest a PL snapshot only while an actual owned child keeps it alive."""
     from .combat_state_ledger import RunningState
     from .combat_state_timing import StateTimer
-    from .combat_summon_initialization import registered_or_detached_actor
+    from .combat_state_managers import registered_source_pv
 
     facts = getattr(fight, "native_owned_state_containers", None)
     if (
@@ -114,7 +114,7 @@ def owned_state_container(fight, uid):
         or row["reference"] <= 0
         or type(row.get("level")) is not int
         or not 0 <= row["level"] <= 32767
-        or registered_or_detached_actor(fight, row.get("caster_id")) is None
+        or registered_source_pv(fight, row.get("caster_id")) is None
         or state_manager(fight, row.get("target_id")) is None
     ):
         raise ValueError("Invalid owned native state container identity")

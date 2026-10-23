@@ -5,9 +5,12 @@ ordinary actor, not a summon and not a reconstruction of the existing roster.
 """
 
 
-def register_joined_fighter(fight, actor, position):
+def register_joined_fighter(fight, actor, position, *, controller_id=None):
     if fight.phase != "placement" or actor.id in fight.actors:
         raise ValueError("Fresh joined placement fighter required")
+    from .combat_encounter_roles import validate_participant_role
+
+    validate_participant_role(fight, actor, player=actor.owner_id is not None)
     position = tuple(position)
     if len(position) != 3 or any(type(v) is not int for v in position):
         raise ValueError("Joined fighter requires actual placement XYZ")
@@ -33,7 +36,7 @@ def register_joined_fighter(fight, actor, position):
     if hasattr(fight, "native_global_pv_collections"):
         from .combat_global_pv_collections import register_global_fighter
 
-        register_global_fighter(fight, actor.id)
+        register_global_fighter(fight, actor.id, controller_id=controller_id)
     if registry is not None:
         if hasattr(fight, "native_pointer_checkpoint"):
             from .combat_carrying import _publish_registry

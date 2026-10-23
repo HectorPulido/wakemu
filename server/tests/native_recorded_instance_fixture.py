@@ -24,7 +24,10 @@ def original_bootstrap_publication():
     import psycopg
     from psycopg.rows import dict_row
     from wakfu_server.storage.bootstrap_capture import load
-    from wakfu_server.combat_instance_publication import InstancePublicationTracker
+    from wakfu_server.combat_instance_publication import (
+        InstancePublicationTracker,
+        bind_party_encounter,
+    )
     from wakfu_server.combat_instance_context import capture_publication
     from wakfu_server.maps.proto_dungeon import decode
     from wakfu_server import combat_actor_snapshot as snapshots
@@ -61,43 +64,53 @@ def original_bootstrap_publication():
     def bound(fight, **kwargs):
         characters = kwargs["characters"]
         monsters = kwargs["monsters"]
-        assert (
-            len(characters) == 1
-        ), "Recorded fixture requires one actual controlled participant"
-        player_id = next(iter(characters))
-        character = characters[player_id]
-        assert (
-            character["instance_id"] == 0
-        ), "Original recordedcontext replay onlyqualifies instance0"
+        assert characters, "Recorded fixture requires actual controlled participants"
         npc_ids = tuple(monsters)
-        assert set(npc_ids) | {player_id} == set(
+        assert set(npc_ids) | set(characters) == set(
             fight.actors
         ), "Recorded fixture roster mismatch"
-        tracker = InstancePublicationTracker()
-        scope = (
-            character["account_id"],
-            "private-recorded-bootstrap-replay",
-            player_id,
-            1,
-            character["instance_id"],
-        )
-        # A real successful immutable write in the isolated fixture transport;
-        # after_write receives the exact completed frame, never invented GN.
-        frame = struct.pack(">IH", 6 + len(body), 13974) + body
-        transport = BytesIO()
-        assert transport.write(frame) == len(frame)
-        tracker.after_write(transport.getvalue(), scope)
-        assert tracker.bind_encounter(
-            fight, scope, npc_ids=npc_ids, player_id=player_id
+        publications = []
+        owner_bindings = []
+        for player_id, character in characters.items():
+            assert (
+                character["instance_id"] == 0
+            ), "Recorded replay only qualifies instance0"
+            tracker = InstancePublicationTracker()
+            scope = (
+                character["account_id"],
+                "private-recorded-bootstrap-replay",
+                player_id,
+                1,
+                character["instance_id"],
+            )
+            # Preserve the exact immutable original frame for each independent
+            # fixture transport; this does not claim an original party capture.
+            frame = struct.pack(">IH", 6 + len(body), 13974) + body
+            transport = BytesIO()
+            assert transport.write(frame) == len(frame)
+            tracker.after_write(transport.getvalue(), scope)
+            publications.append((tracker, scope))
+            owner_bindings.append(
+                dict(
+                    player_id=player_id,
+                    account_id=character["account_id"],
+                    instance_id=character["instance_id"],
+                    published_context_sha256=tracker.published.sha256,
+                )
+            )
+        assert bind_party_encounter(
+            fight, publications=tuple(publications), npc_ids=npc_ids
         )
         facts["bindings"].append(
-            {
-                "fight_id": fight.id,
-                "npc_ids": list(npc_ids),
-                "player_id": player_id,
-                "instance_id": character["instance_id"],
-                "published_context_sha256": tracker.published.sha256,
-            }
+            dict(
+                fight_id=fight.id,
+                npc_ids=list(npc_ids),
+                player_id=next(iter(characters)),
+                owners=owner_bindings,
+                instance_id=0,
+                published_context_sha256=CONTEXT_SHA256,
+                original_party_capture=False,
+            )
         )
         fight.validation_recorded_instance_publication = dict(
             facts, bindings=[facts["bindings"][-1]]

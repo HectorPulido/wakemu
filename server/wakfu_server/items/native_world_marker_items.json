@@ -1,0 +1,54 @@
+{
+  "items": [
+    {
+      "action_criterion": "",
+      "action_id": 10384,
+      "item_ref": 16942,
+      "marker": {
+        "map_id": 527,
+        "x": 71,
+        "y": -13,
+        "z": 0
+      },
+      "minimum_level": 1,
+      "native_consumes_source": false,
+      "native_positional_suffix": false,
+      "use_criterion": "GetInstanceId() == 527",
+      "use_in_fight_criterion": null
+    },
+    {
+      "action_criterion": "#GetInstanceId() == 527#",
+      "action_id": 10385,
+      "item_ref": 25100,
+      "marker": {
+        "map_id": 527,
+        "x": 71,
+        "y": -13,
+        "z": 0
+      },
+      "minimum_level": 1,
+      "native_consumes_source": false,
+      "native_positional_suffix": false,
+      "use_criterion": "",
+      "use_in_fight_criterion": "False"
+    },
+    {
+      "action_criterion": "#GetInstanceId() == 527#",
+      "action_id": 10386,
+      "item_ref": 25101,
+      "marker": {
+        "map_id": 527,
+        "x": 71,
+        "y": -13,
+        "z": 0
+      },
+      "minimum_level": 1,
+      "native_consumes_source": false,
+      "native_positional_suffix": false,
+      "use_criterion": "",
+      "use_in_fight_criterion": "False"
+    }
+  ],
+  "native_class": "bHA",
+  "native_type": "ADD_WORLD_POSITION_MARKER"
+}

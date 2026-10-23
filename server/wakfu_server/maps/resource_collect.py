@@ -14,6 +14,14 @@ from .wire import proto_fields
 from .inventory_items import _lease
 
 
+class HarvestNotReady(ValueError):
+    """A valid occupation must wait for its authoritative completion time."""
+
+    def __init__(self, completes_at):
+        self.completes_at = completes_at
+        super().__init__("Resource harvest completed before duration")
+
+
 def decode_result(body):
     if len(body) != 3:
         raise ValueError("Invalid resource occupation result")
@@ -125,6 +133,32 @@ def authorize(rule, *, profession_id, profession_level):
     return rule
 
 
+def _authorize_owned_action(
+    store, db, account_id, generation, character, resource, rule
+):
+    if rule["profession_id"] == 0:
+        from wakfu_server.objectives.environmental_resource_actions import (
+            authorize_action,
+        )
+
+        return authorize_action(
+            db,
+            store=store,
+            account_id=account_id,
+            generation=generation,
+            character=character,
+            resource=resource,
+            rule=rule,
+        )
+    from .profession_store import stored_level
+
+    profession = stored_level(db, account_id, rule["profession_id"])
+    if profession is None:
+        raise ValueError("Resource harvest profession is unlearned")
+    authorize(rule, profession_id=rule["profession_id"], profession_level=profession)
+    return None
+
+
 def prepare(
     store,
     account_id,
@@ -133,7 +167,7 @@ def prepare(
     body,
     *,
     reachable,
-    location_context=None
+    location_context=None,
 ):
     """Resolve the target from leased SQL state, never supplied client metadata.
 
@@ -157,15 +191,8 @@ def prepare(
         rule = action(
             resource["resource_reference"], resource["stage"], request["action_id"]
         )
-        from .profession_store import stored_level
-
-        profession = stored_level(db, account_id, rule["profession_id"])
-        if profession is None:
-            raise ValueError("Resource harvest profession is unlearned")
-        authorize(
-            rule,
-            profession_id=rule["profession_id"],
-            profession_level=profession,
+        _authorize_owned_action(
+            store, db, account_id, generation, character, resource, rule
         )
     if reachable(character, resource) is not True:
         raise ValueError("Resource harvest target is unreachable")
@@ -200,6 +227,12 @@ def reserve(store, account_id, generation, prepared, *, location_context=None):
             or not 0 < configuration["completion_grace_ms"] <= 60000
         ):
             raise ValueError("Invalid resource occupation policy")
+        if rule["profession_id"] == 0:
+            from wakfu_server.objectives.environmental_resource_actions import (
+                lock_scope,
+            )
+
+            lock_scope(db, expected)
         resource = db.execute(
             "SELECT * FROM planted_resources WHERE resource_uid=%s FOR UPDATE",
             (expected["resource_uid"],),
@@ -213,13 +246,8 @@ def reserve(store, account_id, generation, prepared, *, location_context=None):
         )
         if current_rule != rule:
             raise ValueError("Resource harvest action changed before reservation")
-        from .profession_store import stored_level
-
-        profession = stored_level(db, account_id, rule["profession_id"])
-        if profession is None:
-            raise ValueError("Resource harvest profession is unlearned")
-        authorize(
-            rule, profession_id=rule["profession_id"], profession_level=profession
+        environmental_action = _authorize_owned_action(
+            store, db, account_id, generation, character, resource, rule
         )
         db.execute(
             "DELETE FROM resource_harvest_occupations "
@@ -233,7 +261,25 @@ def reserve(store, account_id, generation, prepared, *, location_context=None):
             (expected["resource_uid"], character_id),
         ).fetchone():
             raise ValueError("Resource harvest occupation busy")
-        due = now + timedelta(milliseconds=rule["duration_ms"])
+        if environmental_action is not None:
+            effective_duration = rule["duration_ms"]
+        else:
+            from wakfu_server.profession_consumable_modifiers import (
+                modifiers,
+                duration_ms,
+            )
+            from wakfu_server.native_world_context import is_battleground
+
+            speed = modifiers(
+                store,
+                db,
+                character_id,
+                rule["profession_id"],
+                generation=generation,
+                is_battleground=is_battleground(character["map_id"]),
+            )["collect_speed"]
+            effective_duration = duration_ms(rule["duration_ms"], speed)
+        due = now + timedelta(milliseconds=effective_duration)
         expiry = due + timedelta(milliseconds=configuration["completion_grace_ms"])
         db.execute(
             "INSERT INTO resource_harvest_occupations "
@@ -266,6 +312,7 @@ def reserve(store, account_id, generation, prepared, *, location_context=None):
         account_id=account_id,
         generation=generation,
         action_id=rule["action_id"],
+        duration_ms=effective_duration,
         completes_at=due,
         expires_at=expiry,
     )
@@ -348,12 +395,8 @@ def complete(store, ticket, body, *, location_context=None):
             ):
                 raise ValueError("Foreign resource harvest receipt")
             return dict(applied=False, packets=[], world_packets=[])
-        resource = db.execute(
-            "SELECT * FROM planted_resources WHERE resource_uid=%s FOR UPDATE",
-            (ticket["resource_uid"],),
-        ).fetchone()
         occupation = db.execute(
-            "SELECT * FROM resource_harvest_occupations WHERE token=%s FOR UPDATE",
+            "SELECT * FROM resource_harvest_occupations WHERE token=%s",
             (token,),
         ).fetchone()
         if occupation is None:
@@ -369,6 +412,30 @@ def complete(store, ticket, body, *, location_context=None):
             )
         ):
             raise ValueError("Foreign resource harvest occupation")
+        if result != 3:
+            snapshot = occupation["resource_snapshot"]
+            snapshot_rule = action(
+                snapshot["resource_reference"],
+                snapshot["stage"],
+                occupation["action_id"],
+            )
+            if snapshot_rule["profession_id"] == 0:
+                from wakfu_server.objectives.environmental_resource_actions import (
+                    lock_scope,
+                )
+
+                # Cleanup owns scope before deleting the resource and cascading
+                # into its occupation. Do not retain that row while waiting.
+                lock_scope(db, snapshot)
+        locked_occupation = db.execute(
+            "SELECT * FROM resource_harvest_occupations WHERE token=%s FOR UPDATE",
+            (token,),
+        ).fetchone()
+        if locked_occupation is None:
+            return dict(applied=False, packets=[], world_packets=[])
+        if dict(locked_occupation) != dict(occupation):
+            raise ValueError("Resource harvest occupation changed before completion")
+        occupation = locked_occupation
         if result == 3:
             db.execute(
                 "DELETE FROM resource_harvest_occupations WHERE token=%s", (token,)
@@ -376,9 +443,13 @@ def complete(store, ticket, body, *, location_context=None):
             return dict(applied=False, packets=[], world_packets=[])
         now = store.now()
         if now < occupation["completes_at"]:
-            raise ValueError("Resource harvest completed before duration")
+            raise HarvestNotReady(occupation["completes_at"])
         if now >= occupation["expires_at"]:
             raise ValueError("Resource harvest occupation expired")
+        resource = db.execute(
+            "SELECT * FROM planted_resources WHERE resource_uid=%s FOR UPDATE",
+            (ticket["resource_uid"],),
+        ).fetchone()
         if resource is None or dict(resource) != occupation["resource_snapshot"]:
             raise ValueError("Resource changed during harvest occupation")
         character = store.character(account, actor, db)
@@ -388,128 +459,180 @@ def complete(store, ticket, body, *, location_context=None):
         rule = action(
             resource["resource_reference"], resource["stage"], occupation["action_id"]
         )
-        from .profession_store import stored_level, award
-        from .profession_rewards import base_xp
-        from .harvest_inventory import grant
+        environmental_action = _authorize_owned_action(
+            store, db, account, generation, character, resource, rule
+        )
         from .planting_runtime import state_packet
-        from hashlib import sha256
 
-        profession = stored_level(db, account, rule["profession_id"])
-        if profession is None:
-            raise ValueError("Resource harvest profession is unlearned")
-        authorize(
-            rule, profession_id=rule["profession_id"], profession_level=profession
-        )
-        setting = db.execute(
-            "SELECT value FROM settings WHERE name='resource_harvest_rewards'"
-        ).fetchone()
-        policy = None if setting is None else setting["value"]
-        if (
-            not isinstance(policy, dict)
-            or set(policy) != {"version", "product_quantity", "stage_policy"}
-            or type(policy["version"]) is not int
-            or policy["version"] != 1
-            or type(policy["product_quantity"]) is not int
-            or not 1 <= policy["product_quantity"] <= 32767
-            or policy["stage_policy"] != "catalog_cvF"
-        ):
-            raise ValueError("Invalid resource harvest reward policy")
-        stage = rule["raw_getters"]["cvF"]
-        if type(stage) is not int or (
-            stage != 0
-            and stage not in RESOURCES[resource["resource_reference"]]["stages"]
-        ):
-            raise ValueError("Unsupported resource harvest destination stage")
-        from .flora_ecology import change as ecological_change
+        if environmental_action is not None:
+            stage = environmental_action["destination_stage"]
+            packets, product = [], None
+            item_reference = 0
+            reward, ecology = {"xp": 0}, {}
+        else:
+            from .profession_store import award
+            from .profession_rewards import base_xp
+            from .harvest_inventory import grant
+            from .planting_runtime import state_packet
+            from hashlib import sha256
 
-        ecology = ecological_change(
-            db,
-            actor,
-            dict(resource),
-            operation="flora:" + sha256(token.encode()).hexdigest(),
-            action="remove" if stage == 0 else "harvest",
-        )
-        item_reference = rule["item_reference"]
-        if rule["profession_id"] == 73:
-            from .mining_products import resolve
+            setting = db.execute(
+                "SELECT value FROM settings WHERE name='resource_harvest_rewards'"
+            ).fetchone()
+            policy = None if setting is None else setting["value"]
+            if (
+                not isinstance(policy, dict)
+                or set(policy) != {"version", "product_quantity", "stage_policy"}
+                or type(policy["version"]) is not int
+                or policy["version"] != 1
+                or type(policy["product_quantity"]) is not int
+                or not 1 <= policy["product_quantity"] <= 32767
+                or policy["stage_policy"] != "catalog_cvF"
+            ):
+                raise ValueError("Invalid resource harvest reward policy")
+            stage = rule["raw_getters"]["cvF"]
+            if type(stage) is not int or (
+                stage != 0
+                and stage not in RESOURCES[resource["resource_reference"]]["stages"]
+            ):
+                raise ValueError("Unsupported resource harvest destination stage")
+            from .flora_ecology import change as ecological_change
 
-            item_reference = resolve(db, rule)
-        if rule["profession_id"] == 75:
-            from .fishing_products import resolve
-
-            item_reference = resolve(db, rule)
-        packets = []
-        product = None
-        if item_reference:
-            product = grant(db, character, item_reference, policy["product_quantity"])
-            packets.append(product["packet"])
-        from wakfu_server.territory_bonuses import current_region, profession_xp_percent
-
-        territory = current_region(db, character)
-        territory_percent = profession_xp_percent(territory, "harvest")
-        reward = award(
-            store,
-            db,
-            account,
-            generation,
-            actor,
-            rule["profession_id"],
-            base_xp=base_xp(db, "harvest") if product else 0,
-            operation="flora:" + sha256(token.encode()).hexdigest(),
-            territory_percent=territory_percent,
-        )
-        packets.extend(reward["packets"])
-        packets.extend(ecology["packets"])
-        # Supersede the prior growth event before changing/removing its target.
-        # The world coordinator serializes this with the growth publisher.
-        db.execute(
-            "DELETE FROM planting_growth_outbox WHERE resource_uid=%s",
-            (resource["resource_uid"],),
-        )
-        # A harvest starts a new growth cycle even when it preserves the UID.
-        # Rare-stage decisions are durable within one cycle, not forever: an
-        # old accepted/rejected draw must not block regrowth after collecting.
-        db.execute(
-            "DELETE FROM resource_growth_decisions WHERE resource_uid=%s",
-            (resource["resource_uid"],),
-        )
-        from .resource_domains import is_fish
-
-        if is_fish(resource["resource_reference"]):
-            from .fishing_spots import deplete
-
-            deplete(db, resource, now)
-        if stage == 0:
-            from .resource_domains import is_mineral
-
-            if is_mineral(resource["resource_reference"]):
-                from .mining_veins import deplete
-
-                deplete(db, resource, now)
-            db.execute(
-                "DELETE FROM planted_resources WHERE resource_uid=%s",
-                (resource["resource_uid"],),
+            ecology = ecological_change(
+                db,
+                actor,
+                dict(resource),
+                operation="flora:" + sha256(token.encode()).hexdigest(),
+                action="remove" if stage == 0 else "harvest",
             )
+            item_reference = rule["item_reference"]
+            if rule["profession_id"] == 73:
+                from .mining_products import resolve
+
+                item_reference = resolve(db, rule)
+            if rule["profession_id"] == 75:
+                from .fishing_products import resolve
+
+                item_reference = resolve(db, rule)
+            packets = []
+            product = None
+            if item_reference:
+                from wakfu_server.profession_consumable_modifiers import (
+                    modifiers,
+                    collected_quantity,
+                )
+                from wakfu_server.native_world_context import is_battleground
+
+                quantity_percent = modifiers(
+                    store,
+                    db,
+                    actor,
+                    rule["profession_id"],
+                    generation=generation,
+                    is_battleground=is_battleground(character["map_id"]),
+                )["collect_quantity"]
+                quantity = collected_quantity(
+                    policy["product_quantity"],
+                    quantity_percent,
+                    operation=f"flora:{token}:{item_reference}",
+                )
+                product = grant(db, character, item_reference, quantity)
+                packets.append(product["packet"])
+            from wakfu_server.territory_bonuses import (
+                current_region,
+                profession_xp_percent,
+            )
+
+            territory = current_region(db, character)
+            territory_percent = profession_xp_percent(territory, "harvest")
+            reward = award(
+                store,
+                db,
+                account,
+                generation,
+                actor,
+                rule["profession_id"],
+                base_xp=base_xp(db, "harvest") if product else 0,
+                operation="flora:" + sha256(token.encode()).hexdigest(),
+                territory_percent=territory_percent,
+                action_category="harvest",
+                native_map_id=character["map_id"],
+            )
+            packets.extend(reward["packets"])
+            packets.extend(ecology["packets"])
+        if environmental_action is not None:
+            from wakfu_server.objectives.environmental_resource_population import retire
+
+            if (
+                retire(
+                    db,
+                    resource["resource_uid"],
+                    now_ms=int(now.timestamp() * 1000),
+                    reason="interaction",
+                )
+                is not True
+            ):
+                raise ValueError("Environmental resource retirement did not commit")
             event = dict(resource, stage=0)
         else:
-            creation_time = int(store.clock() * 1000)
+            # Supersede the prior growth event before changing/removing its target.
+            # The world coordinator serializes this with the growth publisher.
             db.execute(
-                "UPDATE planted_resources SET stage=%s,creation_time=%s WHERE resource_uid=%s",
-                (stage, creation_time, resource["resource_uid"]),
+                "DELETE FROM planting_growth_outbox WHERE resource_uid=%s",
+                (resource["resource_uid"],),
             )
-            event = dict(resource, stage=stage, creation_time=creation_time)
-        db.execute(
-            "INSERT INTO planting_growth_outbox(resource_uid,resource,group_payload) VALUES(%s,%s,NULL)",
-            (resource["resource_uid"], Jsonb(event)),
-        )
+            # A harvest starts a new growth cycle even when it preserves the UID.
+            # Rare-stage decisions are durable within one cycle, not forever: an
+            # old accepted/rejected draw must not block regrowth after collecting.
+            db.execute(
+                "DELETE FROM resource_growth_decisions WHERE resource_uid=%s",
+                (resource["resource_uid"],),
+            )
+            from .resource_domains import is_fish
+
+            if is_fish(resource["resource_reference"]):
+                from .fishing_spots import deplete
+
+                deplete(db, resource, now)
+            if stage == 0:
+                from .resource_domains import is_mineral
+
+                if is_mineral(resource["resource_reference"]):
+                    from .mining_veins import deplete
+
+                    deplete(db, resource, now)
+                db.execute(
+                    "DELETE FROM planted_resources WHERE resource_uid=%s",
+                    (resource["resource_uid"],),
+                )
+                event = dict(resource, stage=0)
+            else:
+                creation_time = int(store.clock() * 1000)
+                db.execute(
+                    "UPDATE planted_resources SET stage=%s,creation_time=%s WHERE resource_uid=%s",
+                    (stage, creation_time, resource["resource_uid"]),
+                )
+                event = dict(resource, stage=stage, creation_time=creation_time)
+            db.execute(
+                "INSERT INTO planting_growth_outbox(resource_uid,resource,group_payload) VALUES(%s,%s,NULL)",
+                (resource["resource_uid"], Jsonb(event)),
+            )
         db.execute("DELETE FROM resource_harvest_occupations WHERE token=%s", (token,))
         outcome = dict(
             stage=stage,
             item_reference=item_reference,
-            quantity=policy["product_quantity"] if product else 0,
+            quantity=quantity if product else 0,
             xp=reward["xp"],
             ecology={key: val for key, val in ecology.items() if key != "packets"},
         )
+        if environmental_action is not None:
+            outcome["environmental_action"] = environmental_action
+        if product and quantity_percent:
+            outcome.update(
+                base_quantity=policy["product_quantity"],
+                consumable_quantity_percent=quantity_percent,
+                quantity_rounding_policy="server_stochastic_per_occupation_v1",
+            )
         db.execute(
             "INSERT INTO resource_harvest_receipts(token,account_id,character_id,resource_uid,action_id,result,completed_at) "
             "VALUES(%s,%s,%s,%s,%s,%s,%s)",
@@ -523,14 +646,30 @@ def complete(store, ticket, body, *, location_context=None):
                 now,
             ),
         )
+        from wakfu_server.objectives.environmental_gameplay import committed_resource
+
+        environmental_updates = committed_resource(
+            db,
+            account_id=account,
+            character_id=actor,
+            token=token,
+            resource=dict(resource),
+            region_id=environmental_action["region_id"]
+            if environmental_action is not None
+            else None,
+        )
     return dict(
         applied=True,
         packets=packets,
-        world_packets=[state_packet(event, stage)],
+        world_packets=[]
+        if environmental_action is not None
+        else [state_packet(event, stage)],
+        environmental_owned_publication=environmental_action is not None,
         event=event,
         map_id=resource["map_id"],
         instance_id=resource["instance_id"],
         outcome=outcome,
+        environmental_updates=environmental_updates,
     )
 
 
@@ -540,7 +679,7 @@ def acknowledge_publication(store, result):
     The caller holds the world's growth publisher lock while delivering and
     acknowledging. Delivery failure leaves a durable retry for that publisher.
     """
-    if not result["applied"]:
+    if not result["applied"] or result.get("environmental_owned_publication", False):
         return
     event = result["event"]
     with store.connection() as db:

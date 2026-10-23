@@ -92,6 +92,27 @@ def prepare_snapshot(db, fight_id, **options):
 def freeze_snapshot(db, fight_id, snapshot):
     """Publish the previously prepared profile alongside checkpoint CAS."""
     _transaction(db)
+    from wakfu_server.combat_boss_score_policy import RUSHU_SCORE
+
+    if snapshot.get("encounter_controller") == RUSHU_SCORE.name:
+        if "outgoing_level_policy" in snapshot:
+            from wakfu_server.combat_boss_party_level_policy import (
+                validate_level_profile,
+            )
+
+            validate_level_profile(snapshot)
+        else:
+            # Preserve an identical already-frozen historical receipt only.
+            # Fresh profiles must carry authenticated party-level authority;
+            # the outgoing damage policy never supplies a silent 1.0 fallback.
+            previous = db.execute(
+                "SELECT snapshot FROM boss_score_encounters WHERE fight_id=%s FOR UPDATE",
+                (fight_id,),
+            ).fetchone()
+            if previous is None or previous["snapshot"] != snapshot:
+                raise ValueError(
+                    "New Rushu score profile lacks frozen party-level authority"
+                )
     db.execute(
         "INSERT INTO boss_score_encounters(fight_id,snapshot) VALUES(%s,%s) ON CONFLICT DO NOTHING",
         (fight_id, Jsonb(snapshot)),
@@ -189,7 +210,14 @@ def record_damage(
 
 
 def finalize(
-    db, fight_id, *, completed_rounds, survived, winning_team, boss_defeated=False
+    db,
+    fight_id,
+    *,
+    completed_rounds,
+    survived,
+    winning_team,
+    boss_defeated=False,
+    terminal_authority=None
 ):
     """Freeze a terminal result; never changes the fight winner or turn loop."""
     _transaction(db)
@@ -234,6 +262,45 @@ def finalize(
         if eligible
         else 0
     )
+    from wakfu_server.combat_boss_score_policy import (
+        OGREST_SCORE,
+        native_score_policy,
+        score_drop_rate_bp,
+    )
+
+    native_policy = native_score_policy(authority)
+    if native_policy is not None:
+        minimum = _integer(
+            authority["minimum_score"],
+            "native score minimum",
+            native_policy.minimum_score,
+        )
+        if native_policy == OGREST_SCORE:
+            if winning_team == authority["player_team"]:
+                terminal = terminal_authority
+                if (
+                    not isinstance(terminal, dict)
+                    or terminal.get("policy") != OGREST_SCORE.name
+                    or terminal.get("result") != "victory"
+                    or str(terminal.get("boss_id")) not in authority["bosses"]
+                    or terminal.get("actor_id") not in authority["player_ids"]
+                    or terminal.get("table") not in (19, 20)
+                    or terminal.get("source") != "actual_owned_player_turn_end"
+                    or terminal.get("area_reference") != 1255
+                    or terminal.get("score") != score
+                ):
+                    raise ValueError(
+                        "Ogrest result requires its actual earned terminal exit"
+                    )
+            elif terminal_authority is not None:
+                raise ValueError("Defeated Ogrest team cannot claim exit authority")
+            if score < max(minimum, native_policy.loot_minimum_score):
+                eligible = (
+                    False  # A genuine low-score exit still retains its raw score.
+                )
+        elif not boss_defeated or score < minimum:
+            eligible = False
+            score = 0
     result = dict(
         policy=POLICY,
         score=score,
@@ -243,6 +310,13 @@ def finalize(
         winning_team=winning_team,
         boss_defeated=boss_defeated,
     )
+    if native_policy == OGREST_SCORE and terminal_authority is not None:
+        result["native_terminal_authority"] = dict(terminal_authority)
+    if native_policy is not None:
+        result["encounter_controller"] = native_policy.name
+        if eligible and native_policy.drop_score_step:
+            result["boss_score_drop_rate_bp"] = score_drop_rate_bp(native_policy, score)
+            result["boss_score_drop_source"] = native_policy.drop_source
     db.execute(
         "INSERT INTO boss_score_terminal_receipts(fight_id,snapshot,score) VALUES(%s,%s,%s)",
         (fight_id, Jsonb(result), score),
@@ -266,4 +340,26 @@ def drop_context(db, fight_id):
     score = _integer(row["score"], "terminal score")
     if score != row["snapshot"].get("score"):
         raise ValueError("Boss score receipt disagrees with terminal authority")
-    return {"score": score}
+    context = {"score": score}
+    terminal = row["snapshot"]
+    if "boss_score_drop_rate_bp" in terminal:
+        from wakfu_server.combat_boss_score_policy import NOX_SCORE, score_drop_rate_bp
+
+        rate = terminal["boss_score_drop_rate_bp"]
+        if (
+            terminal.get("encounter_controller") != NOX_SCORE.name
+            or terminal.get("boss_score_drop_source") != NOX_SCORE.drop_source
+            or type(rate) is not int
+            or rate != score_drop_rate_bp(NOX_SCORE, score)
+        ):
+            raise ValueError("Boss score drop multiplier lost terminal authority")
+        context["boss_score_drop_rate_bp"] = rate
+    from wakfu_server.combat_boss_score_policy import NOX_SCORE
+
+    if terminal.get("encounter_controller") == NOX_SCORE.name:
+        from wakfu_server.combat_nox_complex_loot_policy import terminal_drop_context
+
+        permission = terminal_drop_context(db, terminal)
+        if permission is not None:
+            context["nox_complex_loot"] = permission
+    return context

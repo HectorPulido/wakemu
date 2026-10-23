@@ -1,5 +1,10 @@
 """Native faY environmental snapshots with an explicit local placement policy."""
-import struct
+from .combat_encounter_glyph_bootstrap import (
+    point_glyph_row,
+    point_glyph_section,
+    prepare_declared_glyphs,
+    validate_point_prototype,
+)
 
 POLICY = "wakemu.compact-interior-range-v1"
 SOURCE = "buK.cvb.myK.fec.fbm.null_owner.faY"
@@ -8,10 +13,32 @@ REFERENCE = 910
 
 def prepare_environment_glyphs(fight, arena, terrain_identity):
     """Choose one free interior point; this is local policy, not official layout."""
+    if arena.get("native_initial_glyphs") is not None:
+        from .combat_effect_area import native_effect_areas
+
+        fight.native_environment_glyph_constructors = prepare_declared_glyphs(
+            fight,
+            arena,
+            terrain_identity,
+            native_effect_areas(),
+        )
+        return
     if arena.get("native_border_policy") is None:
         return
-    from .combat_battleground_border import POLICY as BORDER_POLICY
+    from .combat_battleground_border import (
+        POLICY as BORDER_POLICY,
+        RECONSTRUCTED_POLICY,
+        DECLARED_COMPONENT_POLICY,
+    )
 
+    if arena.get("native_border_policy") in (
+        RECONSTRUCTED_POLICY,
+        DECLARED_COMPONENT_POLICY,
+    ):
+        # A reconstructed encounter declares its own environment. The generic
+        # compact-map910 glyph has no content authority in that scene.
+        fight.native_environment_glyph_constructors = []
+        return
     if arena.get("native_border_policy") != BORDER_POLICY:
         raise ValueError("Unknown interior placement terrain policy")
     if type(terrain_identity) is not int:
@@ -45,18 +72,19 @@ def verify_environment_glyph(fight, row):
     original = next(
         (source for source in constructors if source.get("uid") == row.get("uid")), None
     )
+    declared = original is not None and bool(original.get("authority"))
     if (
         original is None
-        or original.get("policy") != POLICY
+        or (not declared and original.get("policy") != POLICY)
         or original.get("source") != SOURCE
         or tuple(original.get("cell", ())) != tuple(row.get("cell", ()))
-        or original.get("reference") != REFERENCE
+        or (not declared and original.get("reference") != REFERENCE)
         or row.get("native_environment_source") != SOURCE
-        or row.get("native_environment_policy") != POLICY
-        or row.get("reference") != REFERENCE
+        or row.get("native_environment_policy") != original.get("policy")
+        or row.get("reference") != original.get("reference")
         or row.get("native_area_contract") != "faY"
         or row.get("owner_id") is not None
-        or row.get("level") != 0
+        or row.get("level") != original.get("level", 0)
         or row.get("direction") != -1
         or tuple(row.get("cell", ())) not in fight.walkable
         or tuple(row.get("cell", ())) in getattr(fight, "native_border_cells", ())
@@ -79,49 +107,28 @@ def ensure_environment_glyphs(fight):
             continue
         if getattr(fight, "native_environment_glyphs_installed", False):
             continue  # A removed native Qq must not be reconstructed by a factory.
-        definition = native_effect_areas().get(str(REFERENCE), {})
-        if (
-            source.get("source") != SOURCE
-            or source.get("policy") != POLICY
-            or source.get("reference") != REFERENCE
-            or definition.get("type") != "GLYPH"
-            or definition.get("native_shape_class") != "anD"
-            or definition.get("raw_bdh") != []
-            or definition.get("native_area_properties") != [4]
-            or definition.get("effect_ids") != [152452]
-            or definition.get("entry_masks") != [10001, 10008, 10000]
-            or definition.get("exit_masks") != [10002]
+        definition = native_effect_areas().get(str(source["reference"]), {})
+        declared = bool(source.get("authority"))
+        if declared:
+            validate_point_prototype(definition, level=source.get("level", 0))
+            if not source.get("policy", "").startswith("wakemu."):
+                raise ValueError("Missing declared native glyph placement policy")
+        if source.get("source") != SOURCE or (
+            not declared
+            and (
+                source.get("policy") != POLICY
+                or source.get("reference") != REFERENCE
+                or definition.get("type") != "GLYPH"
+                or definition.get("native_shape_class") != "anD"
+                or definition.get("raw_bdh") != []
+                or definition.get("native_area_properties") != [4]
+                or definition.get("effect_ids") != [152452]
+                or definition.get("entry_masks") != [10001, 10008, 10000]
+                or definition.get("exit_masks") != [10002]
+            )
         ):
             raise ValueError("Missing native environmental glyph prototype")
-        cell = tuple(source["cell"])
-        row = dict(
-            uid=identity,
-            reference=REFERENCE,
-            cell=cell,
-            level=0,
-            owner_id=None,
-            direction=-1,
-            keep_after=False,
-            native_hour_contract=False,
-            native_area_contract="faY",
-            native_qq_bhi=False,
-            native_qq_guard_source="Qq.constructor",
-            native_obstacle_id=-1,
-            native_obstacle_source="fbm.constructor",
-            native_type_id=definition["native_type_id"],
-            native_removal_masks=(),
-            native_cells_xy=(cell[:2],),
-            native_geometry_reference=(0, 0, 0),
-            native_geometry_reference_source="Qq.bcT.bcU_bcV_bcW",
-            remaining_activations=definition["raw_bde"],
-            native_running_effect_manager=False,
-            child_effect_uids={},
-            executing=False,
-            native_fight_affiliation=-1,
-            native_fight_affiliation_source="faV.constructor.null_owner",
-            native_environment_source=SOURCE,
-            native_environment_policy=POLICY,
-        )
+        row = point_glyph_row(source, definition)
         verify_environment_glyph(fight, row)
         fight.native_effect_areas[identity] = row
         register_global_area(fight, identity)
@@ -152,9 +159,10 @@ def environment_sections(fight, *, viewer_id=None):
         # faY910 aQc initializes rMq=false. Explicit faY.fTl appearance keeps
         # the aBn reference (0,0,0); the point shape ignores that reference.
         sections.append(
-            struct.pack(
-                ">qqiihqhib", REFERENCE, source["uid"], *cell, visual_owner, 0, -1, -1
+            point_glyph_section(
+                source,
+                cell=cell,
+                visual_owner=0 if source.get("authority") else visual_owner,
             )
-            + struct.pack(">Biihb", 0, 0, 0, 0, -1)
         )
     return sections

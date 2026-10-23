@@ -19,7 +19,7 @@ def _message(field, value):
     return proto_field((field << 3) | 2, value)
 
 
-def _loots(rows):
+def _loots(rows, *, field=7):
     """Encode committed FightLoot entries; item instances travel separately."""
     if not isinstance(rows, (list, tuple)):
         raise ValueError("Invalid committed loot list")
@@ -40,7 +40,7 @@ def _loots(rows):
             raise ValueError("Invalid native committed loot fields")
         output.extend(
             _message(
-                7,
+                field,
                 _number(1, reference)
                 + _number(2, quantity)
                 + _number(3, int(purse))
@@ -118,7 +118,35 @@ def _monster(actor, metadata):
 
     breed = metadata.get("ref")
     reference(breed)
-    return _number(1, actor.id) + _number(3, breed) + _number(6, 1)
+    output = _number(1, actor.id) + _number(3, breed) + _number(6, 1)
+    account = metadata.get("owner_account_id")
+    if account is not None:
+        if type(account) is not int or account <= 0:
+            raise ValueError("Invalid companion report owner")
+        output += _number(2, account)
+        output += _loots(metadata.get("loots", ()), field=4)
+        info = metadata.get("xp_info")
+        if info is not None:
+            from wakfu_server.characters.companions import level_for_xp
+
+            end, won = info["end_xp"], info["won_xp"]
+            start_level, end_level = info["start_level"], info["end_level"]
+            if (
+                type(end) is not int
+                or type(won) is not int
+                or not 0 <= won <= end < 2**63
+                or start_level != level_for_xp(end - won)
+                or end_level != level_for_xp(end)
+            ):
+                raise ValueError("Invalid committed companion XP receipt")
+            output += _message(
+                5,
+                _number(1, end)
+                + _number(2, won)
+                + _number(5, start_level)
+                + _number(6, end_level),
+            )
+    return output
 
 
 def fight_report(

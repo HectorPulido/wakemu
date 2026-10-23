@@ -359,11 +359,15 @@ def _genesis(db, groups, map_id, instance_id, region_id, *, players=(), prepared
         raise ValueError(
             "Administrative group minimum exceeds reproduction roster capacity"
         )
-    from .monster_population_capacity import snapshot
+    from .monster_population_capacity import snapshot, physical_cells
 
     capacity = snapshot(db, map_id, instance_id)
     rows = capacity["groups"]
-    occupied, counts, regional_groups = set(), Counter(), []
+    occupied, counts, regional_groups = (
+        set(physical_cells(db, map_id, instance_id)),
+        Counter(),
+        [],
+    )
     for row in rows + capacity["reservations"]:
         regional_members = []
         for member in row["members"]:

@@ -5,8 +5,16 @@ two full inventories. Whole units keep UID; splits use the shared allocator.
 Only identical native stack metadata can merge. No client slots are trusted.
 """
 from copy import deepcopy
-from psycopg import sql
+from . import item_custody_metadata
 from .inventory_move import STACKS
+
+
+def _metadata_identity(item):
+    metadata = item_custody_metadata.identity(item.get("_custody_metadata", {}))
+    # The caller already resolved template/default and explicit binding into
+    # `bound`. An absent default row and the same explicit value are equivalent.
+    metadata.pop("inventory_item_bindings", None)
+    return metadata
 
 
 def _same_stack(first, second):
@@ -17,11 +25,23 @@ def _same_stack(first, second):
         and first["reference"] == second["reference"]
         and "mount" not in first
         and "mount" not in second
+        and "pet" not in first
+        and "pet" not in second
+        and "companion_xp" not in first
+        and "companion_xp" not in second
         and first.get("shard_state") is None
         and second.get("shard_state") is None
+        and "random_item_use_counters" not in first.get("_custody_metadata", {})
+        and "random_item_use_counters" not in second.get("_custody_metadata", {})
+        and _metadata_identity(first) == _metadata_identity(second)
         and all(
             first.get(key) == second.get(key)
-            for key in ("damage_elements", "resistance_elements", "bound")
+            for key in (
+                "damage_elements",
+                "resistance_elements",
+                "bound",
+                "appearance_ref",
+            )
         )
     )
 
@@ -58,7 +78,12 @@ def plan(items, containers, offers, *, allocate, excluded_uids=()):
         if quantity == source["quantity"]:
             del final[uid]
         else:
-            if "mount" in source or source.get("shard_state") is not None:
+            if (
+                "mount" in source
+                or "pet" in source
+                or "companion_xp" in source
+                or source.get("shard_state") is not None
+            ):
                 raise ValueError("Mount or socketed item cannot be split")
             final[uid]["quantity"] -= quantity
             unit["uid"] = allocate()
@@ -145,22 +170,7 @@ def apply(db, original, final):
     split units copy it to the allocated UID without rerolling or reinitializing.
     """
     by_uid = {row["uid"]: row for row in original}
-    metadata = {}
-    for table in (
-        "inventory_item_elements",
-        "inventory_item_shards",
-        "inventory_item_bindings",
-        "inventory_mounts",
-    ):
-        metadata[table] = {
-            row["uid"]: dict(row)
-            for row in db.execute(
-                sql.SQL(
-                    "SELECT * FROM {} WHERE uid=ANY(%s) ORDER BY uid FOR UPDATE"
-                ).format(sql.Identifier(table)),
-                (list(by_uid),),
-            )
-        }
+    metadata = item_custody_metadata.snapshot_many(db, by_uid)
     removed = [
         uid
         for uid, row in by_uid.items()
@@ -184,17 +194,6 @@ def apply(db, original, final):
             tuple(row[key] for key in fields),
         )
         source_uid = row.get("split_source_uid", uid)
-        for table, records in metadata.items():
-            record = records.get(source_uid)
-            if record is None:
-                continue
-            copied = dict(record, uid=uid)
-            columns = list(copied)
-            db.execute(
-                sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
-                    sql.Identifier(table),
-                    sql.SQL(",").join(map(sql.Identifier, columns)),
-                    sql.SQL(",").join(sql.Placeholder() for column in columns),
-                ),
-                tuple(copied[column] for column in columns),
-            )
+        item_custody_metadata.restore(
+            db, item_custody_metadata.clone(metadata[source_uid], uid)
+        )

@@ -219,7 +219,8 @@ def arena(
     *,
     obstacle_values=None,
     surface_indices=None,
-    border_cells=()
+    border_cells=(),
+    gap_surface_indices=None,
 ):
     """Build a bounded arena from prevalidated (x,y,z) client-map cells.
 
@@ -227,6 +228,8 @@ def arena(
     cells receive the QI blocked bit0x100. Only two placement teams0/1 are supported.
     Native producers supply complete XY surface indices. Omission is reserved
     for synthetic fixtures whose selected surface is explicitly index zero.
+    An explicit gap selection must come from validated native empty Vy/Vz
+    columns; it remains unplaced and path-blocked, independently of LOS.
     """
     cells = list(cells)
     if not cells or len({(x, y) for x, y, z in cells}) != len(cells):
@@ -239,6 +242,21 @@ def arena(
     masks = [0x100] * (width * height)
     flags = bytearray([255] * len(masks))
     available = {(x, y): z for x, y, z in cells}
+    if gap_surface_indices is not None:
+        if not isinstance(gap_surface_indices, dict) or any(
+            not isinstance(key, tuple)
+            or len(key) != 2
+            or any(type(value) is not int for value in key)
+            or key in available
+            or not x0 <= key[0] <= x1
+            or not y0 <= key[1] <= y1
+            or type(index) is not int
+            or not 0 <= index <= 63
+            for key, index in gap_surface_indices.items()
+        ):
+            raise ValueError("Invalid native empty-gap surface selection")
+        for (x, y), index in gap_surface_indices.items():
+            masks[(y - y0) * width + x - x0] = 0x200 | index
     if surface_indices is not None and (
         not isinstance(surface_indices, dict)
         or set(surface_indices) != set(available)

@@ -82,6 +82,17 @@ def persist(db, fight):
 
 def finish_survival(fight):
     profile = getattr(fight, "boss_score_profile", None)
+    from wakfu_server.combat_boss_score_policy import OGREST_SCORE, native_score_policy
+
+    if native_score_policy(profile) is not None:
+        return False  # Reviewed native terminal callbacks own these encounters.
+    if profile is not None and any(
+        row.get("reference") == OGREST_SCORE.reference
+        for row in profile.get("bosses", {}).values()
+    ):
+        # An older profile without the owned exit director has no authority to
+        # replace Ogrest's actual final-cell producer with survival alone.
+        return False
     if profile is None or fight.native_timeline_round <= profile["round_limit"]:
         return False
     alive = any(
@@ -94,6 +105,30 @@ def finish_survival(fight):
     return True
 
 
+def staged_score(fight):
+    """Sum the same validated per-runner receipts persisted by this module."""
+    profile = fight.boss_score_profile
+    total = 0
+    for key, event in fight.boss_score_events.items():
+        if (
+            key != event["event_id"]
+            or str(event["target_id"]) not in profile["bosses"]
+            or event["owner_actor_id"] not in profile["player_ids"]
+            or type(event["round_number"]) is not int
+            or not 1 <= event["round_number"] <= profile["round_limit"]
+            or (
+                event["source_id"] != event["owner_actor_id"]
+                and event["source_is_registered_summon"] is not True
+            )
+        ):
+            raise ValueError("Staged boss score receipt changed ownership")
+        amounts = (event["post_mitigation_damage"], event["armor_absorbed"])
+        if any(type(amount) is not int or amount < 0 for amount in amounts):
+            raise ValueError("Invalid staged boss score damage")
+        total += sum(amounts)
+    return total
+
+
 def finalize(db, fight):
     profile = getattr(fight, "boss_score_profile", None)
     if profile is None:
@@ -103,12 +138,22 @@ def finalize(db, fight):
         identity in fight.actors and fight._in_play(fight.actors[identity])
         for identity in profile["player_ids"]
     )
+    terminal_authority = None
+    from wakfu_server.combat_boss_score_policy import OGREST_SCORE, native_score_policy
+
+    if native_score_policy(profile) == OGREST_SCORE:
+        from wakfu_server.combat_ogrest_phase_controller import (
+            ogrest_terminal_authority,
+        )
+
+        terminal_authority = ogrest_terminal_authority(fight)
     return boss_score.finalize(
         db,
         fight.id,
         completed_rounds=max(0, fight.native_timeline_round - 1),
         survived=survived,
         winning_team=fight.winner,
+        terminal_authority=terminal_authority,
         boss_defeated=all(
             int(identity) in fight.actors
             and fight.actors[int(identity)].hp <= 0

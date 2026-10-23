@@ -196,7 +196,16 @@ def follow_main(db, store, account_id, generation, main_character_id):
             "WHERE id=%s AND account_id=%s",
             tuple(roster["leader"][key] for key in keys) + (identity, account_id),
         )
-        companions.append(dict(hero, **{key: roster["leader"][key] for key in keys}))
+        from wakfu_server.guild_haven_world import project_character
+
+        companions.append(
+            project_character(
+                db, dict(hero, **{key: roster["leader"][key] for key in keys})
+            )
+        )
+    from wakfu_server.haven_world_travel import follow_company_visit
+
+    follow_company_visit(db, main_character_id, [hero["id"] for hero in companions])
     return dict(roster, heroes=tuple(companions))
 
 
@@ -222,8 +231,12 @@ def add(store, account_id, generation, main_character_id, hero_id):
         _outside_combat(db, identities)
         if any(r["id"] == hero_id for r in roster["heroes"]):
             return dict(roster, applied=False)
-        if len(roster["heroes"]) >= NATIVE_HERO_CAP:
-            raise ValueError("Native hero slots are full")
+        sidekick_count = db.execute(
+            "SELECT count(*) AS n FROM account_companion_slots WHERE account_id=%s",
+            (account_id,),
+        ).fetchone()["n"]
+        if len(roster["heroes"]) + sidekick_count >= NATIVE_HERO_CAP:
+            raise ValueError("Native company slots are full")
         if db.execute(
             "SELECT 1 FROM player_party_members WHERE character_id=%s", (hero_id,)
         ).fetchone():
@@ -256,7 +269,17 @@ def add(store, account_id, generation, main_character_id, hero_id):
             "WHERE m.party_id=%s",
             (party["id"],),
         ).fetchall()
-        augment_party(db, store, party_rows)
+        human_rows = augment_party(db, store, party_rows)
+        from wakfu_server.companions import controlled_count
+
+        if (
+            len(human_rows) + controlled_count(db, [row["id"] for row in party_rows])
+            > 6
+        ):
+            raise ValueError("Native party including companions exceeds six members")
+        from wakfu_server.consumable_world_lifecycle import company_membership
+
+        company_membership(store, db, account_id, generation, (), (hero_id,))
         return dict(load_roster(db, store, account_id, main_character_id), applied=True)
 
 
@@ -295,6 +318,9 @@ def remove(store, account_id, generation, main_character_id, hero_id):
             (account_id, hero_id),
         ).fetchone()
         if removed:
+            from wakfu_server.consumable_world_lifecycle import company_membership
+
+            company_membership(store, db, account_id, generation, (hero_id,), ())
             db.execute(
                 "UPDATE account_hero_rosters SET revision=revision+1 WHERE account_id=%s",
                 (account_id,),
@@ -319,6 +345,16 @@ def select_main(store, account_id, generation, main_character_id, *, db=None):
             "SELECT * FROM account_hero_rosters WHERE account_id=%s FOR UPDATE",
             (account_id,),
         ).fetchone()
+        previous_members = set()
+        if row is not None:
+            previous_members.add(row["leader_id"])
+            previous_members.update(
+                entry["character_id"]
+                for entry in db.execute(
+                    "SELECT character_id FROM account_hero_slots WHERE account_id=%s ORDER BY slot",
+                    (account_id,),
+                ).fetchall()
+            )
         if row is None:
             _fence(db, store, account_id, generation, main_character_id)
         elif row["leader_id"] != main_character_id:
@@ -357,6 +393,19 @@ def select_main(store, account_id, generation, main_character_id, *, db=None):
                     "revision=revision+1 WHERE id=%s",
                     (row["leader_id"], main_character_id, membership["party_id"]),
                 )
+        from wakfu_server.consumable_world_lifecycle import company_membership
+
+        current_members = {main_character_id}
+        current_members.update(
+            entry["character_id"]
+            for entry in db.execute(
+                "SELECT character_id FROM account_hero_slots WHERE account_id=%s ORDER BY slot",
+                (account_id,),
+            ).fetchall()
+        )
+        company_membership(
+            store, db, account_id, generation, previous_members, current_members
+        )
         return load_roster(db, store, account_id, main_character_id)
 
 
@@ -506,6 +555,8 @@ def ensure_company_party(store, account_id, generation, main_character_id):
             (account_id,),
         ).fetchone()
         roster = load_roster(db, store, account_id, main_character_id)
-        if roster["heroes"]:
+        from wakfu_server.companions import controlled_count
+
+        if roster["heroes"] or controlled_count(db, [main_character_id]):
             _ensure_party(db, main_character_id)
         return roster

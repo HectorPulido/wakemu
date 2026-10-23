@@ -19,24 +19,38 @@ def _hmi(actions, *, root):
         return False
     if root:
         return not any(actions.values())
-    if actions["rzc"] or actions["rzd"] or actions["rzg"]:
+    if actions["rzd"] or actions["rzg"]:
         return False
-    if actions["rze"] != actions["rzf"] or actions["rze"] != actions["rzh"]:
+    # Original bfb.b uses fKV/rzc before application; bfb.c uses i/rze
+    # for retained application. Both share the g/rzf native removal route.
+    # The original cjj packet consumer supports either exact phase vector,
+    # but simultaneous pre- and post-application would apply twice.
+    if bool(actions["rzc"]) and bool(actions["rze"]):
         return False
-    # Pn/Px -> bfb -> owned costume/skin-visibility stacks establish these
-    # exact install/reapply/remove routes by the original effect definition.
-    # Other presentation families need their own native consumer evidence.
+    installed = actions["rzc"] or actions["rze"]
+    if installed != actions["rzf"] or installed != actions["rzh"]:
+        return False
+    # Pn/Px/Pp/Pk -> bfb use independent owned cosmetic stacks. Original
+    # Pp hides equipment presentation, not its statistics or actor targeting.
+    # Pk clamps visual scale in the original renderer and never changes the
+    # native actor footprint. Keep every original action and phase intact.
     return all(
         isinstance(row, dict)
         and set(row) == {"id", "type", "native", "aYc", "aYd"}
         and type(row["id"]) is int
         and row["id"] > 0
-        and row["type"] in ("COSTUME", "SKIN_PART_VISIBILITY")
+        and row["type"]
+        in (
+            "COSTUME",
+            "SKIN_PART_VISIBILITY",
+            "HIDE_ALL_EQUIPMENTS",
+            "SCALE_MODIFICATION",
+        )
         and isinstance(row["native"], str)
         and bool(row["native"])
         and row["aYc"] is False
         and row["aYd"] is False
-        for row in actions["rze"]
+        for row in installed
     )
 
 
@@ -51,6 +65,10 @@ def _criterion(text):
         return False
 
     def qualified(value):
+        # Literal False is an original disabled branch, evaluated by the
+        # existing criterion gate; its definition is preserved, not removed.
+        if isinstance(value, ast.Constant) and value.value is False:
+            return True
         if isinstance(value, ast.BoolOp) and isinstance(value.op, ast.And):
             return all(qualified(child) for child in value.values)
         if isinstance(value, ast.Call):
@@ -158,8 +176,8 @@ def _metadata(effect, *, root):
         # These roots enter only through native eHi's explicit owned SELF call.
         return (
             selector.get("mask") in (0, 2)
-            and effect["area_native"] == "empty"
-            and effect["area_class"] == "anA"
+            and (effect["area_native"], effect["area_class"])
+            in (("empty", "anA"), ("point", "anD"))
             and effect["native_definition_class"] == "eVE"
             and effect["native_execution_mode"] == 0
             and tuple(effect["native_effect_flags"]) == ()
@@ -184,20 +202,37 @@ def _metadata(effect, *, root):
         and selector["mask"] in (0, 1)
         and effect["area_native"] == "point"
         and effect["area_class"] == "anD"
-        and effect["native_definition_class"] == "eVy"
-        and effect["native_execution_mode"] == 2
-        and tuple(effect["native_effect_flags"]) == (15,)
-        and timing
-        == {
-            "esr": False,
-            "ryE": -1,
-            "ryF": 0.0,
-            "ryG": False,
-            "ryH": 0,
-            "ryI": 0.0,
-            "clock_on_caster": False,
-            "clock_on_target": True,
-        }
+        # Original eXE.c is empty and neither eXE nor eZR consumes
+        # BUFF_BYPASS_OUT_FIGHT_MAX17. Preserve the source flag rather
+        # than rewriting it to CAN_BE_EXECUTED_ON_KO15; generic target
+        # guards and the actual retained definition remain engine-owned.
+        and tuple(effect["native_effect_flags"]) in ((15,), (17,))
+        and (
+            (effect["native_definition_class"], effect["native_execution_mode"])
+            == ("eVy", 2)
+            and timing
+            == {
+                "esr": False,
+                "ryE": -1,
+                "ryF": 0.0,
+                "ryG": False,
+                "ryH": 0,
+                "ryI": 0.0,
+                "clock_on_caster": False,
+                "clock_on_target": True,
+            }
+            or (
+                (effect["native_definition_class"], effect["native_execution_mode"])
+                == ("eVH", 1)
+                and timing
+                == {
+                    "rzv": -1,
+                    "rzw": 0.0,
+                    "clock_on_caster": False,
+                    "clock_on_target": True,
+                }
+            )
+        )
         and _criterion(effect["criteria"])
     )
 
@@ -226,7 +261,7 @@ def permanent_null_carrier_contract(source, compiled, registry):
         if (
             not isinstance(definition, dict)
             or type(definition.get("maximum_level")) is not int
-            or definition["maximum_level"] not in (1, 2)
+            or not 1 <= definition["maximum_level"] <= 32767
             or applied_level != 1
             or chance != -1
         ):
@@ -241,10 +276,14 @@ def permanent_null_carrier_contract(source, compiled, registry):
             "duration_per_level": 0,
             "realtime_duration_base": -1000,
             "realtime_duration_per_level": 0,
-            "skip_turn_timer": False,
             "tick_at_turn_end": False,
         }
-        if any(definition.get(key) != value for key, value in expected.items()):
+        # eZk.bbX retains either original cxj value with these negative
+        # clocks; schedule_state_timer creates no timer for duration -1.
+        # Keep the actual flag in the state ledger and protocol payload.
+        if type(definition.get("skip_turn_timer")) is not bool or any(
+            definition.get(key) != value for key, value in expected.items()
+        ):
             return "null_carrier_unqualified_state_clock_or_stack"
         for state_level in range(definition["maximum_level"] + 1):
             state = state_profile(compiled.source_states, state_id, state_level)

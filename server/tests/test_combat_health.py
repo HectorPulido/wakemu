@@ -6,6 +6,8 @@ from postgres_case import PostgresCase
 from tests import test_combat_rewards
 from wakfu_server import health_store, health_policy, health
 from wakfu_server.combat_health import persist, persist_aborted_fight
+from wakfu_server.consumable_buffs import apply_states, enter_combat, snapshot
+from wakfu_server.combat_rewards import Policy, award
 
 
 class FightExitHealthTests(PostgresCase):
@@ -490,4 +492,91 @@ class FightExitHealthTests(PostgresCase):
             reopened = self.reopen().character(account, character["id"])
             self.assertEqual(
                 (reopened["max_hp"], reopened["hp"], reopened["hp_damage"]), (60, 55, 5)
+            )
+
+    def test_finished_health_receipt_emits_consumable_counters_once(self):
+        store, account, character, generation, fight = self.state("unused")
+        with store.connection() as db:
+            for reference in (5010, 9811):
+                row = db.execute(
+                    "SELECT plan->'states'->0 AS state FROM native_consumable_actions WHERE item_ref=%s",
+                    (reference,),
+                ).fetchone()
+                apply_states(
+                    store,
+                    db,
+                    character["id"],
+                    [row["state"]],
+                    source_item_ref=reference,
+                    source_item_uid=reference,
+                    generation=generation,
+                )
+            enter_combat(store, db, character["id"], fight.id, generation=generation)
+        before = snapshot(store, character["id"])
+        fight.native_class_initializations = {}
+        fight.native_consumable_initializations = {character["id"]: ()}
+        updates = [
+            dict(
+                uid=state["uid"],
+                state_id=state["state_id"],
+                removed=False,
+                level=state["level"],
+                clock=state["clock"],
+                remaining_ms=state["remaining_ms"],
+            )
+            for state in before
+        ]
+        reward = award(store, account, generation, character["id"], fight, Policy(xp=1))
+        self.assertTrue(reward["awarded"])
+        with patch(
+            "wakfu_server.combat_consumable_states.returning_states",
+            return_value=tuple(updates),
+        ):
+            first = persist(store, account, generation, character, fight)
+            self.assertTrue(first["applied"])
+            current = {row["state_id"]: row for row in snapshot(store, character["id"])}
+            self.assertEqual(current[4436]["level"], 4)
+            self.assertNotIn(732, current)
+            duplicate = persist(store, account, generation, character, fight)
+        self.assertFalse(duplicate["applied"])
+        current = {row["state_id"]: row for row in snapshot(store, character["id"])}
+        self.assertEqual(current[4436]["level"], 4)
+        self.assertNotIn(732, current)
+
+    def test_placement_abort_does_not_emit_fight_end_consumable_counters(self):
+        store, account, character, generation, fight = self.state("unused")
+        fight.phase = "active"
+        fight.winner = None
+        with store.connection() as db:
+            db.execute(
+                "UPDATE combat_fights SET status='placement' WHERE id=%s", (fight.id,)
+            )
+            for reference in (5010, 9811):
+                descriptor = db.execute(
+                    "SELECT plan->'states'->0 AS state FROM native_consumable_actions WHERE item_ref=%s",
+                    (reference,),
+                ).fetchone()["state"]
+                apply_states(
+                    store,
+                    db,
+                    character["id"],
+                    [descriptor],
+                    source_item_ref=reference,
+                    source_item_uid=reference,
+                    generation=generation,
+                )
+            enter_combat(store, db, character["id"], fight.id, generation=generation)
+
+        result = persist_aborted_fight(store, account, generation, character, fight)
+
+        self.assertTrue(result["applied"])
+        current = {row["state_id"]: row for row in snapshot(store, character["id"])}
+        self.assertEqual(current[4436]["level"], 5)
+        self.assertIn(732, current)
+        with store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (fight.id,)
+                ).fetchone()["status"],
+                "aborted",
             )

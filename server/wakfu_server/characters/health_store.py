@@ -44,9 +44,15 @@ def initialize(
     borrowed = db is not None
     with nullcontext(db) if borrowed else store.connection() as db:
         character = _owned(store, db, account_id, generation, character_id)
+        from wakfu_server.equipment_hp_lifecycle import reconcile_selected_build
+
+        reconcile_selected_build(db, character)
+        character = store.character(account_id, character_id, db)
         from .equipment_stats import effective_character
 
-        maximum = effective_character(character)["max_hp"]
+        maximum = effective_character(character, include_consumable_buffs=True)[
+            "max_hp"
+        ]
         if exploration:
             from .acknowledged_return_health import reconcile
 
@@ -54,7 +60,7 @@ def initialize(
         hp = health_policy.reconfigure(db, character, maximum)
         if exploration:
             coefficient = health.exploration_coefficient(maximum, hp)
-        if hp == 0:
+        if hp == 0 and character["health_dead"]:
             coefficient = 0  # A dead character waits for explicit resurrection.
         health.packet(character_id, hp, coefficient)
         db.execute(
@@ -62,7 +68,10 @@ def initialize(
             "initial_hp=excluded.initial_hp,started_at=excluded.started_at,coefficient=excluded.coefficient,last_at=excluded.last_at",
             (character_id, hp, timestamp(now_ms), coefficient, timestamp(now_ms)),
         )
-        return store.character(account_id, character_id, db)
+        character = store.character(account_id, character_id, db)
+        from wakfu_server.territory_bonuses import reconcile_owned
+
+        return reconcile_owned(store, account_id, generation, character, db=db)
 
 
 def sync(
@@ -114,7 +123,7 @@ def tick(store, account_id, generation, character_id, expected_hp, *, now_ms=Non
             if session is None or session["character_id"] != character_id:
                 raise ValueError("Invalid health session")
             row = db.execute(
-                "SELECT id,account_id,breed,level,hp,max_hp,hp_damage,health_dead FROM characters WHERE id=%s AND account_id=%s",
+                "SELECT id,account_id,breed,level,hp,max_hp,hp_damage,health_dead,hp_zero_valid FROM characters WHERE id=%s AND account_id=%s",
                 (character_id, account_id),
             ).fetchone()
             if row is None:
@@ -166,7 +175,10 @@ def tick(store, account_id, generation, character_id, expected_hp, *, now_ms=Non
                 ) // health.REGEN_DENOMINATOR_MS
                 damage = max(0, state["initial_damage"] - gained)
             hp = health_policy.visible(
-                character["max_hp"], damage, character["health_dead"]
+                character["max_hp"],
+                damage,
+                character["health_dead"],
+                character["hp_zero_valid"],
             )
             return character, state, signature, hp, damage
 
@@ -176,7 +188,15 @@ def tick(store, account_id, generation, character_id, expected_hp, *, now_ms=Non
             character, state, signature, hp, damage = evaluate()
             if damage != character["hp_damage"]:
                 hp = health_policy.apply_damage(
-                    db, character, damage, character["health_dead"]
+                    db,
+                    character,
+                    damage,
+                    character["health_dead"],
+                    hp_zero_valid=(
+                        character["hp_zero_valid"]
+                        and damage >= character["max_hp"]
+                        and not character["health_dead"]
+                    ),
                 )
                 db.execute(
                     "UPDATE character_regeneration SET last_at=%s WHERE character_id=%s",

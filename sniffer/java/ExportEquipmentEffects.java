@@ -7,7 +7,7 @@ public class ExportEquipmentEffects {
  System.out.print("{\"source\":\"Installed bIJ/fpC effects, evaluated at item level by eVn.a\",\"items\":[");
  boolean[]first={true};apw.bGL().a(new aLO(),new apB<aLO>(){public void load(aLO raw){try{
  bJp item=new bIJ().f(raw);if(item.dLn()==null)return;
- var effects=new ArrayList<eVn>();item.gjg().forEachRemaining(effects::add);if(effects.isEmpty())return;
+ var effects=new ArrayList<eVn>();item.gjg().forEachRemaining(effects::add);
  if(!first[0])System.out.print(",");first[0]=false;
  System.out.print("{\"reference\":"+item.d()+",\"item_level\":"+item.cmZ()+",\"effects\":[");
  boolean f=true;for(eVn e:effects){if(!f)System.out.print(",");f=false;Object runner=eVi.fLJ().pS(e.awM()); PC stat=null;if(runner instanceof eWN n)stat=n.fNI();else if(runner instanceof eWW n)stat=n.fNI();

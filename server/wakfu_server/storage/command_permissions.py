@@ -4,6 +4,7 @@ PUBLIC_COMMANDS_SETTING = "player_allowed_commands"
 DEFAULT_PLAYER_COMMANDS = ("!ayuda", "!pos", "!astrub")
 ADMIN_ONLY_COMMANDS = frozenset(
     {
+        "!foodclear",
         "!nuke",
         "!nuke-all",
         "!genesis",
@@ -52,6 +53,10 @@ def authorize_command(store, account_id, text):
     if row is None:
         raise PermissionError("Cuenta desconocida")
     if row["is_admin"]:
+        return
+    # This command performs ordinary, lease-checked custody on the caller's
+    # already-open chest; it grants no development or remote-player access.
+    if command in ("!chest", "!merkamundo"):
         return
     if command in ADMIN_ONLY_COMMANDS:
         raise PermissionError(

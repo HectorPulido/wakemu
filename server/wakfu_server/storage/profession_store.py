@@ -112,7 +112,9 @@ def award(
     *,
     base_xp,
     operation,
-    territory_percent=0,
+    territory_percent=None,
+    action_category=None,
+    native_map_id=None,
 ):
     """Credit once inside the same transaction as the successful action reward.
 
@@ -126,8 +128,13 @@ def award(
         or not 0 <= base_xp < 2**63
         or type(operation) is not str
         or not 1 <= len(operation) <= 128
-        or type(territory_percent) is not int
-        or not -100 <= territory_percent <= 100
+        or (
+            territory_percent is not None
+            and (
+                type(territory_percent) is not int
+                or not -100 <= territory_percent <= 100
+            )
+        )
     ):
         raise ValueError("Invalid profession reward")
     _lease(store, db, account_id, generation, character_id)
@@ -157,9 +164,48 @@ def award(
         or not 0 <= policy["multiplier_basis_points"] <= 1_000_000
     ):
         raise ValueError("Invalid profession XP policy")
+    if territory_percent is None:
+        territory_percent = 0
+        if action_category in ("planting", "harvest"):
+            from wakfu_server.territory_bonuses import (
+                current_region,
+                profession_xp_percent,
+            )
+
+            # All native collection routes use the same regional job effect,
+            # including monster collection as well as flora collection.
+            character = store.character(account_id, character_id, db)
+            territory_percent = profession_xp_percent(
+                current_region(db, character),
+                action_category,
+            )
+    consumable_percent = 0
+    if action_category is not None:
+        categories = {
+            "recipe": "craft_xp",
+            "planting": "plant_xp",
+            "harvest": "collect_xp",
+        }
+        if action_category not in categories:
+            raise ValueError("Invalid profession reward action category")
+        from wakfu_server.profession_consumable_modifiers import modifiers
+        from wakfu_server.native_world_context import is_battleground
+
+        if native_map_id is None:
+            native_map_id = store.character(account_id, character_id, db)["map_id"]
+        consumable_percent = modifiers(
+            store,
+            db,
+            character_id,
+            profession_id,
+            generation=generation,
+            is_battleground=is_battleground(native_map_id),
+        )[categories[action_category]]
     # Native protector job effects are applied to the base reward first; the
     # configurable account-wide profession multiplier is applied afterward.
-    regional_base = base_xp * (100 + territory_percent) // 100
+    regional_base = (
+        base_xp * max(0, 100 + territory_percent + consumable_percent) // 100
+    )
     delta = min(
         MAX_XP - row["xp"],
         regional_base * policy["multiplier_basis_points"] // 10000,

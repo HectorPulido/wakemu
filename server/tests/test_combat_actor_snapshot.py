@@ -96,6 +96,23 @@ class ActorSnapshotTests(unittest.TestCase):
             )
         self.assertEqual(actor.spell_ap_cost_modifiers, {8: -1})
 
+    def test_install_preserves_declared_team_and_rejects_later_retagging(self):
+        for team in (0, 1):
+            with self.subTest(team=team):
+                character, actor = self.player()
+                actor.team = team
+                snapshot = build_player_snapshot(
+                    character, actor, wp_current=6, wp_maximum=6, running_effects=()
+                )
+                actor.team = 1 - team
+                with self.assertRaisesRegex(ValueError, "Actor team changed"):
+                    snapshot.install(actor)
+                self.assertIsNone(actor.effect_stats)
+                actor.team = team
+                snapshot.install(actor)
+                self.assertEqual(actor.team, team)
+                self.assertEqual(actor.effect_stats, snapshot.stats)
+
     def test_unknown_effects_and_unsupported_owned_sources_rejected(self):
         char, actor = self.player()
         with self.assertRaises(ValueError):

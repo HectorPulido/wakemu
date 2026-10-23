@@ -1,4 +1,4 @@
-"""Native outdoor ownership is stricter than walking reachability."""
+"""Native surfaces remain required regardless of regional family ownership."""
 import unittest
 from unittest.mock import patch
 
@@ -7,12 +7,12 @@ from wakfu_server.monster_initial_population import REGIONS
 
 
 class MonsterHabitatCellTests(unittest.TestCase):
-    def test_reported_gobball_border_cell_is_not_a_native_birth_surface(self):
+    def test_reported_gobball_border_surfaces_allow_births_across_regions(self):
         parent = dict(x=-162, y=-125, z=-4)
         self.assertTrue(
             habitat_destination_allowed(527, 0, (-162, -125, -4), parent=parent)
         )
-        self.assertFalse(
+        self.assertTrue(
             habitat_destination_allowed(527, 0, (-163, -125, -4), parent=parent)
         )
 
@@ -20,7 +20,7 @@ class MonsterHabitatCellTests(unittest.TestCase):
         self.assertTrue(habitat_destination_allowed(527, 17, (-163, -125, -4)))
         self.assertTrue(habitat_destination_allowed(999999, 0, (1, 2, 3)))
 
-    def test_known_outdoor_cell_requires_exact_native_region_height_and_family(self):
+    def test_known_outdoor_cell_requires_height_but_ignores_region_and_family(self):
         habitats = {
             (527, 7): {"monster_capacity": 50, "monster_families": [{"family_id": 68}]},
             (527, 8): {"monster_capacity": 50, "monster_families": [{"family_id": 68}]},
@@ -48,13 +48,36 @@ class MonsterHabitatCellTests(unittest.TestCase):
                     527, 0, (2, 2, -3), parent=parent, family_id=68
                 )
             )
-            self.assertFalse(
+            self.assertTrue(
                 habitat_destination_allowed(
                     527, 0, (10, 2, -4), parent=parent, family_id=68
                 )
             )
-            self.assertFalse(
+            self.assertTrue(
                 habitat_destination_allowed(
                     527, 0, (2, 2, -4), parent=parent, family_id=30
                 )
             )
+
+    def test_reported_gobballs_can_move_on_native_surface_in_another_family_region(
+        self,
+    ):
+        parent = dict(x=-45, y=16, z=0)
+        self.assertTrue(
+            habitat_destination_allowed(
+                546, 0, (-44, 16, 0), parent=parent, family_id=68
+            )
+        )
+
+    def test_unowned_native_surface_with_zero_capacity_is_allowed(self):
+        with patch.dict(
+            REGIONS,
+            {(527, 7): {"monster_capacity": 0, "monster_families": []}},
+            clear=True,
+        ), patch("wakfu_server.planting_cells.surface", return_value={"region_id": 0}):
+            self.assertTrue(habitat_destination_allowed(527, 0, (2, 2, -4)))
+
+    def test_invalid_coordinates_still_fail_surface_validation(self):
+        for destination in ((1.0, 2, 3), (True, 2, 3), (1, 2), None):
+            with self.subTest(destination=destination):
+                self.assertFalse(habitat_destination_allowed(527, 0, destination))

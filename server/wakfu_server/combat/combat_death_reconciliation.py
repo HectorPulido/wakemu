@@ -6,6 +6,7 @@ from dataclasses import dataclass
 class DeathReconciliationPlan:
     original_order: tuple[int, ...]
     current_id: int
+    current_index: int
     surviving_order: tuple[int, ...]
     alive_teams: frozenset[int]
 
@@ -20,6 +21,7 @@ def prepare_death_reconciliation(fight):
     return DeathReconciliationPlan(
         old_order,
         current_id,
+        fight.turn_index,
         tuple(uid for uid in old_order if uid in participating),
         frozenset(
             actor.team for actor in fight.actors.values() if actor.id in participating
@@ -41,16 +43,25 @@ def apply_death_reconciliation(fight, plan):
         fight.winner = next(iter(alive), None)
         fight._event("finished", winner=fight.winner)
     elif plan.current_id in fight.order:
-        fight.turn_index = fight.order.index(plan.current_id)
+        # Native additional turns deliberately repeat identities. Filtering
+        # preserves the current occurrence, not the first equal actor ID.
+        surviving = set(plan.surviving_order)
+        fight.turn_index = sum(
+            identity in surviving
+            for identity in plan.original_order[: plan.current_index]
+        )
     else:
-        start = plan.original_order.index(plan.current_id)
-        next_id = next(
-            plan.original_order[(start + offset) % len(plan.original_order)]
+        start = plan.current_index
+        next_slot = next(
+            (start + offset) % len(plan.original_order)
             for offset in range(1, len(plan.original_order) + 1)
             if plan.original_order[(start + offset) % len(plan.original_order)]
             in fight.order
         )
-        fight.turn_index = fight.order.index(next_id)
+        surviving = set(plan.surviving_order)
+        fight.turn_index = sum(
+            identity in surviving for identity in plan.original_order[:next_slot]
+        )
         fight.turn_id += 1
         fight._begin_turn()
 

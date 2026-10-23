@@ -32,6 +32,7 @@ class AptitudeHealingRuntimeTests(unittest.TestCase):
         second_player_position=(-7, -7, -1),
         compact_arena=True,
         initialization_seed=0,
+        caster_character=None,
     ):
         from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
         from wakfu_server.combat_global_pv_collections import (
@@ -112,14 +113,27 @@ class AptitudeHealingRuntimeTests(unittest.TestCase):
                 )
             ),
         }
+        if caster_character is not None:
+            # Supply real owned gear before snapshots and Ready initialization.
+            characters[7] = effective_character(caster_character)
+        from wakfu_server.equipment_stats import combat_resources
+
+        actor_resources = (
+            {
+                identity: combat_resources(characters[identity], wp=6)
+                for identity in (7, 8, 9)
+            }
+            if caster_character is not None
+            else None
+        )
         actors = [
             Actor(
                 identity,
                 0,
                 positions[identity],
                 characters[identity]["hp"],
-                6,
-                3,
+                6 if actor_resources is None else actor_resources[identity]["ap"],
+                3 if actor_resources is None else actor_resources[identity]["mp"],
                 initiative,
                 level,
                 characters[identity]["account_id"],

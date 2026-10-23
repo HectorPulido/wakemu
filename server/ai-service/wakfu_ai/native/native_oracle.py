@@ -118,8 +118,9 @@ class NativeOracle:
             from wakfu_server.combat_native_spell_casting import catalog
 
             amount = progress(actor, self.owned_spells(runtime.fight), catalog())
-            if amount:
-                builtin["owned_state_progress"] = amount
+            # Zero is a measured baseline. Omitting it makes the search treat
+            # later preparation as an unavailable feature rather than a gain.
+            builtin["owned_state_progress"] = amount
         if provider is None:
             return builtin or None
         check()
@@ -873,6 +874,10 @@ class NativeOracle:
         actor = private.fight.current
         if private.fight.phase != "active" or actor is None or actor.hp <= 0:
             raise ValueError("Missing active native actor")
+        if kind == "portal_travel":
+            from .native_portal_travel import apply_portal_travel
+
+            return apply_portal_travel(self, private, action, forecast=forecast)
         if kind == "move":
             if set(action) != {"type", "path"} or not isinstance(action["path"], list):
                 raise ValueError("Invalid native movement action")
@@ -1101,6 +1106,17 @@ class NativeOracle:
             packets = commit_spell_transaction(
                 candidate, transaction, stats_serializer=stats_serializer
             )
+        elif kind == "portal_travel":
+            from .native_portal_travel import apply_portal_travel
+
+            candidate, packets, _ = apply_portal_travel(
+                self,
+                candidate,
+                action,
+                forecast=False,
+                stats_serializer=stats_serializer,
+            )
+            packets = candidate.prepare_delivery(list(packets))
         elif kind == "move":
             from wakfu_server.combat_movement_runtime import movement_stats_snapshot
 

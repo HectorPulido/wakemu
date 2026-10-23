@@ -1,5 +1,6 @@
 """Optional guild projection for every authoritative character reload."""
 from .guild_model import native_model, moderation_factor, point_limits
+from copy import deepcopy
 
 
 def record_presence(db, account_id, generation):
@@ -22,6 +23,7 @@ def record_presence(db, account_id, generation):
 
 
 def load(db, store, character):
+    character["guild_member_bonus_records"] = {}
     row = db.execute("SELECT value FROM settings WHERE name='guild_policy'").fetchone()
     policy = row["value"] if row else {}
     if (
@@ -50,8 +52,8 @@ def load(db, store, character):
         "LEFT JOIN account_chat_preferences p ON p.account_id=c.account_id "
         "JOIN settings chat ON chat.name='chat_channel_policy' "
         "WHERE m.guild_id=g.id AND c.deleted_at IS NULL) profile),'[]'::jsonb) AS members,"
-        "COALESCE((SELECT record->'bonuses' FROM guild_service_state "
-        "WHERE guild_id=g.id AND service='economy'),'{}'::jsonb) AS bonuses "
+        "COALESCE((SELECT record FROM guild_service_state "
+        "WHERE guild_id=g.id AND service='economy'),'{}'::jsonb) AS economy "
         "FROM guilds g JOIN guild_members own ON own.guild_id=g.id "
         "WHERE own.character_id=%s AND g.dissolved_at IS NULL",
         (character["id"],),
@@ -59,7 +61,12 @@ def load(db, store, character):
     snapshot = None
     if membership is not None:
         guild = membership["guild"]
-        point_limits(policy, guild)
+        character["guild_member_bonus_records"] = deepcopy(
+            membership["economy"].get("bonuses", {})
+        )
+        point_limits(
+            policy, guild, economy_record=membership["economy"], now=store.now()
+        )
         snapshot = dict(
             guild=guild,
             ranks=membership["ranks"],
@@ -70,7 +77,7 @@ def load(db, store, character):
                     activation_date=value.get("activated_at_ms", 0),
                     buy_date=value["purchased_at_ms"],
                 )
-                for key, value in membership["bonuses"].items()
+                for key, value in membership["economy"].get("bonuses", {}).items()
             ],
             policy=policy,
         )

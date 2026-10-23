@@ -2734,6 +2734,122 @@ class PlayerExchangeInvitationTests(PostgresCase):
             ),
         )
 
+    def test_public_exchange_preserves_all_transferable_uid_metadata_and_use_counter(
+        self,
+    ):
+        from test_inventory_shards import sample_shard_state
+        from wakfu_server.inventory_shards import save as save_shards
+
+        inviter, invitee = self.player("richmeta-from"), self.player("richmeta-to")
+        exchange = self.active_exchange(inviter, invitee)
+        item = self.grant_item(inviter, 2297, quantity=1)
+        with self.store.connection() as db:
+            save_shards(db, item["uid"], sample_shard_state())
+            db.execute(
+                "INSERT INTO inventory_item_appearances(uid,appearance_ref) VALUES(%s,2024)",
+                (item["uid"],),
+            )
+            db.execute(
+                "INSERT INTO inventory_item_bindings(uid,bound,template_reference) "
+                "VALUES(%s,false,2297)",
+                (item["uid"],),
+            )
+            db.execute(
+                "INSERT INTO inventory_item_recycling_state(uid,unidentified,socketed) "
+                "VALUES(%s,false,false)",
+                (item["uid"],),
+            )
+            db.execute(
+                "INSERT INTO random_item_use_counters(source_uid,next_use) VALUES(%s,8)",
+                (item["uid"],),
+            )
+
+        tables = (
+            "inventory_item_elements",
+            "inventory_item_shards",
+            "inventory_item_appearances",
+            "inventory_item_bindings",
+            "inventory_item_recycling_state",
+            "random_item_use_counters",
+        )
+
+        def item_state():
+            return {
+                table: self.fetchone(
+                    f"SELECT * FROM {table} WHERE "
+                    f"{'source_uid' if table == 'random_item_use_counters' else 'uid'}=%s",
+                    (item["uid"],),
+                )
+                for table in tables
+            }
+
+        before = item_state()
+        self.assertEqual(
+            {"uid": item["uid"], "unidentified": False, "socketed": False},
+            before["inventory_item_recycling_state"],
+        )
+        self.assertEqual(
+            {"source_uid": item["uid"], "next_use": 8},
+            before["random_item_use_counters"],
+        )
+        player_exchanges.offer_item(
+            self.store,
+            inviter["account"],
+            inviter["generation"],
+            inviter["character"]["id"],
+            exchange["id"],
+            item["uid"],
+            1,
+        )
+        self.publish_current(exchange, inviter, invitee)
+        player_exchanges.confirm(
+            self.store,
+            inviter["account"],
+            inviter["generation"],
+            inviter["character"]["id"],
+            exchange["id"],
+        )
+        committed = player_exchanges.confirm(
+            self.store,
+            invitee["account"],
+            invitee["generation"],
+            invitee["character"]["id"],
+            exchange["id"],
+        )
+        self.assertTrue(committed["applied"])
+        self.assertEqual(
+            invitee["character"]["id"],
+            self.fetchone(
+                "SELECT character_id FROM inventory_items WHERE uid=%s",
+                (item["uid"],),
+            )["character_id"],
+        )
+        self.assertEqual(before, item_state())
+
+        replay = player_exchanges.confirm(
+            self.store,
+            inviter["account"],
+            inviter["generation"],
+            inviter["character"]["id"],
+            exchange["id"],
+        )
+        self.assertFalse(replay["applied"])
+        self.assertEqual(before, item_state())
+        reopened = self.reopen()
+        self.assertEqual(
+            invitee["character"]["id"],
+            reopened.character(invitee["account"], invitee["character"]["id"])[
+                "inventory_items"
+            ][0]["character_id"],
+        )
+        self.assertEqual(
+            before["random_item_use_counters"],
+            self.fetchone(
+                "SELECT source_uid,next_use FROM random_item_use_counters WHERE source_uid=%s",
+                (item["uid"],),
+            ),
+        )
+
     def test_identical_stack_merge_and_full_inventory_bilateral_swap(self):
         inviter, invitee = self.player("mergefrom"), self.player("mergeto")
         exchange = self.active_exchange(inviter, invitee)

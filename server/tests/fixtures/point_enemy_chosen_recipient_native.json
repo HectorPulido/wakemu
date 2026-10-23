@@ -1,0 +1,156 @@
+{
+  "source": "Current indexed immutable native catalog; projection retains resolver and dispatcher fields",
+  "effects": {
+    "407770": {
+      "effect_class": 31,
+      "parameters": [
+        2.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "parameter_count": 3,
+      "criteria": "",
+      "area_class": "anD",
+      "area_native": "point",
+      "native_target_selector": {
+        "mask": 8200,
+        "class": "fcE"
+      },
+      "variant": 0,
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "native_effect_flags": [
+        15,
+        17
+      ],
+      "native_timing_definition": {
+        "esr": true,
+        "ryE": 2,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "clock_on_caster": false,
+        "clock_on_target": true
+      },
+      "children": []
+    },
+    "319303": {
+      "effect_class": 3,
+      "parameters": [
+        150.0,
+        0.0
+      ],
+      "parameter_count": 1,
+      "criteria": "",
+      "area_class": "anD",
+      "area_native": "point",
+      "native_target_selector": {
+        "mask": 9,
+        "class": "fcE"
+      },
+      "variant": 0,
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "native_effect_flags": [
+        22
+      ],
+      "native_timing_definition": {
+        "esr": false,
+        "ryE": 0,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "clock_on_caster": false,
+        "clock_on_target": true
+      },
+      "children": []
+    },
+    "319215": {
+      "effect_class": 4,
+      "parameters": [
+        150.0,
+        0.0
+      ],
+      "parameter_count": 1,
+      "criteria": "",
+      "area_class": "anD",
+      "area_native": "point",
+      "native_target_selector": {
+        "mask": 9,
+        "class": "fcE"
+      },
+      "variant": 0,
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "native_effect_flags": [
+        22
+      ],
+      "native_timing_definition": {
+        "esr": false,
+        "ryE": 0,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "clock_on_caster": false,
+        "clock_on_target": true
+      },
+      "children": []
+    }
+  },
+  "direct_target_policies": {
+    "407770": [
+      31,
+      false,
+      false
+    ],
+    "319303": [
+      3,
+      false,
+      false
+    ],
+    "319215": [
+      4,
+      false,
+      false
+    ]
+  }
+}

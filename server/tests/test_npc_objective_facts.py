@@ -76,7 +76,9 @@ class NativeObjectiveFactsTest(unittest.TestCase):
                 row["native_capture_contract"] = dict(
                     row, publication_authorized=True, source_sha256="e" * 64
                 )
-                character = dict(map_id=world, instance_id=0, x=x, y=y, z=z)
+                character = dict(
+                    id=100, account_id=200, map_id=world, instance_id=0, x=x, y=y, z=z
+                )
                 facts = {}
                 self.assertEqual(spawn(row)[0], 12608)
                 with self.assertRaises(ValueError):

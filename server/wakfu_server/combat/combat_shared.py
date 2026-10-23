@@ -93,6 +93,9 @@ class SharedFight:
     disconnect_abort_pending: bool = False
     withdrawals: dict = field(default_factory=dict)
     pending_world_recoveries: dict = field(default_factory=dict)
+    pending_publication_recoveries: dict = field(default_factory=dict)
+    publication_recovery_origins: dict = field(default_factory=dict)
+    reconnect_placement_paused_at: object = None
 
     def seed_checkpoint_revision(self, revision):
         """Initialize from a socket read without regressing a newer revision."""
@@ -149,6 +152,10 @@ class Registry:
 
     def _member(self, shared, session):
         self._live(session)
+        if getattr(shared, "pending_publication_recoveries", {}) or getattr(
+            shared, "publication_recovery_origins", {}
+        ):
+            raise ValueError("Native combat recovery awaits participant publications")
         if (
             shared.participants.get(session.account_id) != session
             or session.account_id not in shared.connected
@@ -327,6 +334,9 @@ class Registry:
         owners = {a.owner_id for a in fight.actors.values() if a.controlled}
         if owners != {starter.account_id} or starter.character_id not in fight.actors:
             raise ValueError("Initial fight requires its owned starter")
+        from .combat_encounter_roles import assigned_roles
+
+        player_team = assigned_roles(fight).player_team
         with self.lock:
             if (
                 fight.id in self.fights
@@ -358,7 +368,7 @@ class Registry:
                 if isinstance(join_context, dict)
                 else None
             )
-            leader_id = leaders.get(0) if isinstance(leaders, dict) else None
+            leader_id = leaders.get(player_team) if isinstance(leaders, dict) else None
             leader = fight.actors.get(leader_id)
             # Only the originally advertised player leader in an ordinary
             # world marker can become an alias. Duel markers and arena/private
@@ -372,7 +382,7 @@ class Registry:
                 and leader is not None
                 and leader.controlled
                 and leader.owner_id == starter.account_id
-                and leader.team == 0
+                and leader.team == player_team
             ):
                 shared.join_aliases[leader_id] = leader.team
                 self.join_aliases.setdefault(leader_id, set()).add(fight.id)
@@ -651,13 +661,20 @@ class Registry:
                     raise ValueError(
                         "Friendly duel roster cannot admit another fighter"
                     )
-                if fight.phase != "placement" or shared.auto_locked:
+                if (
+                    fight.phase != "placement"
+                    or shared.auto_locked
+                    or getattr(shared, "pending_publication_recoveries", {})
+                    or getattr(shared, "publication_recovery_origins", {})
+                ):
                     raise ValueError("Fight is no longer joinable")
                 if (session.map_id, session.instance_id) != (
                     shared.map_id,
                     shared.instance_id,
                 ):
                     raise ValueError("Foreign fight map/instance")
+                from .combat_encounter_roles import assigned_roles
+
                 alias_team = shared.join_aliases.get(request["target_id"])
                 alias_target = (
                     alias_team is not None
@@ -665,7 +682,7 @@ class Registry:
                     and getattr(target, "pve_withdrawn", False)
                     and target.controlled
                     and target.team == alias_team
-                    and alias_team == 0
+                    and alias_team == assigned_roles(fight).player_team
                     and self._has_live_team_member_locked(shared, alias_team)
                 )
                 if (
@@ -1215,6 +1232,7 @@ class Registry:
         persist_takeover=None,
         recover_disconnected=False,
         fresh_world=False,
+        prepare_authority=None,
     ):
         self._live(session)
         shared = self.lookup(fight_id)
@@ -1233,13 +1251,26 @@ class Registry:
                 raise ValueError("PvE participant already withdrew")
             if recover_disconnected and not callable(persist_takeover):
                 raise ValueError("Disconnected takeover requires a durable lease fence")
+            if prepare_authority is not None and not callable(persist_takeover):
+                raise ValueError(
+                    "Native authority takeover requires a durable lease fence"
+                )
             if shared.disconnect_abort_pending and not recover_disconnected:
                 raise ValueError(
                     "Combat is being closed after its last owner disconnected"
                 )
-            if previous.generation == session.generation:
+            staged_entry = getattr(shared, "pending_publication_recoveries", {}).get(
+                session.account_id
+            )
+            resume_staged = (
+                staged_entry is not None
+                and staged_entry.session == session
+                and previous == session
+                and session.account_id not in shared.connected
+            )
+            if previous.generation == session.generation and not resume_staged:
                 raise ValueError("Session already current")
-            if self._lease_live(previous):
+            if self._lease_live(previous) and not resume_staged:
                 raise ValueError("Previous combat owner lease still live")
             if fresh_world and (
                 shared.fight.phase != "finished"
@@ -1250,13 +1281,55 @@ class Registry:
                 raise ValueError("Fresh world recovery requires unsettled terminal PvE")
             from .combat_delivery_boundary import prepare_reconnect
 
-            prepared = prepare_reconnect(
-                shared,
-                session,
-                bootstrap_packets,
-                recover_disconnected=recover_disconnected,
-                now_ms=int(time.time() * 1000),
+            from .combat_instance_publication_recovery import (
+                OwnerPublicationsPending,
+                PendingPublicationRecovery,
             )
+
+            def stage_owner(entry):
+                origins = dict(getattr(shared, "publication_recovery_origins", {}))
+                origins.setdefault(session.account_id, entry.original_session)
+                staged_owners = dict(
+                    getattr(shared, "pending_publication_recoveries", {})
+                )
+                staged_owners[session.account_id] = entry
+                shared.publication_recovery_origins = origins
+                shared.pending_publication_recoveries = staged_owners
+                shared.participants[session.account_id] = session
+                shared.outboxes[session.account_id] = deque()
+                return shared
+
+            original_fight = shared.fight
+            try:
+                prepared = prepare_reconnect(
+                    shared,
+                    session,
+                    bootstrap_packets,
+                    recover_disconnected=recover_disconnected,
+                    now_ms=int(time.time() * 1000),
+                    prepare_authority=prepare_authority,
+                )
+            except OwnerPublicationsPending as pending:
+                if os.environ.get("WAKFU_NATIVE_PARTY_STAGED_RECOVERY", "0") != "1":
+                    raise
+                if shared.connected or not shared.disconnect_abort_pending:
+                    raise ValueError(
+                        "Partial native publication recovery cannot resume a live party"
+                    )
+                if pending.entry.session != session or not callable(persist_takeover):
+                    raise ValueError(
+                        "Staged recovery requires its durable authorized owner"
+                    )
+                origins = dict(getattr(shared, "publication_recovery_origins", {}))
+                if pending.entry.original_session != origins.get(
+                    session.account_id, previous
+                ):
+                    raise ValueError(
+                        "Staged recovery changed the original owner identity"
+                    )
+                if not resume_staged:
+                    persist_takeover(previous)
+                return stage_owner(pending.entry)
             packets = prepared.packets
             if fresh_world and packets:
                 raise ValueError("Fresh world recovery cannot bootstrap native combat")
@@ -1266,20 +1339,82 @@ class Registry:
                 prepared.runtime,
                 prepared.ack,
             )
+            staged = dict(getattr(shared, "pending_publication_recoveries", {}))
+            staged_packets = {}
+            if staged:
+                view = copy(shared)
+                view.fight, view.runtime, view.ack = (
+                    candidate,
+                    candidate_runtime,
+                    candidate_ack,
+                )
+                for account, entry in staged.items():
+                    if account == session.account_id:
+                        continue
+                    self._live(entry.session)
+                    if shared.participants.get(account) != entry.session:
+                        raise ValueError(
+                            "Staged recovery participant changed before final adoption"
+                        )
+                    staged_packets[account] = self._packets(
+                        bootstrap_packets(candidate, view, entry.session)
+                    )
+                from .combat_instance_publication import require_current_publication
+
+                require_current_publication(candidate)
             if (
                 shared.ack is not None
                 and session.account_id in shared.ack.expected
-                and shared.ack.expected[session.account_id] != previous.generation
+                and shared.ack.expected[session.account_id]
+                != (
+                    getattr(shared, "publication_recovery_origins", {})
+                    .get(session.account_id, previous)
+                    .generation
+                )
             ):
                 raise ValueError("Combat ACK owner differs from takeover lease")
-            if persist_takeover is not None:
+            if persist_takeover is not None and not resume_staged:
                 persist_takeover(previous)
-            if recover_pending_turn:
+            if staged:
+                # SQL may release the GIL while a real source/socket is lost.
+                # Membership is already durable; retain it privately and retry
+                # with real publications instead of adopting the stale preview.
+                source_live = (
+                    candidate.native_instance_publication_lease.current
+                    == candidate.native_instance_publication_receipt
+                )
+                owners_live = self._lease_live(session) and all(
+                    self._lease_live(entry.session)
+                    and shared.participants.get(account) == entry.session
+                    for account, entry in staged.items()
+                    if account != session.account_id
+                )
+                if (
+                    not source_live
+                    or not owners_live
+                    or shared.fight is not original_fight
+                ):
+                    bindings = (
+                        candidate.native_instance_publication_lease.owner_bindings
+                    )
+                    publication = next(
+                        (source, scope)
+                        for source, scope in bindings
+                        if scope[0] == session.account_id
+                    )
+                    origin = getattr(shared, "publication_recovery_origins", {}).get(
+                        session.account_id, previous
+                    )
+                    return stage_owner(
+                        PendingPublicationRecovery(origin, session, publication)
+                    )
+            if prepared.fight is not None:
                 shared.fight, shared.runtime, shared.ack = (
                     candidate,
                     candidate_runtime,
                     candidate_ack,
                 )
+            if recover_pending_turn:
                 shared.reconnect_turn_end_packets = None
                 shared.reconnect_remaining_turn_seconds = None
             shared.participants[session.account_id] = session
@@ -1288,6 +1423,18 @@ class Registry:
                     session.account_id
                 ] = PendingWorldRecovery(session, fight_id)
             if recover_disconnected:
+                paused_at = getattr(shared, "reconnect_placement_paused_at", None)
+                if paused_at is not None:
+                    if (
+                        shared.fight.phase == "placement"
+                        and shared.join_context is not None
+                        and "fight_started_at" in shared.join_context
+                    ):
+                        shared.join_context = dict(shared.join_context)
+                        shared.join_context["fight_started_at"] += max(
+                            0.0, time.monotonic() - paused_at
+                        )
+                    shared.reconnect_placement_paused_at = None
                 remaining = getattr(shared, "reconnect_remaining_turn_seconds", None)
                 if remaining is not None:
                     shared.runtime.turn_deadline = shared.runtime.clock() + remaining
@@ -1299,6 +1446,14 @@ class Registry:
             shared.outboxes[session.account_id] = deque(
                 [Batch(shared.sequence, packets, public_events=False)]
             )
+            for account, owner_packets in staged_packets.items():
+                shared.connected.add(account)
+                shared.outboxes[account] = deque(
+                    [Batch(shared.sequence, owner_packets, public_events=False)]
+                )
+            if staged:
+                shared.pending_publication_recoveries = {}
+                shared.publication_recovery_origins = {}
             if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
                 self._observe_delivery(
                     "record_bootstrap",
@@ -1325,6 +1480,13 @@ class Registry:
         for shared in shared_fights:
             with shared.lock:
                 if shared.participants.get(session.account_id) == session:
+                    staged = dict(getattr(shared, "pending_publication_recoveries", {}))
+                    if (
+                        session.account_id in staged
+                        and staged[session.account_id].session == session
+                    ):
+                        del staged[session.account_id]
+                        shared.pending_publication_recoveries = staged
                     shared.connected.discard(session.account_id)
                     shared.outboxes[session.account_id].clear()
                     if shared.connected and shared.ack.turn is not None:
@@ -1365,10 +1527,14 @@ class Registry:
                         # Claim last-owner cleanup before the caller releases
                         # the socket lease. A racing reconnect must not revive
                         # a fight whose abort transaction is about to commit.
+                        already_paused = shared.disconnect_abort_pending
                         shared.disconnect_abort_pending = True
+                        if not already_paused and shared.fight.phase == "placement":
+                            shared.reconnect_placement_paused_at = time.monotonic()
                         runtime = shared.runtime
                         if (
-                            runtime is not None
+                            not already_paused
+                            and runtime is not None
                             and getattr(runtime, "turn_deadline", None) is not None
                             and runtime.awaiting_ack is None
                         ):
@@ -1425,6 +1591,11 @@ class Registry:
             from .combat_pve_withdraw import plan
 
             withdrawal = plan(session, shared.fight, shared.runtime)
+            from .combat_instance_publication_withdrawal import (
+                retire_withdrawn_publication,
+            )
+
+            retire_withdrawn_publication(withdrawal.fight, session.account_id)
             public = self._packets(withdrawal.public_packets)
             self._packets(withdrawal.private_packets)
             if withdrawal.fight.phase == "placement":

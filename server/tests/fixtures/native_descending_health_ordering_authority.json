@@ -1,0 +1,87 @@
+{
+  "schema": "native-faJ-descending-health-authority-v1",
+  "catalog_revision": "b3963fc05f1d8ec1eb9afc268fab0350f4de120144d67f7eee470747750b2450",
+  "contract": "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1",
+  "definition_count": 9,
+  "sources": {
+    "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+    ".runtime/rushu-phase-review-20261021/flag25-native/ordering.javap.txt": "d2071fd29427f10e3badde1c20a89fe4278f78bdbe3f94d9dbb7d5de1dffaa28",
+    ".runtime/rushu-phase-review-20261021/flag25-native/ExportDescendingHealth.java": "b333090b205cf1b42effef5b44309b6fa1c1d2eae69756ef8a3071f67912facb",
+    ".runtime/rushu-phase-review-20261021/flag25-native/indexed-identities.jsonl": "620fec1041664db36e8ef3a62eccae244b9061511d3daa8b90266f414d1e0ff8",
+    ".runtime/rushu-phase-review-20261021/flag25-native/descending-identities.json": "90d83a9ba00f5fb3a1a1132dcb23c97b37824ca4638899cbe3364622d816e01d"
+  },
+  "rows": {
+    "179243": {
+      "effect_class": 345,
+      "maximum_targets": -1,
+      "ordering_contract": "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1",
+      "native_effect_flags": [
+        25
+      ]
+    },
+    "325710": {
+      "effect_class": 345,
+      "maximum_targets": -1,
+      "ordering_contract": "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1",
+      "native_effect_flags": [
+        25
+      ]
+    },
+    "335005": {
+      "effect_class": 345,
+      "maximum_targets": -1,
+      "ordering_contract": "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1",
+      "native_effect_flags": [
+        25
+      ]
+    },
+    "335210": {
+      "effect_class": 345,
+      "maximum_targets": -1,
+      "ordering_contract": "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1",
+      "native_effect_flags": [
+        25
+      ]
+    },
+    "351291": {
+      "effect_class": 330,
+      "maximum_targets": -1,
+      "ordering_contract": "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1",
+      "native_effect_flags": [
+        25
+      ]
+    },
+    "374497": {
+      "effect_class": 345,
+      "maximum_targets": -1,
+      "ordering_contract": "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1",
+      "native_effect_flags": [
+        25
+      ]
+    },
+    "376045": {
+      "effect_class": 345,
+      "maximum_targets": -1,
+      "ordering_contract": "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1",
+      "native_effect_flags": [
+        25
+      ]
+    },
+    "376049": {
+      "effect_class": 345,
+      "maximum_targets": -1,
+      "ordering_contract": "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1",
+      "native_effect_flags": [
+        25
+      ]
+    },
+    "380144": {
+      "effect_class": 345,
+      "maximum_targets": -1,
+      "ordering_contract": "faJ.PV.a.sgC.PA.aYS.aYU.float32.desc.v1",
+      "native_effect_flags": [
+        25
+      ]
+    }
+  }
+}

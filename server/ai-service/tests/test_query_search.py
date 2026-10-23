@@ -1303,7 +1303,9 @@ class QuerySearchTests(unittest.TestCase):
         original = session.store.json
 
         def expensive_read(key):
-            now[0] += 0.4
+            # A single required read exhausts the 500 ms search allowance;
+            # immutable root graph reuse now removes the former second read.
+            now[0] += 0.6
             return original(key)
 
         session.store.json = expensive_read
@@ -1315,7 +1317,7 @@ class QuerySearchTests(unittest.TestCase):
         from wakfu_ai.planning import query_search
 
         original_sorted = sorted
-        original_adjacencies = query_search.directed_adjacencies
+        original_adjacencies = query_search.immutable_directed_adjacencies
         target_cells = {tuple(cell) for cell in session.cells}
         observed = {"sorted": 0.0, "adjacencies": 0.0}
 
@@ -1351,7 +1353,7 @@ class QuerySearchTests(unittest.TestCase):
             observed,
         ) = self._slow_geometry_preparation(session, now)
         with patch.object(module, "sorted", delayed_sorted, create=True), patch.object(
-            module, "directed_adjacencies", delayed_adjacencies
+            module, "immutable_directed_adjacencies", delayed_adjacencies
         ):
             result = run_search(session, clock=lambda: now[0])
 
@@ -1380,7 +1382,7 @@ class QuerySearchTests(unittest.TestCase):
             observed,
         ) = self._slow_geometry_preparation(session, now)
         with patch.object(module, "sorted", delayed_sorted, create=True), patch.object(
-            module, "directed_adjacencies", delayed_adjacencies
+            module, "immutable_directed_adjacencies", delayed_adjacencies
         ):
             result = run_search(session, clock=lambda: now[0])
 

@@ -221,6 +221,16 @@ def initialize_ordinary_npcs(fight, monsters, plans):
                 UNTARGETTABLE_BY_OTHER=21 in actor.native_fight_properties,
             ),
         )
+        from .combat_companions import registered_source
+
+        if registered_source(fight, actor, monsters[identity]) is not None:
+            authority = replace(
+                authority,
+                native_actor_type=5,
+                is_challenger=True,
+                native_account_id=monsters[identity]["account_id"],
+                native_primary_character_id=monsters[identity]["owner_character_id"],
+            )
         applications = []
         team = actor.team
         del fight.actors[identity]
@@ -252,4 +262,7 @@ def initialize_ordinary_npcs(fight, monsters, plans):
             applications=applications,
             initialized=True,
         )
-    fight.native_npc_initialization_receipts = receipts
+    fight.native_npc_initialization_receipts = {
+        **getattr(fight, "native_npc_initialization_receipts", {}),
+        **receipts,
+    }

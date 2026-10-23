@@ -1,0 +1,14 @@
+[
+{"object_z":8,"surfaces":[[4, 0, 0, 0, 0, 0]],"expected":4},
+{"object_z":8,"surfaces":[[0, 0, 0, 0, 0, 0], [6, 0, 0, 0, 0, 0]],"expected":6},
+{"object_z":8,"surfaces":[[4, 0, 0, 0, 0, 0], [9, -1, 0, 0, 0, 0]],"expected":null},
+{"object_z":8,"surfaces":[[4, 0, 0, 0, 0, 0], [10, -1, 0, 0, 0, 0]],"expected":4},
+{"object_z":8,"surfaces":[[4, 0, 0, 0, 0, 0], [10, -1, 0, 0, 0, 1]],"expected":4},
+{"object_z":8,"surfaces":[[4, 0, 0, 0, 0, 0], [11, -1, 0, 0, 2, 0]],"expected":null},
+{"object_z":8,"surfaces":[[4, 0, 0, 0, 0, 0], [13, 0, 0, 0, 0, 0]],"expected":4},
+{"object_z":8,"surfaces":[[4, 0, 0, 0, 0, 0], [12, 0, 0, 0, 0, 0]],"expected":12},
+{"object_z":8,"surfaces":[[4, 0, 0, 0, 0, 1]],"expected":null},
+{"object_z":8,"surfaces":[[4, -1, 0, 0, 0, 0]],"expected":null},
+{"object_z":8,"surfaces":[[13, 0, 0, 0, 0, 0]],"expected":null},
+{"object_z":8,"surfaces":[[-30, 0, 0, 0, 0, 0]],"expected":-30}
+]

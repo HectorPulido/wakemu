@@ -1,3 +1,4 @@
+from wakfu_server.company_authority import CompanySnapshot
 import struct
 import unittest
 import uuid
@@ -55,6 +56,11 @@ class NationCodecTests(unittest.TestCase):
                     {
                         "id": 9,
                         "nation_id": 32,
+                        "equipment_criterion_context": {
+                            "company_snapshot": CompanySnapshot(
+                                7, 9, 32, 0, 3, True
+                            ).record()
+                        },
                     },
                 ),
                 16,
@@ -62,7 +68,9 @@ class NationCodecTests(unittest.TestCase):
             32,
         )
         self.assertEqual(nation_state.nation_id(None), 0)
-        opcode, body = hero_wire.company(7, 9, nation_id=34)
+        opcode, body = hero_wire.company(
+            7, 9, nation_id=34, company_snapshot=CompanySnapshot(7, 9, 34, 0, 1, True)
+        )
         self.assertEqual(opcode, 13873)
         self.assertEqual(struct.unpack_from(">i", body, 24)[0], 34)
 

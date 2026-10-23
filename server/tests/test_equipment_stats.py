@@ -5,12 +5,263 @@ from wakfu_server.equipment_stats import (
     effective_character,
     combat_resources,
     CATALOG,
+    _flat,
 )
 from wakfu_server.wire import proto_field
 from wakfu_server.health import maximum
 
 
 class EquipmentStatsTests(unittest.TestCase):
+    def test_actual_npc_baseline_replays_eWW_flat_at_native_characteristic_bounds(self):
+        from wakfu_server.combat.combat_actor_snapshot import native_npc_creation_values
+        from wakfu_server.combat.combat_companions import COMPANION_BREEDS
+        from wakfu_server.equipment_characteristics import native_rows, replay
+        from wakfu_server.equipment_stats import dynamic_scalar_bonus
+
+        effects = [
+            effect
+            for reference in (29115, 29116)
+            for effect in CATALOG[reference]["effects"]
+            if dynamic_scalar_bonus(effect) is not None
+        ]
+        self.assertTrue(effects)
+        rows = native_rows()
+        cases = []
+        observed = []
+        for breed in sorted(COMPANION_BREEDS):
+            for level in (1, 50, 125, 200, 245):
+                try:
+                    profile = native_npc_creation_values(breed, level)
+                except ValueError:
+                    continue
+                for effect in effects:
+                    identity, amount = dynamic_scalar_bonus(effect)
+                    native_value = profile[identity]["current"]
+                    row = rows[identity]
+                    observed.append(
+                        (
+                            row["maximum"] - native_value,
+                            breed,
+                            level,
+                            identity,
+                            amount,
+                            native_value,
+                            row["maximum"],
+                        )
+                    )
+                    if (
+                        native_value <= row["maximum"]
+                        and native_value + amount > row["maximum"]
+                    ):
+                        cases.append(
+                            (breed, level, identity, amount, native_value, row)
+                        )
+        # Use a real breed/level baseline and actual eWQ39 amount. None of the
+        # published companion profiles currently sits close enough to the
+        # PC120/121 ceiling to clip; the assertion still proves the NPC path
+        # replays against its native baseline rather than the player default.
+        self.assertTrue(
+            observed, "expected actual companion NPC characteristic profiles"
+        )
+        gap, breed, level, identity, amount, native_value, maximum = min(observed)
+        row = rows[identity]
+        self.assertEqual(
+            replay(
+                [(identity, amount, False)],
+                {identity},
+                baseline={identity: native_value},
+            )[identity],
+            min(maximum, native_value + amount) - native_value,
+        )
+
+    def test_native_generic192_wp_passives_are_narrowly_bound_and_projected(self):
+        rows = [
+            effect
+            for item in CATALOG.values()
+            for effect in item["effects"]
+            if effect.get("generic") == 192 and effect.get("runner") == "eWO"
+        ]
+        self.assertEqual(len(rows), 53)
+        self.assertEqual({effect["values"][0] for effect in rows}, {1, 2, 3})
+        for effect in rows:
+            with self.subTest(effect_id=effect["id"]):
+                self.assertEqual(effect["stat_id"], -1)
+                self.assertEqual(_flat(effect), (4, -effect["values"][0]))
+
+        representative = rows[0]
+        for changed in (
+            dict(representative, values=[-1]),
+            dict(representative, parameter_count=2),
+            dict(representative, effect_criteria=True),
+            dict(representative, has_triggers=True),
+            dict(representative, target_mask=1),
+            dict(representative, runner="eWQ"),
+            dict(representative, generic=191),
+            dict(representative, native_variant=1),
+            dict(representative, native_active_effect=True),
+        ):
+            with self.subTest(changed=changed):
+                self.assertIsNone(_flat(changed))
+
+    def test_native_eWW_dynamic_flat_catalog_and_fail_closed_resource_rows(self):
+        from wakfu_server.equipment_characteristics import native_rows
+        from wakfu_server.equipment_stats import dynamic_scalar_bonus
+
+        rows = [
+            effect
+            for item in CATALOG.values()
+            for effect in item["effects"]
+            if effect.get("generic") == 39 and effect.get("runner") == "eWQ"
+        ]
+        qualified = [
+            effect for effect in rows if dynamic_scalar_bonus(effect) is not None
+        ]
+        rejected = [effect for effect in rows if dynamic_scalar_bonus(effect) is None]
+        self.assertEqual(len(rows), 218)
+        self.assertEqual(len(qualified), 216)
+        self.assertEqual(len(rejected), 2)
+
+        characteristics = native_rows()
+        for effect in qualified:
+            with self.subTest(effect_id=effect["id"]):
+                identity, amount = dynamic_scalar_bonus(effect)
+                self.assertEqual(identity, effect["values"][2])
+                self.assertEqual(amount, effect["values"][0])
+                self.assertIn(identity, (120, 121))
+                row = characteristics[identity]
+                self.assertFalse(row["expandable"])
+                self.assertFalse(row["frozen"])
+
+        # Native item 30031 combines supported armor-given/received flats with
+        # two HP-only roots. The whole item remains unsupported; only its two
+        # armor roots qualify through this equipment path.
+        mixed = CATALOG[30031]["effects"]
+        armor = [
+            effect
+            for effect in mixed
+            if effect.get("generic") == 39
+            and effect.get("runner") == "eWQ"
+            and dynamic_scalar_bonus(effect) is not None
+        ]
+        hp = [
+            effect
+            for effect in mixed
+            if effect.get("generic") == 39
+            and effect.get("runner") == "eWQ"
+            and dynamic_scalar_bonus(effect) is None
+        ]
+        self.assertEqual(len(armor), 2)
+        self.assertEqual(len(hp), 2)
+        self.assertEqual({effect["values"][2] for effect in hp}, {1})
+
+        sample = qualified[0]
+        malformed = (
+            dict(sample, parameter_count=2),
+            dict(sample, values=[sample["values"][0], 1, sample["values"][2]]),
+            dict(sample, values=[-1, 0, sample["values"][2]]),
+            dict(sample, values=[True, 0, sample["values"][2]]),
+            dict(sample, values=[sample["values"][0], 0, 1]),
+            dict(sample, values=[sample["values"][0], 0, 999]),
+            dict(sample, effect_criteria=True),
+            dict(sample, has_triggers=True),
+            dict(sample, target_mask=1),
+            dict(sample, native_variant=1),
+            dict(sample, native_active_effect=True),
+            dict(sample, generic=38),
+        )
+        for candidate in malformed:
+            with self.subTest(candidate=candidate):
+                self.assertIsNone(dynamic_scalar_bonus(candidate))
+
+    def test_false_criterion_positive_effect_is_absent_from_public_raw_projection(self):
+        from wakfu_server.combat_character_copy_equipment import (
+            native_copied_equipment_catalog,
+        )
+        from wakfu_server.combat_copied_equipment_plan import copied_equipment_plan
+        from wakfu_server.combat_equipment_passive_completeness import (
+            unplanned_passive_effect_ids,
+        )
+        from wakfu_server.equipment import RULES
+        from wakfu_server.equipment_stats import inactive_passive_root
+        from wakfu_server.wire import proto_field
+
+        native = native_copied_equipment_catalog()
+        candidate = None
+        for raw_reference in native["definitions"]:
+            reference = int(raw_reference)
+            template = CATALOG.get(reference)
+            slots = RULES.get(reference, {}).get("slots", ())
+            if template is None or not slots:
+                continue
+            parent = copied_equipment_plan(reference, native)
+            false_ids = {
+                root["reference"]
+                for root in parent["roots"]
+                if root.get("criterion_raw") == "False"
+            }
+            identities = {effect["id"]: effect for effect in template["effects"]}
+            for effect_id in false_ids:
+                effect = identities[effect_id]
+                candidate = reference, slots[0], effect, false_ids
+                break
+            if candidate:
+                break
+
+        self.assertIsNotNone(
+            candidate, "catalog should expose a literal-False equipped item"
+        )
+        reference, slot, effect, false_ids = candidate
+        uid = 987654321
+        character = dict(
+            id=1,
+            breed=8,
+            level=200,
+            active_build_index=0,
+            hp=1000,
+            max_hp=1000,
+            inventory_items=[
+                dict(uid=uid, character_id=1, reference=reference, quantity=1)
+            ],
+            builds={
+                0: dict(
+                    sheet=proto_field(24, 200).hex(),
+                    equipment=proto_field(
+                        10, proto_field(8, uid) + proto_field(16, slot)
+                    ).hex(),
+                    aptitudes="",
+                )
+            },
+        )
+        parent = copied_equipment_plan(reference, native)
+        omitted = unplanned_passive_effect_ids(reference, parent, (), templates=CATALOG)
+        self.assertNotIn(effect["id"], omitted)
+        native_root = next(
+            root for root in parent["roots"] if root["reference"] == effect["id"]
+        )
+        self.assertTrue(
+            any(
+                type(value) in (int, float) and value > 0
+                for value in native_root["parameters"]
+            )
+        )
+        self.assertTrue(inactive_passive_root(reference, effect))
+        actual = bonuses(character)
+        self.assertFalse(
+            any(row.get("effect_id") in false_ids for row in actual["unsupported"])
+        )
+        changed_catalog = dict(CATALOG)
+        changed_catalog[reference] = dict(
+            CATALOG[reference],
+            effects=[
+                row
+                for row in CATALOG[reference]["effects"]
+                if row["id"] not in false_ids
+            ],
+        )
+        with patch("wakfu_server.equipment_stats.CATALOG", changed_catalog):
+            without_false_roots = bonuses(character)
+        self.assertEqual(actual, without_false_roots)
+
     def character(self):
         equipment = proto_field(10, proto_field(8, 1000) + proto_field(16, 4)).hex()
         return dict(
@@ -126,9 +377,7 @@ class EquipmentStatsTests(unittest.TestCase):
         )
 
         def stats(packets):
-            self.assertEqual(
-                [opcode for opcode, _ in packets], [12284, 12393, 12103, 13046]
-            )
+            self.assertEqual([opcode for opcode, _ in packets], [12284, 12103, 13046])
             outer = packets[-1][1]
             identity, length = struct.unpack_from(">qh", outer)
             self.assertEqual(identity, char["id"])

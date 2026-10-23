@@ -87,6 +87,10 @@ def execute_entry_roots(
     ):
         raise ValueError("Owned payment callback requires a player entry")
     with ExitStack() as scopes:
+        area_events = getattr(dispatcher, "native_area_events", None)
+        retirement_scope = getattr(area_events, "wall_retirement_scope", None)
+        if callable(retirement_scope):
+            scopes.enter_context(retirement_scope())
         if policy.active_spell:
             if active_scope is None:
                 from .combat_active_spell import active_spell_scope

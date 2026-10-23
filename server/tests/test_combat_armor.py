@@ -25,6 +25,86 @@ def actor(identity, position):
 
 
 class NativeArmorTests(unittest.TestCase):
+    def test_detached_initial_armor_uses_actual_scope_and_rejects_actor_after_scope(
+        self,
+    ):
+        from wakfu_server.combat_state import Actor
+        from wakfu_server.combat_summon import RegisteredSummonAuthority
+        from wakfu_server.combat_summon_creation import native_fresh_summon_authority
+        from wakfu_server.combat_summon_initialization import detached_summon_scope
+
+        summon = Actor(901, 0, (3, 4, 0), 40, 6, 3, 0, 20)
+        summon.team = -1
+        summon.native_summon_action_book = {"profile": 3798, "actions": []}
+        summon.native_fight_property_counts = {0: 1}
+        summon.effect_stats = {1: 40, 97: 0, 120: 0, 121: 0}
+        summon.effect_minima = {97: 0}
+        summon.effect_maxima = {1: 40, 97: 1000000}
+        summon.effect_frozen = frozenset()
+        summon.physical_radius = 0
+        authority = native_fresh_summon_authority(summon, 3798)
+        fight = SimpleNamespace(
+            id=1,
+            actors={22: self.source},
+            phase="active",
+            current=self.source,
+            owned_stat_effects={},
+            _event=lambda *args, **kwargs: None,
+        )
+        ordinary_roster = dict(fight.actors)
+        context = StatExecutionContext(True, True, None, True, None)
+        packets = []
+        uids = iter((9011, 9012))
+        handler = NativeArmorHandler(
+            fight,
+            packets,
+            action_id=1,
+            allocate_uid=lambda: next(uids),
+            context=lambda *args: context,
+            authority=RegisteredSummonAuthority(
+                lambda *args: SimpleNamespace(is_player=False)
+            ),
+        )
+        effect = dict(self.effect, parameters=[100, 0, 0, 0])
+        invocation = EffectInvocation(123456, 1, summon.id, summon.id, summon.position)
+        with detached_summon_scope(fight, summon, authority):
+            self.assertTrue(handler(effect, None, invocation))
+            self.assertEqual(summon.effect_stats[97], 100)
+            self.assertEqual(fight.actors, ordinary_roster)
+            self.assertNotIn(summon.id, fight.actors)
+            self.assertEqual(
+                (
+                    fight.owned_stat_effects[9011]["caster_id"],
+                    fight.owned_stat_effects[9011]["target_id"],
+                ),
+                (summon.id, summon.id),
+            )
+        before = (
+            summon.effect_stats[97],
+            deepcopy(fight.owned_stat_effects),
+            list(packets),
+        )
+        with self.assertRaisesRegex(
+            ValueError, "Missing actual native armor source/target"
+        ):
+            handler(effect, None, invocation)
+        self.assertEqual(
+            (summon.effect_stats[97], fight.owned_stat_effects, packets), before
+        )
+        # An unrelated invocation cannot borrow the just-closed construction.
+        with self.assertRaisesRegex(
+            ValueError, "Missing actual native armor source/target"
+        ):
+            handler(effect, None, replace(invocation, target_id=999))
+        # The existing ordinary component fixture supplies its registered
+        # authority directly; detached authority above came from construction.
+        handler.authority = lambda *args: SimpleNamespace(is_player=False)
+        registered = EffectInvocation(123456, 1, 22, 22, self.source.position)
+        self.assertTrue(handler(effect, None, registered))
+        self.assertEqual(self.source.effect_stats[97], 110)
+        self.assertEqual([opcode for opcode, _ in packets], [13497, 13497])
+        self.assertEqual(fight.actors, ordinary_roster)
+
     def test_actual_corpse_skips_armor_before_amount_and_uid_allocation(self):
         from test_combat_damage_handler import DamageHandlerTests
         from wakfu_server.combat_global_pv_collections import (

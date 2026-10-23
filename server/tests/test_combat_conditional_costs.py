@@ -14,7 +14,8 @@ from wakfu_server.combat_conditions import (
 
 class ConditionalCostTests(unittest.TestCase):
     def test_all_spell_categories_and_absent_metadata_is_not_empty(self):
-        self.assertEqual(len(native_catalog()["spell_categories"]), 722)
+        self.assertEqual(len(native_catalog()["spell_categories"]), 723)
+        self.assertIn("5623", native_catalog()["spell_categories"])
         with self.assertRaises(UnknownCondition):
             native_modifiers(999999, {})
         with self.assertRaises(UnknownCondition):

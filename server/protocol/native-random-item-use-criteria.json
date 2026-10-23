@@ -1,0 +1,2186 @@
+{
+  "schema_version": 1,
+  "source": "Original aLO.cpz USE predicate, verified through bIJ and fpC.a(fnE.sGD); action predicates remain independent",
+  "actions": [
+    {
+      "item_ref": 12408,
+      "action_id": 2196,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 12409,
+      "action_id": 2203,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14060,
+      "action_id": 2294,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14062,
+      "action_id": 2296,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14063,
+      "action_id": 2297,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14064,
+      "action_id": 2298,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14065,
+      "action_id": 2299,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14066,
+      "action_id": 2300,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14067,
+      "action_id": 2301,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14068,
+      "action_id": 2302,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14069,
+      "action_id": 2303,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14070,
+      "action_id": 2304,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14071,
+      "action_id": 2305,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14072,
+      "action_id": 2306,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14073,
+      "action_id": 2307,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14074,
+      "action_id": 2308,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14075,
+      "action_id": 2309,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14076,
+      "action_id": 2310,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14077,
+      "action_id": 2311,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14078,
+      "action_id": 2312,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14079,
+      "action_id": 2313,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14080,
+      "action_id": 2314,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14081,
+      "action_id": 2315,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14082,
+      "action_id": 2316,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14091,
+      "action_id": 2324,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14092,
+      "action_id": 2325,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14093,
+      "action_id": 2326,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14094,
+      "action_id": 2327,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14095,
+      "action_id": 2328,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14096,
+      "action_id": 2329,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14097,
+      "action_id": 2330,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14098,
+      "action_id": 2331,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14099,
+      "action_id": 2332,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14100,
+      "action_id": 2333,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14336,
+      "action_id": 2636,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14337,
+      "action_id": 2637,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14986,
+      "action_id": 2905,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 14987,
+      "action_id": 2906,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 15182,
+      "action_id": 2993,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18015,
+      "action_id": 5352,
+      "use_criterion": "False"
+    },
+    {
+      "item_ref": 18291,
+      "action_id": 5555,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18348,
+      "action_id": 5640,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18349,
+      "action_id": 5641,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18350,
+      "action_id": 5642,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18978,
+      "action_id": 7092,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18979,
+      "action_id": 7093,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18980,
+      "action_id": 7094,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18981,
+      "action_id": 7095,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18982,
+      "action_id": 7096,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18983,
+      "action_id": 7097,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 18988,
+      "action_id": 7103,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19074,
+      "action_id": 7153,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19075,
+      "action_id": 7154,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19076,
+      "action_id": 7155,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19077,
+      "action_id": 7156,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19078,
+      "action_id": 7157,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19079,
+      "action_id": 7158,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19080,
+      "action_id": 7159,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19081,
+      "action_id": 7160,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19082,
+      "action_id": 7161,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19083,
+      "action_id": 7162,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19309,
+      "action_id": 7307,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19310,
+      "action_id": 7308,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19396,
+      "action_id": 7356,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19397,
+      "action_id": 7357,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19398,
+      "action_id": 7358,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19399,
+      "action_id": 7359,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19400,
+      "action_id": 7360,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19401,
+      "action_id": 7361,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19402,
+      "action_id": 7362,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19403,
+      "action_id": 7363,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19404,
+      "action_id": 7364,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19587,
+      "action_id": 7438,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19588,
+      "action_id": 7439,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19589,
+      "action_id": 7440,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19590,
+      "action_id": 7441,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19591,
+      "action_id": 7442,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19592,
+      "action_id": 7443,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19593,
+      "action_id": 7444,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 19594,
+      "action_id": 7445,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20072,
+      "action_id": 7778,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20073,
+      "action_id": 7779,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20074,
+      "action_id": 7780,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20088,
+      "action_id": 7892,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20089,
+      "action_id": 7893,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20090,
+      "action_id": 7894,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20091,
+      "action_id": 7895,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20092,
+      "action_id": 7896,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20288,
+      "action_id": 7984,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20289,
+      "action_id": 7985,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20290,
+      "action_id": 7986,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20291,
+      "action_id": 7987,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 20292,
+      "action_id": 7988,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22119,
+      "action_id": 9284,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22153,
+      "action_id": 9399,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22154,
+      "action_id": 9400,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22155,
+      "action_id": 9401,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22156,
+      "action_id": 9402,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22157,
+      "action_id": 9403,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22158,
+      "action_id": 9404,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22159,
+      "action_id": 9405,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22160,
+      "action_id": 9406,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22161,
+      "action_id": 9407,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22162,
+      "action_id": 9408,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22163,
+      "action_id": 9409,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22164,
+      "action_id": 9410,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 22165,
+      "action_id": 9411,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24170,
+      "action_id": 9987,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24171,
+      "action_id": 9988,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24172,
+      "action_id": 9989,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24173,
+      "action_id": 9990,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24174,
+      "action_id": 9991,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24175,
+      "action_id": 9992,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24176,
+      "action_id": 9993,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24177,
+      "action_id": 9994,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24178,
+      "action_id": 9995,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24179,
+      "action_id": 9996,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24180,
+      "action_id": 9997,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24181,
+      "action_id": 9998,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24182,
+      "action_id": 9999,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24316,
+      "action_id": 10125,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24334,
+      "action_id": 10128,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24369,
+      "action_id": 10134,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24370,
+      "action_id": 10135,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24371,
+      "action_id": 10136,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24372,
+      "action_id": 10137,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24726,
+      "action_id": 10154,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24741,
+      "action_id": 10158,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24742,
+      "action_id": 10159,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24743,
+      "action_id": 10160,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24744,
+      "action_id": 10161,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24745,
+      "action_id": 10162,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24746,
+      "action_id": 10163,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24747,
+      "action_id": 10164,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24748,
+      "action_id": 10165,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24749,
+      "action_id": 10166,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24750,
+      "action_id": 10167,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24751,
+      "action_id": 10168,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24752,
+      "action_id": 10169,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24753,
+      "action_id": 10170,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24754,
+      "action_id": 10171,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24755,
+      "action_id": 10172,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24756,
+      "action_id": 10173,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 24757,
+      "action_id": 10174,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25175,
+      "action_id": 10389,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25176,
+      "action_id": 10390,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25177,
+      "action_id": 10391,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25178,
+      "action_id": 10392,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25179,
+      "action_id": 10393,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25180,
+      "action_id": 10394,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25181,
+      "action_id": 10395,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25182,
+      "action_id": 10396,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25183,
+      "action_id": 10397,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25184,
+      "action_id": 10398,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25185,
+      "action_id": 10399,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25186,
+      "action_id": 10400,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25187,
+      "action_id": 10401,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25188,
+      "action_id": 10402,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25189,
+      "action_id": 10403,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25190,
+      "action_id": 10404,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25191,
+      "action_id": 10405,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25192,
+      "action_id": 10406,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25193,
+      "action_id": 10407,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25194,
+      "action_id": 10408,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25195,
+      "action_id": 10409,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25196,
+      "action_id": 10410,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25197,
+      "action_id": 10411,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25198,
+      "action_id": 10412,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25199,
+      "action_id": 10413,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25200,
+      "action_id": 10414,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25201,
+      "action_id": 10415,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25202,
+      "action_id": 10416,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25203,
+      "action_id": 10417,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25204,
+      "action_id": 10418,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25205,
+      "action_id": 10419,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25206,
+      "action_id": 10420,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25207,
+      "action_id": 10421,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25208,
+      "action_id": 10422,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25209,
+      "action_id": 10423,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25210,
+      "action_id": 10424,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25211,
+      "action_id": 10425,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25212,
+      "action_id": 10426,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25213,
+      "action_id": 10427,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25214,
+      "action_id": 10428,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25215,
+      "action_id": 10429,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25216,
+      "action_id": 10430,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25217,
+      "action_id": 10431,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25218,
+      "action_id": 10432,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25219,
+      "action_id": 10433,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25220,
+      "action_id": 10434,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25221,
+      "action_id": 10435,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25222,
+      "action_id": 10436,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25223,
+      "action_id": 10437,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25224,
+      "action_id": 10438,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25225,
+      "action_id": 10439,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25226,
+      "action_id": 10440,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25227,
+      "action_id": 10441,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25228,
+      "action_id": 10442,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25229,
+      "action_id": 10443,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25230,
+      "action_id": 10444,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25231,
+      "action_id": 10445,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25232,
+      "action_id": 10446,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25233,
+      "action_id": 10447,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 25234,
+      "action_id": 10448,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 26334,
+      "action_id": 10553,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 26730,
+      "action_id": 10921,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27210,
+      "action_id": 11210,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27211,
+      "action_id": 11211,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27212,
+      "action_id": 11212,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27213,
+      "action_id": 11213,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27214,
+      "action_id": 11214,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27215,
+      "action_id": 11215,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27216,
+      "action_id": 11216,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27217,
+      "action_id": 11217,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27218,
+      "action_id": 11218,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27219,
+      "action_id": 11219,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27220,
+      "action_id": 11220,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27221,
+      "action_id": 11221,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27222,
+      "action_id": 11222,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27223,
+      "action_id": 11223,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27224,
+      "action_id": 11224,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27225,
+      "action_id": 11225,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27226,
+      "action_id": 11226,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27227,
+      "action_id": 11227,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27228,
+      "action_id": 11228,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27229,
+      "action_id": 11229,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27230,
+      "action_id": 11230,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27231,
+      "action_id": 11231,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27232,
+      "action_id": 11232,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27233,
+      "action_id": 11233,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27234,
+      "action_id": 11234,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27235,
+      "action_id": 11235,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27236,
+      "action_id": 11236,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27237,
+      "action_id": 11237,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27238,
+      "action_id": 11238,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27239,
+      "action_id": 11239,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27240,
+      "action_id": 11240,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27241,
+      "action_id": 11241,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27242,
+      "action_id": 11242,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27243,
+      "action_id": 11243,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27244,
+      "action_id": 11244,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27245,
+      "action_id": 11245,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27246,
+      "action_id": 11246,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27247,
+      "action_id": 11247,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27248,
+      "action_id": 11248,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27249,
+      "action_id": 11249,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27250,
+      "action_id": 11250,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27251,
+      "action_id": 11251,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27252,
+      "action_id": 11252,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27253,
+      "action_id": 11253,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27254,
+      "action_id": 11254,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27255,
+      "action_id": 11255,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27256,
+      "action_id": 11256,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27257,
+      "action_id": 11257,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27258,
+      "action_id": 11258,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27259,
+      "action_id": 11259,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27260,
+      "action_id": 11260,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27261,
+      "action_id": 11261,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27262,
+      "action_id": 11262,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27263,
+      "action_id": 11263,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27264,
+      "action_id": 11264,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27265,
+      "action_id": 11265,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27266,
+      "action_id": 11266,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27267,
+      "action_id": 11267,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27268,
+      "action_id": 11268,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27269,
+      "action_id": 11269,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27988,
+      "action_id": 11670,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27989,
+      "action_id": 11671,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27990,
+      "action_id": 11672,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27991,
+      "action_id": 11673,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27992,
+      "action_id": 11674,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27993,
+      "action_id": 11675,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 27994,
+      "action_id": 11676,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 28821,
+      "action_id": 12364,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 28935,
+      "action_id": 12478,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 28936,
+      "action_id": 12479,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 28937,
+      "action_id": 12480,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 28938,
+      "action_id": 12481,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 28939,
+      "action_id": 12482,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 28986,
+      "action_id": 12532,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 28987,
+      "action_id": 12533,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 29562,
+      "action_id": 12726,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 29563,
+      "action_id": 12727,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 29564,
+      "action_id": 12728,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 29585,
+      "action_id": 12746,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 29586,
+      "action_id": 12747,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 29587,
+      "action_id": 12748,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 29598,
+      "action_id": 12754,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 29599,
+      "action_id": 12755,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30015,
+      "action_id": 12988,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30032,
+      "action_id": 13009,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30033,
+      "action_id": 13010,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30034,
+      "action_id": 13011,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30035,
+      "action_id": 13012,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30036,
+      "action_id": 13013,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30037,
+      "action_id": 13014,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30038,
+      "action_id": 13015,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30039,
+      "action_id": 13016,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30040,
+      "action_id": 13017,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30041,
+      "action_id": 13018,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30042,
+      "action_id": 13019,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30043,
+      "action_id": 13020,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30044,
+      "action_id": 13021,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30045,
+      "action_id": 13022,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30046,
+      "action_id": 13023,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30047,
+      "action_id": 13024,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30048,
+      "action_id": 13025,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30049,
+      "action_id": 13026,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30050,
+      "action_id": 13027,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30051,
+      "action_id": 13028,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30052,
+      "action_id": 13029,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30053,
+      "action_id": 13030,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30054,
+      "action_id": 13031,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30055,
+      "action_id": 13032,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30056,
+      "action_id": 13033,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30057,
+      "action_id": 13034,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30058,
+      "action_id": 13035,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30059,
+      "action_id": 13036,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30060,
+      "action_id": 13037,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30061,
+      "action_id": 13038,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30062,
+      "action_id": 13039,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30063,
+      "action_id": 13040,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30064,
+      "action_id": 13041,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30065,
+      "action_id": 13042,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30066,
+      "action_id": 13043,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30067,
+      "action_id": 13044,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30068,
+      "action_id": 13045,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30069,
+      "action_id": 13046,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30070,
+      "action_id": 13047,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30071,
+      "action_id": 13048,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30072,
+      "action_id": 13049,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30073,
+      "action_id": 13050,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30074,
+      "action_id": 13051,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30075,
+      "action_id": 13052,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30076,
+      "action_id": 13053,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30077,
+      "action_id": 13054,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30078,
+      "action_id": 13055,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30079,
+      "action_id": 13056,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30080,
+      "action_id": 13057,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30081,
+      "action_id": 13058,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30082,
+      "action_id": 13059,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30083,
+      "action_id": 13060,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30084,
+      "action_id": 13061,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30085,
+      "action_id": 13062,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30086,
+      "action_id": 13063,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30087,
+      "action_id": 13064,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30088,
+      "action_id": 13065,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30089,
+      "action_id": 13066,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30090,
+      "action_id": 13067,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30091,
+      "action_id": 13068,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30092,
+      "action_id": 13069,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30093,
+      "action_id": 13070,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30094,
+      "action_id": 13071,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30095,
+      "action_id": 13072,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30096,
+      "action_id": 13073,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30097,
+      "action_id": 13074,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30098,
+      "action_id": 13075,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30099,
+      "action_id": 13076,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30100,
+      "action_id": 13077,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30101,
+      "action_id": 13078,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30102,
+      "action_id": 13079,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30103,
+      "action_id": 13080,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30104,
+      "action_id": 13081,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30105,
+      "action_id": 13082,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30106,
+      "action_id": 13083,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30107,
+      "action_id": 13084,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30108,
+      "action_id": 13085,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30109,
+      "action_id": 13086,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30110,
+      "action_id": 13087,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30111,
+      "action_id": 13088,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30112,
+      "action_id": 13089,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30113,
+      "action_id": 13090,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30114,
+      "action_id": 13091,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30115,
+      "action_id": 13092,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30116,
+      "action_id": 13093,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30117,
+      "action_id": 13094,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30118,
+      "action_id": 13095,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30119,
+      "action_id": 13096,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30120,
+      "action_id": 13097,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30121,
+      "action_id": 13098,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30122,
+      "action_id": 13099,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30123,
+      "action_id": 13100,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30124,
+      "action_id": 13101,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30125,
+      "action_id": 13102,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30126,
+      "action_id": 13103,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30127,
+      "action_id": 13104,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30128,
+      "action_id": 13105,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30129,
+      "action_id": 13106,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30130,
+      "action_id": 13107,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30131,
+      "action_id": 13108,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30132,
+      "action_id": 13109,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30133,
+      "action_id": 13110,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30134,
+      "action_id": 13111,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30135,
+      "action_id": 13112,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30811,
+      "action_id": 13382,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30820,
+      "action_id": 13384,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30821,
+      "action_id": 13385,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30822,
+      "action_id": 13386,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30823,
+      "action_id": 13387,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 30937,
+      "action_id": 13434,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 31451,
+      "action_id": 13779,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 31452,
+      "action_id": 13780,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 31507,
+      "action_id": 13879,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 31574,
+      "action_id": 13894,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 31740,
+      "action_id": 14037,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32320,
+      "action_id": 14300,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32321,
+      "action_id": 14301,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32322,
+      "action_id": 14302,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32323,
+      "action_id": 14303,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32324,
+      "action_id": 14304,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32327,
+      "action_id": 14305,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32328,
+      "action_id": 14306,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32329,
+      "action_id": 14307,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32330,
+      "action_id": 14308,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32418,
+      "action_id": 14534,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32468,
+      "action_id": 14581,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32469,
+      "action_id": 14582,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32470,
+      "action_id": 14583,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32471,
+      "action_id": 14584,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32624,
+      "action_id": 14702,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32818,
+      "action_id": 14873,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32819,
+      "action_id": 14874,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32820,
+      "action_id": 14875,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32821,
+      "action_id": 14902,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32822,
+      "action_id": 14903,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32823,
+      "action_id": 14904,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32824,
+      "action_id": 14905,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32825,
+      "action_id": 14906,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32826,
+      "action_id": 14907,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32827,
+      "action_id": 14908,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32828,
+      "action_id": 14909,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32829,
+      "action_id": 14910,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32830,
+      "action_id": 14911,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32831,
+      "action_id": 14912,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32832,
+      "action_id": 14913,
+      "use_criterion": ""
+    },
+    {
+      "item_ref": 32833,
+      "action_id": 14914,
+      "use_criterion": ""
+    }
+  ]
+}

@@ -5,12 +5,25 @@ from two float32 operations and resets current through PA.aZf. Optional
 characteristics and nonzero owner damage copying remain unsupported.
 """
 from .combat_fake_fighter import _float32, _int
+from functools import lru_cache
+from importlib import import_module
 
 SOURCE = "faW.aQc.eRF.sgC.hp_only.v1"
 HP_CHARACTERISTIC = 1
 
 
+@lru_cache(maxsize=4)
+def _dependency_module(name):
+    """Cache modules, not mutable resource snapshots or validation results."""
+    return import_module("." + name, __package__)
+
+
 def fake_fighter_hp_resources(definition, level):
+    return _hp_resources_from_parameters(definition, level)
+
+
+def _hp_resources_from_parameters(definition, level, parameters=None):
+    """Private rounded input is local to one validated faW construction."""
     if (
         definition.get("type") != "FAKE_FIGHTER"
         or definition.get("native_type_id") != 15
@@ -22,7 +35,8 @@ def fake_fighter_hp_resources(definition, level):
     raw = definition.get("raw_bdh")
     if not isinstance(raw, (tuple, list)) or len(raw) != 10:
         raise ValueError("Unaudited native faW characteristic parameter layout")
-    parameters = tuple(_float32(value) for value in raw)
+    if parameters is None:
+        parameters = tuple(_float32(value) for value in raw)
     if parameters[1] == -1 or parameters[9] != -1:
         raise ValueError("Native faW HP-only characteristic branch required")
     # Native fmul then fadd round separately before Java f2i. ffw.sgC
@@ -70,6 +84,13 @@ def fake_fighter_hp_state(row, definition):
     if row.get("native_area_contract") != "faW":
         raise ValueError("Missing actual native faW area resource owner")
     resources = _owned_resources_constructor(definition, row.get("level"))
+    return _hp_state_from_resources(row, resources)
+
+
+def _hp_state_from_resources(row, resources):
+    """Validate mutable PA against one fresh operation-local constructor."""
+    if row.get("native_area_contract") != "faW":
+        raise ValueError("Missing actual native faW area resource owner")
     hp = resources["characteristics"][HP_CHARACTERISTIC]
     expected = {"source": resources["source"], "level": resources["level"], "hp": hp}
     if 20 in resources["characteristics"]:
@@ -81,9 +102,7 @@ def fake_fighter_hp_state(row, definition):
         or type(current) is not int
     ):
         raise ValueError("Missing actual native faW HP PA authority")
-    from .combat_area_hp_pa import area_hp_pa
-
-    return area_hp_pa(row, hp, current, "faW")
+    return _dependency_module("combat_area_hp_pa").area_hp_pa(row, hp, current, "faW")
 
 
 def update_fake_fighter_hp(row, definition, current):
@@ -133,14 +152,23 @@ DAMAGE_SOURCE = "faW.aQc.eRF.sgC_sgQ.owner_mask0.v1"
 
 def fake_fighter_zero_copy_resources(definition, level):
     """Actual p9=0 installs sgQ without reading any owner characteristic."""
+    return _zero_copy_resources_from_parameters(definition, level)
+
+
+def _zero_copy_resources_from_parameters(definition, level, parameters=None):
     raw = definition.get("raw_bdh")
-    if not isinstance(raw, (tuple, list)) or len(raw) != 10 or _float32(raw[9]) != 0:
+    if (
+        not isinstance(raw, (tuple, list))
+        or len(raw) != 10
+        or (_float32(raw[9]) if parameters is None else parameters[9]) != 0
+    ):
         raise ValueError("Native faW zero owner-copy mask required")
     # The HP producer owns the identical sgC constructor arithmetic. Substitute
     # only its branch selector in this private validated constructor input;
     # the real definition and admitted PC population remain unchanged.
     hp_definition = dict(definition, raw_bdh=list(raw[:9]) + [-1])
-    resources = fake_fighter_hp_resources(hp_definition, level)
+    hp_parameters = None if parameters is None else (*parameters[:9], -1.0)
+    resources = _hp_resources_from_parameters(hp_definition, level, hp_parameters)
     resources["source"] = DAMAGE_SOURCE
     resources["characteristics"][DAMAGE_CHARACTERISTIC] = dict(
         current=0,
@@ -159,14 +187,42 @@ def _owned_resources_constructor(definition, level):
     return fake_fighter_hp_resources(definition, level)
 
 
+def _owned_resources_from_parameters(definition, level, parameters):
+    """Reuse this verification's rounded tuple, with all resource guards."""
+    if len(parameters) == 10 and parameters[9] == 0:
+        return _zero_copy_resources_from_parameters(definition, level, parameters)
+    return _hp_resources_from_parameters(definition, level, parameters)
+
+
+def _characteristics_from_plan(row, definition, parameters, resources):
+    if parameters is None:
+        if resources is None:
+            return fake_fighter_characteristics(row, definition)
+        return _characteristics_from_resources(row, resources)
+    owner_copy = _dependency_module("combat_fake_fighter_owner_copy")
+    mask = owner_copy._damage_only_mask_from_parameters(definition, parameters)
+    if mask is not None:
+        return owner_copy._characteristics_from_mask(row, mask)
+    if resources is None:
+        resources = _owned_resources_from_parameters(
+            definition, row.get("level"), parameters
+        )
+    return _characteristics_from_resources(row, resources)
+
+
 def fake_fighter_characteristics(row, definition):
     """Return the complete actual faW PC population, never fighter defaults."""
     from .combat_fake_fighter_owner_copy import damage_only_mask, characteristics
 
     if damage_only_mask(definition) is not None:
         return characteristics(row, definition)
-    hp = fake_fighter_hp_state(row, definition)
     resources = _owned_resources_constructor(definition, row.get("level"))
+    return _characteristics_from_resources(row, resources)
+
+
+def _characteristics_from_resources(row, resources):
+    """Reuse only pure construction; mutable current/overlay guards stay live."""
+    hp = _hp_state_from_resources(row, resources)
     result = {HP_CHARACTERISTIC: hp}
     if DAMAGE_CHARACTERISTIC in resources["characteristics"]:
         damage = resources["characteristics"][DAMAGE_CHARACTERISTIC]

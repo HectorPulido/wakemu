@@ -2,7 +2,9 @@
 from . import service
 
 
-def settle_participants(db, store, fight, participants, original_monsters):
+def settle_participants(
+    db, store, fight, participants, original_monsters, *, environmental_scene=None
+):
     """Return private packets and exact outbox receipts inside settlement.
 
     Participants and original monsters must come from the durable settlement
@@ -17,6 +19,7 @@ def settle_participants(db, store, fight, participants, original_monsters):
     ):
         raise ValueError("Achievement adapter requires a resolved fight")
     is_rift = getattr(fight, "rift_wave_state", None) is not None
+    original_monsters = tuple(original_monsters)
     registrations = getattr(fight, "native_summon_registrations", {})
     killed = []
     identities = set()
@@ -44,6 +47,8 @@ def settle_participants(db, store, fight, participants, original_monsters):
     by_owner = {}
     receipts = []
     custom_task_updates = []
+    environmental_updates = []
+    environmental_facts = []
     seen = set()
     eligible = []
     for member in participants:
@@ -79,6 +84,24 @@ def settle_participants(db, store, fight, participants, original_monsters):
         from wakfu_server.custom_tasks.adapters import original_kills
 
         custom_result = original_kills(db, owner, identity, fight.id)
+        if environmental_scene is not None and not is_rift:
+            from wakfu_server.objectives.environmental_gameplay import settled_fight
+
+            environmental_updates.extend(
+                settled_fight(
+                    db,
+                    account_id=owner,
+                    character_id=identity,
+                    fight_id=fight.id,
+                    source_scene=dict(
+                        environmental_scene,
+                        original_entities=tuple(
+                            dict(monster) for monster in original_monsters
+                        ),
+                    ),
+                    deferred_facts=environmental_facts,
+                )
+            )
         if custom_result["updated"] or custom_result["completed"]:
             custom_task_updates.append(
                 {
@@ -91,10 +114,17 @@ def settle_participants(db, store, fight, participants, original_monsters):
         key = result.get("notification_key")
         if key is not None:
             receipts.append({"account_id": owner, "character_id": identity, "key": key})
+    if environmental_facts:
+        from wakfu_server.objectives.environmental_gameplay import consume
+
+        environmental_updates.extend(consume(db, environmental_facts))
     # The transport acknowledges only these exact keys after successful writes.
     # Reading all pending keys after publication could consume a newer event.
-    return {
+    delivery = {
         "packets_by_owner": by_owner,
         "notification_receipts": receipts,
         "custom_task_updates": custom_task_updates,
     }
+    if environmental_scene is not None:
+        delivery["environmental_updates"] = tuple(environmental_updates)
+    return delivery

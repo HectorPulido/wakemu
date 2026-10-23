@@ -251,16 +251,45 @@ def transfer(store, account_id, generation, character_id, body):
                 packets=[],
                 applied=False,
             )
+        companion_info = db.execute(
+            "SELECT uid FROM inventory_item_companions WHERE uid=ANY(%s)",
+            (unit_ids,),
+        ).fetchall()
+        if companion_info and (
+            clone is not None
+            or (other is not None and other["reference"] == item["reference"])
+        ):
+            raise ValueError(
+                "Unlinked companions are distinct native XP units and cannot merge or split"
+            )
         merge = (
             other is not None
             and other["reference"] == item["reference"]
             and rule["minimal_mergeable"]
         )
+        use_counters = list(
+            db.execute(
+                "SELECT source_uid,next_use FROM random_item_use_counters "
+                "WHERE source_uid=ANY(%s) ORDER BY source_uid FOR UPDATE",
+                (unit_ids,),
+            )
+        )
+        if merge and use_counters:
+            # Random outcomes are bound to physical UID plus its durable
+            # cursor. Merging would discard one identity even for equal cursors.
+            raise ValueError("Random-use item identities cannot be merged")
         if other is not None and not merge and clone is not None:
             raise ValueError("Native partial transfer cannot swap incompatible items")
         if merge:
             if socketed:
                 raise ValueError("Socketed items cannot be merged")
+            from .item_appearance import hydrate as hydrate_appearances
+
+            appearances = hydrate_appearances(db, [dict(item), dict(other)])
+            if appearances[0].get("appearance_ref", 0) != appearances[1].get(
+                "appearance_ref", 0
+            ):
+                raise ValueError("Native item appearances differ; units cannot merge")
             from .inventory_elements import hydrate, masks
 
             source_item, target_item = hydrate(db, [dict(item), dict(other)])
@@ -364,6 +393,9 @@ def transfer(store, account_id, generation, character_id, body):
 
             if not merge:
                 copy_elements(db, item["uid"], clone)
+                from .item_appearance import copy as copy_appearance
+
+                copy_appearance(db, item["uid"], clone)
                 db.execute(
                     "INSERT INTO inventory_item_bindings(uid,bound,template_reference) "
                     "SELECT %s,bound,template_reference FROM inventory_item_bindings WHERE uid=%s",
@@ -372,6 +404,11 @@ def transfer(store, account_id, generation, character_id, body):
                 db.execute(
                     "INSERT INTO inventory_item_recycling_state(uid,unidentified,socketed) "
                     "SELECT %s,unidentified,socketed FROM inventory_item_recycling_state WHERE uid=%s",
+                    (clone, item["uid"]),
+                )
+                db.execute(
+                    "INSERT INTO random_item_use_counters(source_uid,next_use) "
+                    "SELECT %s,next_use FROM random_item_use_counters WHERE source_uid=%s",
                     (clone, item["uid"]),
                 )
             db.execute(

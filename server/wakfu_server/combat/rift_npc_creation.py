@@ -146,11 +146,16 @@ def prepare_wave_npcs(monsters, *, catalog=None):
     return actors
 
 
-def install_native_wave(fight, monsters, *, initialize_actor, catalog=None):
+def install_native_wave(
+    fight, monsters, *, initialize_actor, initialize_wave=None, catalog=None
+):
     """Install on a detached accepted-command preview; caller discards failures.
 
     Initializer must preinstall all new ordinary monster sources and run the
     same innate creation path as initial NPCs, returning initialization packets.
+    The optional batch initializer runs after every actor is registered, before
+    any snapshot is serialized. Its packets follow all birth packets so native
+    state applications cannot address an actor the client has not created yet.
     """
     from .combat_qi_fight import current_registry
     from .combat_global_pv_collections import register_global_fighter
@@ -160,6 +165,7 @@ def install_native_wave(fight, monsters, *, initialize_actor, catalog=None):
     state = getattr(fight, "rift_wave_state", None)
     if (
         not callable(initialize_actor)
+        or (initialize_wave is not None and not callable(initialize_wave))
         or fight.phase != "active"
         or not isinstance(state, dict)
         or not state.get("pending_wave")
@@ -215,6 +221,11 @@ def install_native_wave(fight, monsters, *, initialize_actor, catalog=None):
             if base is not None:
                 base.append(actor.id)
     initialize_native_wave_actors(fight, monsters)
+    batch_packets = (
+        ()
+        if initialize_wave is None
+        else tuple(initialize_wave(fight, tuple(actors), tuple(monsters)))
+    )
     packets, creations = [], {}
     for actor, monster in zip(actors, monsters):
         initialization_packets = initialize_actor(fight, actor, monster)
@@ -229,6 +240,7 @@ def install_native_wave(fight, monsters, *, initialize_actor, catalog=None):
         creations[actor.id] = actor_packets
         packets.extend(actor_packets)
         packets.extend(initialization_packets)
+    packets.extend(batch_packets)
     acknowledge_wave(
         fight,
         [a.id for a in actors],

@@ -133,7 +133,7 @@ def prepare_intents(store, snapshot, *, limit=4):
     )
     from wakfu_server.planting_location import active_character
     from wakfu_server.planting_probability import resolver
-    from wakfu_server.planting_bonus import current
+    from wakfu_server.planting_bonus import resolver as bonus_resolver
 
     if type(limit) is not int or not 1 <= limit <= 64:
         raise ValueError("Invalid planting intent batch")
@@ -143,7 +143,7 @@ def prepare_intents(store, snapshot, *, limit=4):
     players = snapshot.get("players", ())
     open_policy = snapshot.get("open_planting", True)
     probability = resolver(
-        store, profession_bonus=current, open_test_policy=open_policy
+        store, profession_bonus=bonus_resolver(store), open_test_policy=open_policy
     )
     plans = []
     with store.connection() as db:

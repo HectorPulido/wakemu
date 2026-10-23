@@ -16,7 +16,13 @@ from wakfu_server.combat_cosmetic_conditions import (
 
 class CosmeticCategoryTests(unittest.TestCase):
     def setUp(self):
-        self.character = {"id": 42, "account_id": 7}
+        self.character = {
+            "id": 42,
+            "account_id": 7,
+            "level": 20,
+            "active_build_index": 0,
+            "builds": {},
+        }
         self.record = OwnedCosmetics(
             7,
             (

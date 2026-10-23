@@ -2,9 +2,13 @@
 from copy import deepcopy
 import json
 import unittest
+from types import SimpleNamespace
 
 import test_combat_owned_equipment as native_fixture
 from wakfu_server.combat_owned_equipment_pin import (
+    _digest,
+    _execution_contract_payload,
+    _normalized_legacy_execution_contract_sha256,
     compiled_for_fight,
     pin_transaction,
     preparation_for_actor,
@@ -65,6 +69,76 @@ class OwnedEquipmentPinTests(unittest.TestCase):
         character, authority = self.equipped()
         return character, pin_transaction(
             self.fight, character, authority, self.compiled, self.registry, owner_id=3
+        )
+
+    def test_production_initialization_uses_enabled_attachment_once_and_pins_restore(
+        self,
+    ):
+        from wakfu_server.combat_server_spell import prepare_server_initialization
+        from wakfu_server.spells import encode_deck
+
+        character, authority = self.equipped()
+        monsters = {self.native.monster["id"]: self.native.monster}
+        before = snapshot(self.fight)
+        control, _ = prepare_server_initialization(
+            character,
+            monsters,
+            self.fight,
+            3,
+            encode_deck(),
+            action_id=1,
+            attachment_authority=CombatAttachmentAuthority([], []),
+        )
+        enabled, packets = prepare_server_initialization(
+            character,
+            monsters,
+            self.fight,
+            3,
+            encode_deck(),
+            action_id=1,
+            attachment_authority=authority,
+        )
+        self.assertEqual(snapshot(self.fight), before)
+        self.assertTrue(packets)
+        self.assertEqual(
+            enabled.actors[7].effect_stats[9],
+            control.actors[7].effect_stats.get(9, 0) + 6,
+        )
+        initial = preparation_for_actor(enabled, 7, self.compiled)
+        self.assertIn(
+            27152, [source["source_reference"] for source in initial["sources"]]
+        )
+        restored = deepcopy(enabled)
+        restored.native_owned_equipment_sources = json.loads(
+            json.dumps(snapshot(enabled)["native_owned_equipment_sources"])
+        )
+        self.assertEqual(
+            preparation_for_actor(restored, 7, self.compiled)["sources"],
+            initial["sources"],
+        )
+        with self.assertRaisesRegex(ValueError, "already pinned"):
+            prepare_server_initialization(
+                character,
+                monsters,
+                enabled,
+                3,
+                encode_deck(),
+                action_id=2,
+                attachment_authority=authority,
+            )
+        invalid_character = deepcopy(character)
+        invalid_character["inventory_items"][0]["shard_state"] = proto_field(24, 27152)
+        mismatch, _ = prepare_server_initialization(
+            invalid_character,
+            monsters,
+            self.fight,
+            3,
+            encode_deck(),
+            action_id=1,
+            attachment_authority=authority,
+        )
+        self.assertEqual(
+            mismatch.actors[7].effect_stats, control.actors[7].effect_stats
         )
 
     def test_actual_plan_pin_is_immutable_detached_and_used_by_later_factory(self):
@@ -158,6 +232,22 @@ class OwnedEquipmentPinTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "execution contract"):
             pinned_sources(pinned, self.compiled, registry)
 
+    def test_previous_normalized_pin_digest_remains_recoverable(self):
+        from wakfu_server.combat_static_catalogs import ImmutableCatalog
+
+        _, (pinned, _) = self.pin()
+        restored = deepcopy(self.fight)
+        record = json.loads(
+            json.dumps(snapshot(pinned)["native_owned_equipment_sources"]["7"])
+        )
+        record["execution_sha256"] = _normalized_legacy_execution_contract_sha256(
+            record["sources"], self.compiled, self.registry
+        )
+        record.pop("sha256")
+        record["sha256"] = _digest(record)
+        restored.native_owned_equipment_sources = {"7": ImmutableCatalog(record)}
+        self.assertEqual(len(pinned_sources(restored, self.compiled)), 1)
+
     def test_two_actual_equipped_sources_add_levels_under_the_same_native_state(self):
         from wakfu_server.wire import proto_fields
 
@@ -212,3 +302,76 @@ class OwnedEquipmentPinTests(unittest.TestCase):
         self.assertFalse(has_equipped_attachments(character))
         character["builds"].clear()
         self.assertFalse(has_equipped_attachments(character))
+
+
+class OwnedEquipmentPinTraversalTests(unittest.TestCase):
+    @staticmethod
+    def _state(maximum_level, effect_ids=()):
+        return dict(
+            maximum_level=maximum_level,
+            duration_base=-1,
+            duration_per_level=0,
+            realtime_duration_base=0,
+            realtime_duration_per_level=0,
+            clock_actor="target",
+            tick_at_turn_end=False,
+            additive=False,
+            replace=False,
+            refresh=False,
+            protected=False,
+            skip_turn_timer=False,
+            effect_ids=list(effect_ids),
+        )
+
+    @staticmethod
+    def _state_effect(reference, growth=0, *, minimum=0, maximum=32767):
+        return dict(
+            effect_class=304,
+            parameters=(reference, growth, 0, 0, -1, 0),
+            parameter_count=3,
+            probability_base=100.0,
+            probability_per_level=0.0,
+            minimum_level=minimum,
+            maximum_level=maximum,
+            children=(),
+        )
+
+    def test_nested_state_domains_bind_all_dynamic_descendant_definitions(self):
+        root = self._state_effect(10)
+        child = self._state_effect(20)
+        # This nested state reference changes with its execution level. The
+        # parent state spans levels 0..3 while the root spans only 0..1.
+        grandchild = self._state_effect(30, 1)
+        effects = {"1": root, "2": child, "3": grandchild}
+        states = {
+            "10": self._state(1, (2,)),
+            "20": self._state(3, (3,)),
+            "30": self._state(0),
+            "31": self._state(0),
+            "32": self._state(0),
+            "33": self._state(2),
+        }
+        source = dict(
+            roots=(1,),
+            native_retained_container={"level": 0},
+            effects={"1": root},
+        )
+        compiled = SimpleNamespace(
+            effects=effects,
+            source_states={"states": states, "effects": effects},
+        )
+        registry = {"effects": {}}
+        payload = _execution_contract_payload((source,), compiled, registry)
+        self.assertEqual({"10", "20", "30", "31", "32", "33"}, set(payload["states"]))
+        self.assertIn("3", payload["effects"])
+
+        changed_states = dict(states)
+        changed_states["33"] = dict(states["33"], maximum_level=1)
+        changed = SimpleNamespace(
+            effects=effects,
+            source_states={"states": changed_states, "effects": effects},
+        )
+        self.assertNotEqual(
+            payload,
+            _execution_contract_payload((source,), changed, registry),
+        )

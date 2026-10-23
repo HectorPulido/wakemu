@@ -147,6 +147,7 @@ class NativeEffectAreaHandler:
         self.area_affiliation = area_affiliation
         self.area_obstacle_register = area_obstacle_register
         self.on_created = None
+        self.on_post_retention_registration = None
         self.target_aura_construction = None
         self.target_aura_applied = None
         self.prepared_event_clones = {}
@@ -269,6 +270,10 @@ class NativeEffectAreaHandler:
         grade = None
         wall = None
         simple = None
+        if definition["type"] == "ARTIFACT":
+            from .combat_artifact_area import validate_artifact_definition
+
+            validate_artifact_definition(definition)
         if definition["type"] == "SIMPLE":
             from .combat_simple_area import simple_area_constructor
 
@@ -427,9 +432,16 @@ class NativeEffectAreaHandler:
         )
         caster = registered_or_detached_actor(self.fight, invocation.caster_id)
         if caster is None and invocation.caster_id is not None:
-            from .combat_area_orientation import orientation_area_pv
+            from .combat_area_orientation import creation_area_pv
+            from .combat_state_managers import registered_area_pv
 
-            caster = orientation_area_pv(self.fight, invocation.caster_id)
+            # Explicit facing only needs the actual Qq coordinates. Inherited
+            # facing uses its native getter, independent of mutable fbb support.
+            caster = (
+                registered_area_pv(self.fight, invocation.caster_id)
+                if direction is not None
+                else creation_area_pv(self.fight, invocation.caster_id)
+            )
         orientation_owner = self.fight.actors[creator_id] if target_aura else caster
         effective_direction = (
             direction

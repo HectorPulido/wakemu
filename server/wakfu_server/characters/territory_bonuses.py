@@ -222,11 +222,79 @@ def stat_bonuses(region: dict | None, *, health_policy=None) -> dict[int, int]:
     return result
 
 
+def reconcile_owned(
+    store,
+    account_id,
+    generation,
+    character,
+    *,
+    db=None,
+    selected_character_id=None,
+    region=None,
+    bonuses=None,
+):
+    """Apply regional HP under the selected owner's lease before publication.
+
+    Location comes from the live caller: a walking hero's stored position can
+    lag behind its owner's position. Health and equipment always come from the
+    locked durable character, never an asynchronous ecology proposal.
+    """
+    from contextlib import nullcontext
+    from wakfu_server.territory_health_lifecycle import reconcile_in_transaction
+
+    selected_id = (
+        character["id"] if selected_character_id is None else selected_character_id
+    )
+    with store.connection() if db is None else nullcontext(db) as connection:
+        store.lock_character(connection, account_id, generation, selected_id)
+        if selected_id != character["id"]:
+            store.lock_character(
+                connection, account_id, generation, character["id"], selected=False
+            )
+        canonical = store.character(account_id, character["id"], connection)
+        for key in ("hp", "max_hp", "hp_damage", "health_dead", "hp_zero_valid"):
+            if key in character and canonical[key] != character[key]:
+                raise ValueError("Stale owned territorial health observation")
+        location = {
+            key: character[key] for key in ("map_id", "instance_id", "x", "y", "z")
+        }
+        canonical.update(location)
+        policy = control_health_policy(connection)
+        if bonuses is None:
+            region = current_region(connection, canonical)
+            bonuses = stat_bonuses(region, health_policy=policy)
+        else:
+            # Worker proposals can outlive a policy change. Their native state
+            # remains useful, but only the current policy owns the HP amount.
+            bonuses = dict(bonuses)
+            state = None if region is None else region.get("state_id")
+            bonuses[1] = 0 if state is None else policy[str(state)]
+        state = None if region is None else region.get("state_id")
+        canonical = reconcile_in_transaction(
+            connection,
+            canonical,
+            applied_flat=bonuses.get(1, 0),
+            state_id=state,
+            map_id=location["map_id"],
+            instance_id=location["instance_id"],
+            region_id=None if region is None else region.get("territory_id"),
+            now_ms=int(store.clock() * 1000),
+        )
+        result = dict(character)
+        result.update(canonical)
+        result.update(location)
+        result["territory_state_id"] = state
+        result["territory_stat_bonuses"] = dict(bonuses)
+        return result
+
+
 def attach_character(db, character: dict) -> dict:
     """Return a detached actor input with fresh nonpersistent regional stats."""
     result = dict(character)
+    region = current_region(db, character)
+    result["territory_state_id"] = None if region is None else region.get("state_id")
     result["territory_stat_bonuses"] = stat_bonuses(
-        current_region(db, character), health_policy=control_health_policy(db)
+        region, health_policy=control_health_policy(db)
     )
     from wakfu_server.equipment_stats import effective_character
 
@@ -235,7 +303,9 @@ def attach_character(db, character: dict) -> dict:
     return effective_character(result)
 
 
-def refresh_world(store, character: dict) -> list[tuple[int, bytes]]:
+def refresh_world(
+    store, character: dict, *, generation=None
+) -> list[tuple[int, bytes]]:
     """Publish authoritative regional characteristics on an exploration actor.
 
     Derived bonuses never enter persistent character storage. Recompute even
@@ -244,17 +314,40 @@ def refresh_world(store, character: dict) -> list[tuple[int, bytes]]:
     marker is separate from the actor input: combat can attach fresh bonuses
     without having published an exploration refresh to the owning client.
     """
-    with store.connection() as db:
-        attached = attach_character(db, character)
+    if generation is not None:
+        canonical = reconcile_owned(
+            store, character["account_id"], generation, character
+        )
+        # Persistence precedes socket delivery. A failed send must not leave
+        # the session's next regeneration CAS using its superseded maximum.
+        character.update(canonical)
+        # The owned reconciliation already observed the complete population.
+        # World codecs reduce the full owned build themselves; do not scan the
+        # same region a second time just to publish its characteristics.
+        attached = canonical
+    else:
+        with store.connection() as db:
+            attached = attach_character(db, character)
     bonuses = attached["territory_stat_bonuses"]
     previous = character.get("_published_territory_stat_bonuses")
-    if previous == bonuses:
+    state = attached["territory_state_id"]
+    previous_state = character.get("_published_territory_state_id")
+    if (
+        previous == bonuses
+        and "_published_territory_state_id" in character
+        and previous_state == state
+    ):
         character["territory_stat_bonuses"] = bonuses
+        character["territory_state_id"] = state
         return []
     # Serialize before changing live state so failed serialization is retried.
     # The native exploration codec uses fightID=-1 and preserves owned HP,
     # equipment, aptitudes and the selected build rather than template stats.
-    packets = world_packets(attached)
+    from wakfu_server.territory_bonus_wire import delta
+
+    packets = (*world_packets(attached), *delta(character["id"], previous_state, state))
+    character["territory_state_id"] = state
+    character["_published_territory_state_id"] = state
     character["territory_stat_bonuses"] = bonuses
     character["_published_territory_stat_bonuses"] = dict(bonuses)
     return list(packets)

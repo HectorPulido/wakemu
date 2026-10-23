@@ -78,9 +78,19 @@ def resolver(store):
     """Staged provider; activate only with matching native bonus publication."""
 
     def resolve(prepared):
-        with store.connection() as db:
-            bonuses = account_bonuses(db, prepared["character"]["account_id"])
+        from wakfu_server.profession_equipment_modifiers import modifiers
+
         profession = prepared["seed"]["profession_id"]
+        character = prepared["character"]
+        with store.connection() as db:
+            additional = modifiers(store, db, character["id"], profession)[
+                "plant_probability"
+            ]
+            bonuses = account_bonuses(
+                db,
+                character["account_id"],
+                authoritative_bonuses={profession: additional},
+            )
         if profession not in bonuses:
             raise ValueError("Planting bonus profession is not learned")
         return bonuses[profession]

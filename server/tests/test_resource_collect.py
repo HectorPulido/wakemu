@@ -367,6 +367,108 @@ class ResourceCollectPrepareTests(PostgresCase):
         self.assertEqual(result["resource"], fresno)
         self.assertEqual(result["rule"]["item_reference"], 8063)
 
+    def test_rice_consumable_reaches_real_harvest_yield_and_receipt_once(self):
+        """18050's state 1168 affects the actual flora reward transaction."""
+        from wakfu_server.inventory_consumable_effects import use as use_consumable
+        from wakfu_server.inventory_items import grant
+        from wakfu_server.resource_collect import reserve, complete
+        from psycopg.types.json import Jsonb
+
+        # Keep harvest timing deterministic while exercising the durable
+        # occupation lifecycle. The consumable's 15-minute online clock stays
+        # active across this short collection.
+        self.store.clock = lambda: 1_000
+        self.learn(64, level=5)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='resource_harvest_rewards'",
+                (
+                    Jsonb(
+                        {
+                            "version": 1,
+                            "product_quantity": 10,
+                            "stage_policy": "catalog_cvF",
+                        }
+                    ),
+                ),
+            )
+        food = grant(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            reference=18050,
+            quantity=2,
+            container=self.char["inventory_containers"][0]["uid"],
+            slot=0,
+            allowed_references={18050},
+        )
+        before = self.store.character(self.account, self.char["id"])
+        used = use_consumable(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            struct.pack(">qB", food["uid"], 0),
+            expected_hp=before["hp"],
+            in_fight=False,
+        )
+        self.assertTrue(used["applied"])
+        self.assertEqual(used["character"]["consumable_states"][0]["state_id"], 1168)
+        self.assertEqual(used["character"]["consumable_states"][0]["level"], 15)
+        self.assertEqual(
+            next(
+                item["quantity"]
+                for item in used["character"]["inventory_items"]
+                if item["uid"] == food["uid"]
+            ),
+            1,
+        )
+
+        resource = self.plant(ref=79, stage=2)
+        prepared = self.prepare(self.body(199, x=resource["x"], y=resource["y"]))
+        ticket = reserve(self.store, self.account, self.generation, prepared)
+        self.assertEqual(ticket["duration_ms"], 3_000)
+        self.store.clock = lambda: 1_004
+        result = complete(self.store, ticket, struct.pack(">Bh", 2, 3))
+        self.assertTrue(result["applied"])
+        outcome = result["outcome"]
+        self.assertEqual(outcome["item_reference"], 1889)
+        self.assertEqual(outcome["base_quantity"], 10)
+        self.assertEqual(outcome["consumable_quantity_percent"], 15)
+        self.assertIn(outcome["quantity"], (11, 12))
+        self.assertEqual(
+            outcome["quantity_rounding_policy"], "server_stochastic_per_occupation_v1"
+        )
+        repeated = complete(self.store, ticket, struct.pack(">Bh", 2, 3))
+        self.assertEqual(
+            repeated, {"applied": False, "packets": [], "world_packets": []}
+        )
+        self.store.clock = lambda: 1_005
+        from wakfu_server.consumable_buffs import active_states
+
+        with self.store.connection() as db:
+            self.assertEqual(
+                [
+                    (row["state_id"], row["clock"], row["remaining_ms"])
+                    for row in active_states(
+                        self.store,
+                        db,
+                        self.char["id"],
+                        generation=self.generation,
+                    )
+                ],
+                [(1168, "online", 895_000)],
+            )
+        self.store.clock = lambda: 1_901
+        with self.store.connection() as db:
+            self.assertEqual(
+                active_states(
+                    self.store, db, self.char["id"], generation=self.generation
+                ),
+                (),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

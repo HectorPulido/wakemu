@@ -11,9 +11,11 @@ import math
 
 from .native_oracle import NativeOracle
 from ..bridge.world_bridge import NativeSession
-from .native_deadline import bounded, check
+from .native_deadline import bounded, check, cleanup_budget
+from ..planning import turn_continuation
 
 
+@turn_continuation.turn_scope
 def run_turn(
     runtime,
     *,
@@ -55,6 +57,8 @@ def run_turn(
     ):
         raise ValueError("Native AI turn requires an active NPC")
     actor_id, turn_id = fight.current.id, fight.turn_id
+    continuation = turn_continuation.current()
+    continuation.begin(runtime)
     if not hasattr(runtime, "tactical_encounter_id"):
         runtime.tactical_encounter_id = (
             getattr(fight, "native_ai_fight_uuid", None) or uuid.uuid4().hex
@@ -213,7 +217,7 @@ def run_turn(
                     # deadline expired. A separate 250ms cleanup allowance
                     # cannot authorize another action or delay native fallback
                     # through the transport's usual retries.
-                    with bounded(clock() + 0.25, clock=clock):
+                    with cleanup_budget(clock=clock):
                         session.cancel()
                 except (ValueError, OSError, TypeError):
                     pass
@@ -229,7 +233,29 @@ def run_turn(
             )
             yield [], ending
             break
+        if getattr(session, "needs_cleanup", False):
+            # Commit has finished under the real owner deadline. Cancellation
+            # releases the suspended remote search before another decision;
+            # its separate cleanup allowance cannot authorize game work.
+            cleanup_started = clock()
+            try:
+                with cleanup_budget(clock=clock):
+                    session.cancel()
+            except (ValueError, OSError, TypeError) as error:
+                decision["nativeSearchCleanupError"] = type(error).__name__
+            finally:
+                record_stage("search_cleanup", cleanup_started)
+                decision["stageElapsedMs"] = dict(stage_elapsed_ms)
+                decision["elapsedMs"] = max(0.0, (clock() - started_at) * 1000)
+        continuation.stage(
+            decision, getattr(session, "continuation_binding", None), runtime
+        )
         yield packets, decision
+        # A shared runner is closed after staging its private action; only the
+        # Registry publisher may confirm that continuation. Direct consumers
+        # confirm by resuming delivery, before another fresh decision session.
+        if not continuation.publication_required:
+            continuation.confirm(runtime, action=decision["action"])
         if decision["action"]["type"] == "end_turn":
             return
     fight = runtime.fight

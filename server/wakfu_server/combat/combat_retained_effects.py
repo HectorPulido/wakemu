@@ -71,8 +71,40 @@ def default_dispel_eligible(entry):
     return entry.effect_class != 421
 
 
+class _RetainedManagerPass:
+    """Verified managers for one pure view construction, never a live cache.
+
+    Capture only after synchronize/prune. No gameplay callback may run before
+    the consumer finishes; a later view must construct a new pass.
+    """
+
+    def __init__(self, fight):
+        self.fight = fight
+        self.managers = tuple(state_managers(fight))
+        self.by_identity = {}
+        self._consumed = False
+        for manager in self.managers:
+            if manager.id in self.by_identity:
+                raise ValueError("Duplicate native retained manager identity")
+            self.by_identity[manager.id] = manager
+
+    def consume(self, fight):
+        if self.fight is not fight or self._consumed:
+            raise ValueError("Invalid operation-local retained manager pass")
+        self._consumed = True
+
+    def resolve(self, identity):
+        if identity not in self.by_identity:
+            # A target can have no enumerated Qf ledger. Preserve the original
+            # selected-manager validation, including malformed/null managers.
+            self.by_identity[identity] = state_manager(self.fight, identity)
+        return self.by_identity[identity]
+
+
 class NativeRetainedEffectView:
-    def __init__(self, fight, entries, *, population_verified_complete):
+    def __init__(
+        self, fight, entries, *, population_verified_complete, _manager_pass=None
+    ):
         if population_verified_complete is not True:
             raise ValueError(
                 "Complete authoritative native running-effect population required"
@@ -86,7 +118,11 @@ class NativeRetainedEffectView:
         # both redundant and needlessly expensive. Keep this index local to the
         # immutable view construction: later views must observe current fight
         # state and re-run the authority checks.
-        target_managers = {}
+        if _manager_pass is None:
+            _manager_pass = _RetainedManagerPass(fight)
+        elif type(_manager_pass) is not _RetainedManagerPass:
+            raise ValueError("Invalid operation-local retained manager pass")
+        _manager_pass.consume(fight)
         for entry in self.entries:
             if (
                 not isinstance(entry, RetainedEffect)
@@ -98,11 +134,7 @@ class NativeRetainedEffectView:
                 raise ValueError("Duplicate native retained effect UID")
             target_missing = False
             if entry.target_id is not None:
-                if entry.target_id not in target_managers:
-                    target_managers[entry.target_id] = state_manager(
-                        fight, entry.target_id
-                    )
-                target_missing = target_managers[entry.target_id] is None
+                target_missing = _manager_pass.resolve(entry.target_id) is None
             if (
                 target_missing
                 or type(entry.effect_class) is not int
@@ -127,7 +159,7 @@ class NativeRetainedEffectView:
                 generic,
                 row.get("state_uid"),
             )
-        for actor in state_managers(fight):
+        for actor in _manager_pass.managers:
             for state in actor.state_ledger.entries:
                 if state.uid in pending:
                     continue  # Actual eZk iterator precedes its Qf registration.

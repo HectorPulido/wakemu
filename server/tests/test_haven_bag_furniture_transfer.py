@@ -101,8 +101,31 @@ class _TransactionalFurnitureDB:
         self.store = store
 
     def execute(self, sql, params=()):
+        if not isinstance(sql, str):
+            sql = sql.as_string()
         statement = " ".join(sql.lower().split())
         state = self.store.state
+        if statement.startswith('select * from "inventory_') or statement.startswith(
+            'select * from "random_item_use_counters"'
+        ):
+            return _FakeResult()
+        if statement.startswith("insert into portable_item_custody"):
+            uid, account, character, reference, kind, metadata = params
+            state.setdefault("portable_custody", {})[uid] = dict(
+                uid=uid,
+                account_id=account,
+                source_character_id=character,
+                reference=reference,
+                kind=kind,
+                metadata=deepcopy(metadata.obj),
+            )
+            return _FakeResult()
+        if statement.startswith("select * from portable_item_custody"):
+            row = state.get("portable_custody", {}).get(params[0])
+            return _FakeResult([deepcopy(row)] if row else [])
+        if statement.startswith("delete from portable_item_custody"):
+            state.get("portable_custody", {}).pop(params[0], None)
+            return _FakeResult()
         if statement.startswith("select b.character_id from account_haven_bags"):
             return _FakeResult([{"character_id": self.store.character_id}])
         if statement.startswith("select character_id from sessions"):
@@ -159,9 +182,11 @@ class _TransactionalFurnitureDB:
                 key=lambda item: item["uid"],
             )
             return _FakeResult(rows[:1])
-        if statement.startswith(
-            "select 1 from inventory_item_"
-        ) or statement.startswith("select 1 from inventory_mounts"):
+        if (
+            statement.startswith("select 1 from inventory_item_")
+            or statement.startswith("select 1 from inventory_mounts")
+            or statement.startswith("select 1 from inventory_pets")
+        ):
             return _FakeResult()
         if statement.startswith("select nextval('inventory_uid')"):
             uid = self.store.next_uid

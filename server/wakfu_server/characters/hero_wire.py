@@ -31,7 +31,9 @@ def added_success():
     return 12587, b"\x01"
 
 
-def company(account_id, main_character_id, *, guild_id=0, nation_id=0):
+def company(
+    account_id, main_character_id, *, guild_id=0, nation_id=0, company_snapshot=None
+):
     """eSJ COMPANY identifies the real main and activates the owned company."""
     if any(
         type(value) is not int or value <= 0
@@ -43,9 +45,24 @@ def company(account_id, main_character_id, *, guild_id=0, nation_id=0):
     from .nation_state import nation_id as validated_nation_id
 
     nation_id = validated_nation_id({"nation_id": nation_id})
-    return 13873, struct.pack(
-        ">IIqqiqIiB", 1, 1, account_id, main_character_id, nation_id, guild_id, 0, 1, 1
+    from wakfu_server.company_authority import CompanySnapshot
+
+    snapshot = (
+        CompanySnapshot.from_record(company_snapshot)
+        if isinstance(company_snapshot, dict)
+        else company_snapshot
     )
+    if not isinstance(snapshot, CompanySnapshot):
+        raise ValueError("Missing actual native company publication authority")
+    snapshot.require_owner(account_id).require_chief(main_character_id)
+    return CompanySnapshot(
+        account_id,
+        main_character_id,
+        nation_id,
+        guild_id,
+        score=snapshot.score,
+        active=snapshot.active,
+    ).packet()
 
 
 def added_result(result):

@@ -117,6 +117,7 @@ class NativeHealingHandler:
         flags = frozenset(flags)
         allowed_flags = {
             2,  # DONT_USE_BLOCK: eXt HP loss, not eXs/fat HP gain.
+            3,  # DONT_DISPLAY_ZONE: presentation only, not healing arithmetic.
             4,
             5,
             6,

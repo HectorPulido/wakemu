@@ -218,13 +218,11 @@ def merged_spell_effects():
         merge_triggered_effects(merge_captured_effects(class_catalog()["effects"]))
     )
     dependencies = granted_effect_catalog()
-    if enabled():
-        return _merge_effects(base, dependencies)
-    # Own-book class summon abilities are ordinary class dependencies, not
-    # temporary grants. Keep their scoped definitions independent of the
-    # permission gate for granting extra actions to an actor.
-    merged = _merge_effects(base, class_summon_dependency_effects(dependencies))
-    return _merge_effects(merged, class_grant_dependency_effects(dependencies))
+    # Definitions do not admit an action. The owned resolver requires its
+    # actual native grant UID, level and controller on every cast, independent
+    # of the retired feature flag. Keep every original granted dependency
+    # available to that same already-authorized execution path.
+    return _merge_effects(base, dependencies)
 
 
 def class_grant_dependency_effects(dependencies):

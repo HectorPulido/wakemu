@@ -22,8 +22,26 @@ def damage_only_mask(definition):
     return _int(values[9])
 
 
+def _damage_only_mask_from_parameters(definition, values):
+    """Pure branch selection from this call's already rounded parameters."""
+    if len(values) != 10:
+        return None
+    if values[1] != -1 or not 0 <= values[9] <= 31:
+        return None
+    if (
+        definition.get("type") != "FAKE_FIGHTER"
+        or definition.get("native_type_id") != 15
+        or definition.get("native_class") != "bcQ"
+    ):
+        raise ValueError("Missing native faW sgQ-only prototype")
+    return _int(values[9])
+
+
 def constructor(definition, owner_stats):
-    mask = damage_only_mask(definition)
+    return _constructor_from_mask(damage_only_mask(definition), owner_stats)
+
+
+def _constructor_from_mask(mask, owner_stats):
     if mask is None or not isinstance(owner_stats, dict):
         raise ValueError("Missing native faW sgQ-only owner snapshot")
     current = 0
@@ -69,7 +87,16 @@ def characteristics(row, definition):
     receipt = row.get("native_faw_damage_only_constructor")
     if not isinstance(receipt, dict):
         raise ValueError("Missing native faW sgQ-only constructor receipt")
-    expected = constructor(definition, receipt.get("owner_stats"))
+    return _characteristics_from_mask(row, damage_only_mask(definition), receipt)
+
+
+def _characteristics_from_mask(row, mask, receipt=None):
+    """Reuse pure selection; validate the actual receipt/current on every call."""
+    if receipt is None:
+        receipt = row.get("native_faw_damage_only_constructor")
+    if not isinstance(receipt, dict):
+        raise ValueError("Missing native faW sgQ-only constructor receipt")
+    expected = _constructor_from_mask(mask, receipt.get("owner_stats"))
     # JSON restoration changes integer dictionary keys to strings.
     stored = dict(
         receipt,

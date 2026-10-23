@@ -152,20 +152,32 @@ class NativeDamageHandler:
         source = native_actor(self.fight, invocation.caster_id)
         target = native_actor(self.fight, invocation.target_id)
         if source is not None and target is None:
-            from .combat_area_damage_guard import area_damage_has_no_resources
+            from .combat_area_damage_guard import (
+                area_damage_has_no_resources,
+                completed_wall_without_ko_pa,
+            )
 
-            if area_damage_has_no_resources(self.fight, invocation.target_id):
+            completed_wall = completed_wall_without_ko_pa(
+                self.fight, invocation.target_id
+            )
+            if completed_wall or area_damage_has_no_resources(
+                self.fight, invocation.target_id
+            ):
                 if (
                     self.fight.phase != "active"
                     or self.fight.current is None
                     or effect["effect_class"] not in DAMAGE_FAMILIES
                 ):
                     raise ValueError("Invalid native partial PV damage context")
-                # eXt.C returns before arithmetic when both sgC/shQ are absent.
+                # eXt.C returns before arithmetic for absent sgC/shQ, or
+                # calculates literal1 for an already completed PV.
                 return (
                     None,
-                    {"native_no_resources": True},
-                    0 if runner is None else runner.value,
+                    {
+                        "native_no_resources": True,
+                        "native_completed_wall": completed_wall,
+                    },
+                    1 if completed_wall else 0 if runner is None else runner.value,
                 )
         wall = (
             None
@@ -279,6 +291,12 @@ class NativeDamageHandler:
             source_total_hp=source.hp + source_stats[92],
             source_total_max_hp=source.max_hp + source.effect_maxima[92],
         )
+        from .combat_boss_outgoing_policy import (
+            outgoing_score_final,
+            outgoing_level_factor_bp,
+        )
+
+        additional_final += outgoing_score_final(self.fight, source)
         amount = damage_amount(
             parameters["base"],
             effect["effect_class"],
@@ -292,6 +310,7 @@ class NativeDamageHandler:
                 front=context.front if effect["native_localization_enabled"] else True,
                 indirect=interpreted["indirect"],
                 additional_final=additional_final,
+                encounter_multiplier_bp=outgoing_level_factor_bp(self.fight, source),
                 additional_mastery=0 if runner is None else runner.additional_mastery,
                 additional_resistance=0
                 if runner is None
@@ -436,9 +455,17 @@ class NativeDamageHandler:
         amount = runner.value
         invocation = runner_target_invocation(runner, invocation)
         if interpreted.get("native_no_resources"):
-            from .combat_area_damage_guard import area_damage_has_no_resources
+            from .combat_area_damage_guard import (
+                area_damage_has_no_resources,
+                completed_wall_without_ko_pa,
+            )
 
-            if not area_damage_has_no_resources(self.fight, invocation.target_id):
+            valid = (
+                completed_wall_without_ko_pa(self.fight, invocation.target_id)
+                if interpreted.get("native_completed_wall")
+                else area_damage_has_no_resources(self.fight, invocation.target_id)
+            )
+            if not valid:
                 raise ValueError("Changed native partial PV damage resource authority")
             if "native_execution_mode" in effect:
                 from .combat_native_timing_context import native_definition_timing
@@ -545,6 +572,15 @@ class NativeDamageHandler:
         if not runner.notification_suppressed:
             self.packets.append((12613, packet))
         runner.finish_application()
+        if (
+            wall is not None
+            and wall["row"]["native_area_contract"] == "fbd"
+            and wall["row"]["native_wall_hp_current"] <= 0
+        ):
+            area_events = getattr(self.retention, "area_events", None)
+            if not callable(getattr(area_events, "wall_death", None)):
+                raise ValueError("Missing native Qq death delivery provider")
+            area_events.wall_death(wall["row"], source.id)
         if wall is None and getattr(self.fight, "boss_score_profile", None) is not None:
             from wakfu_server.maps.boss_score_runtime import stage_damage
 
@@ -586,5 +622,16 @@ class NativeDamageHandler:
             # Store the exact eXt iN payload, including absorbed resources.
             pending_retained["payload"] = packet[19:].hex()
             self.retention.finish_group(pending_retained, notify=False)
+        if context.critical and self.event_lifecycle is not None:
+            from .combat_critical_hit_events import deliver_completed_critical_hit
+
+            deliver_completed_critical_hit(
+                self,
+                effect,
+                invocation,
+                uid=uid,
+                context=context,
+                result=result,
+            )
         notify_runner_value(invocation, runner.value)
         return True

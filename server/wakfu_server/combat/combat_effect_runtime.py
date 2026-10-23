@@ -188,6 +188,125 @@ class NativeEffectRuntimeFactory:
             raise ValueError("Unknown authoritative transaction RNG owner")
         self.transaction_rng = transaction_rng
 
+    def equipment_operation_capability(self):
+        """Return side-effect-free routes/context for pre-pin graph assessment.
+
+        This manifest mirrors the handler registration performed below. The
+        eventual dispatcher still owns and validates the real instances; the
+        manifest is only used before pinning, when constructing a dispatcher
+        would mutate a private preview and advance its UID watermark.
+        """
+        from .combat_equipment_operation_capability import (
+            FactoryOperationRoute,
+            FactoryOperationRoutes,
+            NativeFactoryEquipmentCapability,
+        )
+        from .combat_operation_registry import operation_for_family
+        from .combat_set_current_characteristic import FAMILIES as SET_CURRENT_FAMILIES
+        from .combat_maximum_resource import (
+            FAMILIES as MAXIMUM_FAMILIES,
+            NativeMaximumReductionHandler,
+            NativeMaximumResourceHandler,
+            REDUCTION_FAMILIES,
+        )
+        from .combat_state_handler import NativeStateHandler
+        from .combat_stat_handler import NativeStatHandler
+        from .combat_effect_dispatch import EffectDispatcher
+        from .combat_state_decurse import NativeStateDecurseHandler
+        from .combat_dispel import NativeDispelHandler
+        from .combat_healing_handler import NativeHealingHandler
+        from .combat_fight_property import NativeFightPropertyHandler
+        from .combat_trigger_value_handler import NativeTriggerValueHandler
+        from .combat_world_property_handler import NativeWorldPropertyHandler
+        from .combat_final_modifier import NativeFinalModifierHandler
+        from .combat_morph_handler import NativeMorphHandler
+        from .combat_resource_loss_handler import NativeResourceLossHandler
+        from .combat_orientation_effect import NativeOrientationHandler
+        from .combat_armor import NativeArmorHandler
+        from .combat_maximum_resource import NativePercentageHPHandler
+        from .combat_set_current_characteristic import (
+            NativeSetCurrentCharacteristicHandler,
+        )
+
+        handlers = {
+            **{family: NativeMaximumResourceHandler for family in MAXIMUM_FAMILIES},
+            **{family: NativeMaximumReductionHandler for family in REDUCTION_FAMILIES},
+            304: NativeStateHandler,
+            # These handlers are installed by the real executor. Their generic
+            # owned-graph capability still requires the operation-specific
+            # retained/event/actor contexts before admission.
+            25: NativeHealingHandler,
+            321: NativeStateDecurseHandler,
+            # 421 is installed when a retained container is present; generic
+            # owned equipment graphs always carry that container.
+            421: NativeDispelHandler,
+            447: NativeFightPropertyHandler,
+            # eZL's mutation is applied only against the actual scoped Qe.
+            # Its capability additionally requires that owned state/event
+            # replay retains that authoritative source scope.
+            430: NativeTriggerValueHandler,
+            # eYg class330 executes in EffectDispatcher._execute rather than
+            # the handler map. This typed route is validated separately at
+            # initialization and requires its group callbacks/context.
+            330: EffectDispatcher,
+            999: EffectDispatcher,
+            1020: EffectDispatcher,
+            844: EffectDispatcher,
+            913: EffectDispatcher,
+            1047: EffectDispatcher,
+            449: NativeWorldPropertyHandler,
+            1093: NativeFinalModifierHandler,
+            933: NativeMorphHandler,
+            1: NativeDamageHandler,
+            48: NativeResourceLossHandler,
+            55: NativeResourceLossHandler,
+            303: NativeOrientationHandler,
+            986: NativePercentageHPHandler,
+        }
+        # __call__ installs this same handler for every native damage family.
+        # The pre-pin manifest must describe those actual routes as well;
+        # elemental event capability must not guess them from family1 alone.
+        handlers.update({family: NativeDamageHandler for family in DAMAGE_FAMILIES})
+        handlers.update({family: NativeHealingHandler for family in HEAL_ELEMENTS})
+        handlers.update(
+            {
+                family: NativeSetCurrentCharacteristicHandler
+                for family in SET_CURRENT_FAMILIES
+            }
+        )
+        if self.displacement_authority is not None:
+            handlers[1013] = NativeArmorHandler
+        rows = self.characteristic_registry.get("effects", self.characteristic_registry)
+        if isinstance(rows, dict):
+            for raw_family, row in rows.items():
+                try:
+                    family = int(raw_family)
+                except (TypeError, ValueError):
+                    continue
+                if family in SET_CURRENT_FAMILIES:
+                    continue
+                if isinstance(row, dict) and row.get("runner") in ("eWQ", "eWR", "eXE"):
+                    handlers[family] = NativeStatHandler
+
+        routes = {}
+        for family, handler_type in handlers.items():
+            contract = operation_for_family(
+                family,
+                characteristic_registry=self.characteristic_registry,
+                set_current_families=SET_CURRENT_FAMILIES,
+            )
+            if contract is None:
+                continue
+            routes[family] = FactoryOperationRoute(
+                family,
+                contract,
+                handler_type,
+                self,
+                inline=(family in (330, 844, 913, 999, 1020, 1047)),
+            )
+        manifest = FactoryOperationRoutes.create(self, routes)
+        return manifest, NativeFactoryEquipmentCapability(self, manifest)
+
     def __call__(self, preview, plan):
         from .combat_battleground_border import ensure_battleground_border
 
@@ -341,6 +460,9 @@ class NativeEffectRuntimeFactory:
             return retained_area_source_target(preview, invocation.caster_id)
 
         from .combat_target_health_ordering import health_operand_for_pv
+        from .combat_encounter_group_selection import permits_fresh_group_population
+        from .combat_encounter_event_population import permits_event_group_population
+        from .combat_encounter_recipient_binding import permits_native_recipient_binding
 
         native_resolver = NativeEffectResolver(
             actors=candidates,
@@ -350,11 +472,36 @@ class NativeEffectRuntimeFactory:
             caster=source_pv,
             direct_target_policies=native_direct_target_policies(),
             health_operand=lambda target: health_operand_for_pv(preview, target),
+            fresh_group_population=lambda effect, invocation: permits_fresh_group_population(
+                preview, effect, invocation
+            )
+            or permits_event_group_population(preview, effect, invocation),
+            preserve_explicit_recipient=lambda effect, invocation: permits_native_recipient_binding(
+                preview, effect, invocation
+            ),
         )
 
         def resolver(effect, invocation):
             if retention is not None and retention.is_subscription(effect, invocation):
                 effect = dict(effect, _native_group_registration_verified=True)
+            if effect.get("effect_class") == 330 and (
+                getattr(preview, "native_encounter_area_seed_policy", None) is not None
+                or getattr(preview, "native_encounter_area_callback_programs", None)
+                is not None
+            ):
+                from .combat_encounter_area_seed_source import (
+                    resolve_seed_program_selection,
+                )
+                from .combat_effect_area import native_effect_areas
+
+                return resolve_seed_program_selection(
+                    native_resolver,
+                    preview,
+                    effect,
+                    invocation,
+                    effects=self.effects,
+                    definitions=native_effect_areas(),
+                )
             return native_resolver(effect, invocation)
 
         rng = lambda: provider.rounding(preview, plan)
@@ -701,6 +848,21 @@ class NativeEffectRuntimeFactory:
             rng=rng,
         )
         handlers[449] = world_property
+        from .combat_effect_profession import (
+            NativeProfessionHandler,
+            FAMILIES as PROFESSION_FAMILIES,
+        )
+
+        profession = NativeProfessionHandler(
+            preview,
+            packets,
+            action_id=self.action_id,
+            allocate_uid=allocate,
+            context=contextual("stat"),
+            authority=self.displacement_authority,
+            rng=rng,
+        )
+        handlers.update({family: profession for family in PROFESSION_FAMILIES})
         from .combat_cell_null import NativeCellNullHandler
 
         if self.summon_authority is not None:
@@ -786,6 +948,13 @@ class NativeEffectRuntimeFactory:
             from .combat_summon_initialization import summon_initializer
 
             summon.builder.initialize_states = summon_initializer(self, packets)
+            from .combat_encounter_registered_programs import (
+                registered_program_initializer,
+            )
+
+            summon.initialize_registered_gameplay = registered_program_initializer(
+                self, packets
+            )
             captured_summon.builder.initialize_states = summon_initializer(
                 self, packets
             )
@@ -1454,6 +1623,7 @@ class NativeEffectRuntimeFactory:
         from .combat_state_managers import selected_area_pv_scope
 
         from .combat_team_repeat import native_team_repeat_count
+        from .combat_encounter_effect_recipient import rebind_original_boss_recipient
 
         dispatcher = EffectDispatcher(
             self.effects,
@@ -1472,6 +1642,9 @@ class NativeEffectRuntimeFactory:
             group_retention=retention,
             team_repeat_count=lambda invocation: native_team_repeat_count(
                 preview, invocation.caster_id
+            ),
+            invocation_reconstruction=lambda effect, invocation, ancestors: rebind_original_boss_recipient(
+                dispatcher, effect, invocation, ancestors
             ),
             pt_preflight=native_pt_preflight,
             transfer_probability=transfer_probability,
@@ -1677,6 +1850,7 @@ class NativeEffectRuntimeFactory:
                     characteristic_swap.event_lifecycle = healing.event_lifecycle
                     characteristic_transfer.event_lifecycle = healing.event_lifecycle
                     world_property.event_lifecycle = healing.event_lifecycle
+                    profession.event_lifecycle = healing.event_lifecycle
                     from .combat_ordinary_events import OrdinaryResourceLossEvents
 
                     loss.event_lifecycle = OrdinaryResourceLossEvents.from_healing(
@@ -1884,6 +2058,8 @@ class NativeEffectRuntimeFactory:
                         return death_script.prepare(effect, values, invocation)
                     if effect["effect_class"] == 449:
                         return world_property.prepare(effect, values, invocation)
+                    if effect["effect_class"] in PROFESSION_FAMILIES:
+                        return profession.prepare(effect, values, invocation)
                     if effect["effect_class"] == 1070:
                         return characteristic_transfer.prepare(
                             effect, values, invocation
@@ -2102,6 +2278,13 @@ class NativeEffectRuntimeFactory:
                 displacement.area_events = dispatcher.native_area_events
             if retention is not None:
                 area_handler.on_created = dispatcher.native_area_events.created
+                from .combat_encounter_area_activation import (
+                    post_registration_activation,
+                )
+
+                area_handler.on_post_retention_registration = (
+                    lambda row: post_registration_activation(dispatcher, row)
+                )
                 from .combat_microbot_rails import synchronize_microbot_rails
                 from .combat_effect_area_codec import area_retirement
 

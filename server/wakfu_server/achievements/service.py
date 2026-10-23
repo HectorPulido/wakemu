@@ -88,7 +88,9 @@ def drain_rewards(db, store, character):
         try:
             with db.transaction():
                 current = store.character(character["account_id"], character["id"], db)
-                granted = rewards.grant(db, store, current, pending["payload"])
+                granted = rewards.grant(
+                    db, store, current, pending["payload"], entitlement=pending
+                )
                 storage.mark_reward_delivered(
                     db,
                     character["id"],
@@ -165,6 +167,9 @@ def settle(db, store, character, fight, original_monsters):
         packets.extend(
             wire.changes(character["id"], before, after, objectives, completed, now_ms)
         )
+        from wakfu_server.guild_daily_quests import settle_combat
+
+        packets.extend(settle_combat(db, store, character, fight, event))
     packets.extend(drain_rewards(db, store, character))
     if packets:
         # Each actual batch has its own durable identity, including reward retries.
@@ -184,6 +189,9 @@ def settle(db, store, character, fight, original_monsters):
 
 
 def snapshot(db, character_id):
+    from wakfu_server.guild_daily_quests import synchronize
+
+    synchronize(db, character_id)
     state = storage.load_locked(db, character_id)
     running = sorted(
         (set(state["running"]) | set(catalog.load(db)["definitions"]))
@@ -192,7 +200,9 @@ def snapshot(db, character_id):
     if state["running"] != running:
         state["running"] = running
         storage.store(db, character_id, state)
-    return wire.section(state)
+    from wakfu_server.guild_daily_quests import activation_dates
+
+    return wire.section(state, activation_dates=activation_dates(db, character_id))
 
 
 def track(db, character, achievement_id, enabled):
@@ -200,7 +210,10 @@ def track(db, character, achievement_id, enabled):
     if (
         type(enabled) is not bool
         or type(achievement_id) is not int
-        or achievement_id not in catalog.load(db)["definitions"]
+        or (
+            achievement_id not in catalog.load(db)["definitions"]
+            and not _guild_daily_trackable(db, character["id"], achievement_id)
+        )
     ):
         raise ValueError("Unknown or unqualified tracked achievement")
     state = storage.load_locked(db, character["id"])
@@ -281,7 +294,7 @@ def tracking_request(store, account_id, generation, character_id, body):
         return track(db, character, identity, enabled)
 
 
-def project_section(progress, authority, *, db):
+def project_section(progress, authority, *, db, character_id=None):
     """Serialize an owned read snapshot without locks, grants or state writes.
 
     Every owned entity refresh needs the current journal, not just map entry.
@@ -308,4 +321,19 @@ def project_section(progress, authority, *, db):
         (set(state["running"]) | set(catalog.load(db)["definitions"]))
         - set(state["completed"])
     )
-    return wire.section(state)
+    dates = {}
+    if character_id is not None and set(state["running"] + state["completed"]) & {
+        1389,
+        1390,
+        1391,
+    }:
+        from wakfu_server.guild_daily_quests import activation_dates
+
+        dates = activation_dates(db, character_id)
+    return wire.section(state, activation_dates=dates)
+
+
+def _guild_daily_trackable(db, character_id, identity):
+    from wakfu_server.guild_daily_quests import trackable
+
+    return trackable(db, character_id, identity)

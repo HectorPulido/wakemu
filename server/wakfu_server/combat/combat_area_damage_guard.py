@@ -1,6 +1,21 @@
 """Exact eXt.C/c HP-or-armor guard on actual partial Qq characteristic sets."""
 
 
+def completed_wall_without_ko_pa(fight, identity):
+    """eXt.C sets1 on baG; eXt.c suppresses when this fbd has no sgM."""
+    row = getattr(fight, "native_effect_areas", {}).get(identity)
+    if not isinstance(row, dict) or row.get("native_area_contract") != "fbd":
+        return False
+    from .combat_area_authority import area_guards
+    from .combat_effect_area import native_effect_areas
+    from .combat_wall_area import wall_damage_snapshot
+
+    # Validate the installed fbd PA universe, rather than treating every dead
+    # PV as a no-op: fighters may own the sgM knockout PA consumed by eXt.c.
+    wall_damage_snapshot(row, native_effect_areas()[str(row["reference"])])
+    return area_guards(fight, identity)["baG"]
+
+
 def area_damage_has_no_resources(fight, identity):
     row = getattr(fight, "native_effect_areas", {}).get(identity)
     if row is None:

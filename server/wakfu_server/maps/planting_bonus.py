@@ -16,3 +16,18 @@ def current(prepared):
     ):
         raise ValueError("Authoritative profession effect bonus requires a provider")
     return 0
+
+
+def resolver(store):
+    """Supply native2000 from current selected equipment to planting arithmetic."""
+
+    def resolve(prepared):
+        from wakfu_server.profession_equipment_modifiers import modifiers
+
+        character = prepared["character"]
+        with store.connection() as db:
+            return modifiers(
+                store, db, character["id"], prepared["seed"]["profession_id"]
+            )["plant_probability"]
+
+    return resolve

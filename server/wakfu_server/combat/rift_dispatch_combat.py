@@ -5,7 +5,9 @@ import time
 from .combat_shared import Transition
 
 
-def finish_accepted_action(fight, runtime, packets, *, initialize_actor):
+def finish_accepted_action(
+    fight, runtime, packets, *, initialize_actor, initialize_wave=None
+):
     """Consume a staged wave on a detached accepted preview, without DB writes.
 
     The caller synchronously checkpoints this result before returning it to the
@@ -50,7 +52,12 @@ def finish_accepted_action(fight, runtime, packets, *, initialize_actor):
         **sources,
         **{monster["id"]: monster for monster in monsters},
     }
-    added = install_native_wave(fight, monsters, initialize_actor=initialize_actor)
+    added = install_native_wave(
+        fight,
+        monsters,
+        initialize_actor=initialize_actor,
+        initialize_wave=initialize_wave,
+    )
     from .combat_native_action_ids import NATIVE_ACTION_PACKETS
 
     if 13051 in NATIVE_ACTION_PACKETS:

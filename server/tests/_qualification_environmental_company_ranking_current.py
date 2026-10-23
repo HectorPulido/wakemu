@@ -1,0 +1,4 @@
+import importlib
+import test_environmental_company_ranking
+
+importlib.reload(test_environmental_company_ranking)

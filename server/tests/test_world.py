@@ -1,11 +1,93 @@
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+import struct
 import threading
 from wakfu_server.world import World
 from wakfu_server import wire
 
 
 class WorldTests(unittest.TestCase):
+    def test_ranch_scene_refresh_is_scoped_coalesced_and_excludes_origin_lease(self):
+        class Peer:
+            pass
+
+        world = World(lambda c: b"", lambda c: b"", lambda *_: None)
+        origin, same_scope, other_instance, other_map = (Peer(), Peer(), Peer(), Peer())
+        world.join("origin", origin, self.character(1, map_id=1440, instance_id=2))
+        world.join("same", same_scope, self.character(2, map_id=1440, instance_id=2))
+        world.join(
+            "instance", other_instance, self.character(3, map_id=1440, instance_id=3)
+        )
+        world.join("map", other_map, self.character(4, map_id=1441, instance_id=2))
+
+        self.assertEqual(
+            1,
+            world.request_ranch_scene_refresh(1440, 2, exclude_generation="origin"),
+        )
+        first = same_scope.ranch_scene_refresh
+        self.assertEqual(first[:4], (2, "same", 1440, 2))
+        self.assertFalse(hasattr(origin, "ranch_scene_refresh"))
+        self.assertFalse(hasattr(other_instance, "ranch_scene_refresh"))
+        self.assertFalse(hasattr(other_map, "ranch_scene_refresh"))
+
+        self.assertEqual(2, world.request_ranch_scene_refresh(1440, 2))
+        self.assertEqual((1, "origin", 1440, 2), origin.ranch_scene_refresh[:4])
+        second = same_scope.ranch_scene_refresh
+        self.assertEqual(second[:4], first[:4])
+        self.assertGreater(second[4], first[4])
+
+    def test_ranch_scene_refresh_does_not_redirect_stale_connection_work(self):
+        class Peer:
+            pass
+
+        world = World(lambda c: b"", lambda c: b"", lambda *_: None)
+        old_peer, current_peer = Peer(), Peer()
+        character = self.character(9, map_id=1440, instance_id=4)
+        world.join("old-lease", old_peer, character)
+        self.assertEqual(1, world.request_ranch_scene_refresh(1440, 4))
+        stale_request = old_peer.ranch_scene_refresh
+
+        self.assertTrue(world.leave(9, "old-lease"))
+        world.join("new-lease", current_peer, character)
+        self.assertEqual(1, world.request_ranch_scene_refresh(1440, 4))
+
+        self.assertEqual(stale_request, old_peer.ranch_scene_refresh)
+        self.assertEqual("new-lease", current_peer.ranch_scene_refresh[1])
+        self.assertGreater(current_peer.ranch_scene_refresh[4], stale_request[4])
+
+    def test_actor_refresh_batches_reset_before_state_replay_to_same_observers(self):
+        batches = []
+
+        class Peer:
+            def __init__(self, name):
+                self.name = name
+
+        world = World(
+            lambda c: ("spawn", c["id"]),
+            lambda c: ("remove", c["id"]),
+            lambda *_: None,
+            deliver_batch=lambda peer, packets: batches.append(
+                (peer.name, tuple(packets))
+            ),
+            refresh_state_packets=lambda character: (
+                (12613, ("food-state", character["id"])),
+            ),
+        )
+        owner = self.character(101, map_id=1134, instance_id=7)
+        observer = self.character(102, map_id=1134, instance_id=7)
+        other_instance = self.character(103, map_id=1134, instance_id=8)
+        world.join("owner", Peer("owner"), owner)
+        world.join("observer", Peer("observer"), observer)
+        world.join("other-instance", Peer("other"), other_instance)
+        batches.clear()
+
+        # A native format-10 reconstruction clears the actor's current effects.
+        reset_body = struct.pack(">qH", owner["id"], 1) + b"\x0a"
+        world.update("owner", owner, 15548, reset_body, include_sender=False)
+
+        expected = ((15548, reset_body), (12613, ("food-state", 101)))
+        self.assertEqual(batches, [("observer", expected)])
+
     def test_send_batch_uses_one_batch_writer_for_captured_peer(self):
         sent = []
 

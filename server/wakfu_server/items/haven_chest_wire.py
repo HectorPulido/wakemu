@@ -68,6 +68,34 @@ def decode_deposit(body):
     return result
 
 
+def decode_lock(body):
+    """12529/cqj: compartment, bool, signed-short count, int positions."""
+    reader = _Reader(body)
+    compartment = reader.string()
+    (locked,) = reader.number("B")
+    (count,) = reader.number("h")
+    if locked not in (0, 1) or not 1 <= count <= 32767:
+        raise ValueError("Invalid chest lock request")
+    slots = [reader.number("i")[0] for _ in range(count)]
+    reader.finish()
+    if len(set(slots)) != len(slots) or any(slot < 0 for slot in slots):
+        raise ValueError("Invalid or duplicate chest lock position")
+    return [
+        dict(compartment=compartment, slot=slot, locked=bool(locked)) for slot in slots
+    ]
+
+
+def lock_update(compartment, slots):
+    """13364/cxr: actual native slot-lock update and pending-action release."""
+    identity = compartment.encode("ascii")
+    return 13364, (
+        struct.pack(">B", len(identity))
+        + identity
+        + struct.pack(">h", len(slots))
+        + b"".join(struct.pack(">iB", slot, int(locked)) for slot, locked in slots)
+    )
+
+
 def decode_withdraw(body):
     reader = _Reader(body)
     (actor,) = reader.number("q")
@@ -169,8 +197,23 @@ def item_list(items):
         if type(slot) is not int or not 0 <= slot <= 32766 or slot in used:
             raise ValueError("Invalid chest item slot")
         used.add(slot)
+        if entry.get("remembered") is True:
+            if item.get("quantity") != 0 or entry.get("locked") is not True:
+                raise ValueError("Invalid native remembered chest slot")
+            payload = (
+                _scalar(1, item["uid"]) + _scalar(2, item["reference"]) + _scalar(3, 0)
+            )
+        else:
+            from .item_binding import from_custody
+
+            payload = item_proto(from_custody(item, entry.get("metadata", {})))
         result.append(
-            _blob(1, _blob(1, item_proto(item)) + _scalar(2, slot) + _scalar(3, 0))
+            _blob(
+                1,
+                _blob(1, payload)
+                + _scalar(2, slot)
+                + _scalar(3, int(entry.get("locked", False))),
+            )
         )
     return b"".join(result)
 
@@ -195,6 +238,29 @@ def bootstrap(chest):
             for entry in chest["items"]
             if offset <= entry["slot"] < offset + tab["capacity"]
         ]
+        occupied = {entry["slot"] for entry in entries}
+        for lock in chest.get("locks", ()):
+            if not offset <= lock["slot"] < offset + tab["capacity"]:
+                continue
+            local = lock["slot"] - offset
+            physical = next(
+                (entry for entry in entries if entry["slot"] == local), None
+            )
+            if physical is not None:
+                physical["locked"] = True
+            elif local not in occupied:
+                entries.append(
+                    dict(
+                        slot=local,
+                        remembered=True,
+                        locked=True,
+                        item=dict(
+                            uid=lock["remembered_uid"],
+                            reference=lock["reference"],
+                            quantity=0,
+                        ),
+                    )
+                )
         name = "Haven chest" if tab["index"] == 0 else f"Haven chest {tab['index'] + 1}"
         compartment = (
             _blob(1, tab["id"].encode("ascii"))

@@ -16,6 +16,7 @@ from .combat_original_controller import CURRENT_TARGET, original_target_controll
 from .combat_native_death_status import native_is_dead as current_native_is_dead
 from .combat_departure_predicates import query as native_departure_flag
 from .combat_input_observation import wall_time_ns
+from wakfu_server import world_clock
 
 
 @dataclass(frozen=True)
@@ -259,6 +260,27 @@ class NativeServerRuntimeAdapter:
                     condition_actor_by_identity[key] = self._actor(preview, actor)
             return condition_actor_by_identity[key]
 
+        from .combat_table_condition_context import table_only_condition_context
+
+        table_context = table_only_condition_context(
+            preview, effect, invocation, authority_for
+        )
+        if table_context is not None:
+            return table_context
+
+        from .combat_challenger_condition_context import challenger_condition_context
+
+        challenger_context = challenger_condition_context(
+            preview, effect, invocation, authority_for
+        )
+        if challenger_context is not None:
+            return challenger_context
+
+        from .combat_retained_runtime import native_retained_condition_reader
+
+        # Alias construction is read-only. Validate its complete Qf population
+        # once, then discard this lazy reader before another condition/effect.
+        alias_retained_effects = native_retained_condition_reader(preview)
         native_cell_argument = getattr(invocation, "native_target_cell_argument", False)
         if native_cell_argument:
             from dataclasses import is_dataclass
@@ -310,14 +332,8 @@ class NativeServerRuntimeAdapter:
                 retained_ids = frozenset()
                 retained_actions = frozenset()
                 if area.native_running_effect_manager:
-                    from .combat_retained_runtime import (
-                        native_retained_condition_effects,
-                    )
-
                     try:
-                        retained_rows = native_retained_condition_effects(
-                            preview, identity
-                        )
+                        retained_rows = alias_retained_effects(identity)
                     except ValueError:
                         retained_ids = None
                         retained_actions = None
@@ -332,11 +348,17 @@ class NativeServerRuntimeAdapter:
                     is_native_fighter=False,
                     is_native_ehg=True,
                     is_character=False,
+                    # eNZ calls eHg.dnz; every supported faV subtype
+                    # inherits literal true, including a retained Qq pointer.
+                    # registered_area_pv above proves the actual PV identity.
+                    in_fight=True,
                     is_carried=False,
                     is_carrying=False,
                     retained_effect_ids=retained_ids,
                     retained_action_ids=retained_actions,
                     fight_properties=area.native_fight_properties,
+                    # faV captures bcM at creation; owner affiliation may change.
+                    fight_affiliation=getattr(area, "native_fight_affiliation", None),
                 )
                 if area.state_ledger is not None:
                     aliases[name] = area.state_ledger.condition_actor(**typed)
@@ -357,10 +379,8 @@ class NativeServerRuntimeAdapter:
             affiliation = getattr(actor, "native_fight_affiliation", actor.team)
             if type(affiliation) is not int or not -128 <= affiliation < 128:
                 raise ValueError("Missing native signed-byte bcM affiliation")
-            from .combat_retained_runtime import native_retained_condition_effects
-
             try:
-                retained_rows = native_retained_condition_effects(preview, actor.id)
+                retained_rows = alias_retained_effects(actor.id)
                 retained_ids = frozenset(row[0] for row in retained_rows)
                 retained_actions = frozenset(row[1] for row in retained_rows)
             except ValueError:
@@ -456,18 +476,11 @@ class NativeServerRuntimeAdapter:
         target = native_actor(preview, invocation.target_id)
         if source is None:
             from .combat_effect_area_targets import (
-                area_targets,
+                area_target,
                 retained_area_source_target,
             )
 
-            source = next(
-                (
-                    area
-                    for area in area_targets(preview)
-                    if area.id == invocation.caster_id
-                ),
-                None,
-            )
+            source = area_target(preview, invocation.caster_id)
             if source is None:
                 source = retained_area_source_target(preview, invocation.caster_id)
             if source is None:
@@ -519,12 +532,11 @@ class NativeServerRuntimeAdapter:
             raise ValueError("Invalid native cell obstacle")
         # eOV's cell branch reads Qs.bdm Qq occupants, then QI.V.
         # Retired actors retain identity/state ledgers but are not Qs occupants.
-        from .combat_effect_area_targets import area_targets
+        from .combat_effect_area_targets import area_targets_at_cell
 
         occupants = tuple(
             area.native_movement_blocking
-            for area in area_targets(preview)
-            if area.position == invocation.cell
+            for area in area_targets_at_cell(preview, invocation.cell)
         )
         cell = (
             None
@@ -545,21 +557,53 @@ class NativeServerRuntimeAdapter:
                 role + "_id" in trigger_source and trigger_source[role + "_id"] is None
             ):
                 null_aliases.add("triggering" + role)
-        # eLL compares Qe.bbb and eII.aW by PV object identity. Registered
-        # actors resolve to their sole owned object; absent source is native null.
+
+        def triggering_actor_alias(role):
+            if trigger_source is None:
+                return None
+            field = role + "_id"
+            if field not in trigger_source:
+                raise ValueError("Missing native source relationship: " + field)
+            identity = trigger_source[field]
+            if identity is None:
+                return None
+            if type(identity) is not int or not -(1 << 63) <= identity < (1 << 63):
+                raise ValueError("Invalid native source PV identity")
+            selected = aliases.get("triggering" + role)
+            if selected is None or selected.actor_id != identity:
+                raise ValueError("Unregistered native triggering PV: " + str(identity))
+            return selected
+
+        # eLL compares actual registered PV identity, not transient Python views.
+        # The aliases above bind each non-null source ID to its validated PV.
         if trigger_source is None:
             triggering["triggering_caster_is_same"] = False
         elif "caster_id" in trigger_source:
             identity = trigger_source["caster_id"]
             if identity is None:
                 triggering["triggering_caster_is_same"] = False
-            elif identity in preview.actors:
-                triggering["triggering_caster_is_same"] = (
-                    preview.actors[identity] is source
-                )
+            else:
+                selected = triggering_actor_alias("caster")
+                caster_alias = aliases.get("caster")
+                if selected is not None and caster_alias is not None:
+                    triggering["triggering_caster_is_same"] = (
+                        selected.actor_id == caster_alias.actor_id
+                    )
         if trigger_source is not None:
             trigger_caster = native_actor(preview, trigger_source.get("caster_id"))
             trigger_target = native_actor(preview, trigger_source.get("target_id"))
+            # Qe sources may target a real registered/retained Qq, not only eGj.
+            # Its validated native view supplies Qq.bcL=0, never a guessed size.
+            from .combat_state_managers import selected_native_area_entity
+
+            if trigger_caster is None and trigger_source.get("caster_id") is not None:
+                trigger_caster = selected_native_area_entity(
+                    preview, trigger_source["caster_id"]
+                )
+            if trigger_target is None and trigger_source.get("target_id") is not None:
+                trigger_target = selected_native_area_entity(
+                    preview, trigger_source["target_id"]
+                )
             if trigger_caster is not None and trigger_target is not None:
                 triggering["triggering_melee_distance"] = native_caster_target_distance(
                     DistanceActor(
@@ -575,9 +619,16 @@ class NativeServerRuntimeAdapter:
                 identity = trigger_source[role + "_id"]
                 if identity is None:
                     triggering["triggering_effect_" + role + "_id"] = -1
-                elif identity in preview.actors:
-                    triggering["triggering_effect_" + role + "_id"] = identity
-                # Unresolved PV is not automatically eHg/eGj: retain unknown.
+                else:
+                    selected = triggering_actor_alias(role)
+                    if selected is not None and (
+                        selected.is_native_ehg is True
+                        or selected.is_native_fighter is True
+                    ):
+                        triggering[
+                            "triggering_effect_" + role + "_id"
+                        ] = selected.actor_id
+                # A PV without proven eHg authority remains unknown.
 
         boundary = getattr(invocation, "native_cast_boundary_context", None)
         if boundary is not None and trigger_source is None:
@@ -811,7 +862,7 @@ class NativeServerRuntimeAdapter:
             from .combat_valid_path_policy import admitted_route
             from .combat_summon_initialization import detached_actor
 
-            if options is not None or limit != 2:
+            if options is not None or limit not in (None, 2):
                 raise ValueError("Unsupported Wakemu valid-path options or limit")
             if source is None or detached_actor(preview, source.id) is not None:
                 raise ValueError("Missing owned combat path-witness caster")
@@ -822,6 +873,10 @@ class NativeServerRuntimeAdapter:
                 if native_cell_argument or target is None
                 else target.position
             )
+            if limit is None:
+                from .combat_valid_path_native import native_default_valid_path
+
+                return native_default_valid_path(preview, source, endpoint)
             return admitted_route(preview, source.id, endpoint, limit=limit) is not None
 
         def line_of_sight_query():
@@ -1236,6 +1291,36 @@ class NativeServerRuntimeAdapter:
                 return False  # eOL: fresh eZQ/PO context and eGj.dpt are null-fight.
             return fight_is_pvp(fight_model_query())
 
+        def is_protector_in_fight_query(selector):
+            from .combat_protector_fight_condition import query_owned_fight
+            from .combat_summon_initialization import detached_actor
+
+            identity = (
+                invocation.target_id if selector == "target" else invocation.caster_id
+            )
+            selected = native_actor(preview, identity)
+            if selected is None or detached_actor(preview, selected.id) is not None:
+                return False  # eII null or actual fresh constructor has no fcb.
+            metadata = self._actor(preview, selected)
+            if metadata.targeting.get("is_eGj") is False:
+                return False
+            return query_owned_fight(
+                preview, selected, lambda actor: self._actor(preview, actor)
+            )
+
+        def battleground_query():
+            from wakfu_server.native_world_context import is_battleground
+
+            if caster_actor is None:
+                return False  # eNo rejects a null/non-fighter eII.n recipient.
+            authority = authority_for(caster_actor)
+            fighter = authority.targeting.get("is_eGj")
+            if type(fighter) is not bool:
+                raise ValueError("Missing native IsBattleground fighter kind")
+            if not fighter:
+                return False
+            return is_battleground(authority.native_instance_id)
+
         def boolean_system_configuration_query(key):
             from .combat_system_conditions import boolean_system_configuration
 
@@ -1643,36 +1728,18 @@ class NativeServerRuntimeAdapter:
                 identity = trigger_source[role]
                 if identity is None:
                     return None
-                selected = native_actor(preview, identity)
-                if selected is not None:
-                    authority = self._actor(preview, selected)
-                    if authority.targeting.get("is_eGj") is not True:
-                        raise ValueError(
-                            "Missing native eHg triggering state-query type"
-                        )
-                    return selected.state_ledger.condition_actor(is_native_fighter=True)
-                from .combat_state_managers import registered_area_pv
-
-                if identity in getattr(
-                    preview, "native_effect_areas", {}
-                ) or identity in getattr(preview, "native_retired_area_managers", {}):
-                    area = registered_area_pv(preview, identity)
-                    if area is not None:
-                        if area.state_ledger is not None:
-                            return area.state_ledger.condition_actor(
-                                is_native_fighter=False, is_native_ehg=True
-                            )
-                        from .combat_conditions import ConditionActor
-
-                        return ConditionActor(
-                            actor_id=identity,
-                            state_ids=frozenset(),
-                            state_levels=(),
-                            state_sources=(),
-                            is_native_fighter=False,
-                            is_native_ehg=True,
-                        )
-                raise ValueError("Unregistered native triggering state-query actor")
+                selected = triggering_actor_alias(
+                    "caster" if key == "triggeringcaster" else "target"
+                )
+                if selected is None:
+                    return None
+                # eME/eMF require eHg. The original validated area alias keeps
+                # its real ledger even while Qs retirement holds that PV alive.
+                if selected.is_native_ehg is True or selected.is_native_fighter is True:
+                    return selected
+                if selected.is_native_ehg is False:
+                    return None
+                raise ValueError("Missing native eHg triggering state-query type")
             raise ValueError("Unsupported native state-query relationship")
 
         def team_id_query(selector):
@@ -1712,15 +1779,14 @@ class NativeServerRuntimeAdapter:
                 identity = trigger_source[role]
                 if identity is None:
                     return -1
-                actor = native_actor(preview, identity)
-                if actor is None:
-                    raise ValueError(
-                        f"Unregistered native triggering team actor: {identity}"
-                    )
-                self._actor(
-                    preview, actor
-                )  # eHg authority, independent of listener rebinding.
-                return getattr(actor, "native_fight_affiliation", actor.team)
+                selected = triggering_actor_alias(
+                    "caster" if key == "triggeringcaster" else "target"
+                )
+                if selected is None:
+                    return -1
+                # eLx reads eHg.bcM from the original Qe participant, including
+                # a real faV's constructor capture; never its current owner.
+                return selected.fight_affiliation
             if key == "eventtarget":
                 raise ValueError("Missing native ePH event target authority")
             return -1  # Unrecognized eII.a selector is native null.
@@ -2155,6 +2221,15 @@ class NativeServerRuntimeAdapter:
                 if callable(getattr(self.actor_authority, "has_equipment_type", None))
                 else None
             ),
+            weapon_type_query=(
+                (
+                    lambda references: self.actor_authority.has_weapon_type(
+                        preview, source, references
+                    )
+                )
+                if callable(getattr(self.actor_authority, "has_weapon_type", None))
+                else None
+            ),
             item_quantity_query=(
                 (
                     lambda references: self.actor_authority.item_quantity(
@@ -2229,6 +2304,9 @@ class NativeServerRuntimeAdapter:
             active_spell_id_query=active_spell_id_query,
             fight_model_query=fight_model_query,
             pvp_query=pvp_query,
+            is_protector_in_fight_query=is_protector_in_fight_query,
+            battleground_query=battleground_query,
+            daytime_query=lambda: world_clock.daytime(world_clock.current_time_ms()),
             boolean_system_configuration_query=boolean_system_configuration_query,
             active_cosmetic_id_query=active_cosmetic_id_query,
             has_active_cosmetic_query=has_active_cosmetic_query,

@@ -136,10 +136,16 @@ class Store:
         with self.connection() as db:
             db.execute("DELETE FROM tokens WHERE digest=%s", (self.digest(token),))
 
-    def begin_session(self, account_id, ttl=300):
+    def begin_session(self, account_id, ttl=300, *, previous_generation=None):
         generation = secrets.token_hex(16)
         with self.connection() as db:
             require_access(db, account_id, self.now())
+            if previous_generation is not None:
+                from wakfu_server.consumable_session_lifecycle import (
+                    pause_current_company,
+                )
+
+                pause_current_company(self, db, account_id, previous_generation)
             db.execute(
                 "INSERT INTO sessions(account_id,generation,expires_at) VALUES(%s,%s,%s) "
                 "ON CONFLICT(account_id) DO UPDATE SET generation=excluded.generation, "
@@ -350,6 +356,11 @@ class Store:
                     "INSERT INTO character_progression(character_id,xp) VALUES(%s,0)",
                     (character_id,),
                 )
+                from wakfu_server.national_progression import (
+                    initialize as initialize_national,
+                )
+
+                initialize_national(db, account_id, character_id)
                 db.execute(
                     "INSERT INTO account_wallets(account_id) VALUES(%s) ON CONFLICT(account_id) DO NOTHING",
                     (account_id,),
@@ -438,12 +449,19 @@ class Store:
         if row is None:
             raise ValueError("Personaje no encontrado.")
         result = dict(row)
+        from wakfu_server.territory_health_lifecycle import (
+            load as load_territory_health,
+        )
+
+        result["territory_health_projection"] = load_territory_health(db, character_id)
         from wakfu_server.achievements.service import project_section
 
+        equipment_achievement_authority = result.pop("achievement_authority")
         result["achievement_section"] = project_section(
             result.pop("achievement_progress"),
-            result.pop("achievement_authority"),
+            equipment_achievement_authority,
             db=db,
+            character_id=character_id,
         )
         from wakfu_server.characters.owned_social_context import load as load_social
 
@@ -453,6 +471,11 @@ class Store:
         from wakfu_server.characters.guild_character import load as load_guild
 
         load_guild(db, self, result)
+        from wakfu_server.characters.guild_member_effects import (
+            load as load_guild_member_effects,
+        )
+
+        load_guild_member_effects(db, self, result)
         from wakfu_server.characters.captured_roster_store import (
             load as load_captured_roster,
         )
@@ -482,6 +505,16 @@ class Store:
         from wakfu_server.inventory_items import load as load_items
 
         result["inventory_items"] = load_items(db, character_id)
+        from wakfu_server.pet_hibernation import project_items, clock_ms
+
+        original_items = result["inventory_items"]
+        result["inventory_items"] = project_items(
+            original_items, now_ms=clock_ms(self.now())
+        )
+        result["pet_hibernation_projection"] = any(
+            before is not after
+            for before, after in zip(original_items, result["inventory_items"])
+        )
         from wakfu_server.items.quest_inventory import load as load_quest_items
 
         result["quest_items"] = load_quest_items(db, character_id)
@@ -510,6 +543,18 @@ class Store:
                 "SELECT * FROM character_builds WHERE character_id=%s", (character_id,)
             )
         }
+        from wakfu_server.equipment_hp_lifecycle import load as load_equipment_hp
+
+        hp_projection = load_equipment_hp(db, character_id)
+        result["equipment_hp_projection"] = (
+            None
+            if hp_projection is None
+            else dict(
+                actor=hp_projection["actor"].plain(),
+                receipts=hp_projection["receipts"],
+                revision=hp_projection["revision"],
+            )
+        )
         if not result["appearance"]:
             result["appearance"] = dict(
                 zip(APPEARANCE_FIELDS[:3], (c - (1 << 24) for c in result["colors"]))
@@ -530,9 +575,27 @@ class Store:
         result["effective_level"] = effective_sheet_level(
             result, result["active_build_index"]
         )
+        from wakfu_server.equipment_persisted_context import (
+            load as load_equipment_context,
+        )
+
+        result["equipment_criterion_context"] = load_equipment_context(
+            db, result, achievement_authority=equipment_achievement_authority
+        )
+        from wakfu_server.consumable_buffs import hydrated_states
+
+        result["consumable_states"] = hydrated_states(self, db, character_id)
+        from wakfu_server.character_recustomization import pending
+
+        result["recustomization"] = pending(db, character_id)
+        from wakfu_server.spells import reconcile_item_spell_decks
+
+        result = reconcile_item_spell_decks(result)
         from wakfu_server.characters.dungeon_modulation import hydrate
 
-        return hydrate(db, result)
+        from wakfu_server.guild_haven_world import project_character
+
+        return project_character(db, hydrate(db, result))
 
     def characters(self, account_id):
         with self.connection() as db:
@@ -710,7 +773,9 @@ class Store:
     def clear_character(self, account_id, generation):
         with self.connection() as db:
             from wakfu_server.characters.guild_character import record_presence
+            from wakfu_server.consumable_session_lifecycle import pause_current_company
 
+            pause_current_company(self, db, account_id, generation)
             record_presence(db, account_id, generation)
             result = db.execute(
                 "UPDATE sessions SET character_id=NULL WHERE account_id=%s AND generation=%s AND expires_at>%s",
@@ -754,6 +819,8 @@ class Store:
 
             normalize(db, character_id)
             character = self.character(account_id, character_id, db)
+            if character.get("recustomization"):
+                raise ValueError("Character requires pending recustomization")
             from wakfu_server.achievements.service import drain_rewards
 
             # Selection publishes a fresh absolute bootstrap. Retry earned
@@ -831,11 +898,28 @@ class Store:
             if index == current["active_build_index"]:
                 return current
             selected = dict(current, active_build_index=index)
-            effective = effective_character(selected)
-            maximum = effective["max_hp"]
-            from wakfu_server.health_policy import reconfigure
+            from wakfu_server.pet_hibernation import validate_equipment_change
+            from wakfu_server.equipment import validate_sheet
 
-            hp = reconfigure(db, current, maximum)
+            old_equipment = bytes.fromhex(
+                current.get("builds", {})
+                .get(current["active_build_index"], {})
+                .get("equipment", "")
+            )
+            new_equipment = bytes.fromhex(
+                current.get("builds", {}).get(index, {}).get("equipment", "")
+            )
+            from wakfu_server.builds import effective_sheet_level
+
+            selected_level = effective_sheet_level(selected, index)
+            validation_character = dict(
+                selected, level=selected_level, effective_level=selected_level
+            )
+            validate_equipment_change(
+                selected,
+                old_equipment,
+                validate_sheet(validation_character, new_equipment),
+            )
             db.execute(
                 "UPDATE character_build_selection SET active_index=%s,revision=revision+1 WHERE character_id=%s",
                 (index, character_id),
@@ -844,7 +928,18 @@ class Store:
 
             reconcile_equipment(db, current, selected)
 
-            if maximum != current["max_hp"]:
+            selected = self.character(account_id, character_id, db)
+            from wakfu_server.equipment_hp_lifecycle import reconcile_selected_build
+
+            reconcile_selected_build(db, selected)
+            selected = self.character(account_id, character_id, db)
+            effective = effective_character(selected)
+            maximum = effective["max_hp"]
+            from wakfu_server.health_policy import reconfigure
+
+            hp = reconfigure(db, selected, maximum)
+
+            if hp != current["hp"] or maximum != current["max_hp"]:
                 now = self.now()
                 db.execute(
                     "UPDATE character_regeneration SET initial_hp=%s,started_at=%s,last_at=%s WHERE character_id=%s",
@@ -895,9 +990,6 @@ class Store:
                 if current["active_build_index"] == index
                 else current["active_build_index"]
             )
-            effective = effective_character(
-                dict(current, builds=remaining, active_build_index=active)
-            )
             from wakfu_server.mount_state import reconcile_equipment
 
             reconcile_equipment(
@@ -912,10 +1004,16 @@ class Store:
                     "UPDATE character_build_selection SET active_index=%s,revision=revision+1 WHERE character_id=%s",
                     (active, character_id),
                 )
+            selected = self.character(account_id, character_id, db)
+            from wakfu_server.equipment_hp_lifecycle import reconcile_selected_build
+
+            reconcile_selected_build(db, selected)
+            selected = self.character(account_id, character_id, db)
+            effective = effective_character(selected)
             from wakfu_server.health_policy import reconfigure
 
-            hp = reconfigure(db, current, effective["max_hp"])
-            if effective["max_hp"] != current["max_hp"]:
+            hp = reconfigure(db, selected, effective["max_hp"])
+            if hp != current["hp"] or effective["max_hp"] != current["max_hp"]:
                 now = self.now()
                 db.execute(
                     "UPDATE character_regeneration SET initial_hp=%s,started_at=%s,last_at=%s WHERE character_id=%s",
@@ -985,14 +1083,18 @@ class Store:
             from wakfu_server.mount_state import reconcile_equipment
 
             reconcile_equipment(db, character, updated)
+            from wakfu_server.equipment_hp_lifecycle import reconcile_selected_build
+
+            reconcile_selected_build(db, updated)
+            updated = self.character(account_id, character_id, db)
             from wakfu_server.equipment_stats import effective_character
 
             effective = effective_character(updated)
             maximum = effective["max_hp"]
             from wakfu_server.health_policy import reconfigure
 
-            hp = reconfigure(db, character, maximum)
-            if maximum != character["max_hp"]:
+            hp = reconfigure(db, updated, maximum)
+            if hp != character["hp"] or maximum != character["max_hp"]:
                 now = self.now()
                 db.execute(
                     "UPDATE character_regeneration SET initial_hp=%s,started_at=%s,last_at=%s WHERE character_id=%s",
@@ -1035,6 +1137,15 @@ class Store:
         current = self.character(account_id, character_id, db)
         if any(current[key] != source[key] for key in keys):
             raise ValueError("Map origin is desynchronized")
+        from wakfu_server.haven_world_terrain import TEMPLATE_MAP_ID
+
+        if destination["map_id"] == TEMPLATE_MAP_ID:
+            from wakfu_server.haven_world_travel import owned_scope
+
+            if destination["instance_id"] <= 0 or not owned_scope(
+                db, destination, character_id=character_id
+            ):
+                raise ValueError("Haven World travel requires its durable owned visit")
         db.execute(
             "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
             (*[destination[key] for key in keys], character_id),
@@ -1042,6 +1153,9 @@ class Store:
         from wakfu_server.characters.heroes import follow_main
 
         follow_main(db, self, account_id, generation, character_id)
+        from wakfu_server.haven_world_travel import external_departure
+
+        external_departure(db, account_id)
         from wakfu_server.characters.dungeon_modulation_health import reconcile
 
         reconcile(self, db, [character_id])

@@ -273,6 +273,7 @@ class ConditionContext:
     state_max_level_query: object = None  # eLt FIRST-PV-level maximum over fUQ/Qs.
     state_range_query: object = None  # eLr complete actor + Qq carrier population.
     equipment_type_query: object = None  # eMm selected equipment type ancestry.
+    weapon_type_query: object = None  # eMV caster weapon slots15/16 ancestry.
     item_quantity_query: object = None  # eKE current source actor inventory.
     null_actor_aliases: frozenset[str] = frozenset()  # Proven selected eHg null.
     state_null_fallback_absent: bool | None = None  # Qe context is not ePy.
@@ -281,6 +282,11 @@ class ConditionContext:
     )
     fight_model_query: object = None  # eKj resolves the active fbX from native context.
     pvp_query: object = None  # eOL fcz.fVU().fcL.fVT, including DUEL.
+    is_protector_in_fight_query: object = (
+        None  # eOK complete fcb roster + bLU actor joins.
+    )
+    battleground_query: object = None  # eNo current eGj.arM -> world info eyc.
+    daytime_query: object = None  # Native IsDay uses the shared TX game clock.
     boolean_system_configuration_query: object = (
         None  # eJs eEL/eEI actual defaults/overrides.
     )
@@ -412,7 +418,10 @@ def evaluate_condition(
         ):
             raise UnknownCondition("Unsupported native numeric expression")
         name, args = node.func.id, node.args
-        if name in ("IsPvp", "IsNeoServer"):
+        if name == "IsProtectorInFight":
+            check(node)
+            return
+        if name in ("IsPvp", "IsNeoServer", "IsBattleground"):
             return  # Original eOL constructor ignores parsed arguments.
         if name == "GetBooleanSystemConfiguration":
             if (
@@ -941,7 +950,12 @@ def evaluate_condition(
                 else result
             )
         name, args = node.func.id, node.args
-        if name in ("IsPvp", "IsNeoServer", "GetBooleanSystemConfiguration"):
+        if name in (
+            "IsPvp",
+            "IsNeoServer",
+            "IsBattleground",
+            "GetBooleanSystemConfiguration",
+        ):
             from .combat_system_conditions import evaluate_system_predicate
 
             try:
@@ -957,6 +971,8 @@ def evaluate_condition(
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
             return 0 if value else -1  # eIX native Boolean numeric result.
+        if name == "IsProtectorInFight":
+            return 0 if run(node) else -1
         if name in ("GetNationId", "GetGuildLevel"):
             from wakfu_server.characters.owned_social_context import OwnedSocialContext
 
@@ -1762,7 +1778,12 @@ def evaluate_condition(
             if name == "IsSpecific":
                 name = "IsSpecificArea"  # eQb lexical aliases share one token.
             args = node.args
-            if name in ("IsPvp", "IsNeoServer", "GetBooleanSystemConfiguration"):
+            if name in (
+                "IsPvp",
+                "IsNeoServer",
+                "IsBattleground",
+                "GetBooleanSystemConfiguration",
+            ):
                 check_number(node)
                 return
             if name in ("IsActivatedByElement", "IsActivatedBySpell"):
@@ -1795,6 +1816,7 @@ def evaluate_condition(
                 "IsOriginalController",
                 "CasterAndTargetHaveSameOriginalController",
                 "IsSelectedCreatureAvailable",
+                "IsDay",
             ):
                 if args:
                     raise UnknownCondition("Native " + name + " takes no arguments")
@@ -1822,6 +1844,7 @@ def evaluate_condition(
                     "IsFacestabbed",
                     "IsSidestabbed",
                     "IsSex",
+                    "IsProtectorInFight",
                     "IsTargetCellFree",
                     "IsBreedId",
                     "IsBreed",
@@ -1838,6 +1861,7 @@ def evaluate_condition(
                     "IsEnemy",
                     "IsEnnemy",
                     "HasEquipmentType",
+                    "HasWeaponType",
                     "HasFightProperty",
                     "HasWorldProperty",
                     "IsOwnSummon",
@@ -2079,7 +2103,16 @@ def evaluate_condition(
                     raise UnknownCondition("Unsupported native IsCharacter selector")
                 return
             if name == "IsInFight":
-                if len(args) > 1 or args and not is_selector(args[0]):
+                # eNZ stores equalsIgnoreCase("target"), rather than an
+                # enum of aliases; every other literal selects the caster.
+                if (
+                    len(args) > 1
+                    or args
+                    and (
+                        not isinstance(args[0], ast.Constant)
+                        or type(args[0].value) is not str
+                    )
+                ):
                     raise UnknownCondition(f"Unsupported native {name} selector")
                 return
             if name == "HasEffectWithActionId":
@@ -2141,6 +2174,12 @@ def evaluate_condition(
                     raise UnknownCondition("Unsupported native IsOwnSummon arguments")
                 return
             args = node.args
+            if name == "HasWeaponType":
+                if not args:
+                    raise UnknownCondition("HasWeaponType requires numeric types")
+                for arg in args:
+                    check_number(arg)
+                return
             if name == "HasEquipmentType":
                 if not args:
                     raise UnknownCondition("HasEquipmentType requires numeric types")
@@ -2305,6 +2344,13 @@ def evaluate_condition(
                 ):
                     raise UnknownCondition("Unsupported IsTargetCellFree arguments")
                 return
+            if name == "IsProtectorInFight":
+                if len(args) > 1 or any(
+                    not isinstance(arg, ast.Constant) or type(arg.value) is not str
+                    for arg in args
+                ):
+                    raise UnknownCondition("Unsupported IsProtectorInFight arguments")
+                return
             if name == "IsSex":
                 if len(args) not in (1, 2) or any(
                     not isinstance(arg, ast.Constant) or type(arg.value) is not str
@@ -2387,7 +2433,12 @@ def evaluate_condition(
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
             and node.func.id
-            in ("IsPvp", "IsNeoServer", "GetBooleanSystemConfiguration")
+            in (
+                "IsPvp",
+                "IsNeoServer",
+                "IsBattleground",
+                "GetBooleanSystemConfiguration",
+            )
         ):
             return number(node) == 0
         if isinstance(node, ast.IfExp):
@@ -2417,6 +2468,13 @@ def evaluate_condition(
                 else any(run(v) for v in node.values)
             )
         name = node.func.id
+        if name == "IsDay":
+            if not callable(context.daytime_query):
+                raise UnknownCondition("Missing authoritative native game daylight")
+            value = context.daytime_query()
+            if type(value) is not bool:
+                raise UnknownCondition("Invalid authoritative native game daylight")
+            return value
         if name == "IsSpecific":
             name = "IsSpecificArea"  # Preserve the same area authority callback.
         if name == "HasActiveCosmeticId":
@@ -2496,6 +2554,22 @@ def evaluate_condition(
                 raise UnknownCondition(str(error)) from error
             if type(result) is not bool:
                 raise UnknownCondition("Invalid native " + name + " result")
+            return result
+        if name == "IsProtectorInFight":
+            from .combat_protector_fight_condition import selector
+
+            if not callable(context.is_protector_in_fight_query):
+                raise UnknownCondition(
+                    "Missing actual native protector fight authority"
+                )
+            try:
+                result = context.is_protector_in_fight_query(
+                    selector([arg.value for arg in node.args])
+                )
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(result) is not bool:
+                raise UnknownCondition("Invalid native protector fight result")
             return result
         if name == "IsSex":
             selector = (
@@ -2722,9 +2796,20 @@ def evaluate_condition(
                 raise UnknownCondition("Missing native CHARACTER kind")
             return actor.is_character
         if name == "IsInFight":
-            actor = context.actors.get(
-                node.args[0].value.lower() if node.args else "caster"
+            selector = (
+                "target"
+                if node.args and node.args[0].value.lower() == "target"
+                else "caster"
             )
+            actor = context.actors.get(selector)
+            if actor is None and selector in context.null_actor_aliases:
+                # eII.b can still resolve an ePy context after a null direct
+                # operand. Only a proven absent fallback makes eNZ false.
+                if context.state_null_fallback_absent is True:
+                    return False
+                raise UnknownCondition(
+                    "Missing native IsInFight ePy fallback authority"
+                )
             if actor is None or type(actor.in_fight) is not bool:
                 raise UnknownCondition("Missing authoritative native fight membership")
             return actor.in_fight
@@ -3059,6 +3144,19 @@ def evaluate_condition(
                 )
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
+        if name == "HasWeaponType":
+            if not callable(context.weapon_type_query):
+                raise UnknownCondition("Missing native weapon type authority")
+            try:
+                result = context.weapon_type_query(
+                    tuple(number(arg) for arg in node.args)
+                )
+                if type(result) is not bool:
+                    raise ValueError("Invalid native weapon type result")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+
         if name == "HasEquipmentType":
             if not callable(context.equipment_type_query):
                 raise UnknownCondition("Missing native equipment type authority")

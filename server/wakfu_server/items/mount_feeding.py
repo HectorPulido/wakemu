@@ -49,6 +49,14 @@ def feed(store, account_id, generation, character_id, body, *, in_fight):
         if active is not None:
             raise ValueError("Pet feeding is unavailable during combat")
 
+        from wakfu_server.pet_feeding import apply_if_pet
+
+        companion = apply_if_pet(
+            store, db, account_id, generation, character_id, request
+        )
+        if companion is not None:
+            return companion
+
         # Lock the persistent pet first. A replay must be recognized even if
         # its first successful request consumed/deleted the whole food stack.
         pet_row = db.execute(
@@ -88,6 +96,8 @@ def feed(store, account_id, generation, character_id, body, *, in_fight):
         ).fetchone()
         if (
             previous is not None
+            and previous["account_id"] == account_id
+            and previous["character_id"] == character_id
             and previous["after_revision"] == current_revision
             and mount["last_meal_date"] == previous["applied_at_ms"]
             and type(previous["replay_window_ms"]) is int

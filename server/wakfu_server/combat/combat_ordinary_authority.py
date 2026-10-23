@@ -102,11 +102,23 @@ class OrdinaryActorAuthority:
 
     def _monster_sources(self, preview):
         if getattr(preview, "rift_wave_state", None) is None:
-            return self.monsters
-        sources = getattr(preview, "rift_monsters", None)
-        if not isinstance(sources, dict):
-            raise ValueError("Missing checkpointed ordinary rift monster sources")
-        return sources
+            sources = self.monsters
+        else:
+            sources = getattr(preview, "rift_monsters", None)
+            if not isinstance(sources, dict):
+                raise ValueError("Missing checkpointed ordinary rift monster sources")
+        companions = getattr(preview, "native_companion_sources", {})
+        if not isinstance(companions, dict):
+            raise ValueError("Malformed admitted native companion sources")
+        result = dict(sources)
+        for key, source in companions.items():
+            if not isinstance(source, dict) or str(source.get("id")) != key:
+                raise ValueError("Invalid admitted companion source identity")
+            identity = source["id"]
+            if identity in result and result[identity] != source:
+                raise ValueError("Conflicting companion and NPC source")
+            result[identity] = source
+        return result
 
     def _creation_facts(self, preview, actor):
         """Fresh ordinary identity/life facts shared by full and GF queries."""
@@ -136,7 +148,10 @@ class OrdinaryActorAuthority:
             raise ValueError("Withdrawn PvE actor has no active ordinary authority")
         player = actor.id in self.characters
         source = (self.characters if player else monsters)[actor.id]
-        if source["id"] != actor.id or actor.controlled != player:
+        from .combat_companions import registered_source
+
+        companion = registered_source(preview, actor, source) is not None
+        if source["id"] != actor.id or actor.controlled != (player or companion):
             raise ValueError("Creation actor kind disagrees with owned source")
         profile = (
             self.catalog["player"]
@@ -201,6 +216,9 @@ class OrdinaryActorAuthority:
             preview, actor
         )
         in_play = life["baF"]
+        from .combat_companions import registered_source
+
+        companion = registered_source(preview, actor, source) is not None
         context = dict(
             bcN=actor.native_obstacle_id,
             is_amO=True,
@@ -300,14 +318,18 @@ class OrdinaryActorAuthority:
             is_summon=False,
             # Exact source classes: bjo PLAYER_CHARACTER, owned monster NPC;
             # companion/summon routes require their own creation authority.
-            is_challenger=player,
+            is_challenger=player or companion,
             # Fresh ordinary creation has null pGV. Carry registration requires
             # a separate authority; the guard above rejects changed relations.
             is_carrying=carrying["is_carrying"],
             summon_root_id=actor.id,
             # combat_actor POSITION writes this exact signed long into rE.Vp;
             # eGt.zm applies it through eGj.fE, which is read by eKB/arM.
-            native_instance_id=source.get("map_id"),
+            native_instance_id=(
+                _native_world_identity(source)
+                if player or "native_world_id" in source
+                else _ordinary_npc_world_identity(preview, actor, source)
+            ),
             native_real_level=source.get("level") if player else actor.effective_level,
             native_spellbook=spellbook,
             # Ordinary fresh actors have no eHD in their eGZ.pHM; dTC is false.
@@ -318,15 +340,19 @@ class OrdinaryActorAuthority:
             native_is_ehp=player,  # Exact ordinary biB implements eHP; bje does not.
             native_captured_roster=captured_roster,
             # eGj.aWs assigns dpV to asQ: bjo=0, bje=1.
-            native_actor_type=0 if player else 1,
+            native_actor_type=0 if player else 5 if companion else 1,
             native_npc_prototype_ref=None if player else source["ref"],
             native_copied_equipment_operand=None if player else 0,
             # eGj constructor initializes ePn=0; ordinary NPC blobs do not
             # replace it. Owned PC sources preserve the real account/selected
             # primary; unavailable player primary remains unknown.
-            native_account_id=source.get("account_id") if player else 0,
+            native_account_id=source.get("account_id") if player or companion else 0,
             native_primary_character_id=(
-                source.get("selected_character_id") if player else 0
+                source.get("selected_character_id")
+                if player
+                else source["owner_character_id"]
+                if companion
+                else 0
             ),
             native_sex=ordinary_native_sex(source, player),
             native_selected_cosmetics=selected_cosmetics,
@@ -359,16 +385,24 @@ class OrdinaryActorAuthority:
             self.characters[actor.id], references, inventory
         )
 
+    def has_weapon_type(self, preview, actor, references):
+        self(preview, actor)
+        if actor.id not in self.characters:
+            if actor.id not in self._monster_sources(preview):
+                raise ValueError("Missing native weapon component authority")
+            return False
+        from .combat_equipment_type_condition import character_has_weapon_type
+
+        return character_has_weapon_type(self.characters[actor.id], references)
+
     def item_quantity(self, preview, actor, references):
         """eKE uses source actor inventory, not the current effect target."""
         self(preview, actor)
         if actor.id not in self.characters:
             return 0  # Ordinary NPC creation has native drK=null.
-        from .combat_inventory_date_conditions import owned_item_quantity
+        from .combat_inventory_date_conditions import complete_owned_item_quantity
 
-        return owned_item_quantity(
-            self.characters[actor.id].get("inventory_items"), references
-        )
+        return complete_owned_item_quantity(self.characters[actor.id], references)
 
     def property_counts(self, preview, actor):
         """eGj.d(eGH): reset each recognized fsp ID, then eHN.c once.
@@ -646,12 +680,9 @@ def native_damage_target(preview, identity):
     row = getattr(preview, "native_effect_areas", {}).get(identity)
     if not isinstance(row, dict):
         return None
-    from .combat_effect_area_targets import area_targets
+    from .combat_effect_area_targets import area_target
 
-    return next(
-        (candidate for candidate in area_targets(preview) if candidate.id == identity),
-        None,
-    )
+    return area_target(preview, identity)
 
 
 def ordinary_cast_authority(*, actors, timing, rng, critical):
@@ -714,7 +745,8 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
             33 in e["native_effect_flags"],
             0,
             0,
-            authority.is_player or 122 in actors.world_properties(p, target),
+            authority.native_actor_type in (0, 5)
+            or 122 in actors.world_properties(p, target),
             target.effect_minima[32],
             target.effect_maxima[32],
             True,
@@ -829,9 +861,14 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
 
         row = p.native_effect_areas[invocation.target_id]
         definition = native_effect_areas().get(str(row.get("reference")))
-        snapshot = wall_damage_snapshot(row, definition)
-        # fbd.rMK has no BLOCK characteristic. PV.b(shG) therefore returns
-        # null and eXt.fOH exits without consuming a random roll.
+        if row.get("native_area_contract") == "faW":
+            from .combat_fake_fighter_resources import fake_fighter_damage_snapshot
+
+            snapshot = fake_fighter_damage_snapshot(row, definition)
+        else:
+            snapshot = wall_damage_snapshot(row, definition)
+        # Consult the actual concrete PA population. fbd.rMK and HP-only
+        # faW have no BLOCK; PV.b(shG) returns null without a random roll.
         if 87 not in snapshot["stats"]:
             return False
         from types import SimpleNamespace
@@ -906,3 +943,20 @@ def native_random_number(limit, exclusions=(), *, draw_index):
             break
         value += 1
     return value
+
+
+def _native_world_identity(source):
+    from wakfu_server.guild_haven_world import world_identity
+
+    return world_identity(source)
+
+
+def _ordinary_npc_world_identity(fight, actor, source):
+    from .combat_haven_world_context import position_identity
+
+    return position_identity(
+        source,
+        context=getattr(fight, "native_haven_world_combat_context", None),
+        world_actor=actor,
+        fight=fight,
+    )

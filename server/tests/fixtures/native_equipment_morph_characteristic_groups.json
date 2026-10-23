@@ -1,0 +1,1031 @@
+{
+  "source": "original complete factory census 20261021; definition-only fixture",
+  "sources": {
+    "14057": [
+      67443
+    ],
+    "17802": [
+      106773
+    ],
+    "18091": [
+      111019,
+      110988
+    ],
+    "23215": [
+      111019,
+      110988
+    ],
+    "27297": [
+      111019,
+      110988
+    ],
+    "27298": [
+      111019,
+      110988
+    ],
+    "30530": [
+      340246,
+      353160,
+      353161,
+      380309
+    ]
+  },
+  "effects": {
+    "67443": {
+      "effect_class": 933,
+      "variant": 0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "criteria": "",
+      "parameters": [
+        1982.0,
+        0.0
+      ],
+      "children": [],
+      "parameter_count": 1,
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 1
+      },
+      "application_flag": "NONE",
+      "removal_flag": "NONE",
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "area_class": "anD",
+      "area_native": "point",
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [],
+        "rzf": [],
+        "rzg": [],
+        "rzh": []
+      },
+      "native_localization_enabled": false,
+      "native_effect_flags": [
+        17
+      ],
+      "native_execution_mode": 2,
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "esr": false
+      },
+      "native_timing_checks": {
+        "0": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "1": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "200": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "32767": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        }
+      }
+    },
+    "106773": {
+      "effect_class": 933,
+      "variant": 0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "criteria": "",
+      "parameters": [
+        2788.0,
+        0.0
+      ],
+      "children": [],
+      "parameter_count": 1,
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 1
+      },
+      "application_flag": "NONE",
+      "removal_flag": "NONE",
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "area_class": "anD",
+      "area_native": "point",
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [],
+        "rzf": [],
+        "rzg": [],
+        "rzh": []
+      },
+      "native_localization_enabled": false,
+      "native_effect_flags": [
+        17
+      ],
+      "native_execution_mode": 2,
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "esr": false
+      },
+      "native_timing_checks": {
+        "0": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "1": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "200": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "32767": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        }
+      }
+    },
+    "111019": {
+      "effect_class": 913,
+      "variant": 0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "criteria": "",
+      "parameters": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        27.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.01,
+        0.0,
+        0.0
+      ],
+      "children": [
+        111020,
+        111021,
+        111022,
+        111023
+      ],
+      "parameter_count": 11,
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 1
+      },
+      "application_flag": "NONE",
+      "removal_flag": "NONE",
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "area_class": "anD",
+      "area_native": "point",
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [],
+        "rzf": [],
+        "rzg": [],
+        "rzh": []
+      },
+      "native_localization_enabled": false,
+      "native_effect_flags": [
+        17
+      ],
+      "native_execution_mode": 2,
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "ryE": 0,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "esr": false
+      },
+      "native_timing_checks": {
+        "0": {
+          "duration": [
+            0,
+            false,
+            1,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "1": {
+          "duration": [
+            0,
+            false,
+            1,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "200": {
+          "duration": [
+            0,
+            false,
+            1,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "32767": {
+          "duration": [
+            0,
+            false,
+            1,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        }
+      }
+    },
+    "110988": {
+      "effect_class": 913,
+      "variant": 0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "criteria": "",
+      "parameters": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        30.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.01,
+        0.0,
+        0.0
+      ],
+      "children": [
+        110992,
+        110993,
+        110994,
+        110996
+      ],
+      "parameter_count": 11,
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 1
+      },
+      "application_flag": "NONE",
+      "removal_flag": "NONE",
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "area_class": "anD",
+      "area_native": "point",
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [],
+        "rzf": [],
+        "rzg": [],
+        "rzh": []
+      },
+      "native_localization_enabled": false,
+      "native_effect_flags": [],
+      "native_execution_mode": 2,
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "ryE": 0,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "esr": false
+      },
+      "native_timing_checks": {
+        "0": {
+          "duration": [
+            0,
+            false,
+            1,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "1": {
+          "duration": [
+            0,
+            false,
+            1,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "200": {
+          "duration": [
+            0,
+            false,
+            1,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "32767": {
+          "duration": [
+            0,
+            false,
+            1,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        }
+      }
+    },
+    "340246": {
+      "effect_class": 933,
+      "variant": 0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "criteria": "IsInPlay()",
+      "parameters": [
+        5371.0,
+        0.0
+      ],
+      "children": [],
+      "parameter_count": 1,
+      "target_masks": [
+        null,
+        null,
+        [
+          1026
+        ],
+        null,
+        null,
+        null,
+        null
+      ],
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 0
+      },
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [],
+        "rzf": [],
+        "rzg": [],
+        "rzh": []
+      },
+      "native_effect_flags": [],
+      "native_execution_mode": 2,
+      "native_active_effect": true,
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "esr": false
+      },
+      "native_localization_enabled": false,
+      "application_flag": "NONE",
+      "removal_flag": "NONE",
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "area_class": "anD",
+      "area_native": "point",
+      "native_timing_checks": {
+        "0": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "1": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "200": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "32767": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        }
+      }
+    },
+    "353160": {
+      "effect_class": 933,
+      "variant": 0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "criteria": "IsInPlay()",
+      "parameters": [
+        5372.0,
+        0.0
+      ],
+      "children": [],
+      "parameter_count": 1,
+      "target_masks": [
+        null,
+        null,
+        [
+          1026
+        ],
+        null,
+        null,
+        null,
+        null
+      ],
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 0
+      },
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [],
+        "rzf": [],
+        "rzg": [],
+        "rzh": []
+      },
+      "native_effect_flags": [],
+      "native_execution_mode": 2,
+      "native_active_effect": true,
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "esr": false
+      },
+      "native_localization_enabled": false,
+      "application_flag": "NONE",
+      "removal_flag": "NONE",
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "area_class": "anD",
+      "area_native": "point",
+      "native_timing_checks": {
+        "0": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "1": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "200": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "32767": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        }
+      }
+    },
+    "353161": {
+      "effect_class": 933,
+      "variant": 0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "criteria": "IsInPlay()",
+      "parameters": [
+        5419.0,
+        0.0
+      ],
+      "children": [],
+      "parameter_count": 1,
+      "target_masks": [
+        null,
+        null,
+        [
+          1026
+        ],
+        null,
+        null,
+        null,
+        null
+      ],
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 0
+      },
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [],
+        "rzf": [],
+        "rzg": [],
+        "rzh": []
+      },
+      "native_effect_flags": [],
+      "native_execution_mode": 2,
+      "native_active_effect": true,
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "esr": false
+      },
+      "native_localization_enabled": false,
+      "application_flag": "NONE",
+      "removal_flag": "NONE",
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "area_class": "anD",
+      "area_native": "point",
+      "native_timing_checks": {
+        "0": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "1": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "200": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "32767": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        }
+      }
+    },
+    "380309": {
+      "effect_class": 933,
+      "variant": 0,
+      "minimum_level": 0,
+      "maximum_level": 32767,
+      "criteria": "IsInPlay()",
+      "parameters": [
+        5588.0,
+        0.0
+      ],
+      "children": [],
+      "parameter_count": 1,
+      "target_masks": [
+        null,
+        null,
+        [
+          1026
+        ],
+        null,
+        null,
+        null,
+        null
+      ],
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 0
+      },
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [],
+        "rzf": [],
+        "rzg": [],
+        "rzh": []
+      },
+      "native_effect_flags": [],
+      "native_execution_mode": 2,
+      "native_active_effect": true,
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "esr": false
+      },
+      "native_localization_enabled": false,
+      "application_flag": "NONE",
+      "removal_flag": "NONE",
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "area_class": "anD",
+      "area_native": "point",
+      "native_timing_checks": {
+        "0": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "1": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "200": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        },
+        "32767": {
+          "duration": [
+            -1,
+            false,
+            0,
+            false
+          ],
+          "delay": [
+            0,
+            false,
+            0,
+            false
+          ],
+          "cxq": false
+        }
+      }
+    }
+  }
+}

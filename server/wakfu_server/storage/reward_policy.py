@@ -70,7 +70,13 @@ def _normalize_context(context, character_id):
     recipient_present = False
     for raw in winners_raw:
         raw = _record(raw, name="winner")
-        if set(raw) != {"level", "player", "eligible", "character_id", "wisdom"}:
+        if set(raw) - {"shop_consumable_xp_factor"} != {
+            "level",
+            "player",
+            "eligible",
+            "character_id",
+            "wisdom",
+        }:
             raise ValueError("Winner has unknown or missing fields")
         level = _integer(
             raw["level"],
@@ -98,6 +104,13 @@ def _normalize_context(context, character_id):
                 "wisdom": wisdom,
             }
         )
+        if "shop_consumable_xp_factor" in raw:
+            winners[-1]["shop_consumable_xp_factor"] = _integer(
+                raw["shop_consumable_xp_factor"],
+                "native shop consumable XP factor",
+                0,
+                1000,
+            )
     if not recipient_present:
         raise ValueError("Reward recipient is absent from winner roster")
 
@@ -172,6 +185,7 @@ def _xp_amount_with_status(
         * number_factor
         * level_factor(recipient["level"], average_level)
         * wisdom_factor
+        * (recipient.get("shop_consumable_xp_factor", 100) / 100)
         * 1.3
         * (xp_rate_bp / 10000)
         * (context.get("dungeon_rate_bp", 10000) / 10000)

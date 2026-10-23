@@ -1,11 +1,9 @@
-"""HTTP client for the separate monster planner; execution stays authoritative."""
+"""TCP client for the separate monster planner; execution stays authoritative."""
 from .combat_effective_control import effective_server_controlled
 import hashlib
 import json
-import os
 import uuid
-import urllib.error
-import urllib.request
+from .combat_ai_transport import request as request_ai
 
 
 def snapshot(fight, actor_id):
@@ -102,20 +100,8 @@ def validate(fight, actor_id, request, response):
 
 def plan(fight, actor_id):
     request = snapshot(fight, actor_id)
-    endpoint = os.environ.get("WAKFU_AI_URL", "http://127.0.0.1:18090").rstrip("/")
-    body = json.dumps(request, allow_nan=False).encode()
-    call = urllib.request.Request(
-        endpoint + "/v1/decide",
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
     try:
-        with urllib.request.urlopen(call, timeout=1) as reply:
-            raw = reply.read(1024 * 1024 + 1)
-        if len(raw) > 1024 * 1024:
-            raise ValueError("AI response exceeds size limit")
-        return validate(fight, actor_id, request, json.loads(raw))
+        return validate(fight, actor_id, request, request_ai("/v1/decide", request))
     except (OSError, ValueError, TypeError) as error:
         # No in-process planner fallback: an unavailable service cannot propose
         # movement. The existing authoritative attack/end-turn handling remains.

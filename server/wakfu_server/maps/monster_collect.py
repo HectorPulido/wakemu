@@ -275,6 +275,18 @@ class Harvests:
                 monster = resolve_corpse(db, character, request["monster_id"])
             else:
                 available(db, self.store, monster, request["action_id"])
+            from wakfu_server.profession_consumable_modifiers import modifiers
+            from wakfu_server.native_world_context import is_battleground
+
+            native_rule = action(monster["ref"], request["action_id"])
+            speed = modifiers(
+                self.store,
+                db,
+                character_id,
+                native_rule["profession_id"],
+                generation=generation,
+                is_battleground=is_battleground(character["map_id"]),
+            )["collect_speed"]
         quantity = configuration["quantity"]
         cooldown_seconds = configuration["cooldown_seconds"]
         previous = self.pending.get(character_id)
@@ -310,6 +322,9 @@ class Harvests:
         if stack is None or quantity > stack["maximum"]:
             raise ValueError("Unknown or exceeded native harvest stack capacity")
         validate_action(rule, monster, profession_level=profession_level)
+        from wakfu_server.profession_consumable_modifiers import duration_ms
+
+        rule = dict(rule, duration_ms=duration_ms(rule["duration_ms"], speed))
         ticket = dict(
             token=uuid.uuid4().hex,
             account_id=account_id,
@@ -410,7 +425,25 @@ class Harvests:
             from wakfu_server.inventory_elements import masks
 
             reference = ticket["rule"]["item_ref"]
-            quantity = ticket["quantity"]
+            from wakfu_server.profession_consumable_modifiers import (
+                modifiers,
+                collected_quantity,
+            )
+            from wakfu_server.native_world_context import is_battleground
+
+            quantity_percent = modifiers(
+                self.store,
+                db,
+                character_id,
+                ticket["rule"]["profession_id"],
+                generation=generation,
+                is_battleground=is_battleground(character["map_id"]),
+            )["collect_quantity"]
+            quantity = collected_quantity(
+                ticket["quantity"],
+                quantity_percent,
+                operation=f"monster:{ticket['token']}:{reference}",
+            )
             stack_rule = STACKS.get(reference)
             if stack_rule is None or quantity > stack_rule["maximum"]:
                 raise ValueError("Unsupported native harvest stack quantity")
@@ -500,6 +533,8 @@ class Harvests:
                 ticket["rule"]["profession_id"],
                 base_xp=base_xp(db, "harvest"),
                 operation="monster-harvest:" + ticket["token"],
+                action_category="harvest",
+                native_map_id=character["map_id"],
             )
             from .monster_harvest_ecology import change as ecological_harvest
 

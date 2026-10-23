@@ -14,10 +14,21 @@ from ..native.native_profiles import encounter_profiles
 from ..native.native_turn import run_turn
 from ..native.native_stats import NativeStats
 from ..native.native_actor_source import registered_source
-from .world_bridge import CompleteContextExporter, ContextTransport
+from .world_bridge import CompleteContextExporter
+from ..transport.endpoint import DEFAULT_ENDPOINT, tcp_address
 
 _EXPORTERS = {}
 _EXPORTER_LOCK = threading.Lock()
+
+
+def context_transport(url=DEFAULT_ENDPOINT, *, first_turn=False, timeout=None):
+    """Use the persistent TCP channel for every native query and context."""
+    from ..transport.framed_context import FramedContextTransport
+
+    host, port = tcp_address(url)
+    return FramedContextTransport(
+        host, port, timeout=(20 if first_turn else 10) if timeout is None else timeout
+    )
 
 
 def native_exporter():
@@ -181,12 +192,10 @@ def _prepare_npc_turn(
             if key.startswith("WAKFU_NATIVE_")
         },
     )
-    url = os.environ.get("WAKFU_AI_URL", "http://ai:8090")
+    url = os.environ.get("WAKFU_AI_URL", DEFAULT_ENDPOINT)
     # The transport still clips each request to the original absolute deadline.
     # Its normal ten-second socket cap must not truncate first-turn cold work.
-    transport = (
-        ContextTransport(url, timeout=20) if first_turn else ContextTransport(url)
-    )
+    transport = context_transport(url, first_turn=first_turn)
     try:
         with bounded(started + turn_ms / 1000):
             stage_started = time.monotonic()

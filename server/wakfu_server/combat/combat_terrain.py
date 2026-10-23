@@ -47,6 +47,14 @@ def prepare_terrain(map_id):
 def map_geometry(map_id):
     if type(map_id) is not int or map_id <= 0:
         raise ValueError("Invalid combat map identity")
+    from wakfu_server.haven_world_terrain import TEMPLATE_MAP_ID, geometry
+
+    if map_id == TEMPLATE_MAP_ID:
+        if protocol_catalog.exists(DATA_ROOT / "combat-maps" / f"{map_id}.json"):
+            raise ValueError(
+                "Internal Haven World geometry namespace collides with native map"
+            )
+        return geometry()
     directory = DATA_ROOT / "combat-maps"
     for suffix in (".json",):
         path = directory / (str(map_id) + suffix)

@@ -98,6 +98,46 @@ class CombatAttachmentAuthorityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "identity"):
             CombatAttachmentAuthority([pattern(11, "EPIC"), pattern(11, "EPIC")], [])
 
+    def test_ready_captures_one_detached_sql_authority_only_for_equipped_attachments(
+        self,
+    ):
+        from contextlib import contextmanager
+        from unittest.mock import patch
+        from wakfu_server.combat_attachment_authority import for_characters
+
+        item = dict(uid=500, reference=100, quantity=1, shard_state=shard([1, 2]))
+        character = dict(
+            active_build_index=0,
+            inventory_items=[item],
+            builds={
+                0: dict(
+                    equipment=(
+                        proto_field(10, proto_field(8, 500) + proto_field(16, 10))
+                    ).hex()
+                )
+            },
+        )
+        calls = []
+
+        class Store:
+            @contextmanager
+            def connection(self):
+                calls.append("connection")
+                yield object()
+
+        store = Store()
+        with patch.object(
+            CombatAttachmentAuthority, "from_database", return_value=self.authority
+        ) as load:
+            empty = dict(character, builds={0: dict(equipment="")})
+            self.assertIsNone(for_characters(store, {1: empty}))
+            load.assert_not_called()
+            captured = for_characters(store, {1: character, 2: character})
+            self.assertIs(captured, self.authority)
+            load.assert_called_once()
+        self.assertEqual(calls, ["connection"])
+        self.assertTrue(captured(item, item["shard_state"], 11, 24))
+
     def test_noncontiguous_socket_positions_are_not_repaired(self):
         state = proto_field(10, proto_field(80, 1) + proto_field(96, 1)) + proto_field(
             24, 11

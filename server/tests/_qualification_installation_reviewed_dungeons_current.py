@@ -1,0 +1,4 @@
+import importlib
+import test_export_installation_seed
+
+importlib.reload(test_export_installation_seed)

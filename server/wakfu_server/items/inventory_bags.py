@@ -23,11 +23,11 @@ def remove(store, account_id, generation, character_id, body):
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
         bag = db.execute(
-            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s",
+            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s FOR UPDATE",
             (bag_uid, character_id),
         ).fetchone()
         target = db.execute(
-            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s",
+            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s FOR UPDATE",
             (destination, character_id),
         ).fetchone()
         if bag is None or bag["kind"] == 0 or target is None or target["kind"] != 0:
@@ -56,13 +56,22 @@ def remove(store, account_id, generation, character_id, body):
             "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(%s,%s,%s,%s,%s,%s)",
             (bag_uid, character_id, bag["reference"], 1, destination, position),
         )
-        item = dict(
-            db.execute(
-                "SELECT * FROM inventory_items WHERE uid=%s", (bag_uid,)
-            ).fetchone()
+        from .portable_item_custody import restore
+
+        restore(
+            db,
+            uid=bag_uid,
+            account_id=account_id,
+            character_id=character_id,
+            reference=bag["reference"],
+            kind="bag",
+        )
+        character = store.character(account_id, character_id, db)
+        item = next(
+            item for item in character["inventory_items"] if item["uid"] == bag_uid
         )
         return dict(
-            character=store.character(account_id, character_id, db),
+            character=character,
             packets=[
                 (13172, struct.pack(">qq", character_id, bag_uid)),
                 insertion(item),
@@ -77,7 +86,7 @@ def equip(store, account_id, generation, character_id, body):
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
         item = db.execute(
-            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
+            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s FOR UPDATE",
             (request["uid"], character_id),
         ).fetchone()
         if item is None or item["container"] != request["container"]:
@@ -91,13 +100,14 @@ def equip(store, account_id, generation, character_id, body):
             (character_id, request["slot"]),
         ).fetchone():
             raise ValueError("Bag slot occupied; native replacement not implemented")
+        from .inventory_uids import allocate
+        from .portable_item_custody import hold
+
+        bag_uid = item["uid"] if item["quantity"] == 1 else allocate(db)
+        hold(db, item, uid=bag_uid, account_id=account_id, kind="bag")
         if item["quantity"] == 1:
-            bag_uid = item["uid"]
             db.execute("DELETE FROM inventory_items WHERE uid=%s", (bag_uid,))
         else:
-            from .inventory_uids import allocate
-
-            bag_uid = allocate(db)
             db.execute(
                 "UPDATE inventory_items SET quantity=quantity-1 WHERE uid=%s",
                 (item["uid"],),

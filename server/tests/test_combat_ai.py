@@ -3,6 +3,7 @@ import threading
 import os
 from unittest.mock import patch
 from tests.test_ai_service import service
+from wakfu_ai.transport.framed_server import FramedServer
 from wakfu_server.combat_ai import snapshot, validate
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_ai import plan
@@ -11,20 +12,20 @@ from wakfu_server.combat_ai import plan
 class AITests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.http = service.ThreadingHTTPServer(("127.0.0.1", 0), service.Handler)
-        cls.thread = threading.Thread(target=cls.http.serve_forever, daemon=True)
+        cls.channel = FramedServer(("127.0.0.1", 0))
+        cls.thread = threading.Thread(target=cls.channel.serve_forever, daemon=True)
         cls.thread.start()
         cls.environment = patch.dict(
             os.environ,
-            {"WAKFU_AI_URL": "http://127.0.0.1:" + str(cls.http.server_port)},
+            {"WAKFU_AI_URL": "tcp://127.0.0.1:" + str(cls.channel.server_address[1])},
         )
         cls.environment.start()
 
     @classmethod
     def tearDownClass(cls):
         cls.environment.stop()
-        cls.http.shutdown()
-        cls.http.server_close()
+        cls.channel.shutdown()
+        cls.channel.server_close()
         cls.thread.join(2)
 
     def fight(self, mp=3):

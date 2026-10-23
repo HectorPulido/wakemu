@@ -17,11 +17,20 @@ def enter(db, wave_id, owner_character_id, members, *, seed, authorize):
     session ownership, party scope and map access. This is never inferred here.
     """
     policy = validate(_setting(db, "rift_policy"))
+    from wakfu_server.rift_native_gameplay_policy import load as native_gameplay_policy
+
+    native_gameplay = native_gameplay_policy(db)
+    if native_gameplay is not None:
+        policy["native_gameplay"] = native_gameplay
     catalog = _setting(db, "rift_catalog").get(str(wave_id))
     if not policy["enabled"] or catalog is None:
         raise ValueError("Rift is unavailable")
     if catalog["type"] == "ULTIMATE_INFINITE_WAVE":
-        raise ValueError("Ultimate rift key authority is unavailable")
+        from wakfu_server.rift_key_admission import contract
+
+        contract(catalog)
+        if policy.get("ultimate_enabled", False) is not True:
+            raise ValueError("Ultimate rift key authority is disabled by policy")
     members = tuple(members)
     if (
         not members
@@ -75,6 +84,18 @@ def _run(db, instance_id):
 
 
 def start(db, instance_id, character_id, fight_id):
+    # Admission locks session/character before the run. Preserve that order for
+    # paid starts; otherwise a simultaneous activator retry could deadlock.
+    observed = db.execute(
+        "SELECT * FROM rift_instances WHERE instance_id=%s", (instance_id,)
+    ).fetchone()
+    if observed is not None and observed["status"] == "entered":
+        from wakfu_server.rift_key_admission import contract, lock_owner
+
+        if contract(observed["catalog"]) is not None:
+            if character_id != observed["owner_character_id"]:
+                raise ValueError("Only the rift owner may start combat")
+            lock_owner(db, observed, character_id, fight_id)
     run = _run(db, instance_id)
     if character_id != run["owner_character_id"]:
         raise ValueError("Only the rift owner may start combat")
@@ -88,6 +109,9 @@ def start(db, instance_id, character_id, fight_id):
     ).fetchall()
     if {r["character_id"] for r in participants} != set(run["members"]):
         raise ValueError("Fight participants do not match frozen rift members")
+    from wakfu_server.rift_key_admission import consume as consume_key
+
+    consume_key(db, run, character_id, fight_id)
     return db.execute(
         "UPDATE rift_instances SET status='running',fight_id=%s,revision=revision+1 WHERE instance_id=%s RETURNING *",
         (fight_id, instance_id),

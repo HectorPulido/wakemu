@@ -103,7 +103,9 @@ class NpcProtectorTests(unittest.TestCase):
 
     def test_real_catalog_action_opens_original_protector_and_rechecks_facts(self):
         row = otomai()
-        character = dict(map_id=1385, instance_id=0, x=20, y=17, z=1)
+        character = dict(
+            id=100, account_id=200, map_id=1385, instance_id=0, x=20, y=17, z=1
+        )
         facts = {}
         session, packet = npc_world.begin(
             lambda: character,
@@ -120,7 +122,9 @@ class NpcProtectorTests(unittest.TestCase):
 
     def test_original_close_choice_does_not_grant_quest_or_transition(self):
         row = otomai()
-        character = dict(map_id=1385, instance_id=0, x=20, y=17, z=1)
+        character = dict(
+            id=100, account_id=200, map_id=1385, instance_id=0, x=20, y=17, z=1
+        )
         session, _ = npc_world.begin(
             lambda: character,
             lambda: [row],

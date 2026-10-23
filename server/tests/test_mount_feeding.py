@@ -527,6 +527,140 @@ class MountFeedingTests(PostgresCase):
             self._feed(quantity=2)
         self.assertEqual(before, self._rows())
 
+    def test_transfer_and_reconnect_cannot_replay_a_previous_owners_food_receipt(self):
+        from wakfu_server.exchange_transfer import apply
+
+        applied = self._feed()
+        self.assertTrue(applied["applied"])
+        self.assertTrue(self._feed()["replayed"])
+        # Reconnecting the same owner legitimately changes its lease, not the
+        # replay ownership. Do not fence receipts to the old generation.
+        self.store.end_session(self.account, self.generation)
+        self.generation = self.store.begin_session(self.account, ttl=1_000_000)
+        self.store.select_character(self.account, self.generation, self.character["id"])
+        self.assertTrue(self._feed()["replayed"])
+        with self.store.connection() as db:
+            original_mount = dict(
+                db.execute(
+                    "SELECT * FROM inventory_mounts WHERE uid=%s", (self.pet["uid"],)
+                ).fetchone()
+            )
+        same_account_actor = self.store.create_character(self.account, "Feed Recipient")
+        other_account = self.store.register(
+            "feed_recipient_" + uuid.uuid4().hex[:10], "test-password"
+        )["id"]
+        other_actor = self.store.create_character(other_account, "Other Feed Recipient")
+        other_generation = self.store.begin_session(other_account, ttl=1_000_000)
+        self.store.select_character(other_account, other_generation, other_actor["id"])
+        unexpected_replays = []
+        for account, generation, actor in (
+            (self.account, self.generation, same_account_actor),
+            (other_account, other_generation, other_actor),
+        ):
+            # The real exchange transfer primitive keeps the UID and copies all
+            # typed mount metadata. This unit is unequipped in every sheet.
+            bag = next(
+                row["uid"] for row in actor["inventory_containers"] if row["kind"] == 0
+            )
+            with self.store.connection() as db:
+                source = dict(
+                    db.execute(
+                        "SELECT * FROM inventory_items WHERE uid=%s", (self.pet["uid"],)
+                    ).fetchone()
+                )
+                moved = dict(source, character_id=actor["id"], container=bag, slot=0)
+                apply(db, [source], {source["uid"]: moved})
+                self.assertEqual(
+                    dict(
+                        db.execute(
+                            "SELECT * FROM inventory_mounts WHERE uid=%s",
+                            (source["uid"],),
+                        ).fetchone()
+                    ),
+                    original_mount,
+                )
+            self.store.select_character(account, generation, actor["id"])
+            reopened = self.reopen()
+            reopened.clock = self.store.clock
+            restored = reopened.character(account, actor["id"])
+            target = next(
+                row
+                for row in restored["inventory_items"]
+                if row["uid"] == self.pet["uid"]
+            )
+            for key in original_mount:
+                self.assertEqual(target["mount"][key], original_mount[key], key)
+            with self.store.connection() as db:
+                before_items = list(
+                    db.execute("SELECT * FROM inventory_items ORDER BY uid")
+                )
+                before_wallets = list(
+                    db.execute("SELECT * FROM account_wallets ORDER BY account_id")
+                )
+                before_receipts = list(
+                    db.execute("SELECT * FROM mount_feeding_receipts ORDER BY id")
+                )
+                before_health = list(
+                    db.execute("SELECT id,hp,max_hp FROM characters ORDER BY id")
+                )
+                before_leases = list(
+                    db.execute("SELECT * FROM sessions ORDER BY account_id")
+                )
+            try:
+                replay = mount_feeding.feed(
+                    reopened,
+                    account,
+                    generation,
+                    actor["id"],
+                    mount_feeding_wire.encode_request(
+                        self.food["uid"], self.pet["uid"], 1
+                    ),
+                    in_fight=False,
+                )
+            except ValueError as error:
+                self.assertIn("Food item is unavailable or foreign", str(error))
+            else:
+                unexpected_replays.append((account, actor["id"], replay["replayed"]))
+            with self.store.connection() as db:
+                self.assertEqual(
+                    list(db.execute("SELECT * FROM inventory_items ORDER BY uid")),
+                    before_items,
+                )
+                self.assertEqual(
+                    list(
+                        db.execute("SELECT * FROM account_wallets ORDER BY account_id")
+                    ),
+                    before_wallets,
+                )
+                self.assertEqual(
+                    list(
+                        db.execute("SELECT * FROM mount_feeding_receipts ORDER BY id")
+                    ),
+                    before_receipts,
+                )
+                self.assertEqual(
+                    list(db.execute("SELECT id,hp,max_hp FROM characters ORDER BY id")),
+                    before_health,
+                )
+                self.assertEqual(
+                    list(db.execute("SELECT * FROM sessions ORDER BY account_id")),
+                    before_leases,
+                )
+                self.assertEqual(
+                    dict(
+                        db.execute(
+                            "SELECT * FROM inventory_mounts WHERE uid=%s",
+                            (self.pet["uid"],),
+                        ).fetchone()
+                    ),
+                    original_mount,
+                )
+        self.assertEqual(
+            unexpected_replays,
+            [],
+            "Transferred mount accepted another owner's old feeding receipt",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

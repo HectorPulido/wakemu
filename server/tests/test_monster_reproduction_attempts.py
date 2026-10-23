@@ -187,8 +187,14 @@ class MonsterReproductionAttemptTests(PostgresCase):
         self.members = members
         self.ticket = self._seed_due(self.parent)
         self.indexed = edge_index([((0, 0, 0), (0, 1, 0))])
-        self._set_policy(birth=1.0, new_group=0.0, max_members=8)
-        result = self._attempt(draw=0.0, group_draw=0.99)
+        self._set_policy(birth=1.0, new_group=1.0, max_members=8)
+        # This roster/identity fixture uses synthetic coordinates. Supply its
+        # exact surface without bypassing the shared destination policy.
+        with patch(
+            "wakfu_server.planting_cells.surface",
+            return_value={"region_id": 0},
+        ):
+            result = self._attempt(draw=0.0, group_draw=0.99)
         child_group = result["child_group_id"]
         child_id = result["child_id"]
         self.assertNotEqual(self.group_id, child_group)

@@ -1,0 +1,7 @@
+import importlib
+from wakfu_server.objectives import environmental_group_publication
+
+importlib.reload(environmental_group_publication)
+import test_environmental_owned_group_population
+
+importlib.reload(test_environmental_owned_group_population)

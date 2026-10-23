@@ -68,7 +68,7 @@ def prepare(store, world_snapshot, limit=16):
             after = _revision(db, scope)
         if before != after:
             continue  # A concurrent ecology commit needs a fresh population read.
-        regions = {}
+        regions, region_states = {}, {}
         for region_id, territory in catalog.items():
             if territory["map_id"] != scope[0]:
                 continue
@@ -81,6 +81,9 @@ def prepare(store, world_snapshot, limit=16):
                 )
                 if population["complete"]
                 else None
+            )
+            region_states[region_id] = (
+                None if region is None else region.get("state_id")
             )
             regions[region_id] = {
                 str(key): value
@@ -97,6 +100,7 @@ def prepare(store, world_snapshot, limit=16):
                 instance_id=scope[1],
                 revision=after,
                 regions=regions,
+                region_states=region_states,
                 observed_at=observed_at,
                 # Exhausted proposals must receive new IDs on later planning passes.
                 observation_bucket=int(observed_at // 2),
@@ -113,6 +117,7 @@ class RegionalSnapshot:
     observed_at: float
     received_at: float
     regions: object
+    region_states: object
 
 
 class RegionalBonusUpdates:
@@ -121,6 +126,7 @@ class RegionalBonusUpdates:
         self.lock = threading.RLock()
         self.snapshots = {}
         self.pending = {}
+        self.health_observations = {}
         self.world_epoch = None
 
     def apply(self, proposal, *, world_epoch):
@@ -144,6 +150,16 @@ class RegionalBonusUpdates:
         raw = proposal.get("regions")
         if not isinstance(raw, dict) or len(raw) > 256:
             raise ValueError("Invalid regional bonus regions")
+        states = proposal.get("region_states", {})
+        if not isinstance(states, dict) or any(
+            key not in raw
+            or (
+                value is not None
+                and (type(value) is not int or value not in (1915, 1916, 1917))
+            )
+            for key, value in states.items()
+        ):
+            raise ValueError("Invalid native regional state provenance")
         regions = {}
         for region, values in raw.items():
             if (
@@ -173,11 +189,13 @@ class RegionalBonusUpdates:
             observed,
             self.clock(),
             MappingProxyType(regions),
+            MappingProxyType({int(key): value for key, value in states.items()}),
         )
         with self.lock:
             if self.world_epoch != world_epoch:
                 self.snapshots.clear()
                 self.pending.clear()
+                self.health_observations.clear()
                 self.world_epoch = world_epoch
             previous = self.snapshots.get(scope)
             if (
@@ -234,16 +252,110 @@ class RegionalBonusUpdates:
         ):
             return []
         bonuses = dict(snapshot.regions.get(region, {}))
-        if character.get("_published_territory_stat_bonuses") == bonuses:
-            return []
-        from wakfu_server.territory_bonuses import world_packets
-
-        packets = world_packets(dict(character, territory_stat_bonuses=bonuses))
-        if not self._fence(character, generation, peer):
-            return []
+        # Older stat-only proposals have no authority to remove an icon.
+        state = snapshot.region_states.get(region, character.get("territory_state_id"))
         fingerprint = tuple(
             character.get(key) for key in ("map_id", "instance_id", "x", "y", "z")
         )
+        identity = self._identity(character, generation, peer)
+        with self.lock:
+            observed = self.health_observations.get(identity)
+        evaluated = (
+            observed is not None
+            and observed[0] is snapshot
+            and observed[1:] == (fingerprint, region, state)
+        )
+        comparison = dict(bonuses)
+        if evaluated:
+            applied = character.get("territory_health_projection")
+            if applied is not None:
+                comparison[1] = applied["applied_flat"]
+        # Fresh preparation already reads current policy. Equal raw amounts
+        # therefore need no owner SQL, even when the snapshot object is new.
+        # Only a previously reconciled in-flight proposal uses committed HP.
+        if (
+            character.get("_published_territory_stat_bonuses") == comparison
+            and character.get("_published_territory_state_id") == state
+            and (state is None or "_published_territory_state_id" in character)
+        ):
+            return []
+        from wakfu_server.territory_bonuses import world_packets, reconcile_owned
+
+        if not evaluated:
+            if not self._fence(character, generation, peer):
+                return []
+            canonical = reconcile_owned(
+                self.store,
+                character["account_id"],
+                generation,
+                character,
+                region={"state_id": state, "territory_id": region},
+                bonuses=bonuses,
+            )
+            # A changed observation checks current policy once. Health is
+            # durable before delivery, so a failed send must not leave the
+            # owner HP input stale.
+            character.update(canonical)
+            bonuses = dict(canonical["territory_stat_bonuses"])
+            if not self._fence(character, generation, peer):
+                return []
+            received_after = self.clock() - 10
+            with self.lock:
+                self.health_observations = {
+                    key: value
+                    for key, value in self.health_observations.items()
+                    if value[0].received_at > received_after
+                    and (key[0] != identity[0] or key == identity)
+                }
+                self.health_observations[identity] = (
+                    snapshot,
+                    fingerprint,
+                    region,
+                    state,
+                )
+        else:
+            applied = character.get("territory_health_projection")
+            if applied is not None:
+                # An already evaluated cached proposal cannot repeatedly publish
+                # its older HP policy value after canonical reconciliation.
+                bonuses[1] = applied["applied_flat"]
+        if (
+            character.get("_published_territory_stat_bonuses") == bonuses
+            and character.get("_published_territory_state_id") == state
+            and (state is None or "_published_territory_state_id" in character)
+        ):
+            return []
+        if not self._fence(character, generation, peer):
+            return []
+        stats_packets = world_packets(character)
+        fingerprint = tuple(
+            character.get(key) for key in ("map_id", "instance_id", "x", "y", "z")
+        )
+        with self.lock:
+            pending = self.pending.get(self._identity(character, generation, peer))
+        if (
+            pending is not None
+            and pending[0] is snapshot
+            and pending[1] == fingerprint
+            and pending[2] == bonuses
+            and pending[4] == region
+            and pending[5] == state
+            and pending[6] == stats_packets
+            and pending[7] == character.get("_published_territory_state_id")
+        ):
+            # A failed socket write retries the identical native actions. Never
+            # allocate a second icon application for the same pending batch.
+            return list(pending[3]) if self._fence(character, generation, peer) else []
+        from wakfu_server.territory_bonus_wire import delta
+
+        packets = (
+            *stats_packets,
+            *delta(
+                character["id"], character.get("_published_territory_state_id"), state
+            ),
+        )
+        if not self._fence(character, generation, peer):
+            return []
         with self.lock:
             self.pending = {
                 key: value
@@ -260,6 +372,9 @@ class RegionalBonusUpdates:
                 bonuses,
                 packets,
                 region,
+                state,
+                stats_packets,
+                character.get("_published_territory_state_id"),
             )
         return list(packets)
 
@@ -270,7 +385,18 @@ class RegionalBonusUpdates:
             pending = self.pending.get(identity)
         if pending is None or tuple(packets) != pending[3]:
             return False
-        snapshot, fingerprint, bonuses, _, region = pending
+        (
+            snapshot,
+            fingerprint,
+            bonuses,
+            _,
+            region,
+            state,
+            stats_packets,
+            prior_state,
+        ) = pending
+        if character.get("_published_territory_state_id") != prior_state:
+            return False
         if fingerprint != tuple(
             character.get(key) for key in ("map_id", "instance_id", "x", "y", "z")
         ) or not self._fence(character, generation, peer):
@@ -284,16 +410,21 @@ class RegionalBonusUpdates:
 
         # Sending normally stays on the owner session thread, but reject a
         # changed HP/build/equipment projection if a caller breaks that rule.
-        if world_packets(dict(character, territory_stat_bonuses=bonuses)) != pending[3]:
+        if (
+            world_packets(dict(character, territory_stat_bonuses=bonuses))
+            != stats_packets
+        ):
             return False
         # The world projection method merges derived fields only. It must fence
         # the exact generation, peer and coordinates without writing sockets.
         if not self.world.update_territory_projection(
-            generation, character, peer=peer, bonuses=bonuses
+            generation, character, peer=peer, bonuses=bonuses, regional_state_id=state
         ):
             return False
         character["territory_stat_bonuses"] = dict(bonuses)
         character["_published_territory_stat_bonuses"] = dict(bonuses)
+        character["territory_state_id"] = state
+        character["_published_territory_state_id"] = state
         with self.lock:
             self.pending.pop(identity, None)
         return True

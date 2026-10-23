@@ -1,0 +1,164 @@
+{
+  "source_revision": "3ce77acd303a1f1e73939585a10463c4f8e1f96d9b5854d072a1804d2a772755",
+  "source": "Original eVi/eXx/eRJ/eRM runners and native consumable state closure, 2026-10-19",
+  "effects": {
+    "104731": {
+      "variant": 0,
+      "criteria": "",
+      "parameters": [
+        100.0,
+        0.0
+      ],
+      "effect_class": 2008,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "173761": {
+      "variant": 0,
+      "criteria": "",
+      "parameters": [
+        100.0,
+        0.0
+      ],
+      "effect_class": 2008,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "173762": {
+      "variant": 0,
+      "criteria": "",
+      "parameters": [
+        100.0,
+        0.0
+      ],
+      "effect_class": 2006,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "180990": {
+      "variant": 0,
+      "criteria": "not IsBattleground()",
+      "parameters": [
+        50.0,
+        0.0
+      ],
+      "effect_class": 2002,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "180993": {
+      "variant": 0,
+      "criteria": "",
+      "parameters": [
+        50.0,
+        0.0
+      ],
+      "effect_class": 2003,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "180994": {
+      "variant": 0,
+      "criteria": "",
+      "parameters": [
+        50.0,
+        0.0
+      ],
+      "effect_class": 2004,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "187269": {
+      "variant": 0,
+      "criteria": "not IsBattleground()",
+      "parameters": [
+        100.0,
+        0.0
+      ],
+      "effect_class": 2002,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "187270": {
+      "variant": 0,
+      "criteria": "not IsBattleground()",
+      "parameters": [
+        100.0,
+        0.0
+      ],
+      "effect_class": 2003,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "187271": {
+      "variant": 0,
+      "criteria": "not IsBattleground()",
+      "parameters": [
+        100.0,
+        0.0
+      ],
+      "effect_class": 2004,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "295739": {
+      "variant": 0,
+      "criteria": "",
+      "parameters": [
+        50.0,
+        0.0
+      ],
+      "effect_class": 2001,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "61979": {
+      "variant": 0,
+      "criteria": "",
+      "parameters": [
+        0.0,
+        1.0,
+        64.0,
+        0.0
+      ],
+      "effect_class": 2001,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 2
+    },
+    "66110": {
+      "variant": 0,
+      "criteria": "",
+      "parameters": [
+        100.0,
+        0.0
+      ],
+      "effect_class": 2008,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    },
+    "66111": {
+      "variant": 0,
+      "criteria": "",
+      "parameters": [
+        100.0,
+        0.0
+      ],
+      "effect_class": 2006,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1
+    }
+  }
+}

@@ -72,7 +72,20 @@ def _digest(payload):
     return hashlib.sha256(encoded).hexdigest()
 
 
-def execution_contract_sha256(sources, compiled, registry):
+def _execution_effect_definition(effect):
+    """Ignore optional exporter observations, preserving all execution fields.
+
+    The equipment and spell exports may include different JVM timing samples
+    for the same original definition. These samples are not consumed by the
+    runtime; native_timing_definition remains authoritative and digest-bound.
+    Neither source metadata nor the compiled definition is modified here.
+    """
+    return {
+        key: value for key, value in effect.items() if key != "native_timing_checks"
+    }
+
+
+def _legacy_execution_contract_payload(sources, compiled, registry):
     """Bind all reachable state definitions, children and characteristic contracts.
 
     Item roots are already in the pin. Their referenced state graph must also
@@ -85,7 +98,24 @@ def execution_contract_sha256(sources, compiled, registry):
         for reference in source["roots"]:
             root = source["effects"][str(reference)]
             if root["effect_class"] != 304:
-                raise ValueError("Unqualified equipment state contract")
+                from .combat_equipment_direct_marker_contract import direct_owned_effect
+
+                if not direct_owned_effect(root):
+                    raise ValueError("Unqualified equipment state contract")
+                effects[str(reference)] = root
+                if root["effect_class"] == 449:
+                    from .combat_world_properties import (
+                        registry as world_property_registry,
+                    )
+
+                    identity = effect_profile(root, level)["parameters"][0]
+                    characteristics["449"] = dict(
+                        runner="eWw",
+                        world_property=world_property_registry()[str(identity)],
+                    )
+                else:
+                    characteristics["400"] = registry["effects"].get("400")
+                continue
             state_reference = effect_profile(root, level)["parameters"][0]
             state = compiled.source_states["states"][str(state_reference)]
             states[str(state_reference)] = state
@@ -109,8 +139,244 @@ def execution_contract_sha256(sources, compiled, registry):
                             nested_state = compiled.source_states["states"][nested_key]
                             states[nested_key] = nested_state
                             pending.extend(nested_state["effect_ids"])
+    return dict(states=states, effects=effects, characteristics=characteristics)
+
+
+def _execution_contract_payload(sources, compiled, registry):
+    """Bind the complete reachable graph using each state's own level domain.
+
+    A child304's state graph is selected at that child's execution level, and
+    that referenced state's maximum level may differ from its parent. Traverse
+    (effect reference, execution level) pairs and enumerate every level of each
+    reached state so pin identity covers nested transitions exactly.
+    """
+    from .combat_definitions import state_profile
+
+    states, effects, characteristics = {}, {}, {}
+    operator_contexts = {}
+    expanded_states = set()
+    source_states = compiled.source_states
+    state_catalog = source_states.get("states")
+    if not isinstance(state_catalog, Mapping):
+        raise ValueError("Missing source state catalog for equipment pin")
+
+    for source in sources:
+        root_level = source["native_retained_container"]["level"]
+        ordinary_roots = []
+        for root_reference in source["roots"]:
+            root_key = str(root_reference)
+            root = source.get("effects", {}).get(root_key)
+            if root is None:
+                root = compiled.effects.get(root_key)
+            if not isinstance(root, Mapping):
+                raise ValueError("Missing reachable equipment root definition")
+            # Only the complete-graph admission result can extend ordinary
+            # roots beyond the legacy state/direct-marker contracts. Its flag
+            # is digest-bound in the pin and revalidated against the live
+            # factory bindings before initialization executes any operator.
+            generic = source.get("_generic_operation_admission") is True
+            if root.get("effect_class") == 304:
+                ordinary_roots.append(root_reference)
+                continue
+            from .combat_equipment_direct_marker_contract import direct_owned_effect
+
+            direct = direct_owned_effect(root)
+            if generic and not direct:
+                ordinary_roots.append(root_reference)
+                continue
+            if not direct:
+                raise ValueError("Unqualified equipment state contract")
+            effects[root_key] = root
+            if root["effect_class"] == 449:
+                from .combat_world_properties import registry as world_property_registry
+
+                identity = effect_profile(root, root_level)["parameters"][0]
+                characteristics["449"] = dict(
+                    runner="eWw",
+                    world_property=world_property_registry()[str(identity)],
+                )
+            else:
+                characteristics["400"] = registry.get("effects", {}).get("400")
+        if not ordinary_roots:
+            continue
+        pending = [(str(reference), root_level) for reference in ordinary_roots]
+        visited = set()
+        while pending:
+            reference, execution_level = pending.pop()
+            identity = (reference, execution_level)
+            if identity in visited:
+                continue
+            visited.add(identity)
+            definition = compiled.effects.get(reference)
+            if definition is None:
+                definition = source.get("effects", {}).get(reference)
+            if not isinstance(definition, Mapping):
+                raise ValueError("Missing reachable equipment effect definition")
+            effects[reference] = definition
+            family = definition.get("effect_class")
+            key = str(family)
+            characteristics[key] = registry.get("effects", {}).get(key)
+            if family == 449:
+                from .combat_world_properties import registry as world_properties
+
+                property_id = effect_profile(definition, execution_level)["parameters"][
+                    0
+                ]
+                operator_contexts.setdefault("world_properties", {})[
+                    str(property_id)
+                ] = world_properties()[str(property_id)]
+            elif family == 1093:
+                from .combat_final_modifier import FAQ_FAMILIES
+
+                operator_contexts["final_modifier_families"] = sorted(FAQ_FAMILIES)
+            elif family in (913, 1047):
+                from .combat_actor_snapshot import native_actor_catalog
+
+                stat_id = (
+                    effect_profile(definition, execution_level)["parameters"][6] & 255
+                )
+                operator_contexts.setdefault("selected_characteristics", {})[
+                    str(stat_id)
+                ] = native_actor_catalog()["characteristics"].get(str(stat_id))
+            if family == 844:
+                from .combat_equipment_world_final_state_capability import (
+                    state_level_domain,
+                )
+
+                domain = state_level_domain(
+                    definition,
+                    effect_profile(definition, execution_level),
+                    execution_level,
+                    source_states,
+                )
+                read_state = state_catalog[str(domain.state_id)]
+                operator_contexts.setdefault("read_states", {})[
+                    str(domain.state_id)
+                ] = read_state
+                for child in definition.get("children", ()):
+                    pending.extend((str(child), level) for level in domain.child_levels)
+            elif family in (913, 1047):
+                from .combat_equipment_hp_group_parser import child_domain_witnesses
+
+                pending.extend(
+                    (str(child), level)
+                    for child, level in child_domain_witnesses(
+                        definition, compiled.effects, source_states
+                    )
+                )
+            elif family == 1020:
+                from .combat_equipment_trigger_level_domain import (
+                    child_domain_witnesses,
+                )
+
+                pending.extend(
+                    (str(child), level)
+                    for child, level in child_domain_witnesses(
+                        definition, compiled.effects
+                    )
+                )
+            elif family == 999 and source.get("_generic_owner_level_facts") is not None:
+                from .combat_equipment_dynamic_levels import (
+                    source_level_facts,
+                    owner_child_levels,
+                )
+
+                profiled = dict(definition, _capability_reference=int(reference))
+                domain = owner_child_levels(
+                    profiled, execution_level, source_level_facts(source)
+                )
+                for child in definition.get("children", ()):
+                    pending.extend((str(child), level) for level in domain.levels)
+            else:
+                for child in definition.get("children", ()):
+                    pending.append((str(child), execution_level))
+
+            if family != 304:
+                continue
+            try:
+                state_reference = effect_profile(definition, execution_level)[
+                    "parameters"
+                ][0]
+            except (
+                IndexError,
+                KeyError,
+                TypeError,
+                ValueError,
+                OverflowError,
+            ) as error:
+                raise ValueError(
+                    "Invalid reachable equipment state reference"
+                ) from error
+            if type(state_reference) is not int or state_reference <= 0:
+                raise ValueError("Invalid reachable equipment state reference")
+            state_key = str(state_reference)
+            state = state_catalog.get(state_key)
+            if not isinstance(state, Mapping):
+                raise ValueError("Missing reachable equipment state definition")
+            maximum = state.get("maximum_level")
+            if type(maximum) is not int or not 0 <= maximum <= 32767:
+                raise ValueError("Invalid reachable equipment state level domain")
+            states[state_key] = state
+            if state_key in expanded_states:
+                continue
+            expanded_states.add(state_key)
+            for requested_level in range(maximum + 1):
+                profile = state_profile(source_states, state_reference, requested_level)
+                for child in profile["effects"]:
+                    pending.append((str(child), profile["level"]))
+
+    payload = dict(states=states, effects=effects, characteristics=characteristics)
+    if operator_contexts:
+        payload["operator_contexts"] = operator_contexts
+    return payload
+
+
+def execution_state_references(source, compiled, registry=None):
+    """Return applied-state reachability from the canonical pinned traversal.
+
+    Callers supply a source already validated through preparation_for_actor.
+    Read-only state operands remain operator context, not applied carriers.
+    Dynamic child levels use the same complete domains as pin verification.
+    """
+    if registry is None:
+        from .combat_static_catalogs import characteristic_registry
+
+        registry = characteristic_registry()
+    payload = _execution_contract_payload((source,), compiled, registry)
+    return frozenset(int(reference) for reference in payload["states"])
+
+
+def execution_contract_sha256(sources, compiled, registry):
+    payload = _execution_contract_payload(sources, compiled, registry)
     return _digest(
-        dict(states=states, effects=effects, characteristics=characteristics)
+        dict(
+            payload,
+            effects={
+                key: _execution_effect_definition(effect)
+                for key, effect in payload["effects"].items()
+            },
+        )
+    )
+
+
+def _legacy_execution_contract_sha256(sources, compiled, registry):
+    # Accept an old pin only when its complete current execution definition,
+    # including optional observational samples, still matches exactly. Never
+    # restore missing metadata from a pin or weaken actual timing/flags/criteria.
+    return _digest(_legacy_execution_contract_payload(sources, compiled, registry))
+
+
+def _normalized_legacy_execution_contract_sha256(sources, compiled, registry):
+    """Recognize v1 pins made with the prior traversal and filtered samples."""
+    payload = _legacy_execution_contract_payload(sources, compiled, registry)
+    return _digest(
+        dict(
+            payload,
+            effects={
+                key: _execution_effect_definition(effect)
+                for key, effect in payload["effects"].items()
+            },
+        )
     )
 
 
@@ -159,10 +425,28 @@ def pinned_sources(fight, compiled, registry=None):
         payload = _payload(record)
         if type(actor_id) is not str or str(payload["actor_id"]) != actor_id:
             raise ValueError("Fight equipment pin actor mismatch")
-        if payload["execution_sha256"] != execution_contract_sha256(
-            payload["sources"], compiled, registry
+        if (
+            payload["execution_sha256"]
+            != execution_contract_sha256(payload["sources"], compiled, registry)
+            and payload["execution_sha256"]
+            != _normalized_legacy_execution_contract_sha256(
+                payload["sources"], compiled, registry
+            )
+            and payload["execution_sha256"]
+            != _legacy_execution_contract_sha256(payload["sources"], compiled, registry)
         ):
             raise ValueError("Fight equipment execution contract mismatch")
+        from .combat_equipment_dynamic_levels import verify_source_level_facts
+
+        for source in payload["sources"]:
+            if not verify_source_level_facts(
+                source,
+                fight,
+                actor_id=payload["actor_id"],
+                owner_id=payload["owner_id"],
+                allow_missing=True,
+            ):
+                raise ValueError("Pinned native equipment owner-level facts changed")
         sources.extend(payload["sources"])
     return tuple(sources)
 
@@ -197,7 +481,9 @@ def pin_transaction(
     registry,
     *,
     owner_id,
-    ordinary_only=False
+    ordinary_only=False,
+    include_attachments=False,
+    runtime_capability=None,
 ):
     """Validate inventory once, then pin a detached immutable private preview.
 
@@ -219,8 +505,18 @@ def pin_transaction(
     pins = getattr(fight, "native_owned_equipment_sources", {})
     if not isinstance(pins, Mapping) or str(actor_id) in pins:
         raise ValueError("Fighter equipment source is already pinned or malformed")
+    from .combat_equipment_dynamic_levels import OwnerLevelFacts
+
+    owner_level_facts = OwnerLevelFacts.capture(fight, actor_id, owner_id)
     initial = prepare(
-        character, attachment_authority, compiled, registry, ordinary_only=ordinary_only
+        character,
+        attachment_authority,
+        compiled,
+        registry,
+        ordinary_only=ordinary_only,
+        include_attachments=include_attachments,
+        runtime_capability=runtime_capability,
+        owner_level_facts=owner_level_facts,
     )
     payload = dict(
         version=1,

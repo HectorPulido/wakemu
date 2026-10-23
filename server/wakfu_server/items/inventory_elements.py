@@ -122,16 +122,28 @@ def binary_options(item):
     sockets = shard_option(item)
     # vj.aF option order: vv, vE, vA, vm, vk, vo, vs, vu. vA's payload is
     # the native yp representation; vo carries the two elemental masks.
-    result = bytearray((0, 0))
+    from .pet_codec import binary_option as pet_option
+
+    state = item.get("pet", item.get("mount"))
+    result = bytearray(pet_option(state))
+    result.append(0)
     if sockets is None:
         result.append(0)
     else:
         result.append(1)
         result.extend(sockets)
-    result.extend((0, 0))
+    from .inventory_companion_info import binary_option as companion_option
+
+    result.extend(companion_option(item))
+    from .item_binding import binary_option as binding_option
+
+    result.extend(binding_option(item))
     if values is None:
         result.append(0)
     else:
         result.extend((1, *values))
-    result.extend((0, 0))
+    from .item_appearance import binary_option
+
+    result.append(0)
+    result.extend(binary_option(item))
     return bytes(result)
