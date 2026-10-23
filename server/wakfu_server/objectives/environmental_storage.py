@@ -758,9 +758,46 @@ def refresh(db, *, account_id, character_id, location, now_ms, groups=None):
             _outbox(db, event, participant, "snapshot", now_ms)
     from . import environmental_schedule
 
-    scheduled = environmental_schedule.scheduled_scope(db, location)
+    from .environmental_resource_placement import POLICY as mapwide_resource_policy
+
+    # A genuine admitted map-wide resource event retains its original region
+    # identity while its participant explores the rest of the same map. This
+    # never enrolls another region's event or broadens ordinary ecology credit.
+    pinned = db.execute(
+        "SELECT e.* FROM environmental_event_instances e "
+        "JOIN environmental_participants p USING(instance_id) "
+        "JOIN environmental_runtime_profiles r ON "
+        "(r.profile_key,r.version)=(e.profile_key,e.version) "
+        "WHERE p.account_id=%s AND p.character_id=%s AND p.eligible "
+        "AND e.map_id=%s AND e.world_instance_id=%s "
+        "AND e.state IN ('proposed','active') AND e.deadline_ms>%s "
+        "AND r.family='resource_collect' AND r.sealed "
+        "AND EXISTS(SELECT 1 FROM environmental_owned_resources o "
+        "JOIN environmental_event_memberships m ON "
+        "(m.instance_id,m.entity_kind,m.entity_id)="
+        "(o.instance_id,o.entity_kind,o.resource_uid) "
+        "WHERE o.instance_id=e.instance_id AND o.map_id=e.map_id "
+        "AND o.world_instance_id=e.world_instance_id AND m.spawn_owned "
+        "AND m.entity_kind='resource' AND m.reference=o.reference "
+        "AND split_part(m.source_key,':',3) ~ '^(0|[1-9][0-9]*)$' "
+        "AND m.source_key='event-resource:'||e.instance_id::text||':'||"
+        "split_part(m.source_key,':',3)||':'||%s) ORDER BY e.instance_id",
+        (
+            account_id,
+            character_id,
+            location["map_id"],
+            location["instance_id"],
+            now_ms,
+            mapwide_resource_policy,
+        ),
+    ).fetchall()
+    if len(pinned) > 1:
+        raise ValueError("Multiple admitted map-wide resource events are ambiguous")
+    scheduled = bool(pinned) or environmental_schedule.scheduled_scope(db, location)
     selected = (
-        environmental_schedule.select_event(db, location=location, now_ms=now_ms)
+        pinned[0]
+        if pinned
+        else environmental_schedule.select_event(db, location=location, now_ms=now_ms)
         if scheduled
         else None
     )
@@ -867,14 +904,15 @@ def refresh(db, *, account_id, character_id, location, now_ms, groups=None):
     for event in db.execute(
         "SELECT e.* FROM environmental_event_instances e JOIN environmental_participants p USING(instance_id) "
         "WHERE p.account_id=%s AND p.character_id=%s AND e.map_id=%s AND e.world_instance_id=%s "
-        "AND e.region_id IS NOT DISTINCT FROM %s AND e.deadline_ms>%s "
-        "AND (%s=false OR e.instance_id=%s) ORDER BY e.instance_id",
+        "AND (e.region_id IS NOT DISTINCT FROM %s OR e.instance_id=%s) "
+        "AND e.deadline_ms>%s AND (%s=false OR e.instance_id=%s) ORDER BY e.instance_id",
         (
             account_id,
             character_id,
             location["map_id"],
             location["instance_id"],
             location["region_id"],
+            pinned[0]["instance_id"] if pinned else None,
             now_ms,
             scheduled,
             None if selected is None else selected["instance_id"],

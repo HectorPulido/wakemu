@@ -317,7 +317,9 @@ class SelectedEnvironmentalEvents:
         packets = []
         previous = (
             self._published
-            if self._identity == identity and self._scope == scope
+            if self._identity == identity
+            and self._scope is not None
+            and self._scope[:2] == scope[:2]
             else None
         )
         if current is not None:

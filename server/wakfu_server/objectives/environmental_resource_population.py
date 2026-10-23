@@ -147,13 +147,11 @@ def populate(db, event, *, now_ms):
             if world.location(c) == (event["map_id"], event["world_instance_id"])
         )
     from wakfu_server.monster_population_capacity import physical_cells
-    from .environmental_random_rosters import _scene_cells
 
     taken.update(
         point[:2]
         for point in physical_cells(db, event["map_id"], event["world_instance_id"])
     )
-    taken.update(_scene_cells(db, event["map_id"], event["world_instance_id"]))
     for table in ("mining_vein_slots", "fishing_spot_slots"):
         taken.update(
             (r["x"], r["y"])
@@ -183,8 +181,11 @@ def populate(db, event, *, now_ms):
 
     # Sealed rows above still attest the original scenario territory. The old
     # generated list was a lexicographic prefix, not the complete zone. This
-    # declared v2 policy derives positions from that same original territory's
-    # full native surfaces, intersected with actual reachable walk geometry.
+    # User-declared v3 placement uses the complete map's native surfaces,
+    # intersected with reachable walk geometry. The original event region and
+    # action/UID ownership still authorize admission and harvest credit.
+    # Native walkable upper surfaces are valid; do not blanket-exclude the XY
+    # of decorative interactive objects or impose an invented height cutoff.
     placement = plan(
         native,
         map_geometry(event["map_id"]),

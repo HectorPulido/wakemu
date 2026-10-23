@@ -1084,7 +1084,7 @@ def compile_pipeline(
         ).hexdigest(),
         native_geometry_source_sha256=native_geometry_source_sha256,
         original_geometry_points=original_point_count,
-        placement_policy="wakemu.highest-original-z-per-xy.stratified-zone-candidates.v2",
+        placement_policy="wakemu.original-region-anchors.map-wide-runtime-spread.v3",
         sql_sha256=hashlib.sha256(result.encode()).hexdigest(),
         enabled=False,
         sealed=False,
