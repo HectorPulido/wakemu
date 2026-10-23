@@ -9,7 +9,8 @@ import hashlib
 import struct
 
 
-FORMATS = (5, 10, 11, 22, 28)
+FORMATS = (4, 5, 10, 11, 22, 28)
+DEFAULT_FORMATS = (5, 10, 11, 22, 28)
 
 
 def _identity(value, label):
@@ -76,8 +77,14 @@ def build_entities(defaults, account_id, character_id, name):
         ):
             raise ValueError("Malformed or repeated original entity format")
         formats[item["id"]] = item
-    if set(formats) != set(FORMATS):
+    if set(formats) != set(DEFAULT_FORMATS):
         raise ValueError("Incomplete original entity format defaults")
+    # Native format 4 consists only of oY BAGS. Reuse that exact fresh section
+    # from format 10, rather than inheriting a captured format-4 layout.
+    bags = [row for row in formats[10]["sections"] if row["name"] == "BAGS"]
+    if len(bags) != 1 or bags[0]["class"] != "oY":
+        raise ValueError("Missing fresh native BAGS section")
+    formats[4] = dict(id=4, sections=bags)
     entities, layouts = {}, []
     for format_id in FORMATS:
         item = formats[format_id]

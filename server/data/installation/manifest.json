@@ -21,8 +21,8 @@
     "synthetic-bootstrap": {
       "compression": "gzip",
       "path": "artifacts/bootstrap.synthetic.jsonl.gz",
-      "sha256": "7cb65e9a50f931de7c4288e70144a61429eadcaff97749a6e140f5858cd2edb6",
-      "size": 2377
+      "sha256": "aceab8f3205434179b73bd56ef9a99d52042b75817a9e512c70410c43ec7fd99",
+      "size": 2441
     },
     "treasure-static": {
       "compression": "none",
@@ -34,7 +34,7 @@
   "bootstrap": {
     "artifact": "synthetic-bootstrap",
     "capture_key": "native-bootstrap-v1",
-    "sha256": "7c9f46364693c92f99cd62e309b1ae680d32bfb5a30bbc15dc198d4f1f83fad4"
+    "sha256": "bced62c8a6b6cfc7aa64ee3d9279af181162bd0b26160c14747be13f8c14d7f9"
   },
   "catalogs": {
     "active_revision": "b3963fc05f1d8ec1eb9afc268fab0350f4de120144d67f7eee470747750b2450",

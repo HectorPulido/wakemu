@@ -89,7 +89,7 @@ class SyntheticBootstrapTests(unittest.TestCase):
         entities, layouts = build_entities(
             defaults, metadata["account_id"], metadata["character_id"], metadata["name"]
         )
-        self.assertEqual({row["format"] for row in layouts}, {5, 10, 11, 22, 28})
+        self.assertEqual({row["format"] for row in layouts}, {4, 5, 10, 11, 22, 28})
         for layout in layouts:
             self.assertEqual(
                 hashlib.sha256(entities[layout["format"]]).hexdigest(),
