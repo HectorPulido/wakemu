@@ -143,7 +143,111 @@ def join(ticket, character):
         peer.close()
 
 
-def run_access(receipt_path, installation_proof):
+IDENTITY_KEYS = ("id", "level", "map_id", "instance_id", "x", "y", "z")
+HEALTH_KEYS = ("hp", "max_hp", "hp_damage", "health_dead", "hp_zero_valid")
+
+
+def character_observation(character):
+    result = {key: character[key] for key in IDENTITY_KEYS + HEALTH_KEYS}
+    projection = character.get("territory_health_projection")
+    result["territory_health_projection"] = (
+        None
+        if projection is None
+        else {
+            key: projection[key]
+            for key in (
+                "applied_flat",
+                "state_id",
+                "map_id",
+                "instance_id",
+                "region_id",
+                "revision",
+            )
+        }
+    )
+    return result
+
+
+def compare_selected_character(before, selected):
+    """Accept only the real selected reducer, preserving identity and wounds."""
+    from wakfu_server.equipment_stats import effective_character
+    from wakfu_server.health_policy import visible
+
+    require(
+        all(before[key] == selected[key] for key in IDENTITY_KEYS),
+        "Selected character identity, level or location changed",
+    )
+    require(
+        selected["health_dead"] == before["health_dead"],
+        "Selection changed the canonical death state",
+    )
+    maximum = effective_character(selected, include_consumable_buffs=True)["max_hp"]
+    require(
+        selected["max_hp"] == maximum,
+        "Selected HP maximum differs from the canonical reducer",
+    )
+    # The fixture is created without equipped gear/food. Reconstruct the same
+    # selected cap before territory application, then its preserve-current/cap
+    # transition. A positive territory cap rebases wounds; it never heals.
+    prior_territory = dict(
+        selected, territory_health_projection=before.get("territory_health_projection")
+    )
+    prior_maximum = effective_character(prior_territory, include_consumable_buffs=True)[
+        "max_hp"
+    ]
+    prior_hp = visible(
+        prior_maximum,
+        before["hp_damage"],
+        before["health_dead"],
+        before.get("hp_zero_valid", False) and before["hp_damage"] >= prior_maximum,
+    )
+    expected_hp = min(prior_hp, maximum)
+    expected_damage = (
+        before["hp_damage"] + maximum - prior_maximum + prior_hp - expected_hp
+    )
+    require(
+        selected["hp_damage"] == expected_damage,
+        "Selection changed canonical wounds outside the territory transition",
+    )
+    require(
+        selected["hp_zero_valid"] == before["hp_zero_valid"],
+        "Selection changed the canonical zero marker",
+    )
+    require(
+        selected["hp"]
+        == expected_hp
+        == visible(
+            maximum,
+            selected["hp_damage"],
+            selected["health_dead"],
+            selected["hp_zero_valid"],
+        ),
+        "Selected current HP differs from canonical wounds",
+    )
+
+
+def access_diagnostic(path, stage, observations, error=None):
+    """Bounded health/identity evidence only; credentials/tokens never enter it."""
+    differences = {}
+    for left, right in (("before", "first"), ("first", "after")):
+        if left in observations and right in observations:
+            differences[left + "_to_" + right] = {
+                key: [observations[left].get(key), observations[right].get(key)]
+                for key in observations[left].keys() | observations[right].keys()
+                if observations[left].get(key) != observations[right].get(key)
+            }
+    payload = dict(
+        status="IN_PROGRESS" if error is None else "FAIL",
+        stage=stage,
+        observations=observations,
+        differences=differences,
+    )
+    if error is not None:
+        payload["error_type"] = type(error).__name__
+    Path(path).write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def run_access(receipt_path, installation_proof, *, baseline_fixture_counts=None):
     database = os.environ["WAKFU_DATABASE_URL"]
     started = time.monotonic()
     username = "clean19_" + secrets.token_hex(5)
@@ -161,18 +265,33 @@ def run_access(receipt_path, installation_proof):
         login["api_token"],
     )
     store = Store(database, password_file=os.environ["WAKFU_DATABASE_PASSWORD_FILE"])
+    diagnostic = Path(receipt_path).with_suffix(".failure.json")
+    observations = {}
+    stage = "before-first-selection"
     try:
         keys = ("id", "level", "map_id", "instance_id", "x", "y", "z", "hp", "max_hp")
         before = store.character(account["id"], character["id"])
+        observations["before"] = character_observation(before)
+        access_diagnostic(diagnostic, stage, observations)
         ticket, auth_tls = dispatcher_ticket(login["game_token"])
         world_tls = join(ticket, character)
         first = store.character(account["id"], character["id"])
-        assert {k: before[k] for k in keys} == {k: first[k] for k in keys}
+        observations["first"] = character_observation(first)
+        stage = "first-selected-canonical-health"
+        access_diagnostic(diagnostic, stage, observations)
+        compare_selected_character(before, first)
         login = post("/login", {"username": username, "password": credential})
         ticket, again_auth = dispatcher_ticket(login["game_token"])
         again_world = join(ticket, character)
         after = store.character(account["id"], character["id"])
-        assert {k: before[k] for k in keys} == {k: after[k] for k in keys}
+        observations["after"] = character_observation(after)
+        stage = "reconnect-preservation"
+        access_diagnostic(diagnostic, stage, observations)
+        compare_selected_character(first, after)
+        require(
+            {k: first[k] for k in keys} == {k: after[k] for k in keys},
+            "Reconnect changed the first selected canonical baseline",
+        )
         with store.connection() as db:
             counts = {
                 "accounts": db.execute("SELECT count(*) AS n FROM accounts").fetchone()[
@@ -182,7 +301,14 @@ def run_access(receipt_path, installation_proof):
                     "SELECT count(*) AS n FROM characters"
                 ).fetchone()["n"],
             }
-        assert counts == {"accounts": 1, "characters": 1}
+        baseline_fixture_counts = baseline_fixture_counts or dict(
+            accounts=0, characters=0
+        )
+        require(
+            counts
+            == {key: value + 1 for key, value in baseline_fixture_counts.items()},
+            "Unexpected accounts or characters appeared during the probe",
+        )
         receipt = {
             "status": "PASS",
             "installation": installation_proof,
@@ -200,7 +326,10 @@ def run_access(receipt_path, installation_proof):
             "initial_tls": [auth_tls, world_tls],
             "reconnect_tls": [again_auth, again_world],
             "before": {k: before[k] for k in keys},
+            "first_selected": observations["first"],
             "after": {k: after[k] for k in keys},
+            "initial_health_reconciliation": observations,
+            "baseline_fixture_counts": baseline_fixture_counts,
             "fixture_counts": counts,
             "seconds": time.monotonic() - started,
             "scope": "Clean server installation, no client/JAR or gameplay/combat completion claim",
@@ -208,6 +337,10 @@ def run_access(receipt_path, installation_proof):
         destination = Path(receipt_path)
         destination.write_text(json.dumps(receipt, indent=2) + "\n")
         print(json.dumps(receipt), flush=True)
+        diagnostic.unlink(missing_ok=True)
+    except BaseException as error:
+        access_diagnostic(diagnostic, stage, observations, error)
+        raise
     finally:
         store.close()
 
@@ -289,7 +422,51 @@ def table_identifier(name):
     return sql.Identifier(name)
 
 
-def check_installation(db, manifest, migrations):
+def validate_zero_witness(recheck_witness, database, zeros):
+    require(
+        isinstance(recheck_witness, dict)
+        and recheck_witness.get("database") == database
+        and recheck_witness.get("zero_player_state") is True
+        and isinstance(recheck_witness.get("counts"), dict)
+        and set(zeros).issubset(recheck_witness["counts"])
+        and all(
+            type(value) is int and value == 0
+            for value in recheck_witness["counts"].values()
+        ),
+        "Recheck requires the original matching zero-player witness",
+    )
+
+
+def existing_probe_fixtures(db):
+    accounts = db.execute("SELECT id,username FROM accounts ORDER BY id").fetchall()
+    characters = db.execute(
+        "SELECT account_id,name,breed,deleted_at FROM characters ORDER BY id"
+    ).fetchall()
+    require(
+        bool(accounts)
+        and all(
+            isinstance(row[1], str) and re.fullmatch(r"clean19_[0-9a-f]{10}", row[1])
+            for row in accounts
+        ),
+        "Recheck found a non-probe account",
+    )
+    owners = {row[0] for row in accounts}
+    require(
+        len(characters) == len(accounts)
+        and {row[0] for row in characters} == owners
+        and all(
+            isinstance(row[1], str)
+            and re.fullmatch(r"Clean[a-p]{8}", row[1])
+            and row[2] == 8
+            and row[3] is None
+            for row in characters
+        ),
+        "Recheck found a non-probe, duplicate or deleted character",
+    )
+    return dict(accounts=len(accounts), characters=len(characters))
+
+
+def check_installation(db, manifest, migrations, *, recheck_witness=None):
     expected_schema = migration_manifest(manifest.get("schema_versions"))
     require(
         expected_schema == official_migrations(migrations),
@@ -333,10 +510,17 @@ def check_installation(db, manifest, migrations):
         zero_state[table] = db.execute(
             sql.SQL("SELECT count(*) FROM {}").format(table_identifier(table))
         ).fetchone()[0]
-    require(
-        all(value == 0 for value in zero_state.values()),
-        "Fresh installation already contains player state",
-    )
+    baseline_fixture_counts = None
+    if recheck_witness is None:
+        require(
+            all(value == 0 for value in zero_state.values()),
+            "Fresh installation already contains player state",
+        )
+    else:
+        validate_zero_witness(recheck_witness, identity["database"], zeros)
+        baseline_fixture_counts = existing_probe_fixtures(db)
+        zero_state = dict(recheck_witness["counts"])
+
     expected_counts = manifest.get("expected_counts")
     require(
         isinstance(expected_counts, dict) and bool(expected_counts),
@@ -428,6 +612,7 @@ def check_installation(db, manifest, migrations):
             active_revision=active[0], documents=documents, releases=actual_release_rows
         ),
         declared_seed_inputs=seed_inputs,
+        recheck_baseline=baseline_fixture_counts,
     )
 
 
@@ -435,6 +620,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--receipt", required=True, type=Path)
+    parser.add_argument(
+        "--recheck-after-failed-probe",
+        type=Path,
+        help="Original zero-player witness; permit only preserved synthetic QA fixtures",
+    )
     parser.add_argument(
         "--migrations",
         type=Path,
@@ -458,7 +648,19 @@ def main():
     # Plain SQL precedes Store construction and every account API request.
     with psycopg.connect(os.environ["WAKFU_DATABASE_URL"], password=password) as db:
         db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-        proof = check_installation(db, manifest, args.migrations)
+        witness_raw = (
+            None
+            if args.recheck_after_failed_probe is None
+            else args.recheck_after_failed_probe.read_bytes()
+        )
+        witness = None if witness_raw is None else json.loads(witness_raw)
+        proof = check_installation(
+            db, manifest, args.migrations, recheck_witness=witness
+        )
+        if witness_raw is not None:
+            proof["original_zero_witness_sha256"] = hashlib.sha256(
+                witness_raw
+            ).hexdigest()
     proof["verification_manifest_sha256"] = hashlib.sha256(raw).hexdigest()
     ACCESS.update(
         http_url=args.http_url,
@@ -467,7 +669,7 @@ def main():
         dispatcher_port=args.dispatcher_port,
     )
     args.receipt.parent.mkdir(parents=True, exist_ok=True)
-    run_access(args.receipt, proof)
+    run_access(args.receipt, proof, baseline_fixture_counts=proof["recheck_baseline"])
 
 
 if __name__ == "__main__":
