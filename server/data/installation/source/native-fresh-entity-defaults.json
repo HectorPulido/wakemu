@@ -1,0 +1,718 @@
+{
+  "authority": "Fresh original eHk section constructors and eDn.foe; no captured input",
+  "formats": [
+    {
+      "id": 5,
+      "name": "FOR_CHARACTER_LIST",
+      "sections": [
+        {
+          "name": "ID",
+          "class": "qt",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "IDENTITY",
+          "class": "qv",
+          "size": 9,
+          "hex": "000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "NAME",
+          "class": "qR",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "BREED",
+          "class": "pb",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "ACTIVE_EQUIPMENT_SHEET",
+          "class": "oQ",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "APPEARANCE",
+          "class": "oW",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "EQUIPMENT_APPEARANCE",
+          "class": "pO",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "CREATION_DATA",
+          "class": "pt",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "XP",
+          "class": "sG",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "CHARACTER_LIST_NATION_ID",
+          "class": "qZ",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "GUILD_ID",
+          "class": "qj",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "GUILD_BLAZON",
+          "class": "qh",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "GUILD_NAME",
+          "class": "qn",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "INSTANCE_ID",
+          "class": "qz",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "INDEX",
+          "class": "qx",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "FOR_LOCAL_CHARACTER_INFORMATION",
+      "sections": [
+        {
+          "name": "ID",
+          "class": "qt",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "IDENTITY",
+          "class": "qv",
+          "size": 9,
+          "hex": "000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "NAME",
+          "class": "qR",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "BREED",
+          "class": "pb",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "GUILD_BLAZON",
+          "class": "qh",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "GUILD_ID",
+          "class": "qj",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "HP",
+          "class": "qr",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "POSITION",
+          "class": "rE",
+          "size": 20,
+          "hex": "0000000000000000000000000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "APPEARANCE",
+          "class": "oW",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "SHORTCUT_INVENTORIES",
+          "class": "so",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "LANDMARK_INVENTORY",
+          "class": "qE",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "PHOENIX_PART",
+          "class": "rC",
+          "size": 4,
+          "hex": "ffffffff",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "SPELL_INVENTORY",
+          "class": "sy",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "INVENTORIES",
+          "class": "qB",
+          "size": 6,
+          "hex": "000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "BAGS",
+          "class": "oY",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "PROTO_TEMPORARY_INVENTORY",
+          "class": "rQ",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "BREED_SPECIFIC",
+          "class": "pd",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "RUNNING_EFFECTS",
+          "class": "sa",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "DIMENSIONAL_BAG_FOR_LOCAL_CLIENT",
+          "class": "pC",
+          "size": 48,
+          "hex": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "CHALLENGES",
+          "class": "pi",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "XP",
+          "class": "sG",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "XP_CHARACTERISTICS",
+          "class": "sI",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "NATION_ID",
+          "class": "qZ",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "CITIZEN_POINT",
+          "class": "qT",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "PASSEPORT_INFO",
+          "class": "rr",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "SOCIAL_STATES",
+          "class": "sr",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "PET",
+          "class": "rw",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "ACHIEVEMENTS",
+          "class": "oN",
+          "size": 3,
+          "hex": "000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "ACCOUNT_INFORMATION",
+          "class": "oJ",
+          "size": 41,
+          "hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "LOCK_TO_CLIENT",
+          "class": "qM",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "PERSONAL_EFFECTS",
+          "class": "rt",
+          "size": 6,
+          "hex": "000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "ANTI_ADDICTION",
+          "class": "oS",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "WORLD_PROPERTIES",
+          "class": "rK",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "VISIBILITY",
+          "class": "sE",
+          "size": 1,
+          "hex": "01",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "OCCUPATION",
+          "class": "rn",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "SPELL_DECK",
+          "class": "st",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "DUNGEON_PROGRESSION",
+          "class": "pM",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "EQUIPMENT_APPEARANCE",
+          "class": "pO",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "COSMETICS",
+          "class": "pq",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "INDEX",
+          "class": "qx",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "CURRENT_MOVEMENT_PATH",
+          "class": "py",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "FOR_REMOTE_CHARACTER_INFORMATION",
+      "sections": [
+        {
+          "name": "ID",
+          "class": "qt",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "IDENTITY",
+          "class": "qv",
+          "size": 9,
+          "hex": "000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "NAME",
+          "class": "qR",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "BREED",
+          "class": "pb",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "GUILD_BLAZON",
+          "class": "qh",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "GUILD_ID",
+          "class": "qj",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "POSITION",
+          "class": "rE",
+          "size": 20,
+          "hex": "0000000000000000000000000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "APPEARANCE",
+          "class": "oW",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "PUBLIC_CHARACTERISTICS",
+          "class": "pl",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "FIGHT_PROPERTIES",
+          "class": "rK",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "FIGHT",
+          "class": "pW",
+          "size": 10,
+          "hex": "0000000000000000ff00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "EQUIPMENT_APPEARANCE",
+          "class": "pO",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "RUNNING_EFFECTS",
+          "class": "sa",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "WORLD_PROPERTIES",
+          "class": "rK",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "GROUP",
+          "class": "qd",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "TEMPLATE",
+          "class": "gq",
+          "size": 0,
+          "hex": "",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "COLLECT",
+          "class": "gq",
+          "size": 0,
+          "hex": "",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "PET",
+          "class": "rw",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "CURRENT_MOVEMENT_PATH",
+          "class": "py",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "OCCUPATION",
+          "class": "rn",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "XP",
+          "class": "sG",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "XP_CHARACTERISTICS",
+          "class": "sI",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "NATION_ID",
+          "class": "qZ",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "CITIZEN_POINT",
+          "class": "qT",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "GUILD_REMOTE_INFO",
+          "class": "rV",
+          "size": 20,
+          "hex": "0000000000000000000000000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "NATION_SYNCHRO",
+          "class": "rk",
+          "size": 27,
+          "hex": "000000000000000000000000000000000000000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "SOCIAL_STATES",
+          "class": "sr",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "ACCOUNT_INFORMATION_REMOTE",
+          "class": "rS",
+          "size": 23,
+          "hex": "0000000000000000000000000000000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "COMPANION_CONTROLLER_ID",
+          "class": "gq",
+          "size": 0,
+          "hex": "",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "VISIBILITY",
+          "class": "sE",
+          "size": 1,
+          "hex": "01",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "COSMETICS",
+          "class": "pq",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "DOWNSCALE_INFO",
+          "class": "pK",
+          "size": 2,
+          "hex": "0000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "HERO",
+          "class": "qp",
+          "size": 1,
+          "hex": "00",
+          "status": "original-default-roundtrip"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "FOR_GLOBAL_TO_LOCAL_CHARACTER",
+      "sections": [
+        {
+          "name": "NATION_ID",
+          "class": "qZ",
+          "size": 4,
+          "hex": "00000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "NATION_SYNCHRO",
+          "class": "rk",
+          "size": 27,
+          "hex": "000000000000000000000000000000000000000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "GUILD_LOCAL_INFO",
+          "class": "qH",
+          "size": 6,
+          "hex": "000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "NATION_PVP_MONEY",
+          "class": "re",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "FOR_CHARACTER_POSITION_INFORMATION",
+      "sections": [
+        {
+          "name": "ID",
+          "class": "qt",
+          "size": 8,
+          "hex": "0000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "IDENTITY",
+          "class": "qv",
+          "size": 9,
+          "hex": "000000000000000000",
+          "status": "original-default-roundtrip"
+        },
+        {
+          "name": "POSITION",
+          "class": "rE",
+          "size": 20,
+          "hex": "0000000000000000000000000000000000000000",
+          "status": "original-default-roundtrip"
+        }
+      ]
+    }
+  ],
+  "account457": {
+    "account_id": 1900000001,
+    "community": 2,
+    "hex": "00005a0100000000060000000000713fb30100000000000000000000000000000000000000000000000000000000000000000000000000000000000657616b656d75000000000200000000000000000000000000000000000000000000",
+    "inner_hex": "0100000000060000000000713fb30100000000000000000000000000000000000000000000000000000000000000000000000000000000000657616b656d75000000000200000000000000000000000000000000000000000000",
+    "size": 93,
+    "status": "original-roundtrip",
+    "nickname": "Wakemu",
+    "class": "cmU/eDn/eDo",
+    "rights_words": 4
+  }
+}

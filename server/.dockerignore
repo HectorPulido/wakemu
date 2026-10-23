@@ -6,9 +6,11 @@
 !wakfu_server/
 !wakfu_server/**/*.py
 !wakfu_server/*.py
-!wakfu_server/admin_map_names.json
-!wakfu_server/achievements/qualified_rules.json
-!wakfu_server/maps/native_boat_contracts.json.gz
+# Versioned domain assets are part of the implementation, not external packs.
+!wakfu_server/**/*.json
+!wakfu_server/*.json
+!wakfu_server/**/*.json.gz
+!wakfu_server/*.json.gz
 !protocol/
 !protocol/**
 wakfu_server/__pycache__/
@@ -31,19 +33,8 @@ wakfu_server/__pycache__/
 !seeds/
 !seeds/*.sql
 !tools/
-!tools/migrate_postgres.py
-!tools/manage_permissions.py
-
-!tools/plan_initial_monster_habitat.py
-!tools/generate_initial_monster_population.py
-!tools/import_native_catalogs.py
-!tools/import_bootstrap_capture.py
-!tools/export_installation_seed.py
-!tools/equip_test_finisher.py
-!tools/performance_report.py
-!tools/prepare_geometry_artifacts.py
-!tools/prepare_los_artifacts.py
-!tools/retire_cron.py
+!tools/*.py
+!tools/*.json
 !shop-service/
 !shop-service/Dockerfile
 !shop-service/service.py
@@ -57,9 +48,4 @@ wakfu_server/__pycache__/
 !admin-control-service/Dockerfile
 !admin-control-service/service.py
 
-!wakfu_server/combat/native-spatial937-source.json
 **/._*
-
-!wakfu_server/items/native_quest_items.json
-
-!tools/install_environmental_profiles.py

@@ -36,7 +36,14 @@ def _objectives(db, profile):
         "ORDER BY objective_key",
         (profile["profile_key"], profile["version"]),
     ).fetchall()
-    if (
+    from .environmental_collaborative_goal import target as collaborative_target
+
+    shared_target = collaborative_target(db, profile)
+    if shared_target is not None:
+        if len(rows) != 1:
+            raise ValueError("Collaborative minimum requires one shared objective")
+        rows = [dict(rows[0], required_quantity=shared_target)]
+    elif (
         profile.get("_event_instance_id") is not None
         and profile["mode"] == "collaborative"
         and profile["family"] in ("monster_defeat", "group_defeat", "monster_destroy")
@@ -263,6 +270,9 @@ def _entitle(db, event, participant, now_ms):
                     component["source_authority"],
                 ),
             )
+    from .environmental_xp import freeze as freeze_xp
+
+    freeze_xp(db, row["entitlement_id"])
     environmental_companion_rewards.freeze(
         db,
         entitlement_id=row["entitlement_id"],
@@ -665,8 +675,36 @@ def _view(db, event, profile, participant, now_ms):
         from .environmental_simple_results import project
 
         native_result = project(db, event, profile, participant, now_ms)
+    # The native popup reads a global XP factor, not an amount in 13263.
+    # Completed owners retain the earned policy even after operators change it.
+    # Historical entitlements without pricing metadata keep their original x1.
+    if participant["completed_at_ms"] is not None:
+        rates = db.execute(
+            "SELECT DISTINCT r.xp_rate_bp FROM environmental_reward_entitlements e "
+            "JOIN environmental_entitlement_xp_rates r USING(entitlement_id) "
+            "WHERE e.instance_id=%s AND e.character_id=%s AND e.account_id=%s "
+            "AND r.character_id=e.character_id AND r.account_id=e.account_id "
+            "AND r.earned_at_ms=e.earned_at_ms",
+            (
+                event["instance_id"],
+                participant["character_id"],
+                participant["account_id"],
+            ),
+        ).fetchall()
+        if len(rates) > 1:
+            raise ValueError("Environmental display has inconsistent earned XP rates")
+        xp_rate_bp = rates[0]["xp_rate_bp"] if rates else 10000
+    else:
+        rate = db.execute(
+            "SELECT v.xp_rate_bp FROM combat_reward_policy_active a "
+            "JOIN combat_reward_policy_versions v USING(version) WHERE a.singleton"
+        ).fetchone()
+        if rate is None:
+            raise ValueError("Missing canonical XP presentation rate")
+        xp_rate_bp = rate["xp_rate_bp"]
     return dict(
         event,
+        xp_rate_bp=xp_rate_bp,
         native_scenario_id=profile["native_scenario_id"],
         native_result=native_result,
         protector_id=None if publication is None else publication["protector_id"],
@@ -898,6 +936,10 @@ def claim_pending(db, store, *, account_id, character_id, now_ms):
                                 "Missing or overflowing environmental wallet"
                             )
                         kamas += amount
+                    elif component["kind"] == "xp":
+                        from .environmental_xp import award as award_xp
+
+                        award_xp(db, store, character, component)
                     else:
                         parameters = (
                             [component["reference"], component["quantity"]]

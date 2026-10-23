@@ -101,6 +101,11 @@ with STORE.connection() as _startup_db:
         "SELECT 1 FROM pg_constraint WHERE conrelid=to_regclass('dungeon_room_encounters') "
         "AND pg_get_constraintdef(oid) LIKE '%aborted%') AS available"
     ).fetchone()["available"]
+# Public installation templates have independent synthetic layout authority.
+# A legacy private bootstrap has no metadata and retains its existing adapter.
+if FRAMES and "synthetic_template" in FRAMES[0]:
+    wire.register_synthetic_bootstrap(FRAMES[0]["synthetic_template"])
+
 from wakfu_server import dungeon_instances
 
 dungeon_instances.load_runtime_routes(STORE)
@@ -391,7 +396,7 @@ REALMS = realms_local(fixture(453))
 def character_list_local(body):
     r = Reader(body)
     characters = [r.take(r.number("I")) for _ in range(r.number("B"))]
-    pekebu = [blob for blob in characters if b"Pekebu" in blob]
+    pekebu = [blob for blob in characters if wire.TEMPLATE_NAME.encode("utf-8") in blob]
     assert len(pekebu) == 1
     return b"\x01" + struct.pack(">I", len(pekebu[0])) + pekebu[0] + body[r.pos :]
 
@@ -1173,6 +1178,18 @@ def owned_haven_leave(body, character):
     )
 
 
+def native_current_xp_rate():
+    """Publish the canonical server rate through the native single-key carrier."""
+    with STORE.connection() as db:
+        policy = db.execute(
+            "SELECT v.xp_rate_bp FROM combat_reward_policy_active a "
+            "JOIN combat_reward_policy_versions v USING(version) WHERE a.singleton"
+        ).fetchone()
+    if policy is None:
+        raise ValueError("Missing canonical XP presentation policy")
+    return wire.native_xp_rate_packet(policy["xp_rate_bp"])
+
+
 def replay(connection, start, end, account_id, character=None, *, generation=None):
     from wakfu_server.haven_chest_wire import CAPTURE_STATE_OPCODES
 
@@ -1201,6 +1218,8 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
             account_characters = STORE.characters(account_id)
         return account_characters
 
+    if character is not None and start == 45:
+        send(connection, "world", *native_current_xp_rate())
     for frame in FRAMES[start:end]:
         if frame["direction"] == "in":
             if frame["opcode"] in (12705, 12728):
@@ -1411,6 +1430,7 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
                 )
 
                 send(connection, "world", *hero_configuration(original))
+                send(connection, "world", *native_current_xp_rate())
                 continue
             if frame["opcode"] in (23992, 23548):
                 from wakfu_server.characters.selection_capacity import (

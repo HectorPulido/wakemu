@@ -11,6 +11,8 @@ from wakfu_server.progression import level_xp, character_xp
 
 TEMPLATE_ACCOUNT = 83668792
 TEMPLATE_CHARACTER = 2409354
+TEMPLATE_NAME = "Pekebu"
+SYNTHETIC_BOOTSTRAP = False
 INITIAL_POSITION = struct.pack(">iih", -12, -8, -1)
 PROTOCOL = DATA_ROOT
 ENTITY_LAYOUTS = {
@@ -49,6 +51,83 @@ EMPTY_SECTIONS = {
     "EQUIPMENT_APPEARANCE",
     "COSMETICS",
 }
+
+
+def register_synthetic_bootstrap(metadata):
+    """Install explicitly generated fixture layouts, independently of legacy captures.
+
+    This changes template identities only. Every section must retain the native
+    format's section names/classes; the generated body has its own SHA authority.
+    """
+    global TEMPLATE_ACCOUNT, TEMPLATE_CHARACTER, TEMPLATE_NAME, SYNTHETIC_BOOTSTRAP
+    if (
+        not isinstance(metadata, dict)
+        or metadata.get("policy") != "wakemu-synthetic-bootstrap-v1"
+    ):
+        raise ValueError("Unknown synthetic bootstrap authority")
+    account, character = metadata.get("account_id"), metadata.get("character_id")
+    name = metadata.get("name")
+    if (
+        type(account) is not int
+        or type(character) is not int
+        or not 0 < account < 2**63
+        or not 0 < character < 2**63
+        or account == character
+        or not isinstance(name, str)
+        or not name
+        or len(name.encode("utf-8")) > 255
+    ):
+        raise ValueError("Invalid synthetic bootstrap identity")
+    layouts = metadata.get("layouts")
+    if not isinstance(layouts, list):
+        raise ValueError("Missing synthetic entity layouts")
+    checked = {}
+    for layout in layouts:
+        if not isinstance(layout, dict) or type(layout.get("format")) is not int:
+            raise ValueError("Invalid synthetic entity format")
+        kind = layout["format"]
+        if kind not in (5, 10, 11, 22, 28) or kind in checked:
+            raise ValueError("Unexpected synthetic entity format")
+        sections = layout.get("sections")
+        if not isinstance(sections, list) or not sections:
+            raise ValueError("Missing synthetic entity sections")
+        original = ENTITY_LAYOUTS.get(kind)
+        signature = [(row.get("name"), row.get("class")) for row in sections]
+        if original is not None and signature != [
+            (row["name"], row["class"]) for row in original["sections"]
+        ]:
+            raise ValueError("Synthetic sections differ from native format")
+        if original is None and (
+            kind != 22
+            or [row[0] for row in signature]
+            != ["NATION_ID", "NATION_SYNCHRO", "GUILD_LOCAL_INFO", "NATION_PVP_MONEY"]
+        ):
+            raise ValueError("Unverified synthetic entity sections")
+        offset = 1
+        for section in sections:
+            if (
+                type(section.get("start")) is not int
+                or type(section.get("end")) is not int
+                or section["start"] != offset
+                or section["end"] < offset
+            ):
+                raise ValueError("Noncontiguous synthetic entity layout")
+            offset = section["end"]
+        digest = layout.get("template_sha256")
+        if (
+            layout.get("bytes") != offset
+            or layout.get("fully_consumed") is not True
+            or not isinstance(digest, str)
+            or len(digest) != 64
+            or any(c not in "0123456789abcdef" for c in digest)
+        ):
+            raise ValueError("Invalid synthetic entity body authority")
+        checked[kind] = json.loads(json.dumps(layout))
+    if set(checked) != {5, 10, 11, 22, 28}:
+        raise ValueError("Incomplete synthetic entity format set")
+    ENTITY_LAYOUTS.update(checked)
+    TEMPLATE_ACCOUNT, TEMPLATE_CHARACTER, TEMPLATE_NAME = account, character, name
+    SYNTHETIC_BOOTSTRAP = True
 
 
 def minimal_entity(body, character):
@@ -486,7 +565,7 @@ def header(body, account_id, character):
     r = Reader(body)
     r.take(18)  # type u8, actor i64, identity flag u8, account i64
     name = r.text("H")
-    if name != "Pekebu":
+    if name != TEMPLATE_NAME:
         raise ValueError("Unexpected captured character header")
     suffix = body[r.pos :]
     encoded_name = character["name"].encode()
@@ -723,7 +802,43 @@ def empty_equipment_sheets(body, character):
     return struct.pack(">qI", character["id"], len(result)) + result
 
 
+def native_xp_rate_packet(rate_bp):
+    """cEp22318 updates only BASE_XP_RATIO, preserving all other overrides.
+
+    Native bhR/fCn reads this global configuration dynamically. The caller
+    owns its display context and must not restore a newer rate immediately
+    after publishing an older, completion-frozen result.
+    """
+    from wakfu_server.reward_rates import MAX_REWARD_RATE_BP, REWARD_RATE_SCALE
+
+    if type(rate_bp) is not int or not 0 <= rate_bp <= MAX_REWARD_RATE_BP:
+        raise ValueError("Invalid native XP presentation rate")
+    whole, fraction = divmod(rate_bp, REWARD_RATE_SCALE)
+    value = (
+        str(whole)
+        if not fraction
+        else (str(whole) + "." + f"{fraction:04d}".rstrip("0"))
+    )
+    key, encoded = b"base.xp.ratio", value.encode("ascii")
+    return (
+        22318,
+        struct.pack(">I", len(key)) + key + struct.pack(">I", len(encoded)) + encoded,
+    )
+
+
 def adapt(opcode, body, account_id, character=None, *, kamas=None):
+    if opcode == 472 and SYNTHETIC_BOOTSTRAP:
+        if (
+            len(body) < 30
+            or body[:2] != b"\x00\x01"
+            or type(account_id) is not int
+            or not 0 < account_id < 2**63
+        ):
+            raise ValueError("Invalid synthetic authentication response")
+        # The two native account namespaces are explicitly assigned to the
+        # authenticated local account by this fixture policy, never copied from
+        # an original capture or inferred from its identities.
+        return body[:2] + struct.pack(">qq", account_id, account_id) + body[18:]
     if opcode == 15548 and character and character.get("level") is not None:
         if len(body) < 11:
             raise ValueError("Truncated native global-to-local actor update")

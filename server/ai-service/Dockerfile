@@ -1,6 +1,6 @@
 ARG WORLD_IMAGE=wakfu-world-catalog-source:current
 FROM ${WORLD_IMAGE} AS authoritative_world
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
 ARG CATALOG_REVISION
 WORKDIR /app
 RUN pip install --no-cache-dir 'psycopg[binary,pool]==3.2.10' 'redis==5.3.1'

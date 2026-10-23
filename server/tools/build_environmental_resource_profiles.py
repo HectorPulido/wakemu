@@ -979,11 +979,17 @@ def compile_pipeline(
             ],
         )
         all_points = cells[(map_id, region_id)]
-        # Explicit bounded Wakemu placement: retain a two-population margin
-        # plus32 exact native candidates, rather than repeating every map tile
-        # in each scenario. Runtime still checks live occupancy before birth.
+        # Bounded declared anchors cover the complete original region rather
+        # than a lexicographic corner. Runtime independently certifies native
+        # walkability, occupied-scene exclusions and accessible approaches.
+        from wakfu_server.objectives.environmental_resource_placement import (
+            spread_order,
+        )
+
         spawn_count = int(config["ressourcequantitytospawn"][1])
-        points = sorted(all_points)[: min(spawn_count * 2 + 32, len(all_points))]
+        points = spread_order(
+            all_points, seed=f"resource-profile:{key}", quantity=spawn_count
+        )[: min(spawn_count * 2 + 32, len(all_points))]
         insert(
             lines,
             "environmental_profile_resource_cells",
@@ -1078,7 +1084,7 @@ def compile_pipeline(
         ).hexdigest(),
         native_geometry_source_sha256=native_geometry_source_sha256,
         original_geometry_points=original_point_count,
-        placement_policy="wakemu.highest-original-z-per-xy.sorted.twice-population-plus32.v1",
+        placement_policy="wakemu.highest-original-z-per-xy.stratified-zone-candidates.v2",
         sql_sha256=hashlib.sha256(result.encode()).hexdigest(),
         enabled=False,
         sealed=False,

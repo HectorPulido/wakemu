@@ -244,6 +244,9 @@ def refresh(
                     # separate claimed rows still refresh the loaded hero.
                     delivery["deferred_selected_result"] = True
                     continue
+                from wakfu_server.wire import native_xp_rate_packet
+
+                delivery["packets"].append(native_xp_rate_packet(view["xp_rate_bp"]))
                 delivery["packets"].extend(plan["packets"])
                 delivery["result_view"] = view
         return result

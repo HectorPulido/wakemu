@@ -5,6 +5,22 @@ import json
 from wakfu_server.command_permissions import authorize_command, is_admin
 
 
+def character_json(character):
+    """Project the one native-only binary character section for the JSON API.
+
+    Keep Store/native protocol values unchanged. Hex is explicit and reversible,
+    like other serialized character components; unexpected binary fields still
+    fail normal JSON validation instead of being silently coerced or dropped.
+    """
+    result = dict(character)
+    section = result.get("achievement_section")
+    if section is not None:
+        if type(section) is not bytes:
+            raise TypeError("Invalid native character achievement section")
+        result["achievement_section"] = section.hex()
+    return result
+
+
 class AuthenticationError(ValueError):
     pass
 
@@ -192,7 +208,10 @@ def serve_api(
                     access = self.token_access(token, "api")
                     if self.path == "/characters":
                         return self.reply(
-                            201, store.create_character(access["account_id"], **body)
+                            201,
+                            character_json(
+                                store.create_character(access["account_id"], **body)
+                            ),
                         )
                     if self.path == "/game-token":
                         return self.reply(
@@ -308,7 +327,13 @@ def serve_api(
                     self.headers.get("Authorization", "").removeprefix("Bearer "), "api"
                 )
                 if self.path == "/characters":
-                    return self.reply(200, store.characters(access["account_id"]))
+                    return self.reply(
+                        200,
+                        [
+                            character_json(row)
+                            for row in store.characters(access["account_id"])
+                        ],
+                    )
                 self.reply(404, {"error": "Ruta desconocida."})
             except AuthenticationError:
                 self.reply(401, {"error": "Acceso inválido o caducado."})
