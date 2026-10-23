@@ -1,0 +1,148 @@
+# Clean installation only. No recovery dump, existing runtime or client mounts.
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    environment:
+      POSTGRES_DB: ${WAKEMU_INSTALL_DATABASE:?Installer database is required}
+      POSTGRES_USER: wakemu
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ${WAKEMU_INSTALL_STATE_DIR:?Installer state directory is required}/database/secrets:/run/secrets:ro
+    networks: [isolated]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -h 127.0.0.1 -U wakemu -d "$${POSTGRES_DB}"']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+  redis:
+    image: redis:7-alpine@sha256:bb186d083732f669da90be8b0f975a37812b15e913465bb14d845db72a4e3e08
+    command: [redis-server, --appendonly, 'yes', --appendfsync, always, --save, '']
+    volumes:
+      - redis-data:/data
+    networks: [isolated]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+  world:
+    image: ${WAKFU_WORLD_IMAGE:?Installer World image is required}
+    build:
+      context: ./server
+      args:
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:?Native catalog revision is required}
+    init: true
+    user: ${WAKFU_SERVICE_UID:?Installer credential owner is required}:${WAKFU_SERVICE_GID:?Installer credential group is required}
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      ai: {condition: service_healthy}
+    environment:
+      PYTHONPATH: /app
+      WAKFU_RUNTIME: /data
+      WAKFU_BIND_HOST: 0.0.0.0
+      WAKFU_DATABASE_URL: host=postgres dbname=${WAKEMU_INSTALL_DATABASE} user=wakemu
+      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
+      WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION}
+      WAKFU_MINING_CATALOG_REVISION: ${WAKFU_MINING_CATALOG_REVISION}
+      WAKFU_FISHING_CATALOG_REVISION: ${WAKFU_FISHING_CATALOG_REVISION}
+      WAKFU_BOOTSTRAP_SOURCE_SHA256: ${WAKFU_BOOTSTRAP_SOURCE_SHA256}
+      WAKFU_REDIS_URL: redis://redis:6379/0
+      WAKFU_AI_URL: tcp://ai:8090
+      WAKFU_ECOLOGY_MODE: inline
+      WAKFU_OBJECTIVES_MODE: local
+      WAKFU_ECOLOGY_TOKEN_FILE: /run/secrets/ecology-token
+      WAKFU_ADVERTISE_HOST: ${WAKFU_ADVERTISE_HOST:-127.0.0.1}
+      WAKFU_ADVERTISE_WORLD_PORT: ${WAKEMU_INSTALL_WORLD_PORT:-15556}
+      WAKFU_ALL_ZAAPS: '1'
+      WAKFU_ALL_DRAGOS: '1'
+      WAKFU_OPEN_PLANTING: '1'
+      WAKFU_NATIVE_PLANTING_BONUS: '0'
+      WAKFU_PLANT_GROWTH_SECONDS: '30'
+      WAKFU_ENABLE_COMBAT_TEST: '1'
+      WAKFU_COMBAT_START_EVENTS: '1'
+      WAKFU_NATIVE_PARTY_STAGED_RECOVERY: '0'
+      WAKFU_DEV_SKIP_UNSUPPORTED_INITIALIZATION: '1'
+      WAKFU_NATIVE_GRANTED_CAST: '1'
+      WAKFU_NATIVE_AREA_CALLBACKS: '1'
+      WAKFU_MAX_CHARACTERS: '18'
+    ports:
+      - 127.0.0.1:${WAKEMU_INSTALL_WORLD_PORT:-15556}:15556
+      - 127.0.0.1:${WAKEMU_INSTALL_DISPATCHER_PORT:-15558}:15558
+      - 127.0.0.1:${WAKEMU_INSTALL_HTTP_PORT:-18081}:18081
+    volumes:
+      - ${WAKEMU_INSTALL_STATE_DIR}/world:/data
+      - ${WAKEMU_INSTALL_STATE_DIR}/database/secrets:/run/secrets:ro
+      - ${WAKEMU_INSTALL_STATE_DIR}/inputs:/installation:ro
+      - ${WAKEMU_INSTALL_STATE_DIR}/receipts:/installation-receipts
+      - ./server/ai-service:/app/ai-service:ro
+    networks: [isolated, client-access]
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18081/health',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 8m
+  ai:
+    image: ${WAKFU_AI_IMAGE:?Installer AI image is required}
+    build:
+      context: ./server/ai-service
+      args:
+        WORLD_IMAGE: ${WAKFU_WORLD_IMAGE}
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION}
+    init: true
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    environment:
+      WAKFU_AI_PORT: '8090'
+      WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION}
+      WAKFU_DATABASE_URL: host=postgres dbname=${WAKEMU_INSTALL_DATABASE} user=wakemu
+      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
+      WAKFU_REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ${WAKEMU_INSTALL_STATE_DIR}/database/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ai-context-data:/var/lib/wakfu-ai-context
+    networks: [isolated]
+    healthcheck:
+      test: [CMD, python3, -m, wakfu_ai.transport.health]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 180s
+  shop:
+    image: ${WAKFU_SHOP_IMAGE:?Installer shop image is required}
+    build:
+      context: ./server
+      dockerfile: shop-service/Dockerfile
+    init: true
+    depends_on:
+      postgres: {condition: service_healthy}
+    environment:
+      WAKFU_DATABASE_URL: host=postgres dbname=${WAKEMU_INSTALL_DATABASE} user=wakemu
+      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
+      WAKFU_SHOP_PORT: '18083'
+      WAKFU_REDIS_URL: redis://redis:6379/0
+      SHOP_ASSETS_DIR: /shop-assets
+      SHOP_PUBLIC_URL: ${WAKEMU_INSTALL_SHOP_PUBLIC_URL:-http://127.0.0.1:18083}
+    volumes:
+      - ${WAKEMU_INSTALL_STATE_DIR}/database/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./database/shop-assets:/shop-assets:ro
+    ports:
+      - 127.0.0.1:${WAKEMU_INSTALL_SHOP_PORT:-18083}:18083
+    networks: [isolated, client-access]
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18083/health',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+volumes:
+  postgres-data:
+  redis-data:
+  ai-context-data:
+networks:
+  isolated: {internal: true}
+  client-access: {driver: bridge}

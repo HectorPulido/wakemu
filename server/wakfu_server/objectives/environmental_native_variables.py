@@ -22,6 +22,8 @@ _CONSTANTS = frozenset(
         "nbGroupForReward",
         "nbMobForReward",
         "nbResourceForReward",
+        "nbMobMin",
+        "nbResourceMin",
     )
 )
 
@@ -290,11 +292,19 @@ def project(db, event, profile, participant, now_ms):
             raise ValueError(
                 "Owned environmental population lacks its current durable group"
             )
+    from .environmental_collaborative_goal import target as collaborative_target
+
+    shared_target = collaborative_target(db, profile)
     result = []
     for row in rows:
         kind = row["binding_kind"]
         if kind in ("configconstant", "declared_threshold"):
-            value = row["constant_value"]
+            value = (
+                shared_target
+                if shared_target is not None
+                and row["native_name"] in ("nbMobMin", "nbResourceMin")
+                else row["constant_value"]
+            )
         elif kind in ("personal_progress", "global_progress", "leader_progress"):
             value = progress.get((kind, row["objective_key"]), 0)
         elif kind in ("entity_personal_progress", "entity_global_progress"):

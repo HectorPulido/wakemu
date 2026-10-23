@@ -331,6 +331,19 @@ class SelectedEnvironmentalEvents:
                 previous is None
                 or getattr(self, "_published_event", None) != event_identity
             ):
+                # A newly selected live quest uses current canonical pricing.
+                # A result in this same batch owns its completion-frozen global
+                # factor until a later UI context, never an immediate restore.
+                if not any(
+                    row.get("character_id") == character_id
+                    and any(packet[0] == 13263 for packet in row["packets"])
+                    for row in deliveries
+                ):
+                    from wakfu_server.wire import native_xp_rate_packet
+
+                    packets.append(
+                        native_xp_rate_packet(candidates[0][0]["xp_rate_bp"])
+                    )
                 packets.extend(_context_packets(current_header))
             else:
                 # cAK RUNNING always replays the native start animation/toast.

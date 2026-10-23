@@ -176,7 +176,9 @@ class EnvironmentalCompanyPostgresTests(unittest.TestCase):
             for n in tree.body
             if isinstance(n, ast.FunctionDef) and n.name == "character_list_local"
         )
-        namespace = dict(Reader=Reader, struct=struct)
+        from wakfu_server import wire
+
+        namespace = dict(Reader=Reader, struct=struct, wire=wire)
         exec(
             compile(ast.Module(body=[selector], type_ignores=[]), str(source), "exec"),
             namespace,

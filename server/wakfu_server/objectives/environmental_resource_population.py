@@ -84,12 +84,15 @@ def populate(db, event, *, now_ms):
     from wakfu_server.resource_action_criteria import minimum_effective_level
 
     minimum_effective_level(action["criteria"])
-    if not any(
-        row["target_reference"] == source["resource_reference"]
+    objectives = storage._objectives(db, profile)
+    matching_objectives = [
+        row
+        for row in objectives
+        if row["target_reference"] == source["resource_reference"]
         and row["action_id"] == source["action_id"]
         and row["resource_step"] == source["native_step"]
-        for row in storage._objectives(db, profile)
-    ):
+    ]
+    if not matching_objectives:
         raise ValueError(
             "Environmental resource objective differs from its original action"
         )
@@ -112,7 +115,7 @@ def populate(db, event, *, now_ms):
         (event["profile_key"], event["version"]),
     ).fetchall()
     native = cells(event["map_id"])
-    if any(
+    if not candidates or any(
         not any(
             r["z"] == c["z"] and r["region_id"] == event["region_id"]
             for r in native.get((c["x"], c["y"]), ())
@@ -133,17 +136,24 @@ def populate(db, event, *, now_ms):
     # per-tick world snapshot or an empty-map simulation.
     world = occupied[0]
     with world.lock:
+        origins = tuple(
+            (c["x"], c["y"], c["z"])
+            for _, _, c in world.players.values()
+            if world.location(c) == (event["map_id"], event["world_instance_id"])
+        )
         taken.update(
             (c["x"], c["y"])
             for _, _, c in world.players.values()
             if world.location(c) == (event["map_id"], event["world_instance_id"])
         )
-    for group in db.execute(
-        "SELECT members FROM combat_groups WHERE map_id=%s AND instance_id=%s "
-        "AND status IN ('available','fighting')",
-        (event["map_id"], event["world_instance_id"]),
-    ).fetchall():
-        taken.update((member["x"], member["y"]) for member in group["members"])
+    from wakfu_server.monster_population_capacity import physical_cells
+    from .environmental_random_rosters import _scene_cells
+
+    taken.update(
+        point[:2]
+        for point in physical_cells(db, event["map_id"], event["world_instance_id"])
+    )
+    taken.update(_scene_cells(db, event["map_id"], event["world_instance_id"]))
     for table in ("mining_vein_slots", "fishing_spot_slots"):
         taken.update(
             (r["x"], r["y"])
@@ -168,8 +178,24 @@ def populate(db, event, *, now_ms):
             (event["map_id"], event["world_instance_id"]),
         ).fetchall()
     )
+    from wakfu_server.combat_terrain import map_geometry
+    from .environmental_resource_placement import POLICY, plan
+
+    # Sealed rows above still attest the original scenario territory. The old
+    # generated list was a lexicographic prefix, not the complete zone. This
+    # declared v2 policy derives positions from that same original territory's
+    # full native surfaces, intersected with actual reachable walk geometry.
+    placement = plan(
+        native,
+        map_geometry(event["map_id"]),
+        region_id=event["region_id"],
+        origins=origins,
+        taken=taken,
+        quantity=quantity,
+        seed=f"{POLICY}:{event['instance_id']}:{event['profile_key']}:{event['version']}",
+    )
     available = []
-    for cell in candidates:
+    for cell in placement:
         if (cell["x"], cell["y"]) in taken:
             continue
         key = f"planting-cell:{event['map_id']}:{event['world_instance_id']}:{cell['x']}:{cell['y']}"
@@ -191,8 +217,13 @@ def populate(db, event, *, now_ms):
         available.append(cell)
         if len(available) == quantity:
             break
-    if len(available) < quantity:
-        return ()  # Do not publish a partial population or overwrite player crops.
+    # Preserve the original objective and rewards. A small zone may have less
+    # capacity than the decorative spawn quota, but must still allow completion.
+    minimum = max(row["required_quantity"] for row in matching_objectives)
+    if len(available) < minimum or not presence.current(
+        occupied, event["map_id"], event["world_instance_id"]
+    ):
+        return ()
     spawned = []
     for cell in available:
         uid = secrets.randbits(62) + 1
@@ -219,7 +250,7 @@ def populate(db, event, *, now_ms):
                     entity_kind="resource",
                     entity_id=uid,
                     reference=source["resource_reference"],
-                    source_key=f"event-resource:{event['instance_id']}:{cell['ordinal']}",
+                    source_key=f"event-resource:{event['instance_id']}:{cell['ordinal']}:{POLICY}",
                     spawn_owned=True,
                 )
             ],
