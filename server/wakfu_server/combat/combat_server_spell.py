@@ -146,7 +146,9 @@ def server_runtime(
     for actor_id, source in player_characters.items():
         if type(actor_id) is not int or source.get("id") != actor_id:
             raise ValueError("Invalid controlled player snapshot identity")
-        parsed = validate_deck(deck_blobs[actor_id], source["breed"], source["level"])
+        parsed = validate_deck(
+            deck_blobs[actor_id], source["breed"], source["level"], character=source
+        )
         decks[actor_id] = frozenset(parsed["active"] + parsed["passive"])
         deck_caps[actor_id] = parsed["level_cap"] if parsed["level_cap"] >= 0 else None
     from .combat_npc_spellbook import ordinary_npc_spellbook
@@ -302,6 +304,7 @@ def prepare_server_initialization(
     fight_start=False,
     player_characters=None,
     deck_blobs=None,
+    attachment_authority=None,
 ):
     """Install own innates/passives; optionally deliver inferred server fight start.
 
@@ -339,14 +342,20 @@ def prepare_server_initialization(
     # Wakemu ordering: snapshot-owned flat gear first, qualified permanent
     # equipment states, class and aptitude initialization, then fight-start1003.
     # No claim is made about an unrecovered original server ordering caller.
+    from .combat_protector_fight_condition import bind_condition_capability
+
+    bind_condition_capability(factory, fight)
+    equipment_capability = factory.equipment_operation_capability()
     preview, equipment = pin_transaction(
         fight,
         owned,
-        None,
+        attachment_authority,
         compiled_runtime_catalog(),
         characteristic_registry(),
         owner_id=owner_id,
         ordinary_only=True,
+        include_attachments=attachment_authority is not None,
+        runtime_capability=equipment_capability,
     )
     from wakfu_server.characters.owned_social_context import pin as pin_social_context
 
@@ -369,10 +378,84 @@ def prepare_server_initialization(
         equipment_factory,
         owner_id=owner_id,
     )
+    from .combat_consumable_states import install as install_consumable_states
+    from .combat_input_observation import wall_time_ns
+
+    # Wakemu ordering for owned bHE actors: player equipment first, then each
+    # selected companion's ordinary passive roots, before consumables/class/
+    # aptitude initialization. The companion remains its attested NPC actor;
+    # only its current selected owner supplies the custody/criterion snapshot.
+    companion_sources = getattr(preview, "native_companion_sources", {})
+    if not isinstance(companion_sources, dict):
+        raise ValueError("Malformed owned companion source roster during Ready")
+    owned_companions = sorted(
+        (
+            (int(key), source)
+            for key, source in companion_sources.items()
+            if isinstance(source, dict)
+            and source.get("owner_character_id") == character["id"]
+        ),
+        key=lambda row: row[0],
+    )
+    if owned_companions:
+        from .combat_companion_owned_equipment_adapter import (
+            initialize_companion,
+            pin_companion,
+        )
+
+        for companion_id, source in owned_companions:
+            if str(source.get("id")) != str(companion_id):
+                raise ValueError(
+                    "Companion source key differs from its native actor ID"
+                )
+            preview, companion_equipment = pin_companion(
+                preview,
+                companion_id,
+                character,
+                equipment_factory,
+                # Each pin starts from the immutable base catalog. The
+                # preparation helper composes every existing player/NPC pin;
+                # feeding its already-composed result back here duplicates
+                # prior owned definitions as more companions are processed.
+                compiled_runtime_catalog(),
+                characteristic_registry(),
+            )
+            # The NPC graph is discovered after the player factory was built.
+            # Rebuild through the same production factory constructor with the
+            # complete pin-bound catalog; this preserves the transaction RNG,
+            # live actor/context providers and normal factory identity checks.
+            companion_factory, _ = server_runtime(
+                character,
+                monsters,
+                deck_blob,
+                action_id=action_id,
+                critical=False,
+                rng=rng,
+                player_characters=player_characters,
+                deck_blobs=deck_blobs,
+                compiled=companion_equipment["compiled"],
+            )
+            bind_condition_capability(companion_factory, preview)
+            preview, companion_packets = initialize_companion(
+                preview,
+                companion_id,
+                companion_equipment,
+                companion_factory,
+                account_id=owner_id,
+            )
+            equipment_packets += companion_packets
+
+    consumable_packets = install_consumable_states(
+        preview,
+        character,
+        factory,
+        owner_id=owner_id,
+        now_ms=wall_time_ns("consumable.initialize.realtime") // 1000000,
+    )
     preview, packets = initialize_transaction(
         preview, initial, factory, states, owner_id=owner_id
     )
-    packets = equipment_packets + packets
+    packets = equipment_packets + consumable_packets + packets
     from .combat_aptitude_initialization import (
         initialize_transaction as initialize_aptitudes,
     )
@@ -388,7 +471,29 @@ def prepare_server_initialization(
             preview, {"native_retained_container": {"present": False}}
         )
         with preview.effect_resolution():
+            rift_state = getattr(preview, "rift_wave_state", None)
+            if rift_state is not None:
+                from .rift_native_gameplay import install_wave_state
+
+                install_wave_state(
+                    dispatcher,
+                    actor_ids=rift_state["wave_actor_ids"],
+                    wave=rift_state["wave"],
+                )
+            layout = getattr(preview, "native_encounter_scene_layout", None)
+            if layout is not None:
+                from .combat_rushu_encounter_setup import install_rushu_encounter_setup
+
+                install_rushu_encounter_setup(
+                    dispatcher,
+                    map_id=character["map_id"],
+                    monsters=monsters,
+                    layout=layout,
+                )
             deliver_fight_start(dispatcher, initialized_actor_ids=tuple(preview.actors))
+            from .combat_npc_phase_controller import install_npc_phase_score
+
+            install_npc_phase_score(dispatcher)
         packets += tuple(outbox)
     return preview, packets
 
@@ -426,9 +531,37 @@ def prepare_server_turn_end(
         preview, {"native_retained_container": {"present": False}}
     )
     with preview.effect_resolution():
-        deliver_turn_end(dispatcher, actor_id=actor_id)
-        if preview.phase == "active" and preview.current is not None:
+        from .combat_npc_phase_controller import deliver_npc_score_result
+
+        from .combat_encounter_turn_end_order import turn_end_event_order
+
+        deliver_npc_score_result(dispatcher, actor_id=actor_id)
+        order = turn_end_event_order(preview, actor_id=actor_id)
+        early_regeneration = order[0] == 1037
+        if early_regeneration:
             deliver_turn_regeneration(dispatcher, actor_id=actor_id)
+        if not early_regeneration or (
+            preview.phase == "active" and preview.current is not None
+        ):
+            deliver_turn_end(dispatcher, actor_id=actor_id)
+        if (
+            preview.phase == "active"
+            and preview.current is not None
+            and preview.current.id == actor_id
+            and getattr(preview, "native_ogrest_phase_context", None) is not None
+        ):
+            from .combat_ogrest_phase_controller import finish_ogrest_player_turn
+
+            finish_ogrest_player_turn(dispatcher, actor_id=actor_id)
+        if (
+            not early_regeneration
+            and preview.phase == "active"
+            and preview.current is not None
+        ):
+            deliver_turn_regeneration(dispatcher, actor_id=actor_id)
+        from .combat_encounter_terminal_cleanup import deliver_terminal_helper_cleanup
+
+        deliver_terminal_helper_cleanup(dispatcher)
     return preview, tuple(packets)
 
 
@@ -474,9 +607,67 @@ def prepare_server_turn_start(
     with preview.effect_resolution():
         if native_events:
             from .combat_periodic_aptitude import renew_periodic_aptitudes
+            from .combat_npc_phase_controller import (
+                deliver_npc_score_result,
+                deliver_npc_table_phase,
+            )
 
             renew_periodic_aptitudes(dispatcher, actor_id=actor_id)
-            deliver_turn_start(dispatcher, actor_id=actor_id)
+            deliver_npc_score_result(dispatcher, actor_id=actor_id)
+            deliver_npc_table_phase(dispatcher, actor_id=actor_id)
+            if preview.phase == "active":
+                deliver_turn_start(dispatcher, actor_id=actor_id)
+                if preview.phase == "active":
+                    from .combat_ogrest_phase_controller import (
+                        deliver_ogrest_post_turn_start,
+                    )
+
+                    deliver_ogrest_post_turn_start(dispatcher, actor_id=actor_id)
+                if preview.phase == "active" and preview.current is not None:
+                    from .combat_encounter_table_listeners import (
+                        deliver_owned_post_start_listeners,
+                    )
+
+                    deliver_owned_post_start_listeners(dispatcher, actor_id=actor_id)
         if area_callbacks and preview.phase == "active":
             dispatcher.native_area_events.turn_start(actor_id)
+    return preview, tuple(packets)
+
+
+@rollback_external_rng
+def prepare_server_terminal_cleanup(
+    character,
+    monsters,
+    fight,
+    deck_blob,
+    *,
+    action_id,
+    rng=None,
+    player_characters=None,
+    deck_blobs=None,
+):
+    """Private post-KO repair using the same authenticated production producer.
+
+    It does not publish END, advance clocks or replay any owner action. A late
+    policy adoption must be separately authorized and explicitly attested.
+    """
+    from copy import deepcopy
+    from .combat_encounter_terminal_cleanup import deliver_terminal_helper_cleanup
+
+    preview = deepcopy(fight)
+    factory, _ = server_runtime(
+        character,
+        monsters,
+        deck_blob,
+        action_id=action_id,
+        critical=False,
+        rng=rng,
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
+    )
+    dispatcher, packets = factory(
+        preview, {"native_retained_container": {"present": False}}
+    )
+    with preview.effect_resolution():
+        deliver_terminal_helper_cleanup(dispatcher)
     return preview, tuple(packets)

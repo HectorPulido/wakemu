@@ -60,6 +60,13 @@ class Groups:
             group = self.groups.get(key)
             if group is None or group["status"] != "available":
                 raise ValueError("Group is unavailable")
+            if any(
+                member.get("environmental_world_action_only") is True
+                for member in group["members"]
+            ):
+                raise ValueError(
+                    "Environmental interaction targets cannot enter combat"
+                )
             self.sequence += 1
             lease = (key, generation, fight_id, self.sequence)
             group.update(status="fighting", claim=lease)

@@ -1,4 +1,4 @@
-"""Owned death1013 boundary using native local Qf subscription semantics.
+"""Owned death boundaries using native local/global Qf subscriptions.
 
 Installed state7128 listener326382 subscribes Qa.aZL()/beD=[1013], mask5.
 The original server producer is unavailable: local channel6, the lethal running source, after OFF_PLAY
@@ -6,6 +6,9 @@ and before reconciliation is an explicit Wakemu policy. No reversed/global
 delivery is inferred from the local subscription. Listener326382 compares
 GetEffectCaster() with GetTriggeringEffectCaster(): a null-source boundary
 would erase the actual killer and cannot satisfy that original contract.
+Global1012 additionally serves the original Moon6175 listener293426. Its
+channel61 delivery after global1010 and before local1013 is a consumer-backed
+Wakemu reconstruction, not a recovered original server caller.
 """
 from dataclasses import replace
 from .combat_event_replay import NativeEventSource
@@ -47,8 +50,9 @@ def deliver_owned_death(
             actor_id=actor_id,
             event_id=1013,
             channel=6,
-            policy="wakemu.owned-ko-and-death-v2",
+            policy="wakemu.owned-ko-and-death-v3",
             ko_event_id=1010,
+            global_death_event_id=1012,
         ),
     }
     from .combat_finisher_events import prepare_owned_finisher
@@ -78,51 +82,57 @@ def deliver_owned_death(
             )
         )
     outcomes.extend(replay(replace(source, event_ids=(1010,)), authority=authority))
-    if hasattr(fight, "native_global_pv_collections"):
-        from .combat_global_pv_collections import global_pv_iterator
-        from .combat_state_managers import registered_area_pv
+    for event_id in (1010, 1012):
+        if hasattr(fight, "native_global_pv_collections"):
+            from .combat_global_pv_collections import global_pv_iterator
+            from .combat_state_managers import registered_area_pv
 
-        for identity in global_pv_iterator(fight, caster_id=source.caster_id):
-            if identity not in fight.actors:
-                manager = registered_area_pv(fight, identity)
-                if manager is None:
-                    raise ValueError("KO event global PV manager absent")
-                if not manager.native_running_effect_manager:
+            # Reacquire native topology after the preceding event's callbacks.
+            # Each iterator preserves its own mutation-aware native PV order.
+            for identity in global_pv_iterator(fight, caster_id=source.caster_id):
+                if identity not in fight.actors:
+                    manager = registered_area_pv(fight, identity)
+                    if manager is None:
+                        raise ValueError("KO/death event global PV manager absent")
+                    if not manager.native_running_effect_manager:
+                        continue
+                outcomes.extend(
+                    replay(
+                        replace(
+                            source,
+                            event_ids=(event_id,),
+                            channel=61,
+                            manager_actor_id=identity,
+                        ),
+                        authority=authority,
+                    )
+                )
+        elif retention is not None:
+            from .combat_native_events import subscription_selection
+
+            for entry in retention.view().entries:
+                row = fight.native_owned_group_effects.get(entry.uid)
+                if row is None:
                     continue
-            outcomes.extend(
-                replay(
-                    replace(
-                        source, event_ids=(1010,), channel=61, manager_actor_id=identity
-                    ),
-                    authority=authority,
-                )
+                definition = retention.metadata["effects"][str(entry.generic_effect)]
+                if (
+                    subscription_selection(
+                        masks=row["native_subscription_masks"],
+                        event_ids=(event_id,),
+                        channel=61,
+                        global_subscription=definition["event_global_subscription"],
+                        reversed_subscription=definition["event_reverse_subscription"],
+                        flags=row["native_effect_flags"],
+                        source_present=True,
+                    )
+                    == "activate"
+                ):
+                    raise ValueError(
+                        "Global KO/death observer requires native PV collection producer"
+                    )
+        else:
+            raise ValueError(
+                "KO/death event requires native global collection or subscription authority"
             )
-    elif retention is not None:
-        from .combat_native_events import subscription_selection
-
-        for entry in retention.view().entries:
-            row = fight.native_owned_group_effects.get(entry.uid)
-            if row is None:
-                continue
-            definition = retention.metadata["effects"][str(entry.generic_effect)]
-            if (
-                subscription_selection(
-                    masks=row["native_subscription_masks"],
-                    event_ids=(1010,),
-                    channel=61,
-                    global_subscription=definition["event_global_subscription"],
-                    reversed_subscription=definition["event_reverse_subscription"],
-                    flags=row["native_effect_flags"],
-                    source_present=True,
-                )
-                == "activate"
-            ):
-                raise ValueError(
-                    "Global KO observer requires native PV collection producer"
-                )
-    else:
-        raise ValueError(
-            "KO event requires native global collection or subscription authority"
-        )
     outcomes.extend(replay(source, authority=authority))
     return tuple(outcomes)

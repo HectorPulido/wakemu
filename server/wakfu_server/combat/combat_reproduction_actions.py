@@ -261,7 +261,7 @@ def unarmed_entry_resources(body, character, fight):
     if any(
         row["slot"] == 15
         for row in validate_sheet(
-            character, bytes.fromhex(selected.get("equipment", ""))
+            character, bytes.fromhex(selected.get("equipment", "")), strict=False
         )
     ):
         raise ValueError("Unarmed action requires the owned weapon slot to be empty")

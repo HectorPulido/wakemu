@@ -7,7 +7,11 @@ def area_guards(fight, identity):
     retired = getattr(fight, "native_retired_area_managers", {})
     if identity in active and identity in retired:
         raise ValueError("Area PV is both active and retired")
-    row = active.get(identity, retired.get(identity))
+    from .combat_state_managers import retained_area_pv_row
+
+    # Ordered Qe siblings can still hold this actual PV after Qs removes it.
+    # The execution-local scope preserves its own Qq.b guard provenance.
+    row = retained_area_pv_row(fight, identity)
     if (
         not isinstance(row, dict)
         or row.get("uid") != identity

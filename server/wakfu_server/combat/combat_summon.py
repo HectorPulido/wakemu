@@ -404,6 +404,14 @@ class RegisteredSummonAuthority:
             preview, self.ordinary.has_equipment_type, actor, references, inventory
         )
 
+    def has_weapon_type(self, preview, actor, references):
+        self(preview, actor)
+        if actor.id in getattr(preview, "native_summon_registrations", {}):
+            raise ValueError("Missing native summoned weapon component authority")
+        return self._call_ordinary(
+            preview, self.ordinary.has_weapon_type, actor, references
+        )
+
     def item_quantity(self, preview, actor, references):
         self(preview, actor)
         records = getattr(preview, "native_summon_registrations", {})

@@ -81,6 +81,8 @@ def placement_messages(
             if 114 not in getattr(a, "native_fight_properties", ())
         ],
     )
+    from .combat_companions import bootstrap_actor_type
+
     participants = []
     for actor in actors:
         stats, effects = actor_payloads[actor.id]
@@ -99,7 +101,7 @@ def placement_messages(
         participants.append(
             dict(
                 actor_id=actor.id,
-                myB=0 if actor.controlled else 1,
+                myB=bootstrap_actor_type(fight, actor),
                 myn=actor.team,
                 myC=1,
                 myE=stats,
@@ -190,6 +192,18 @@ def create_placement(
     members = list(monster) if isinstance(monster, (list, tuple)) else [monster]
     if not members:
         raise ValueError("Monster group must not be empty")
+    from .combat_encounter_roles import assigned_roles, roles_from_record, bind_roles
+
+    role_record = arena.get("native_encounter_roles")
+    roles = (
+        assigned_roles(None)
+        if role_record is None
+        else roles_from_record(
+            role_record,
+            map_id=arena["map_id"],
+            monster_references=[member["ref"] for member in members],
+        )
+    )
     owned_instance_id = character.get("instance_id", 0)
     if type(owned_instance_id) is not int or not 0 <= owned_instance_id < 2**63:
         raise ValueError("Invalid authoritative character instance")
@@ -218,10 +232,13 @@ def create_placement(
     effective_level = effective_sheet_level(
         character, character.get("active_build_index", 0)
     )
+    from .combat_encounter_scene_layout import scene_player_position
+
+    player_position = scene_player_position(character, arena)
     pc = Actor(
         character["id"],
-        0,
-        (character["x"], character["y"], character["z"]),
+        roles.player_team,
+        player_position,
         character["hp"],
         player_ap,
         player_mp,
@@ -244,10 +261,14 @@ def create_placement(
         if relocations
         else [(m["x"], m["y"], m["z"]) for m in members]
     )
+    scene = arena.get("native_encounter_scene_layout")
+    npc_direction = 3 if scene is None else scene.get("boss_direction", 3)
+    if type(npc_direction) is not int or not 0 <= npc_direction <= 7:
+        raise ValueError("Invalid declared encounter boss facing")
     npcs = [
         Actor(
             member["id"],
-            1,
+            roles.npc_team,
             position,
             member["hp"],
             member["ap"],
@@ -255,7 +276,7 @@ def create_placement(
             member["initiative"],
             member["level"],
             max_hp=member["max_hp"],
-            direction=3,
+            direction=npc_direction,
         )
         for member, position in zip(members, npc_positions)
     ]
@@ -267,11 +288,29 @@ def create_placement(
     if placement_cells is None:
         placement_cells = arena.get("placement_cells")
     if placement_cells is None:
-        placement_cells = {0: {pc.position}, 1: {npc.position for npc in npcs}}
+        placement_cells = roles.placement_cells(
+            {pc.position}, {npc.position for npc in npcs}
+        )
     from .combat_geometry_snapshot import freeze_terrain
 
     fight = Fight(
         fight_id, [pc, *npcs], cells, placement_cells, arena.get("valid_edges")
+    )
+    if role_record is not None:
+        bind_roles(
+            fight, roles, player_ids=(pc.id,), npc_ids=tuple(npc.id for npc in npcs)
+        )
+    if arena.get("native_encounter_scene_layout") is not None:
+        import copy
+
+        fight.native_encounter_scene_layout = copy.deepcopy(
+            arena["native_encounter_scene_layout"]
+        )
+    from .combat_haven_world_context import bind_placement, placement_context
+
+    bind_placement(
+        fight,
+        placement_context(character, members, fight_id=fight_id),
     )
     from .combat_cosmetic_conditions import initialize_fresh_player_cosmetics
 
@@ -314,7 +353,13 @@ def create_placement(
             identity=terrain_instance_id,
             arena={
                 key: arena[key]
-                for key in ("native_border_policy", "native_border_cells", "min_z")
+                for key in (
+                    "native_border_policy",
+                    "native_border_cells",
+                    "min_z",
+                    "native_border_scope_cells",
+                )
+                if key in arena
             },
         )
     from .combat_environment_glyphs import prepare_environment_glyphs
@@ -346,8 +391,14 @@ def create_placement(
                         ),
                     },
                     fight_id,
-                    direction=3,
+                    team=fight.actors[member["id"]].team,
+                    direction=fight.actors[member["id"]].direction,
                     obstacle_id=fight.actors[member["id"]].native_obstacle_id,
+                    world_context=getattr(
+                        fight, "native_haven_world_combat_context", None
+                    ),
+                    world_actor=fight.actors[member["id"]],
+                    fight=fight,
                 ),
                 actor_effects(),
             )
@@ -360,7 +411,7 @@ def create_placement(
         payloads,
         terrain_effect_id=terrain_effect_id,
         terrain_instance_id=terrain_instance_id,
-        leaders={0: pc.id, 1: npcs[0].id},
+        leaders={roles.player_team: pc.id, roles.npc_team: npcs[0].id},
         duration_ms=duration_ms,
         viewer_id=pc.id,
     )

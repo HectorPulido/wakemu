@@ -28,7 +28,9 @@ def require_class_ai(fight, character, deck_blob):
         raise ValueError("Missing actual server-controlled class actor authority")
     from wakfu_server.spells import validate_deck
 
-    validate_deck(deck_blob, character["breed"], character["level"])
+    validate_deck(
+        deck_blob, character["breed"], character["level"], character=character
+    )
     return actor
 
 
@@ -202,7 +204,7 @@ def require_class_ai_producer(fight, actor, authority):
         or metadata.native_spellbook.player_character is not True
     ):
         raise ValueError("Unsupported native eWD player AI capability producer")
-    validate_deck(deck, character["breed"], character["level"])
+    validate_deck(deck, character["breed"], character["level"], character=character)
     # Resolve actual candidate objects before enabling AI, including current
     # grants and transformations; resource/target legality stays per-action.
     from .combat_morph_spellbook import morph_record
@@ -214,9 +216,9 @@ def require_class_ai_producer(fight, actor, authority):
         if morph is not None
         else {
             (actor.id << 32) | ref
-            for ref in validate_deck(deck, character["breed"], character["level"])[
-                "active"
-            ]
+            for ref in validate_deck(
+                deck, character["breed"], character["level"], character=character
+            )["active"]
         }
     )
     uids.update(granted_spells(fight, actor.id))
@@ -250,7 +252,9 @@ def canonical_class_actions(fight, actor, character, deck_blob):
         or actor.controlled is not True
     ):
         raise ValueError("Missing actual class action owner")
-    deck = validate_deck(deck_blob, character["breed"], character["level"])
+    deck = validate_deck(
+        deck_blob, character["breed"], character["level"], character=character
+    )
     morph = morph_record(fight, actor.id)
     candidates = (
         {ref: ref for ref in morph["levels"] if ref not in morph["removed_raw_uids"]}

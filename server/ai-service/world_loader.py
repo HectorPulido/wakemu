@@ -8,6 +8,7 @@ import hashlib
 import importlib
 import importlib.abc
 import importlib.util
+import os
 from pathlib import Path
 import sys
 import threading
@@ -64,16 +65,40 @@ class _SnapshotFinder(importlib.abc.MetaPathFinder):
 _FINDER = _SnapshotFinder()
 
 
+def _source_files(directory):
+    # Every load still reads every source byte: timestamps and sizes cannot
+    # identify same-size edits with restored mtimes. scandir avoids creating
+    # and statting several Path objects per file on this per-turn hot path.
+    pending, files = [(str(directory), ())], []
+    while pending:
+        parent, parts = pending.pop()
+        with os.scandir(parent) as entries:
+            for entry in entries:
+                relative_parts = parts + (entry.name,)
+                if entry.name.endswith(".py"):
+                    files.append((relative_parts, entry.path))
+                if entry.is_dir(follow_symlinks=False):
+                    pending.append((entry.path, relative_parts))
+    # Path sorting compares components, rather than slash-separated strings.
+    # Preserve the existing version digest, including its ordering.
+    files.sort()
+    return files
+
+
 def load_entry(directory):
     directory = Path(directory).resolve()
-    files = sorted(directory.rglob("*.py"))
-    if not files or not (directory / "world_entry.py").is_file():
+    if not (directory / "world_entry.py").is_file():
+        raise ValueError("Complete native AI SDK is unavailable")
+    files = _source_files(directory)
+    if not files:
         raise ValueError("Complete native AI SDK is unavailable")
     checksum, sources = hashlib.sha256(), {}
-    for path in files:
-        relative = path.relative_to(directory).as_posix().encode()
-        data = path.read_bytes()
-        sources[path.relative_to(directory).as_posix()] = data
+    for parts, path in files:
+        name = "/".join(parts)
+        relative = name.encode()
+        with open(path, "rb") as stream:
+            data = stream.read()
+        sources[name] = data
         checksum.update(len(relative).to_bytes(8, "big"))
         checksum.update(relative)
         checksum.update(len(data).to_bytes(8, "big"))

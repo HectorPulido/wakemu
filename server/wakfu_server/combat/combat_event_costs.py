@@ -16,7 +16,11 @@ from .combat_conditional_costs import resolve_costs, native_modifiers
 
 @lru_cache(maxsize=1)
 def cost_catalog():
-    return protocol_catalog.load(DATA_ROOT / "spell-costs.json")["spells"]
+    from .combat_common_spell_catalog import merge_cost_records
+
+    return merge_cost_records(
+        protocol_catalog.load(DATA_ROOT / "spell-costs.json")["spells"]
+    )
 
 
 def source_cost_descriptor(retention, invocation):

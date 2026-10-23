@@ -13,6 +13,10 @@ def change(db, character_id, monster, *, operation, locate=population_region):
         "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
         (f"monster-population:{map_id}:{instance_id}",),
     )
+    from .environmental_group_ecology import owned_monster_ids
+
+    if monster["id"] in owned_monster_ids(db, map_id, instance_id):
+        return []
     population = snapshot(
         db,
         map_id,

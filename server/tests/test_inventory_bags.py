@@ -25,7 +25,8 @@ class BagTests(PostgresCase):
         current = self.reopen().character(account, char["id"])
         self.assertEqual(len(current["inventory_containers"]), 1)
         self.assertEqual(current["inventory_items"][0]["uid"], extra)
-        self.assertEqual(len(bags(current)), 46)
+        # The held bag keeps its native binding option in the vj item form.
+        self.assertEqual(len(bags(current)), 48)
         result = equip(
             store,
             account,

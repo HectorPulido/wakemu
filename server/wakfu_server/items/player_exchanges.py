@@ -749,6 +749,11 @@ def _commit(store, db, exchange, wallets, members):
         row = bindings.get(item["uid"])
         template = ITEMS.get(str(item["reference"]), {}).get("binding_template", {})
         item["bound"] = row["bound"] if row else template.get("default_eKo")
+    from .item_custody_metadata import snapshot_many
+
+    metadata = snapshot_many(db, [item["uid"] for item in items])
+    for item in items:
+        item["_custody_metadata"] = metadata[item["uid"]]
     for offer in offers:
         _offered_item(
             store,

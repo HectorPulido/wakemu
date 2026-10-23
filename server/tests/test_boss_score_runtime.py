@@ -54,11 +54,13 @@ class BossScoreRuntimeTests(unittest.TestCase):
 
     def test_round_boundary_survival_and_no_unconfigured_finish(self):
         fight = self.fight()
+        fight.phase = "active"
         fight.native_timeline_round = 20
         self.assertFalse(runtime.finish_survival(fight))
         fight.native_timeline_round = 21
-        self.assertTrue(runtime.finish_survival(fight))
-        self.assertEqual(("finished", 0), (fight.phase, fight.winner))
+        self.assertFalse(runtime.finish_survival(fight))
+        self.assertEqual("active", fight.phase)
+        self.assertFalse(hasattr(fight, "winner"))
         del fight.boss_score_profile
         self.assertFalse(runtime.finish_survival(fight))
 

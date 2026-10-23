@@ -144,6 +144,11 @@ class FakeGuildService:
     def native_enabled(self):
         return self.is_native_enabled
 
+    def authorize_native_request(self, _opcode):
+        # The dispatcher unit tests exercise request routing. Native policy
+        # capability has its own focused tests in test_guild_primary_results.
+        return None
+
     def snapshot(self, account, generation, character):
         self.calls.append(("snapshot", account, generation, character))
         return self.snapshots.get(character)
@@ -387,6 +392,16 @@ class GuildDispatchTests(unittest.TestCase):
 
     def test_identity_change_requests_route_name_and_blazon_fields(self):
         self.service.snapshots[self.actor] = _snapshot()
+        from wakfu_server.guild_machine_context import machines
+
+        machine = machines()[0]
+        self.world.identities[self.actor][1].update(
+            map_id=machine["map_id"],
+            instance_id=0,
+            x=machine["use_cell"][0],
+            y=machine["use_cell"][1],
+            z=machine["use_cell"][2],
+        )
         requests = (
             (
                 12937,
@@ -399,11 +414,68 @@ class GuildDispatchTests(unittest.TestCase):
         for opcode, body, field, value in requests:
             with self.subTest(opcode=opcode):
                 before = len(self.service.calls)
-                self._handle_without_storage_guard(opcode, body)
+                with patch(
+                    "wakfu_server.world_static.objects",
+                    return_value=[
+                        {
+                            "id": machine["object_id"],
+                            "type": "GuildMachine",
+                            "map_id": machine["map_id"],
+                            "x": machine["object_position"][0],
+                            "y": machine["object_position"][1],
+                            "z": machine["object_position"][2],
+                        }
+                    ],
+                ):
+                    self._handle_without_storage_guard(opcode, body)
                 route = self.service.calls[before + 1]
                 self.assertEqual("change_identity", route[0])
                 self.assertEqual((field, value), route[1][3:5])
                 self.assertTrue(route[2]["operation_key"].startswith("native-guild:"))
+                self.assertEqual(
+                    guild_wire.identity_change_ack(field, value)[0],
+                    self.world.sent[-1][2],
+                )
+                self.assertEqual(
+                    guild_wire.identity_change_ack(field, value)[1],
+                    self.world.sent[-1][3],
+                )
+
+    def test_identity_change_at_wrong_machine_cell_fails_without_ack_or_mutation(self):
+        self.service.snapshots[self.actor] = _snapshot()
+        from wakfu_server.guild_machine_context import machines
+
+        machine = machines()[0]
+        self.world.identities[self.actor][1].update(
+            map_id=machine["map_id"],
+            instance_id=0,
+            x=machine["use_cell"][0] + 1,
+            y=machine["use_cell"][1],
+            z=machine["use_cell"][2],
+        )
+        before_name = self.service.snapshots[self.actor]["guild"]["name"]
+        body = struct.pack(">i", len(b"New Guild")) + b"New Guild"
+        with patch(
+            "wakfu_server.world_static.objects",
+            return_value=[
+                {
+                    "id": machine["object_id"],
+                    "type": "GuildMachine",
+                    "map_id": machine["map_id"],
+                    "x": machine["object_position"][0],
+                    "y": machine["object_position"][1],
+                    "z": machine["object_position"][2],
+                }
+            ],
+        ):
+            with self.assertRaisesRegex(
+                ValueError, "native guild machine interaction cell"
+            ):
+                self._handle_without_storage_guard(12937, body)
+        self.assertEqual(
+            before_name, self.service.snapshots[self.actor]["guild"]["name"]
+        )
+        self.assertEqual([], self.world.sent)
 
     def test_refresh_drains_committed_outbox_before_reading_snapshot(self):
         self.service.snapshots[self.actor] = _snapshot()

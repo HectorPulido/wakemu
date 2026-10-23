@@ -5,6 +5,7 @@ import ast
 from pathlib import Path
 from datetime import timedelta
 import psycopg
+from unittest.mock import patch
 from postgres_case import PostgresCase
 from psycopg.types.json import Jsonb
 from wakfu_server.monster_collect import (
@@ -206,7 +207,10 @@ class HarvestTests(PostgresCase):
         token = self.harvest.pending[self.char["id"]]["token"]
         self.now[0] += 3
 
-        result = self.complete()
+        # Keep this arithmetic control explicitly neutral even when the real
+        # fixture map acquires a native territorial reward modifier.
+        with patch("wakfu_server.territory_bonuses.current_region", return_value=None):
+            result = self.complete()
 
         self.assertTrue(result["applied"])
         self.assertIn((12916, struct.pack(">iq", 74, 50)), result["packets"])
@@ -223,11 +227,39 @@ class HarvestTests(PostgresCase):
             [dict(row) for row in self.profession_xp_receipts()],
         )
 
-        replay = self.complete()
+        with patch("wakfu_server.territory_bonuses.current_region", return_value=None):
+            replay = self.complete()
         self.assertFalse(replay["applied"])
         self.assertEqual([], replay["packets"])
         self.assertEqual(before + 50, self.profession_xp())
         self.assertEqual(1, len(self.profession_xp_receipts()))
+
+    def test_monster_harvest_applies_native_territory_xp_reduction_once(self):
+        from wakfu_server.territory_bonuses import state_effects
+
+        self.prepare_profession_xp()
+        before = self.profession_xp() or 0
+        self.begin()
+        token = self.harvest.pending[self.char["id"]]["token"]
+        self.now[0] += 3
+        region = {"state_id": 1917, "effects": state_effects(0, 1)["effects"]}
+
+        with patch(
+            "wakfu_server.territory_bonuses.current_region", return_value=region
+        ):
+            result = self.complete()
+            replay = self.complete()
+
+        self.assertTrue(result["applied"])
+        self.assertIn(self.xp_packet(45), result["packets"])
+        self.assertEqual(before + 45, self.profession_xp())
+        self.assertFalse(replay["applied"])
+        self.assertEqual([], replay["packets"])
+        self.assertEqual(before + 45, self.profession_xp())
+        receipts = self.profession_xp_receipts()
+        self.assertEqual(1, len(receipts))
+        self.assertEqual("monster-harvest:" + token, receipts[0]["operation"])
+        self.assertEqual(45, receipts[0]["applied_xp"])
 
     def test_cancelled_harvest_and_cooldown_rejection_do_not_award_xp(self):
         self.prepare_profession_xp()

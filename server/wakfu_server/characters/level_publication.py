@@ -2,7 +2,14 @@
 from wakfu_server import wire
 
 
-def refresh(character, characters, *, entity_template, roster_template):
+def refresh(
+    character,
+    characters,
+    *,
+    entity_template,
+    roster_template,
+    retained_state_packets=None,
+):
     """Publish updates without activating another actor or resetting the map.
 
     Format3 progression updates HP/XP, but does not contain the spell inventory.
@@ -23,6 +30,7 @@ def refresh(character, characters, *, entity_template, roster_template):
         raise ValueError("Level publication cannot include foreign characters")
     return [
         wire.refresh_player(entity_template, character),
+        *(retained_state_packets(character) if retained_state_packets else ()),
         (
             23548,
             wire.character_list(roster_template, character["account_id"], roster),
@@ -31,7 +39,13 @@ def refresh(character, characters, *, entity_template, roster_template):
 
 
 def combat_return(
-    character, characters, *, participant_ids, entity_template, roster_template
+    character,
+    characters,
+    *,
+    participant_ids,
+    entity_template,
+    roster_template,
+    retained_state_packets=None,
 ):
     """Refresh the selected actor and loaded owned heroes after world restore."""
     from wakfu_server.characters import hero_wire
@@ -42,6 +56,7 @@ def combat_return(
         roster,
         entity_template=entity_template,
         roster_template=roster_template,
+        retained_state_packets=retained_state_packets,
     )
     # The preceding world bootstrap recomputes the selected native biB sheet.
     # Format10 restores its current HP but carries no HP maximum. Publish the
@@ -60,10 +75,12 @@ def combat_return(
                     **{
                         key: character[key]
                         for key in ("map_id", "instance_id", "x", "y", "z")
-                    }
+                    },
                 )
             # csZ updates an existing hero; it never activates it as main.
             packets.extend(
                 (hero_wire.refresh(entity_template, hero), hero_wire.statistics(hero))
             )
+            if retained_state_packets:
+                packets.extend(retained_state_packets(hero))
     return packets

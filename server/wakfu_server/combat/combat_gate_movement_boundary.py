@@ -15,7 +15,7 @@ POLICY = "wakemu.native-gate-movement-boundary-v1"
 class NativeGateMovementBoundary:
     policy: str
     actor_id: int
-    owner_id: int
+    owner_id: int | None
     turn_id: int
     from_cell: tuple
     to_cell: tuple
@@ -52,7 +52,6 @@ def validate_gate_boundary_facts(facts):
             type(getattr(receipt, key)) is not int
             for key in (
                 "actor_id",
-                "owner_id",
                 "turn_id",
                 "entry_uid",
                 "exit_uid",
@@ -72,6 +71,7 @@ def validate_gate_boundary_facts(facts):
                 "mp_raw_post",
             )
         )
+        or (receipt.owner_id is not None and type(receipt.owner_id) is not int)
         or receipt.actor_id == 0
         or receipt.affiliation == -1
         or not -128 <= receipt.affiliation <= 127
@@ -97,7 +97,14 @@ def validate_gate_boundary_facts(facts):
 
 def validate_gate_movement_boundary(fight, receipt, *, committed=False):
     validate_gate_boundary_facts(receipt.facts())
-    actor = fight._current_owned(receipt.owner_id, receipt.actor_id)
+    from .combat_portal_travel import _gate_actor
+
+    actor = _gate_actor(
+        fight,
+        receipt.owner_id,
+        receipt.actor_id,
+        server_controlled=receipt.owner_id is None,
+    )
     if fight.turn_id != receipt.turn_id or tuple(actor.position) != tuple(
         receipt.to_cell
     ):

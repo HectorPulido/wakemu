@@ -39,8 +39,23 @@ def native_area_targeting_bcR(row):
 
 
 def area_targets(fight):
+    return _targets(fight, _rows(fight))
+
+
+def area_target(fight, identity):
+    """Project one active Qq after the shared complete Qs validation boundary."""
+    selected = _targets(fight, (row for row in _rows(fight) if row["uid"] == identity))
+    return selected[0] if selected else None
+
+
+def area_targets_at_cell(fight, cell):
+    """Preserve exact XYZ equality and Qs order after live faN refresh."""
+    return _targets(fight, (row for row in _rows(fight) if tuple(row["cell"]) == cell))
+
+
+def _targets(fight, rows):
     targets = []
-    for row in _rows(fight):
+    for row in rows:
         life = area_guards(fight, row["uid"])
         constructor = (
             row.get("native_faw_constructor")

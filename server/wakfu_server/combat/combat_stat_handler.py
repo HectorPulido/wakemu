@@ -560,6 +560,10 @@ class NativeStatHandler:
             from .combat_world_property_handler import remove_world_property
 
             return remove_world_property(self, uid)
+        if entry.get("family") in ("eXx", "eXy"):
+            from .combat_effect_profession import remove_profession
+
+            return remove_profession(self, uid)
         if entry.get("family") == "eWj":
             from .combat_characteristic_transfer_handler import (
                 remove_characteristic_transfer,
@@ -606,6 +610,13 @@ class NativeStatHandler:
             from .combat_spell_cost_effect import remove_spell_cost
 
             return remove_spell_cost(self, uid)
+        if (
+            entry.get("family") in ("eWQ", "eWR")
+            and entry.get("native_absent_characteristic") is True
+        ):
+            from .combat_current_stat_consumer import remove_absent_current_stat
+
+            return remove_absent_current_stat(self, uid)
         actor = registered_or_detached_actor(self.fight, entry["target_id"])
         if actor is None and entry.get("family") == "eXE":
             from .combat_state_managers import state_manager

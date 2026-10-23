@@ -206,14 +206,19 @@ class CorridorReservationTests(unittest.TestCase):
             team_context(runtime.fight, "foreign-instance", -2)["reservedCells"], []
         )
 
-    def test_owner_move_clears_its_corridor_even_when_it_returns_to_same_cell(self):
-        runtime = fixture()
-        publish(runtime)
-        before = observe(runtime.fight)
-        confirm(runtime, before, [dict(action=dict(type="move", path=[[0, 0, 0]]))])
-        self.assertEqual(
-            team_context(runtime.fight, "instance-one", -2)["reservedCells"], []
-        )
+    def test_owner_movement_clears_corridor_even_after_return_to_same_cell(self):
+        for action in (
+            dict(type="move", path=[[0, 0, 0]]),
+            dict(type="portal_travel", destination=[0, 0, 0]),
+        ):
+            with self.subTest(action=action):
+                runtime = fixture()
+                publish(runtime)
+                before = observe(runtime.fight)
+                confirm(runtime, before, [dict(action=action)])
+                self.assertEqual(
+                    team_context(runtime.fight, "instance-one", -2)["reservedCells"], []
+                )
 
     def test_end_turn_keeps_established_corridor_until_owner_next_turn(self):
         runtime = fixture()

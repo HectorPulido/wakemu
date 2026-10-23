@@ -23,9 +23,9 @@ class NativeCosmeticState:
 def fresh_player_cosmetic_state(character):
     """Capture the PC's persisted native eSU/eSP selected cosmetic state.
 
-    Owned costume, sprint, aura and finisher presets supply their native categories. Other
-    appearance refs are not treated as equipped cosmetics; currentTitle supplies
-    the native eSU title getter independently.
+    Owned active preset selections supply the native eSP cosmetic lists.
+    The native eSU getters retain their distinct categories3..7 layout;
+    unrelated physical appearance references never grant cosmetic ownership.
     """
     if not isinstance(character, Mapping) or type(character.get("id")) is not int:
         raise ValueError("Missing owned fresh player cosmetic source")
@@ -39,6 +39,7 @@ def fresh_player_cosmetic_state(character):
     finishers = ()
     costume = 0
     sprint = aura = 0
+    singleton_cosmetics = {}
     record = character.get("owned_cosmetics")
     if record is not None:
         from wakfu_server.characters.cosmetics import OwnedCosmetics
@@ -51,9 +52,17 @@ def fresh_player_cosmetic_state(character):
         sprint = account.selected_single(character["id"], 4)
         aura = account.selected_single(character["id"], 6)
         title = account.selected_single(character["id"], 7)
+        from wakfu_server.characters.cosmetics import SINGLE_CATEGORIES
+
+        singleton_cosmetics = {
+            category: (reference,)
+            for category in SINGLE_CATEGORIES
+            if (reference := account.selected_single(character["id"], category))
+        }
     return {
         "selected_values": {3: costume, 4: sprint, 5: finishers, 6: aura, 7: title},
         "active_cosmetics": {
+            **singleton_cosmetics,
             **({5: finishers} if finishers else {}),
             **(
                 {

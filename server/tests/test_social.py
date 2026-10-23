@@ -1,6 +1,7 @@
 import struct
 import unittest
 from wakfu_server import social
+from wakfu_server.company_authority import CompanySnapshot
 
 
 class SocialTests(unittest.TestCase):
@@ -21,14 +22,33 @@ class SocialTests(unittest.TestCase):
         # 752 is the moderator chat flag, not a friend-list count.
         self.assertIsNone(social.adapt(752, b"\x00", 9))
 
-    def test_company_contains_only_local_identity_and_zero_progress(self):
+    def test_company_contains_owned_identity_and_actual_progress(self):
         original = struct.pack(">IIqqiqIiB", 1, 1, 123, 456, 30, 0, 0, 775, 1)
-        replacement = social.adapt(13873, original, 9, {"id": 7})
+        character = {
+            "id": 7,
+            "equipment_criterion_context": {
+                "company_snapshot": CompanySnapshot(9, 7, 0, 0, 603, True).record()
+            },
+        }
+        replacement = social.adapt(13873, original, 9, character)
         self.assertEqual(
-            struct.unpack(">IIqqiqIiB", replacement), (1, 1, 9, 7, 0, 0, 0, 1, 0)
+            struct.unpack(">IIqqiqIiB", replacement), (1, 1, 9, 7, 0, 0, 0, 603, 1)
         )
         with self.assertRaises(ValueError):
             social.adapt(13873, original[:-1], 9, {"id": 7})
+
+    def test_preselection_placeholder_cannot_supply_owned_company_rank(self):
+        self.assertEqual(
+            struct.unpack(">qqiqIiB", social.company(9, None)), (9, 0, 0, 0, 0, 1, 0)
+        )
+        with self.assertRaises(ValueError):
+            social.company(9, {"id": 7})
+        foreign = CompanySnapshot(10, 7, 0, 0, 603, True).record()
+        with self.assertRaisesRegex(ValueError, "Foreign"):
+            social.company(
+                9,
+                {"id": 7, "equipment_criterion_context": {"company_snapshot": foreign}},
+            )
 
     def test_unrelated_account_sections_are_preserved(self):
         self.assertIsNone(social.adapt(13873, struct.pack(">III", 1, 4, 0), 9))
@@ -40,7 +60,16 @@ class SocialTests(unittest.TestCase):
         original = struct.pack(">IIIqhI", 2, 0, 1, 456, 148, 1) + struct.pack(
             ">qqiqIiB", 123, 456, 30, 0, 0, 775, 1
         )
-        owned = [{"id": 7, "level": 1}, {"id": 8, "level": 200}]
+        owned = [
+            {
+                "id": 7,
+                "level": 1,
+                "equipment_criterion_context": {
+                    "company_snapshot": CompanySnapshot(9, 7, 0, 0, 603, True).record()
+                },
+            },
+            {"id": 8, "level": 200},
+        ]
         expected = struct.pack(">IIIqhqhI", 2, 0, 2, 7, 1, 8, 200, 1) + social.company(
             9, owned[0]
         )

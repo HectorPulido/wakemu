@@ -823,7 +823,13 @@ class CombatDropDeliveryTests(PostgresCase):
                 if tag == 10
             ]
             encoded = next(item for item in section_fields if item[16] == 33214)
-            self.assertEqual(encoded[440], 1)
+            binding_message = encoded[442]
+            self.assertEqual(
+                dict(proto_fields(binding_message)),
+                {8: 4, 16: 1},
+                "native field442 is la{type=1, applied=2}, not a bool",
+            )
+            self.assertNotIn(440, encoded)
             _, live_update = temporary_update(db, self.character_id)
             from wakfu_server.combat_drop_delivery import _temporary_item_form
 
@@ -872,6 +878,12 @@ class CombatDropDeliveryTests(PostgresCase):
                 ).fetchone()["n"],
                 1,
             )
+        hydrated = self.store.character(self.account_id, self.character_id)
+        item_rows = hydrated.get("inventory_items", [])
+        loaded = next(item for item in item_rows if item.get("uid") == moved["uid"])
+        # The native template's binding enum is 4; the durable bound flag is
+        # carried separately in the nested binding payload.
+        self.assertEqual((loaded.get("binding_type"), loaded.get("bound")), (4, True))
 
     def test_bound_drop_merges_only_with_same_effective_binding(self):
         with self.store.connection() as db:

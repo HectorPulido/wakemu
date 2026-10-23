@@ -58,6 +58,7 @@ def actor_stats(
     max_wp=None,
     characteristics_payload=None,
     native_controlled_by_ai=False,
+    include_consumable_buffs=False,
 ):
     """myE/Mn: eHf.FIGHTER_DATAS_WITH_XP (3), read by big.ev/eHd.ew.
 
@@ -86,7 +87,9 @@ def actor_stats(
 
         extra = {
             identity: value
-            for identity, value in bonuses(character)["stats"].items()
+            for identity, value in bonuses(
+                character, include_consumable_buffs=include_consumable_buffs
+            )["stats"].items()
             if identity not in (1, 2, 3, 4, 35) and value != 0
         }
         if any(
@@ -113,7 +116,7 @@ def actor_stats(
         character["x"],
         character["y"],
         character["z"],
-        character["map_id"],
+        _position_world_identity(character),
         direction,
         0,
     )
@@ -154,11 +157,28 @@ def monster_actor_stats(
     native_controlled_by_ai=False,
     native_qi_retired=False,
     fight_property_counts=None,
+    companion_source=None,
+    world_context=None,
+    world_actor=None,
+    fight=None,
 ):
     """NPC eHj format2; public stats use sP, not the player's pl section."""
     identity = actor["id"]
     team = actor["team"] if team is None else team
-    if type(identity) is not int or not -(1 << 63) < identity < 0:
+    companion = companion_source is not None
+    if companion:
+        from .combat_companions import COMPANION_BREEDS
+
+        if (
+            companion_source.get("id") != identity
+            or companion_source.get("ref") != actor["ref"]
+            or actor["ref"] not in COMPANION_BREEDS
+            or companion_source.get("native_actor_type") != 5
+        ):
+            raise ValueError("Missing companion fighter ownership")
+    if type(identity) is not int or not (
+        0 < identity < (1 << 63) if companion else -(1 << 63) < identity < 0
+    ):
         raise ValueError("Invalid NPC identity")
     if not 0 < fight_id < (1 << 31) or team not in (0, 1) or not 0 <= direction < 8:
         raise ValueError("Invalid NPC fight")
@@ -187,7 +207,15 @@ def monster_actor_stats(
 
     stats = health_dependency_order(stats)
     position = struct.pack(
-        ">iihqBB", actor["x"], actor["y"], actor["z"], actor["map_id"], direction, 0
+        ">iihqBB",
+        actor["x"],
+        actor["y"],
+        actor["z"],
+        _position_world_identity(
+            actor, context=world_context, world_actor=world_actor, fight=fight
+        ),
+        direction,
+        0,
     )
     obstacle = team if obstacle_id is None else obstacle_id
     if type(obstacle) is not int or not (
@@ -216,7 +244,14 @@ def monster_actor_stats(
         + struct.pack(">h", actor["ref"])
         + _ai_control_byte(native_controlled_by_ai)
         + struct.pack(">hH", actor["level"], 0)
-        + struct.pack(">qBqBh", identity, 1, -1, 0, 0)
+        + struct.pack(
+            ">qBqBh",
+            identity,
+            5 if companion else 1,
+            companion_source["account_id"] if companion else -1,
+            0,
+            0,
+        )
     )
 
 
@@ -293,7 +328,10 @@ def actual_monster_actor_stats(
         or getattr(actor, "is_summon", False) is True
     ):
         raise ValueError("Summon stats require current native registration")
-    if actor.id != monster["id"] or actor.controlled:
+    from .combat_companions import registered_source
+
+    companion = registered_source(fight, actor, monster) if fight is not None else None
+    if actor.id != monster["id"] or (actor.controlled and companion is None):
         raise ValueError("Runtime actor does not match owned monster")
     current = dict(
         monster,
@@ -331,4 +369,16 @@ def actual_monster_actor_stats(
             == "wakemu.owned-npc-state2-qi-completion-v1"
         ),
         fight_property_counts=ordinary_monster_property_counts(monster, actor),
+        companion_source=companion,
+        world_context=getattr(actor, "native_haven_world_combat_context", None),
+        world_actor=actor,
+        fight=fight,
+    )
+
+
+def _position_world_identity(actor, *, context=None, world_actor=None, fight=None):
+    from .combat_haven_world_context import position_identity
+
+    return position_identity(
+        actor, context=context, world_actor=world_actor, fight=fight
     )

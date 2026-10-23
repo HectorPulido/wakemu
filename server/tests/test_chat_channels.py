@@ -1,6 +1,7 @@
 import struct
 import unittest
 import uuid
+from unittest.mock import patch
 
 from postgres_case import PostgresCase
 from psycopg.types.json import Jsonb
@@ -19,7 +20,9 @@ class Peer:
 
 
 class ChatChannelTests(PostgresCase):
-    def test_native_political_and_pvp_requests_use_durable_nation_and_byte_limits(self):
+    def test_native_political_and_pvp_requests_require_native_sender_authority(self):
+        from wakfu_server.native_world_context import battleground_worlds
+
         sender = self.player("sender")
         same = self.player("same", map_id=527)
         foreign = self.player("foreign")
@@ -28,20 +31,25 @@ class ChatChannelTests(PostgresCase):
                 "INSERT INTO character_chat_nations(character_id,nation_id) VALUES(%s,30)",
                 (foreign["character"]["id"],),
             )
-        for opcode, request, response in (
-            (12387, {"text": "hola", "public": False}, 758),
-            (13702, {"text": "hola"}, 632),
-        ):
-            self.sent.clear()
-            self.assertEqual(self.send(sender, opcode, request), 2)
-            self.assertEqual(
-                {(peer, code) for peer, code, _ in self.sent},
-                {(p["peer"].name, response) for p in (sender, same)},
-            )
+        # World membership publishes native roster snapshots independently of chat.
         self.sent.clear()
-        opcode, request = 13702, {"text": "ñ" * 2048}
+        for opcode in (12387, 13702):
+            with self.assertRaisesRegex(ValueError, "requiere"):
+                self.send(sender, opcode, {"text": "forged", "government_office": 1})
+        self.assertEqual(self.sent, [])
+        # A genuine native battleground map enables the existing same-nation
+        # fanout, without granting any political office or PvP character rank.
+        arena = self.player("arena", map_id=min(battleground_worlds()))
+        self.sent.clear()
+        self.assertEqual(self.send(arena, 13702, {"text": "hola"}), 3)
+        self.assertEqual(
+            {peer for peer, code, _ in self.sent},
+            {p["peer"].name for p in (sender, same, arena)},
+        )
+        self.assertTrue(all(code == 632 for _, code, _ in self.sent))
+        self.sent.clear()
         with self.assertRaisesRegex(ValueError, "too long"):
-            self.send(sender, opcode, request)
+            self.send(arena, 13702, {"text": "ñ" * 2048})
         self.assertEqual(self.sent, [])
 
     def setUp(self):
@@ -456,3 +464,43 @@ class ChatChannelTests(PostgresCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ChatSenderEligibilityTests(unittest.TestCase):
+    def test_native_office_and_world_flags_gate_only_their_original_channels(self):
+        from wakfu_server import chat_sender_eligibility as eligibility
+        from wakfu_server.native_world_context import battleground_worlds
+
+        actor = dict(map_id=1134, government_office=1, is_admin=True)
+        # Forged projection fields cannot override the native synchronized state.
+        with patch.object(eligibility.nation_state, "synchro", return_value=bytes(27)):
+            with self.assertRaisesRegex(ValueError, "cargo"):
+                eligibility.require(12387, character=actor, nation_id=30)
+        # This is an authoritative native synchronization fixture, not a new
+        # government assignment producer. Production ordinary state stays zero.
+        for office in (1, 10):
+            with patch.object(
+                eligibility.nation_state,
+                "synchro",
+                return_value=struct.pack(">q", office) + bytes(19),
+            ):
+                eligibility.require(12387, character=actor, nation_id=30)
+                with self.assertRaisesRegex(ValueError, "cargo"):
+                    eligibility.require(12387, character=actor, nation_id=0)
+        for office in (-1, 11):
+            with patch.object(
+                eligibility.nation_state,
+                "synchro",
+                return_value=struct.pack(">q", office) + bytes(19),
+            ):
+                with self.assertRaisesRegex(ValueError, "cargo"):
+                    eligibility.require(12387, character=actor, nation_id=30)
+        for world in (1134, 999999):
+            with self.assertRaisesRegex(ValueError, "mapa"):
+                eligibility.require(13702, character=dict(map_id=world), nation_id=0)
+        eligibility.require(
+            13702, character=dict(map_id=min(battleground_worlds())), nation_id=0
+        )
+        # Other channels retain their own existing authority and routing.
+        for opcode in (12116, 13074, 13224, 13188, 13831, 13744, 13917):
+            eligibility.require(opcode, character={}, nation_id=0)

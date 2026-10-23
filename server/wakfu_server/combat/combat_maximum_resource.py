@@ -12,6 +12,7 @@ from .combat_parameters import parameter_value
 from .combat_actor_snapshot import native_actor_catalog
 from .combat_stat_handler import StatExecutionContext
 from .combat_summon_initialization import registered_or_detached_actor
+from .combat_state_managers import registered_source_pv
 from .combat_npc_initialization import constructor_stat_context
 from .combat_stat_effects import (
     owned_effect_payload,
@@ -218,7 +219,7 @@ class NativeMaximumResourceHandler:
             and (
                 self.fight.phase != "active"
                 or invocation.target_id not in self.fight.actors
-                or invocation.caster_id not in self.fight.actors
+                or registered_source_pv(self.fight, invocation.caster_id) is None
             )
         ):
             raise ValueError("Invalid native maximum resource actors/fight")
@@ -561,6 +562,26 @@ def remove_maximum_resource(handler, uid):
 REDUCTION_FAMILIES = {56: 2, 57: 3, 192: 4}
 
 
+def _reduction_area_lacks_characteristic(fight, identity, stat):
+    """Prove faW PV.a(PC)==false from its actual constructor population."""
+    from .combat_state_managers import registered_area_pv, retained_area_pv_row
+    from .combat_effect_area import native_effect_areas
+    from .combat_fake_fighter import verified_fake_fighter
+
+    if registered_area_pv(fight, identity) is None:
+        raise ValueError("Missing native reduction target PV")
+    row = retained_area_pv_row(fight, identity)
+    if row.get("native_area_contract") != "faW":
+        raise ValueError(
+            "Unsupported native reduction target PV characteristic authority"
+        )
+    definition = native_effect_areas()[str(row["reference"])]
+    constructor = verified_fake_fighter(row, definition)
+    if stat in constructor["characteristic_ids"]:
+        raise ValueError("Native reduction area PA writer is unavailable")
+    return True
+
+
 class NativeMaximumReductionHandler:
     """eWO shifts both raw PA bounds; unlike eWN stores requested amount.
 
@@ -585,15 +606,28 @@ class NativeMaximumReductionHandler:
         if stat is None or len(parameters) not in (2, 4, 6, 8):
             raise ValueError("Unsupported native eWO resource definition")
         actor = registered_or_detached_actor(self.fight, invocation.target_id)
-        if actor is None or (
+        absent_area_pa = actor is None and _reduction_area_lacks_characteristic(
+            self.fight, invocation.target_id, stat
+        )
+        if (actor is None and not absent_area_pa) or (
             not constructor_stat_context(self.fight, invocation)
             and (
                 self.fight.phase != "active"
-                or invocation.target_id not in self.fight.actors
-                or invocation.caster_id not in self.fight.actors
+                or (
+                    invocation.target_id not in self.fight.actors and not absent_area_pa
+                )
+                or registered_source_pv(self.fight, invocation.caster_id) is None
             )
         ):
-            raise ValueError("Invalid native reduction resource actors/fight")
+            raise ValueError(
+                "Invalid native reduction resource actors/fight: "
+                f"reference={invocation.reference}, caster_id={invocation.caster_id}, "
+                f"target_id={invocation.target_id}, phase={self.fight.phase}, "
+                f"caster_fighter={invocation.caster_id in self.fight.actors}, "
+                f"target_fighter={invocation.target_id in self.fight.actors}, "
+                f"caster_area={invocation.caster_id in getattr(self.fight, 'native_effect_areas', {})}, "
+                f"target_area={invocation.target_id in getattr(self.fight, 'native_effect_areas', {})}"
+            )
         context = self.context(effect, invocation)
         if (
             not isinstance(context, StatExecutionContext)
@@ -609,14 +643,24 @@ class NativeMaximumReductionHandler:
             for i in range(len(parameters) // 2)
         ]
         amount = parsed[0]
-        current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(
-            actor, stat
-        )
+        if not absent_area_pa:
+            current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(
+                actor, stat
+            )
         if amount == -1:
-            if type(context.trigger_value) is not int:
+            if type(context.trigger_value) is int:
+                amount = context.trigger_value
+            elif absent_area_pa:
+                # eWO.C resolves an actual Qe even without the target PA;
+                # with no source it leaves -1 literal. The later c retry
+                # occurs only inside PV.a(PC), which is false on this path.
+                if invocation.native_trigger_context is not None:
+                    amount = maximum_application_amount(
+                        -1, invocation, context_applied=True
+                    )
+            else:
                 raise ValueError("Missing native triggering reduction amount")
-            amount = context.trigger_value
-        elif amount == -2:
+        elif amount == -2 and not absent_area_pa:
             amount = current  # eWO.C PV.c(resource), current not maximum.
         chance = (
             100 if len(parsed) < 2 or parsed[1] < 0 else max(0, min(100, parsed[1]))
@@ -631,6 +675,41 @@ class NativeMaximumReductionHandler:
                 return False
         restore = len(parsed) < 3 or parsed[2] == 1
         reduce = len(parsed) < 4 or parsed[3] == 1
+        if absent_area_pa:
+            # eWO.c calls mu(true), without changing aSg or cancelling Qe.a.
+            # A real selected PV stays selected; no PA or PR.b is invented.
+            uid = self.allocate_uid()
+            if context.retained:
+                payload = owned_effect_payload(
+                    uid=uid,
+                    base_uid=invocation.base_uid,
+                    generic_effect=invocation.reference,
+                    caster_id=invocation.caster_id,
+                    target_id=invocation.target_id,
+                    value=amount,
+                    timing_payload=context.timing_payload,
+                )
+                additional = _integer(34, int(restore)) + _integer(35, int(reduce))
+                payload += b"\x42" + _varint(len(additional)) + additional
+                self.fight.owned_stat_effects[uid] = dict(
+                    uid=uid,
+                    target_id=invocation.target_id,
+                    caster_id=invocation.caster_id,
+                    effect_class=effect["effect_class"],
+                    family="eWO",
+                    stat_id=stat,
+                    actual=amount,
+                    restore_current=restore,
+                    reduce_current=reduce,
+                    native_absent_characteristic=True,
+                    payload=payload.hex(),
+                    state_uid=invocation.state_uid,
+                    timer=None if context.timer is None else dict(vars(context.timer)),
+                )
+            from .combat_runner_callbacks import notify_runner_value
+
+            notify_runner_value(invocation, amount)
+            return True
         after = current
         new_raw, new_min = raw, raw_min
         if maximum != (1 << 31) - 1:
@@ -737,6 +816,22 @@ class NativeMaximumReductionHandler:
 
 def remove_maximum_reduction(handler, uid):
     entry = handler.fight.owned_stat_effects[uid]
+    if entry.get("native_absent_characteristic") is True:
+        _reduction_area_lacks_characteristic(
+            handler.fight, entry["target_id"], entry["stat_id"]
+        )
+        # eWO.bbR skips all PA restoration when PV.a(PC) is false.
+        packet = running_effect_removal(
+            handler.fight.id,
+            handler.action_id,
+            effect_class=entry["effect_class"],
+            target_id=entry["target_id"],
+            uid=uid,
+            running_effect_payload=bytes.fromhex(entry["payload"]),
+        )
+        del handler.fight.owned_stat_effects[uid]
+        handler.packets.append((13560, packet))
+        return
     actor = registered_or_detached_actor(handler.fight, entry["target_id"])
     if actor is None:
         raise ValueError("Missing native maximum resource removal actor")
@@ -825,7 +920,7 @@ class NativePercentageHPHandler:
                 and (
                     self.fight.phase != "active"
                     or invocation.target_id not in self.fight.actors
-                    or invocation.caster_id not in self.fight.actors
+                    or registered_source_pv(self.fight, invocation.caster_id) is None
                 )
             )
         ):

@@ -6,10 +6,13 @@ caller: neither eVn.aZR (catalogue 'variant') nor seven target_masks are
 translated here. The latter also contain event/state filters.
 """
 import re
+from functools import lru_cache
 from .combat_area_geometry import (
     native_area_shape,
     oriented_area_offsets,
+    oriented_area_offset_set,
     native_area_contains,
+    _cacheable_area_text,
 )
 
 
@@ -22,17 +25,24 @@ def area_offsets(effect, *, origin=None, reference=None, direction=None):
     kind, description = effect.get("area_class"), effect.get("area_native")
     shape = native_area_shape(effect)
     if shape is not None:
-        if shape[1]:
-            return frozenset(shape[0])
-        if origin is None or reference is None:
+        if not shape[1] and (origin is None or reference is None):
             raise UnsupportedEffectArea(
                 "Native directional area requires origin/reference"
             )
-        return frozenset(
-            oriented_area_offsets(
-                effect, origin=origin, reference=reference, direction=direction
-            )
+        return oriented_area_offset_set(
+            effect, origin=origin, reference=reference, direction=direction
         )
+    if type(kind) is str and _cacheable_area_text(description):
+        return _cached_isotropic_offsets(kind, description)
+    return _isotropic_offsets(kind, description)
+
+
+@lru_cache(maxsize=128)
+def _cached_isotropic_offsets(kind, description):
+    return _isotropic_offsets(kind, description)
+
+
+def _isotropic_offsets(kind, description):
     if (kind, description) == ("anD", "point"):
         return frozenset({(0, 0)})
     if (kind, description) == ("anA", "empty"):

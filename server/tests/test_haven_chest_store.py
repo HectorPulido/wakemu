@@ -4,10 +4,12 @@ import struct
 from unittest.mock import patch
 import uuid
 
+from psycopg.types.json import Jsonb
+
 from postgres_case import PostgresCase
 from test_haven_chest import deposit_body, withdraw_body
 from test_inventory_shards import sample_shard_state
-from wakfu_server.haven_chest import load, transfer
+from wakfu_server.haven_chest import deposit_all, load, transfer
 from wakfu_server.inventory_items import grant
 
 
@@ -597,3 +599,517 @@ class HavenChestPersistenceTests(PostgresCase):
             + struct.pack(">h", len(rows))
             + b"".join(struct.pack(">qhh", *row) for row in rows)
         )
+
+    def _withdraw_as(self, character, container, reference, quantity):
+        from wakfu_server.haven_chest import transfer
+
+        saved = load(self.store, self.account, self.generation, character["id"])
+        chest_slot = next(
+            row["slot"]
+            for row in saved["items"]
+            if row["item"]["reference"] == reference
+        )
+        return transfer(
+            self.store,
+            self.account,
+            self.generation,
+            character["id"],
+            12551,
+            withdraw_body(
+                character["id"],
+                reference,
+                quantity,
+                container,
+                slot=chest_slot,
+                compartment=self.chest["id"],
+            ),
+            opening_token=self.opening,
+            location=dict(
+                character,
+                map_id=9,
+                instance_id=character["haven_bag"]["owner_id"],
+            ),
+        )
+
+    @staticmethod
+    def _stackable_template_binding(enum):
+        from wakfu_server import exchange_rules
+        from wakfu_server.inventory_move import STACKS
+        from wakfu_server.quest_inventory import REFERENCES as CHARACTER_QUEST
+        from wakfu_server.account_quest_inventory import (
+            REFERENCES as ACCOUNT_QUEST,
+        )
+
+        quest_references = set(CHARACTER_QUEST) | set(ACCOUNT_QUEST)
+        return next(
+            reference
+            for reference in sorted(STACKS)
+            if reference not in quest_references
+            and exchange_rules.ITEMS.get(str(reference), {})
+            .get("binding_template", {})
+            .get("enum")
+            == enum
+        )
+
+    def test_mixed_template_bindings_keep_character_custody_across_shared_chest(self):
+        from wakfu_server import exchange_rules
+
+        character_ref = self._stackable_template_binding("BOUND_ON_PICKUP_TO_CHARACTER")
+        account_ref = self._stackable_template_binding("BOUND_ON_PICKUP_TO_ACCOUNT")
+        self.assertEqual(
+            "BOUND_ON_PICKUP_TO_CHARACTER",
+            exchange_rules.ITEMS[str(character_ref)]["binding_template"]["enum"],
+        )
+        self.assertEqual(
+            "BOUND_ON_PICKUP_TO_ACCOUNT",
+            exchange_rules.ITEMS[str(account_ref)]["binding_template"]["enum"],
+        )
+        character_bound = self.grant(reference=character_ref, quantity=1, slot=0)
+        account_bound = self.grant(reference=account_ref, quantity=1, slot=1)
+        ordinary = self.grant(reference=2504, quantity=3, slot=2)
+
+        result = self.deposit_rows(
+            [
+                (character_bound["uid"], 0, 1),
+                (account_bound["uid"], 1, 1),
+                (ordinary["uid"], 2, 3),
+            ]
+        )
+        self.assertTrue(result["applied"])
+        self.assertEqual([], result["character"]["inventory_items"])
+        entries = {row["item"]["uid"]: row for row in result["chest"]["items"]}
+        self.assertEqual(
+            self.char["id"],
+            entries[character_bound["uid"]]["binding_owner_character_id"],
+        )
+        self.assertNotIn("binding_owner_character_id", entries[account_bound["uid"]])
+        self.assertNotIn("binding_owner_character_id", entries[ordinary["uid"]])
+
+        sibling = self.store.create_character(self.account, "Chest Binding Sibling")
+        self.store.select_character(self.account, self.generation, sibling["id"])
+        sibling = self.store.character(self.account, sibling["id"])
+        sibling_container = sibling["inventory_containers"][0]["uid"]
+        with self.assertRaisesRegex(ValueError, "Character-bound chest item"):
+            self._withdraw_as(sibling, sibling_container, character_ref, 1)
+        still_stored = load(self.store, self.account, self.generation, sibling["id"])
+        self.assertIn(
+            character_bound["uid"],
+            {row["item"]["uid"] for row in still_stored["items"]},
+        )
+
+        shared_account_item = self._withdraw_as(
+            sibling, sibling_container, account_ref, 1
+        )
+        self.assertTrue(shared_account_item["applied"])
+        restored_account_item = next(
+            row
+            for row in shared_account_item["character"]["inventory_items"]
+            if row["uid"] == account_bound["uid"]
+        )
+        self.assertEqual(account_ref, restored_account_item["reference"])
+        shared_ordinary_item = self._withdraw_as(sibling, sibling_container, 2504, 3)
+        self.assertEqual(
+            ordinary["uid"],
+            next(
+                row["uid"]
+                for row in shared_ordinary_item["character"]["inventory_items"]
+                if row["reference"] == 2504
+            ),
+        )
+
+        self.store.select_character(self.account, self.generation, self.char["id"])
+        owner = self.store.character(self.account, self.char["id"])
+        owner_result = self._withdraw_as(owner, self.container, character_ref, 1)
+        restored_character_item = next(
+            row
+            for row in owner_result["character"]["inventory_items"]
+            if row["uid"] == character_bound["uid"]
+        )
+        self.assertEqual(character_ref, restored_character_item["reference"])
+        reopened = self.reopen()
+        reopened.clock = self.store.clock
+        persisted = load(reopened, self.account, self.generation, self.char["id"])
+        self.assertEqual([], persisted["items"])
+
+    def test_mixed_binding_bulk_deposit_rolls_back_every_source_on_storage_failure(
+        self,
+    ):
+        character_ref = self._stackable_template_binding("BOUND_ON_PICKUP_TO_CHARACTER")
+        account_ref = self._stackable_template_binding("BOUND_ON_PICKUP_TO_ACCOUNT")
+        character_bound = self.grant(reference=character_ref, quantity=1, slot=0)
+        account_bound = self.grant(reference=account_ref, quantity=1, slot=1)
+        ordinary = self.grant(reference=2504, quantity=3, slot=2)
+        before = deepcopy(self.store.character(self.account, self.char["id"]))
+        chest_before = load(self.store, self.account, self.generation, self.char["id"])
+        rows = [
+            (character_bound["uid"], 0, 1),
+            (account_bound["uid"], 1, 1),
+            (ordinary["uid"], 2, 3),
+        ]
+        with patch(
+            "wakfu_server.haven_chest._json",
+            side_effect=RuntimeError("Injected mixed binding write failure"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "mixed binding"):
+                self.deposit_rows(rows)
+        after = self.store.character(self.account, self.char["id"])
+        chest_after = load(self.store, self.account, self.generation, self.char["id"])
+        self.assertEqual(before["inventory_items"], after["inventory_items"])
+        self.assertEqual(chest_before, chest_after)
+        self.assertEqual(
+            {character_bound["uid"], account_bound["uid"], ordinary["uid"]},
+            {row["uid"] for row in after["inventory_items"]},
+        )
+
+    def test_deposit_all_preserves_uid_metadata_and_skips_equipment_and_quest(self):
+        from wakfu_server import quest_inventory
+        from wakfu_server.wire import proto_field
+
+        ordinary = self.grant(reference=2504, quantity=2, slot=0)
+        equipped = self.grant(reference=13601, quantity=1, slot=1)
+        with self.store.connection() as db:
+            build = self.store.character(self.account, self.char["id"], db)["builds"][0]
+            equipment = proto_field(
+                10, proto_field(8, equipped["uid"]) + proto_field(16, 0)
+            )
+            db.execute(
+                "INSERT INTO character_builds "
+                "(character_id,build_index,sheet,equipment,deck,aptitudes) "
+                "VALUES(%s,0,%s,%s,%s,%s) ON CONFLICT(character_id,build_index) "
+                "DO UPDATE SET equipment=EXCLUDED.equipment",
+                (
+                    self.char["id"],
+                    bytes.fromhex(build["sheet"]),
+                    equipment,
+                    bytes.fromhex(build["deck"]),
+                    bytes.fromhex(build["aptitudes"]),
+                ),
+            )
+            quest_inventory.grant(
+                db, self.char["id"], min(quest_inventory.REFERENCES), 1
+            )
+            from wakfu_server.inventory_shards import save as save_shards
+
+            save_shards(db, ordinary["uid"], sample_shard_state())
+            db.execute(
+                "INSERT INTO inventory_item_elements "
+                "(uid,damage_elements,resistance_elements) VALUES(%s,6,0)",
+                (ordinary["uid"],),
+            )
+            db.execute(
+                "INSERT INTO inventory_item_appearances(uid,appearance_ref) "
+                "VALUES(%s,2024)",
+                (ordinary["uid"],),
+            )
+            db.execute(
+                "INSERT INTO inventory_item_recycling_state(uid,unidentified,socketed) "
+                "VALUES(%s,false,false)",
+                (ordinary["uid"],),
+            )
+            db.execute(
+                "INSERT INTO random_item_use_counters(source_uid,next_use) VALUES(%s,8)",
+                (ordinary["uid"],),
+            )
+        shard_state = sample_shard_state()
+
+        result = deposit_all(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            opening_token=self.opening,
+            location=dict(
+                self.char, map_id=9, instance_id=self.char["haven_bag"]["owner_id"]
+            ),
+        )
+
+        self.assertTrue(result["applied"])
+        self.assertEqual(
+            [equipped["uid"]],
+            [row["uid"] for row in result["character"]["inventory_items"]],
+        )
+        self.assertEqual(1, result["character"]["quest_items"][0]["quantity"])
+        stored = next(
+            row
+            for row in result["chest"]["items"]
+            if row["item"]["uid"] == ordinary["uid"]
+        )
+        self.assertEqual(2, stored["item"]["quantity"])
+        self.assertEqual(
+            shard_state, stored["metadata"]["inventory_item_shards"]["shard_state"]
+        )
+        self.assertEqual(
+            6, stored["metadata"]["inventory_item_elements"]["damage_elements"]
+        )
+        self.assertEqual(
+            {"uid": ordinary["uid"], "appearance_ref": 2024},
+            stored["metadata"]["inventory_item_appearances"],
+        )
+        self.assertEqual(
+            {"uid": ordinary["uid"], "unidentified": False, "socketed": False},
+            stored["metadata"]["inventory_item_recycling_state"],
+        )
+        self.assertEqual(8, stored["metadata"]["random_item_use_counters"]["next_use"])
+
+        withdrawn = self.withdraw(2504, 2)
+        restored = next(
+            row
+            for row in withdrawn["character"]["inventory_items"]
+            if row["uid"] == ordinary["uid"]
+        )
+        self.assertEqual(ordinary["uid"], restored["uid"])
+        self.assertEqual(6, restored["damage_elements"])
+        self.assertEqual(2024, restored["appearance_ref"])
+        with self.store.connection() as db:
+            self.assertEqual(
+                8,
+                db.execute(
+                    "SELECT next_use FROM random_item_use_counters WHERE source_uid=%s",
+                    (ordinary["uid"],),
+                ).fetchone()["next_use"],
+            )
+
+    def test_deposit_all_searches_all_twenty_tabs_and_capacity_failure_is_atomic(self):
+        from wakfu_server.items.inventory_move import STACKS
+
+        first = self.grant(reference=2504, quantity=1, slot=0)
+        maximum = STACKS[2504].get("native_maximum", STACKS[2504].get("maximum"))
+        template = deepcopy(
+            next(
+                row
+                for row in self.store.character(self.account, self.char["id"])[
+                    "inventory_items"
+                ]
+                if row["uid"] == first["uid"]
+            )
+        )
+        for key in ("character_id", "container", "slot"):
+            template.pop(key, None)
+        seed = [
+            {
+                "slot": slot,
+                "item": dict(
+                    template, uid=8_000_000_000_000_000_000 + slot, quantity=maximum
+                ),
+                "metadata": {},
+            }
+            for slot in range(1999)
+        ]
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE account_haven_chests SET capacity=2000,items=%s WHERE account_id=%s",
+                (Jsonb(seed), self.account),
+            )
+        result = deposit_all(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            opening_token=self.opening,
+            location=dict(
+                self.char, map_id=9, instance_id=self.char["haven_bag"]["owner_id"]
+            ),
+        )
+        self.assertTrue(result["applied"])
+        placed = next(
+            row
+            for row in result["chest"]["items"]
+            if row["item"]["uid"] == first["uid"]
+        )
+        self.assertEqual(1999, placed["slot"])
+        self.assertEqual(19, placed["slot"] // 100)
+
+        second = self.grant(reference=2504, quantity=1, slot=1)
+        full = deepcopy(result["chest"]["items"])
+        full[-1] = {
+            "slot": 1999,
+            "item": dict(template, uid=8_000_000_000_000_001_999, quantity=maximum),
+            "metadata": {},
+        }
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE account_haven_chests SET items=%s WHERE account_id=%s",
+                (Jsonb(full), self.account),
+            )
+        chest_before = load(self.store, self.account, self.generation, self.char["id"])
+        inventory_before = deepcopy(
+            self.store.character(self.account, self.char["id"])["inventory_items"]
+        )
+        with self.store.connection() as db:
+            receipts_before = db.execute(
+                "SELECT count(*) AS n FROM account_haven_chest_receipts WHERE account_id=%s",
+                (self.account,),
+            ).fetchone()["n"]
+        with self.assertRaisesRegex(ValueError, "full or invalid"):
+            deposit_all(
+                self.store,
+                self.account,
+                self.generation,
+                self.char["id"],
+                opening_token=uuid.uuid4(),
+                location=dict(
+                    self.char, map_id=9, instance_id=self.char["haven_bag"]["owner_id"]
+                ),
+            )
+        self.assertEqual(
+            inventory_before,
+            self.store.character(self.account, self.char["id"])["inventory_items"],
+        )
+        self.assertEqual(
+            chest_before,
+            load(self.store, self.account, self.generation, self.char["id"]),
+        )
+        with self.store.connection() as db:
+            receipts_after = db.execute(
+                "SELECT count(*) AS n FROM account_haven_chest_receipts WHERE account_id=%s",
+                (self.account,),
+            ).fetchone()["n"]
+        self.assertEqual(receipts_before, receipts_after)
+        self.assertIn(second["uid"], {row["uid"] for row in inventory_before})
+
+    def _native_multitab_body(self, rows):
+        from wakfu_server.haven_chest_layout import compartments
+
+        tabs = compartments(self.chest)
+        result = [struct.pack(">h", len(rows))]
+        for index, uid, quantity, slot in rows:
+            identity = tabs[index]["id"].encode("ascii")
+            result.append(struct.pack(">B", len(identity)) + identity)
+            result.append(struct.pack(">hqhh", 1, uid, slot, quantity))
+        return b"".join(result)
+
+    def test_native_multitab_quick_expands_unmatched_rich_units_and_replays(self):
+        import hashlib
+        from wakfu_server.haven_chest_layout import compartments
+        from wakfu_server.inventory_shards import save as save_shards
+
+        tabs = compartments(self.chest)
+        seed = self.grant(quantity=2)
+        self.call(12038, deposit_body(seed["uid"], 1, compartment=tabs[0]["id"]))
+        self.call(12038, deposit_body(seed["uid"], 1, compartment=tabs[1]["id"]))
+        candidate = self.grant(quantity=2)
+        rich = self.grant(reference=13601, quantity=1, slot=1)
+        with self.store.connection() as db:
+            save_shards(db, rich["uid"], sample_shard_state())
+            db.execute(
+                "INSERT INTO random_item_use_counters(source_uid,next_use) VALUES(%s,9)",
+                (rich["uid"],),
+            )
+        body = self._native_multitab_body(
+            [(0, candidate["uid"], 1, 0), (1, candidate["uid"], 1, 0)]
+        )
+        result = self.call(12038, body)
+        self.assertTrue(result["applied"])
+        self.assertFalse(result["character"]["inventory_items"])
+        stored = next(
+            row for row in result["chest"]["items"] if row["item"]["uid"] == rich["uid"]
+        )
+        self.assertEqual(
+            sample_shard_state(),
+            stored["metadata"]["inventory_item_shards"]["shard_state"],
+        )
+        self.assertEqual(9, stored["metadata"]["random_item_use_counters"]["next_use"])
+        replay = self.call(12038, body)
+        self.assertFalse(replay["applied"])
+        self.assertEqual(result["chest"], replay["chest"])
+        with self.store.connection() as db:
+            receipt = db.execute(
+                "SELECT revision FROM account_haven_chest_receipts WHERE account_id=%s "
+                "AND request_hash=%s",
+                (
+                    self.account,
+                    hashlib.sha256(struct.pack(">h", 12038) + body).digest(),
+                ),
+            ).fetchone()
+        self.assertEqual(result["chest"]["revision"], receipt["revision"])
+
+    def test_native_single_tab_preserves_manual_scope_and_invalid_bulk_rejects(self):
+        candidate = self.grant(quantity=2)
+        rich = self.grant(reference=13601, quantity=1, slot=1)
+        result = self.call(
+            12038, deposit_body(candidate["uid"], 1, compartment=self.chest["id"])
+        )
+        inventory = result["character"]["inventory_items"]
+        self.assertEqual(
+            {candidate["uid"], rich["uid"]}, {row["uid"] for row in inventory}
+        )
+        self.assertEqual(
+            1,
+            next(
+                row["quantity"] for row in inventory if row["uid"] == candidate["uid"]
+            ),
+        )
+        before = load(self.store, self.account, self.generation, self.char["id"])
+        for rows in (
+            [(0, candidate["uid"], 1, 1), (1, 123456789, 1, 0)],
+            [(0, candidate["uid"], 1, 1), (1, candidate["uid"], 1, 0)],
+            [(0, candidate["uid"], 1, 1), (1, rich["uid"], 1, 1000)],
+        ):
+            with self.subTest(rows=rows), self.assertRaises(ValueError):
+                self.call(12038, self._native_multitab_body(rows))
+            self.assertEqual(
+                before, load(self.store, self.account, self.generation, self.char["id"])
+            )
+            self.assertEqual(
+                inventory,
+                self.store.character(self.account, self.char["id"])["inventory_items"],
+            )
+
+    def test_native_multitab_expansion_capacity_failure_rolls_back_original_batch(self):
+        from wakfu_server.inventory_move import STACKS
+
+        candidate = self.grant(quantity=2)
+        self.grant(reference=13601, quantity=1, slot=1)
+        template = deepcopy(
+            next(
+                row
+                for row in self.store.character(self.account, self.char["id"])[
+                    "inventory_items"
+                ]
+                if row["uid"] == candidate["uid"]
+            )
+        )
+        for key in ("character_id", "container", "slot"):
+            template.pop(key, None)
+        maximum = STACKS[2504].get("native_maximum", STACKS[2504].get("maximum"))
+        seeded = [
+            dict(
+                slot=slot,
+                item=dict(
+                    template,
+                    uid=8_000_000_000_000_000_000 + slot,
+                    quantity=maximum - (1 if slot in (0, 100) else 0),
+                ),
+                metadata={},
+            )
+            for slot in range(2000)
+        ]
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE account_haven_chests SET items=%s WHERE account_id=%s",
+                (Jsonb(seeded), self.account),
+            )
+        before = load(self.store, self.account, self.generation, self.char["id"])
+        inventory = deepcopy(
+            self.store.character(self.account, self.char["id"])["inventory_items"]
+        )
+        body = self._native_multitab_body(
+            [(0, candidate["uid"], 1, 0), (1, candidate["uid"], 1, 0)]
+        )
+        with self.assertRaisesRegex(ValueError, "full or invalid"):
+            self.call(12038, body)
+        self.assertEqual(
+            before, load(self.store, self.account, self.generation, self.char["id"])
+        )
+        self.assertEqual(
+            inventory,
+            self.store.character(self.account, self.char["id"])["inventory_items"],
+        )
+        with self.store.connection() as db:
+            self.assertEqual(
+                0,
+                db.execute(
+                    "SELECT count(*) AS n FROM account_haven_chest_receipts WHERE account_id=%s",
+                    (self.account,),
+                ).fetchone()["n"],
+            )

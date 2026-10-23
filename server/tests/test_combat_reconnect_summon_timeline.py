@@ -87,6 +87,11 @@ class ReconnectSummonTimelineTests(unittest.TestCase):
                 birth_packet = (birth["opcode"], bytes.fromhex(birth["payload_hex"]))
                 self.assertEqual(packets.count(birth_packet), 1)
                 birth_index = packets.index(birth_packet)
+                action_index = next(
+                    i for i, (opcode, _) in enumerate(packets) if opcode == 12514
+                )
+                self.assertLess(action_index, birth_index)
+                self.assertEqual(sum(opcode == 12514 for opcode, _ in packets), 1)
                 self.assertEqual(
                     packets[birth_index + 1], (13420, struct.pack(">i", fight.id))
                 )
@@ -100,7 +105,7 @@ class ReconnectSummonTimelineTests(unittest.TestCase):
                 self.assertEqual(progress[summon.id], 3)
                 self.assertEqual(orders[0].count(summon.id), 1)
                 self.assertEqual(orders[0][index], fight.current.id)
-                self.assertEqual(packets[recovery_index + 1][0], 12514)
+                self.assertEqual(packets[recovery_index + 1][0], 13912)
                 self.assertEqual(source_snapshot(fight), before)
 
 

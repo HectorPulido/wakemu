@@ -1,0 +1,6944 @@
+{
+  "policy": "original-bIJ-equip-rule-match-gjg-empty-v1",
+  "requested_count": 626,
+  "factory_seen_count": 626,
+  "verified_empty": [
+    {
+      "reference": 2396,
+      "minimum_level": 30,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 2571,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        15,
+        16
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 4282,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 5462,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 8244,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9016,
+      "minimum_level": 60,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9017,
+      "minimum_level": 60,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9018,
+      "minimum_level": 60,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9019,
+      "minimum_level": 60,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9136,
+      "minimum_level": 52,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9137,
+      "minimum_level": 52,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9138,
+      "minimum_level": 52,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9163,
+      "minimum_level": 52,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9164,
+      "minimum_level": 52,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9165,
+      "minimum_level": 52,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9332,
+      "minimum_level": 80,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9522,
+      "minimum_level": 50,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9523,
+      "minimum_level": 50,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9524,
+      "minimum_level": 50,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9611,
+      "minimum_level": 55,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9612,
+      "minimum_level": 55,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9673,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9674,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9675,
+      "minimum_level": 5,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9676,
+      "minimum_level": 5,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9677,
+      "minimum_level": 5,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9678,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9679,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9687,
+      "minimum_level": 3,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9688,
+      "minimum_level": 3,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9693,
+      "minimum_level": 3,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9739,
+      "minimum_level": 5,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9768,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9769,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9770,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9771,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9772,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9773,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9874,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9875,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9876,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9877,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 9907,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9908,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9909,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9910,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9911,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9912,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9913,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9914,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9915,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9916,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9917,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9918,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9919,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9920,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9921,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9922,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9923,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9924,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9925,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9926,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 9993,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10005,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10006,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10007,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10166,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10167,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10168,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10169,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10170,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10171,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10172,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10173,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10174,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10175,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10176,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10177,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10183,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10227,
+      "minimum_level": 1,
+      "native_dte": 277,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10228,
+      "minimum_level": 1,
+      "native_dte": 277,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10229,
+      "minimum_level": 1,
+      "native_dte": 277,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10230,
+      "minimum_level": 1,
+      "native_dte": 278,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10231,
+      "minimum_level": 1,
+      "native_dte": 278,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10232,
+      "minimum_level": 1,
+      "native_dte": 278,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10233,
+      "minimum_level": 1,
+      "native_dte": 279,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10234,
+      "minimum_level": 1,
+      "native_dte": 279,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10235,
+      "minimum_level": 1,
+      "native_dte": 279,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10236,
+      "minimum_level": 1,
+      "native_dte": 280,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10237,
+      "minimum_level": 1,
+      "native_dte": 280,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10238,
+      "minimum_level": 1,
+      "native_dte": 280,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10239,
+      "minimum_level": 1,
+      "native_dte": 281,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10240,
+      "minimum_level": 1,
+      "native_dte": 281,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10241,
+      "minimum_level": 1,
+      "native_dte": 281,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10292,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10331,
+      "minimum_level": 10,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 10391,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10392,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10393,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10394,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10395,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10396,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10423,
+      "minimum_level": 70,
+      "native_dte": 0,
+      "slots": [
+        17
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10434,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10435,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10436,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10437,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10460,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10461,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10534,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10535,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10536,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10537,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10733,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10750,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10751,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10752,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10753,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10767,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10774,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10789,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10790,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10791,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10866,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10900,
+      "minimum_level": 52,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 10942,
+      "minimum_level": 55,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 10943,
+      "minimum_level": 55,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 11142,
+      "minimum_level": 52,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11344,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        15,
+        16
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 11364,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 11372,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11394,
+      "minimum_level": 10,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11492,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 11493,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 11494,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 11495,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 11552,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11553,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11564,
+      "minimum_level": 60,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11565,
+      "minimum_level": 60,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11566,
+      "minimum_level": 60,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11567,
+      "minimum_level": 60,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11590,
+      "minimum_level": 37,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 11609,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 11736,
+      "minimum_level": 80,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11737,
+      "minimum_level": 80,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11738,
+      "minimum_level": 80,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11739,
+      "minimum_level": 80,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11744,
+      "minimum_level": 37,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11745,
+      "minimum_level": 37,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11746,
+      "minimum_level": 37,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11801,
+      "minimum_level": 45,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11802,
+      "minimum_level": 45,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11803,
+      "minimum_level": 45,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11816,
+      "minimum_level": 1,
+      "native_dte": 322,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11817,
+      "minimum_level": 1,
+      "native_dte": 322,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11818,
+      "minimum_level": 1,
+      "native_dte": 322,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11819,
+      "minimum_level": 1,
+      "native_dte": 322,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11820,
+      "minimum_level": 1,
+      "native_dte": 323,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11821,
+      "minimum_level": 1,
+      "native_dte": 323,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11822,
+      "minimum_level": 1,
+      "native_dte": 323,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11823,
+      "minimum_level": 1,
+      "native_dte": 323,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 11873,
+      "minimum_level": 45,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 11874,
+      "minimum_level": 45,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12011,
+      "minimum_level": 1,
+      "native_dte": 326,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12012,
+      "minimum_level": 1,
+      "native_dte": 326,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12013,
+      "minimum_level": 1,
+      "native_dte": 326,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12014,
+      "minimum_level": 1,
+      "native_dte": 326,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12015,
+      "minimum_level": 1,
+      "native_dte": 336,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12016,
+      "minimum_level": 1,
+      "native_dte": 336,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12017,
+      "minimum_level": 1,
+      "native_dte": 336,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12018,
+      "minimum_level": 1,
+      "native_dte": 336,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12019,
+      "minimum_level": 1,
+      "native_dte": 330,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12020,
+      "minimum_level": 1,
+      "native_dte": 330,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12021,
+      "minimum_level": 1,
+      "native_dte": 330,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12022,
+      "minimum_level": 1,
+      "native_dte": 330,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12023,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12024,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12025,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12026,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12047,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12048,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12049,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12050,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12126,
+      "minimum_level": 1,
+      "native_dte": 336,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12132,
+      "minimum_level": 1,
+      "native_dte": 320,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12133,
+      "minimum_level": 1,
+      "native_dte": 320,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12134,
+      "minimum_level": 1,
+      "native_dte": 320,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12135,
+      "minimum_level": 1,
+      "native_dte": 320,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12136,
+      "minimum_level": 1,
+      "native_dte": 321,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12137,
+      "minimum_level": 1,
+      "native_dte": 321,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12138,
+      "minimum_level": 1,
+      "native_dte": 321,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12139,
+      "minimum_level": 1,
+      "native_dte": 321,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12140,
+      "minimum_level": 1,
+      "native_dte": 328,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12141,
+      "minimum_level": 1,
+      "native_dte": 324,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12142,
+      "minimum_level": 1,
+      "native_dte": 328,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12143,
+      "minimum_level": 1,
+      "native_dte": 327,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12144,
+      "minimum_level": 1,
+      "native_dte": 325,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12145,
+      "minimum_level": 1,
+      "native_dte": 329,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12146,
+      "minimum_level": 1,
+      "native_dte": 324,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12147,
+      "minimum_level": 1,
+      "native_dte": 328,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12148,
+      "minimum_level": 1,
+      "native_dte": 327,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12149,
+      "minimum_level": 1,
+      "native_dte": 325,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12150,
+      "minimum_level": 1,
+      "native_dte": 329,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12151,
+      "minimum_level": 1,
+      "native_dte": 324,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12152,
+      "minimum_level": 1,
+      "native_dte": 328,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12153,
+      "minimum_level": 1,
+      "native_dte": 327,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12154,
+      "minimum_level": 1,
+      "native_dte": 325,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12155,
+      "minimum_level": 1,
+      "native_dte": 324,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12156,
+      "minimum_level": 1,
+      "native_dte": 328,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12157,
+      "minimum_level": 1,
+      "native_dte": 327,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12159,
+      "minimum_level": 1,
+      "native_dte": 329,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12160,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12161,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12162,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12163,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12241,
+      "minimum_level": 1,
+      "native_dte": 325,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12242,
+      "minimum_level": 1,
+      "native_dte": 326,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12329,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        15,
+        16
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12428,
+      "minimum_level": 20,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12429,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12430,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12509,
+      "minimum_level": 1,
+      "native_dte": 354,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12511,
+      "minimum_level": 1,
+      "native_dte": 355,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12512,
+      "minimum_level": 1,
+      "native_dte": 356,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12514,
+      "minimum_level": 1,
+      "native_dte": 354,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12515,
+      "minimum_level": 1,
+      "native_dte": 355,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12516,
+      "minimum_level": 1,
+      "native_dte": 356,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12520,
+      "minimum_level": 1,
+      "native_dte": 354,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12521,
+      "minimum_level": 1,
+      "native_dte": 355,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12522,
+      "minimum_level": 1,
+      "native_dte": 356,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12523,
+      "minimum_level": 1,
+      "native_dte": 354,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12524,
+      "minimum_level": 1,
+      "native_dte": 355,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12525,
+      "minimum_level": 1,
+      "native_dte": 356,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12529,
+      "minimum_level": 1,
+      "native_dte": 354,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12531,
+      "minimum_level": 1,
+      "native_dte": 355,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12648,
+      "minimum_level": 50,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12649,
+      "minimum_level": 50,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12660,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12661,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12663,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12664,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12665,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12666,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12667,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12668,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 12669,
+      "minimum_level": 1,
+      "native_dte": 362,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12670,
+      "minimum_level": 1,
+      "native_dte": 363,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12671,
+      "minimum_level": 1,
+      "native_dte": 364,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12672,
+      "minimum_level": 1,
+      "native_dte": 362,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12673,
+      "minimum_level": 1,
+      "native_dte": 363,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12674,
+      "minimum_level": 1,
+      "native_dte": 364,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12675,
+      "minimum_level": 1,
+      "native_dte": 362,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12676,
+      "minimum_level": 1,
+      "native_dte": 363,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12677,
+      "minimum_level": 1,
+      "native_dte": 364,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12678,
+      "minimum_level": 1,
+      "native_dte": 363,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12679,
+      "minimum_level": 1,
+      "native_dte": 364,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12680,
+      "minimum_level": 1,
+      "native_dte": 362,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12681,
+      "minimum_level": 1,
+      "native_dte": 363,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12682,
+      "minimum_level": 1,
+      "native_dte": 364,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12683,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12684,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12706,
+      "minimum_level": 74,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12707,
+      "minimum_level": 74,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12708,
+      "minimum_level": 74,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12709,
+      "minimum_level": 74,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12740,
+      "minimum_level": 63,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12741,
+      "minimum_level": 63,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12742,
+      "minimum_level": 63,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 12743,
+      "minimum_level": 63,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13102,
+      "minimum_level": 77,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13103,
+      "minimum_level": 77,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13104,
+      "minimum_level": 77,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13105,
+      "minimum_level": 77,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13117,
+      "minimum_level": 79,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13118,
+      "minimum_level": 79,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13119,
+      "minimum_level": 79,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13120,
+      "minimum_level": 79,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13130,
+      "minimum_level": 95,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 13131,
+      "minimum_level": 95,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 13132,
+      "minimum_level": 95,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 13133,
+      "minimum_level": 95,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 13134,
+      "minimum_level": 97,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13135,
+      "minimum_level": 97,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13136,
+      "minimum_level": 97,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13137,
+      "minimum_level": 97,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13412,
+      "minimum_level": 1,
+      "native_dte": 378,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13413,
+      "minimum_level": 1,
+      "native_dte": 378,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13414,
+      "minimum_level": 1,
+      "native_dte": 378,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13441,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13442,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13443,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13444,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13445,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13554,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13555,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13556,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13557,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13558,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13559,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13560,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13565,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13566,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        10
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13567,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 13568,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13569,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13576,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13577,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13583,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13584,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13585,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13586,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13607,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13662,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13663,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13664,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13665,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13694,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13695,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13696,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13697,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13698,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13699,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13700,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13704,
+      "minimum_level": 5,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13705,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13706,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13707,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13708,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13709,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13711,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13738,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13742,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13746,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13750,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13758,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13802,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13806,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13810,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13814,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13818,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13825,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13846,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13847,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13848,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13948,
+      "minimum_level": 1,
+      "native_dte": 585,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13949,
+      "minimum_level": 1,
+      "native_dte": 585,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13950,
+      "minimum_level": 1,
+      "native_dte": 585,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13951,
+      "minimum_level": 1,
+      "native_dte": 585,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13953,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13954,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13955,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13956,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13969,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13970,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13971,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13972,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13976,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13977,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13978,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13986,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13987,
+      "minimum_level": 185,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13988,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13989,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13990,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13991,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13992,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13993,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13994,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 13999,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14002,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14003,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14004,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14007,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14011,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14017,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14020,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14022,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14027,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14890,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 14891,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 14958,
+      "minimum_level": 7,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 14962,
+      "minimum_level": 7,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 15792,
+      "minimum_level": 71,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 15795,
+      "minimum_level": 71,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 15796,
+      "minimum_level": 72,
+      "native_dte": 0,
+      "slots": [
+        10
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 15798,
+      "minimum_level": 72,
+      "native_dte": 0,
+      "slots": [
+        10
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16090,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16091,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16092,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16093,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        10
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16094,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 16095,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16096,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        10
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16097,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16098,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16099,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 16100,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16922,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16935,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16936,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16937,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 16938,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        10
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 16939,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 17259,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 17496,
+      "minimum_level": 120,
+      "native_dte": 0,
+      "slots": [
+        15
+      ],
+      "occupied_slots": [
+        16
+      ],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 17640,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 17655,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 17910,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 17911,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 17912,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 17913,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 18052,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 18053,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 18054,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 18055,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 18056,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19028,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        15,
+        16
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19213,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19214,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19215,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19216,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19217,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19218,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19220,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19221,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19222,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19223,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19225,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19226,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19227,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19228,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19231,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19232,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19233,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19234,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19236,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        10
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19237,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        10
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19238,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19239,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19240,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19241,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19318,
+      "minimum_level": 1,
+      "native_dte": 562,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19319,
+      "minimum_level": 1,
+      "native_dte": 563,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19320,
+      "minimum_level": 1,
+      "native_dte": 562,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19321,
+      "minimum_level": 1,
+      "native_dte": 563,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19322,
+      "minimum_level": 1,
+      "native_dte": 562,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19323,
+      "minimum_level": 1,
+      "native_dte": 563,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19324,
+      "minimum_level": 1,
+      "native_dte": 562,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19325,
+      "minimum_level": 1,
+      "native_dte": 563,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19326,
+      "minimum_level": 1,
+      "native_dte": 562,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19327,
+      "minimum_level": 1,
+      "native_dte": 563,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19545,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19546,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19547,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19548,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19549,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19550,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19551,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19552,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19553,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19554,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 19561,
+      "minimum_level": 1,
+      "native_dte": 575,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19562,
+      "minimum_level": 1,
+      "native_dte": 574,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19563,
+      "minimum_level": 1,
+      "native_dte": 575,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19564,
+      "minimum_level": 1,
+      "native_dte": 574,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19565,
+      "minimum_level": 1,
+      "native_dte": 575,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19566,
+      "minimum_level": 1,
+      "native_dte": 574,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19580,
+      "minimum_level": 1,
+      "native_dte": 573,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19581,
+      "minimum_level": 1,
+      "native_dte": 573,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19582,
+      "minimum_level": 1,
+      "native_dte": 573,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19583,
+      "minimum_level": 1,
+      "native_dte": 573,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 19585,
+      "minimum_level": 1,
+      "native_dte": 573,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 20047,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 20048,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 20393,
+      "minimum_level": 20,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 20394,
+      "minimum_level": 36,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 20395,
+      "minimum_level": 32,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 20396,
+      "minimum_level": 7,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 20397,
+      "minimum_level": 18,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 20401,
+      "minimum_level": 31,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 20432,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        15,
+        16
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 20924,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 20925,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22088,
+      "minimum_level": 1,
+      "native_dte": 611,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22089,
+      "minimum_level": 1,
+      "native_dte": 612,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22090,
+      "minimum_level": 1,
+      "native_dte": 613,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22091,
+      "minimum_level": 1,
+      "native_dte": 614,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22092,
+      "minimum_level": 1,
+      "native_dte": 611,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22093,
+      "minimum_level": 1,
+      "native_dte": 612,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22094,
+      "minimum_level": 1,
+      "native_dte": 613,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22095,
+      "minimum_level": 1,
+      "native_dte": 614,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22096,
+      "minimum_level": 1,
+      "native_dte": 611,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22097,
+      "minimum_level": 1,
+      "native_dte": 612,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22098,
+      "minimum_level": 1,
+      "native_dte": 613,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22099,
+      "minimum_level": 1,
+      "native_dte": 614,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22100,
+      "minimum_level": 1,
+      "native_dte": 611,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22101,
+      "minimum_level": 1,
+      "native_dte": 612,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22102,
+      "minimum_level": 1,
+      "native_dte": 613,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22103,
+      "minimum_level": 1,
+      "native_dte": 614,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22458,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22459,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22460,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22461,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 22462,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 24281,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 24282,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 24283,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 24284,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 24850,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 24851,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 24855,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 24863,
+      "minimum_level": 0,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25027,
+      "minimum_level": 1,
+      "native_dte": 637,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25028,
+      "minimum_level": 1,
+      "native_dte": 637,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25029,
+      "minimum_level": 1,
+      "native_dte": 637,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25030,
+      "minimum_level": 1,
+      "native_dte": 637,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25031,
+      "minimum_level": 1,
+      "native_dte": 637,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25033,
+      "minimum_level": 1,
+      "native_dte": 638,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25034,
+      "minimum_level": 1,
+      "native_dte": 638,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25035,
+      "minimum_level": 1,
+      "native_dte": 638,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25036,
+      "minimum_level": 1,
+      "native_dte": 638,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25037,
+      "minimum_level": 1,
+      "native_dte": 638,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25046,
+      "minimum_level": 15,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25118,
+      "minimum_level": 7,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25119,
+      "minimum_level": 32,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25121,
+      "minimum_level": 36,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 25122,
+      "minimum_level": 36,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 26274,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 26350,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 26351,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 26370,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 26391,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 26392,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 26393,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 26396,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 26397,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 26575,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 26576,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 26577,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 26578,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 27995,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 27996,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 27997,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 28411,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 28412,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 28413,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 28414,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 28415,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 28958,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        10
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29299,
+      "minimum_level": 230,
+      "native_dte": 0,
+      "slots": [
+        16
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29300,
+      "minimum_level": 230,
+      "native_dte": 0,
+      "slots": [
+        16
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29558,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29559,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29560,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29561,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29571,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29572,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29615,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29932,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29933,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29934,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29935,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29936,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29937,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29938,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29939,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29940,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29941,
+      "minimum_level": 200,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29942,
+      "minimum_level": 95,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29943,
+      "minimum_level": 95,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29948,
+      "minimum_level": 95,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29949,
+      "minimum_level": 95,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29950,
+      "minimum_level": 155,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29951,
+      "minimum_level": 155,
+      "native_dte": 0,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29952,
+      "minimum_level": 155,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29953,
+      "minimum_level": 155,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29954,
+      "minimum_level": 155,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29955,
+      "minimum_level": 155,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29956,
+      "minimum_level": 155,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29957,
+      "minimum_level": 155,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29982,
+      "minimum_level": 125,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29983,
+      "minimum_level": 125,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29984,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29985,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29986,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 29987,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 30870,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 31171,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 31172,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 31505,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 31506,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32230,
+      "minimum_level": 230,
+      "native_dte": 643,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32231,
+      "minimum_level": 230,
+      "native_dte": 643,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32232,
+      "minimum_level": 230,
+      "native_dte": 643,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32233,
+      "minimum_level": 230,
+      "native_dte": 643,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32234,
+      "minimum_level": 230,
+      "native_dte": 643,
+      "slots": [
+        10
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32235,
+      "minimum_level": 230,
+      "native_dte": 643,
+      "slots": [
+        3
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32236,
+      "minimum_level": 230,
+      "native_dte": 643,
+      "slots": [
+        4
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32237,
+      "minimum_level": 230,
+      "native_dte": 643,
+      "slots": [
+        5
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32238,
+      "minimum_level": 230,
+      "native_dte": 643,
+      "slots": [
+        7,
+        8
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32240,
+      "minimum_level": 230,
+      "native_dte": 643,
+      "slots": [
+        16
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32463,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32720,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32721,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": false,
+      "effects": []
+    },
+    {
+      "reference": 32853,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32854,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32855,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32901,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32902,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32903,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32904,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32905,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32906,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32947,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32948,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32949,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32950,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32951,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32952,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 32988,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 33335,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 33336,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 33375,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        0
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 33376,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        13
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    },
+    {
+      "reference": 33377,
+      "minimum_level": 1,
+      "native_dte": 0,
+      "slots": [
+        12
+      ],
+      "occupied_slots": [],
+      "has_conditions": true,
+      "effects": []
+    }
+  ],
+  "nonempty": [],
+  "failed_factory": [],
+  "not_equippable": [],
+  "rule_mismatch": [],
+  "not_found": [],
+  "source": {
+    "native_client_jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+    "native_item_table_id": 35,
+    "native_item_table_jar_sha256": "412d3551ce8050ee75579c1584ecb6700ae8885ce817abf63e282b35f194f068",
+    "verified_rules_input_sha256": "069d4b90c0556d21b056da0107701aac756cfba848c97f54d249a9b14b6dfd99",
+    "factory_probe_sha256": "d28207c0ef5586bb57509a9080e2380e5b937b7787c665fb92db49dc989cb353"
+  }
+}

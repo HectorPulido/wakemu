@@ -29,6 +29,28 @@ def eating(*, actor_id, action_id, effect_uid, effect_id):
         or effect_id not in FOOD_EMOTES
     ):
         raise ValueError("Invalid own food animation identities")
+    return consumable_emote(
+        actor_id=actor_id,
+        action_id=action_id,
+        effect_uid=effect_uid,
+        effect_id=effect_id,
+        emote_id=20019,
+    )
+
+
+def consumable_emote(*, actor_id, action_id, effect_uid, effect_id, emote_id):
+    """Publish a descriptor-authorized native 550 effect, without learning it."""
+    if any(
+        type(value) is not int or not 0 < value < limit
+        for value, limit in (
+            (actor_id, 2**63),
+            (action_id, 2**31),
+            (effect_uid, 2**63),
+            (effect_id, 2**31),
+            (emote_id, 2**31),
+        )
+    ):
+        raise ValueError("Invalid native consumable emote identities")
     # iN required UID1/baseUID2. Effect reference3 resolves installed food
     # generic550; value4 supplies emote20019. Caster6/target7 are the same owner.
     effect = b"".join(
@@ -37,7 +59,7 @@ def eating(*, actor_id, action_id, effect_uid, effect_id):
             (8, effect_uid),
             (16, 0),
             (24, effect_id),
-            (32, 20019),
+            (32, emote_id),
             (48, actor_id),
             (56, actor_id),
         )

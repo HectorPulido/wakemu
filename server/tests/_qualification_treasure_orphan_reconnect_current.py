@@ -1,0 +1,7 @@
+import importlib
+from wakfu_server import declared_treasure_rewards
+
+importlib.reload(declared_treasure_rewards)
+import test_orphan_treasure_projection
+
+importlib.reload(test_orphan_treasure_projection)

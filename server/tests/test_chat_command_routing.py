@@ -29,10 +29,12 @@ def dispatcher_harness(*, character=None, fight=None, target_identity=None):
                 ast.arg(arg="movement_state"),
                 ast.arg(arg="fight"),
                 ast.arg(arg="fight_messages"),
+                ast.arg(arg="bag_session"),
+                ast.arg(arg="ranch_session"),
             ],
             kwonlyargs=[],
             kw_defaults=[],
-            defaults=[ast.Constant(value=None) for _ in range(5)],
+            defaults=[ast.Constant(value=None) for _ in range(7)],
         ),
         body=[
             function,
@@ -91,12 +93,154 @@ def dispatcher_harness(*, character=None, fight=None, target_identity=None):
     exec(compile(module, str(SOURCE), "exec"), namespace)
     current = character or {"id": 41, "name": "Self", "map_id": 3, "instance_id": 0}
     namespace["dispatcher"] = namespace["_make_dispatcher"](
-        current, {}, None, fight, None
+        current, {}, None, fight, None, None, None
     )
     return namespace
 
 
 class ChatCommandRoutingTests(unittest.TestCase):
+    def test_chest_depositall_uses_only_own_open_chest_and_publishes_result(self):
+        character = {
+            "id": 41,
+            "name": "Self",
+            "account_id": 700,
+            "map_id": 9,
+            "instance_id": 77,
+            "haven_bag": {"owner_id": 77},
+        }
+        namespace = dispatcher_harness(character=character)
+        namespace.update(
+            chest_opening="private-open-token",
+            combat_session=None,
+            ranch_session=None,
+        )
+        owners = (
+            character,
+            {"id": 42, "name": "Active hero", "inventory_items": []},
+        )
+        result_character = dict(character, inventory_items=[])
+        chest = {"id": "owned-chest", "revision": 9, "items": []}
+        result = {
+            "character": result_character,
+            "inventory_characters": owners,
+            "chest": chest,
+            "applied": True,
+        }
+        refreshed = []
+        records = []
+
+        class PrivateSession:
+            @staticmethod
+            def refresh(previous, current):
+                refreshed.append((previous["id"], current["id"]))
+                return current
+
+        namespace["active_private_session"] = lambda: PrivateSession()
+        namespace["record"] = lambda **event: records.append(event)
+        with patch("wakfu_server.command_permissions.authorize_command"), patch(
+            "wakfu_server.haven_chest.deposit_all", return_value=result
+        ) as deposit_all, patch(
+            "wakfu_server.inventory_move.synchronization",
+            side_effect=lambda owner: ("inventory", owner["id"]),
+        ), patch(
+            "wakfu_server.inventory_items.equipment_inventory",
+            side_effect=lambda owner: ("equipment", owner["id"]),
+        ), patch(
+            "wakfu_server.haven_chest_wire.bootstrap",
+            side_effect=lambda value: ("chest", value["revision"]),
+        ), patch(
+            "wakfu_server.haven_chest_wire.action_result",
+            return_value=("chest-result", True),
+        ):
+            output = namespace["dispatcher"]("!chest depositall")
+
+        self.assertEqual(
+            "Depósito completado; los objetos equipados y de misión permanecen en el inventario",
+            output["message"],
+        )
+        deposit_all.assert_called_once_with(
+            namespace["STORE"],
+            700,
+            "issuer-generation",
+            41,
+            opening_token="private-open-token",
+            location=character,
+            ranch_session=None,
+        )
+        self.assertEqual([(41, 41)], refreshed)
+        self.assertEqual(
+            [
+                ("inventory", 41),
+                ("equipment", 41),
+                ("inventory", 42),
+                ("equipment", 42),
+                ("chest", 9),
+                ("chest-result", True),
+                (
+                    674,
+                    (
+                        41,
+                        "Depósito completado; los objetos equipados y de misión permanecen en el inventario",
+                    ),
+                ),
+            ],
+            namespace["sent"],
+        )
+        self.assertEqual(
+            [
+                {
+                    "event": "account_chest_deposited_all",
+                    "actor_id": 41,
+                    "applied": True,
+                    "revision": 9,
+                }
+            ],
+            records,
+        )
+        self.assertEqual([], namespace["mutations"])
+
+    def test_chest_depositall_rejects_remote_extra_args_missing_opening_and_fights(
+        self,
+    ):
+        character = {
+            "id": 41,
+            "name": "Self",
+            "account_id": 700,
+            "map_id": 9,
+            "instance_id": 77,
+            "haven_bag": {"owner_id": 77},
+        }
+        cases = (
+            ("!chest depositall @Remote", None, None, "private", 700),
+            ("!chest depositall", None, None, None, 700),
+            ("!chest depositall", object(), None, "private", 700),
+            ("!chest depositall", None, object(), "private", 700),
+            ("!chest depositall", None, None, "private", 701),
+        )
+        for command, fight, combat_session, opening, issuer in cases:
+            with self.subTest(
+                command=command,
+                fight=bool(fight),
+                combat=bool(combat_session),
+                opening=opening,
+                issuer=issuer,
+            ):
+                namespace = dispatcher_harness(character=character, fight=fight)
+                namespace.update(
+                    chest_opening=opening,
+                    combat_session=combat_session,
+                    ranch_session=None,
+                )
+                with patch("wakfu_server.command_permissions.authorize_command"), patch(
+                    "wakfu_server.haven_chest.deposit_all"
+                ) as deposit_all:
+                    with self.assertRaises(ValueError):
+                        namespace["dispatcher"](command, authorized_by=issuer)
+                deposit_all.assert_not_called()
+                self.assertEqual(1, len(namespace["sent"]))
+                self.assertEqual(674, namespace["sent"][0][0])
+                self.assertEqual([], namespace["mutations"])
+
     def test_search_alias_uses_bounded_read_only_results_without_position_flush(self):
         namespace = dispatcher_harness()
         index = build_index(

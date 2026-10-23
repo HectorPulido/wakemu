@@ -15,6 +15,8 @@ EPHEMERAL_FIGHT_FIELDS = frozenset(
     {
         "actors",
         "native_rail_movement_authority",
+        # Post-commit query-elision cache; the durable row is the real fence.
+        "native_consumable_handoff_committed",
         # A live session fence, invalidated on disconnect; interrupted fights
         # are aborted rather than resumed with this authority.
         "native_instance_publication_lease",
@@ -199,7 +201,11 @@ class Checkpoints:
         durable = {row["character_id"]: row["account_id"] for row in rows}
         from .combat_terminal_metadata import registered_summon_actor_ids
 
-        summon_ids = registered_summon_actor_ids(fight)
+        from .combat_companions import registered_companion_ids
+
+        summon_ids = registered_summon_actor_ids(fight) | registered_companion_ids(
+            fight
+        )
         controlled = {
             actor.id: actor.owner_id
             for actor in fight.actors.values()
@@ -207,6 +213,9 @@ class Checkpoints:
         }
         if not durable or durable != controlled:
             raise ValueError("Checkpoint fight roster differs from durable members")
+        from .combat_companions import validate_durable_roster
+
+        validate_durable_roster(db, fight)
         if any(fight.actors[row["character_id"]].team != row["team"] for row in rows):
             raise ValueError("Checkpoint participant team differs from durable member")
 
@@ -357,6 +366,9 @@ class Checkpoints:
             )
 
             persist_captured_roster_updates(db, fight)
+            from .combat_consumable_handoff import persist as persist_consumable_handoff
+
+            consumable_handoffs = persist_consumable_handoff(self.store, db, fight)
             if getattr(fight, "boss_score_profile", None) is not None:
                 from wakfu_server.maps.boss_score_runtime import persist
 
@@ -367,6 +379,9 @@ class Checkpoints:
                 # Accepted wave receipts and this immutable fight snapshot
                 # commit together; a rejected checkpoint rolls both back.
                 persist_progress(db, fight)
+        from .combat_consumable_handoff import mark_committed
+
+        mark_committed(fight, consumable_handoffs)
         _trace_stage(
             trace,
             "committed",

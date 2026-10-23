@@ -92,6 +92,7 @@ class EffectDispatcher:
         group_execution_scope=None,
         resolved_population_scope=None,
         team_repeat_count=None,
+        invocation_reconstruction=None,
     ):
         self.effects = effects
         self.handlers = handlers
@@ -116,6 +117,7 @@ class EffectDispatcher:
         self.distance_group_runner = distance_group_runner
         self.group_execution_scope = group_execution_scope
         self.resolved_population_scope = resolved_population_scope
+        self.invocation_reconstruction = invocation_reconstruction
         self._active_pt = None
         self._active_ancestors = ()
         self._active_execution_keys = ()
@@ -173,6 +175,18 @@ class EffectDispatcher:
             _TRIGGER_DEPTH.reset(token)
 
     def execute(self, invocation, *, ancestors=None, _pt_report=None):
+        area_events = getattr(self, "native_area_events", None)
+        scope = getattr(area_events, "wall_retirement_scope", None)
+        if callable(scope):
+            with scope():
+                return self._execute_scoped(
+                    invocation, ancestors=ancestors, _pt_report=_pt_report
+                )
+        return self._execute_scoped(
+            invocation, ancestors=ancestors, _pt_report=_pt_report
+        )
+
+    def _execute_scoped(self, invocation, *, ancestors=None, _pt_report=None):
         if ancestors is None:
             ancestors = self._active_ancestors
         previous_pt = self._active_pt
@@ -301,6 +315,9 @@ class EffectDispatcher:
         effect = self.effects.get(str(invocation.reference))
         if effect is None:
             raise UnsupportedEffectExecution("Missing native effect definition")
+        reconstruction = getattr(self, "invocation_reconstruction", None)
+        if reconstruction is not None:
+            invocation = reconstruction(effect, invocation, ancestors)
         if not effect["minimum_level"] <= invocation.level <= effect["maximum_level"]:
             self._diagnose(invocation, status="skipped_level")
             return False
@@ -472,7 +489,7 @@ class EffectDispatcher:
                     )
                     if self._prepared_scopes:
                         self._prepared_scopes[-1].append((effect, selected))
-                elif effect["effect_class"] in (400, 401, 933, 1000, 1001, 1080):
+                elif effect["effect_class"] in (400, 401, 430, 933, 1000, 1001, 1080):
                     selected = replace(selected, native_running_uid=clone_uid)
             if effect["effect_class"] == 865:
                 from .combat_value_transfer_runtime import execute_runtime_transfer

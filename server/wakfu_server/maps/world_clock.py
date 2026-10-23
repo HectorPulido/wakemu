@@ -5,6 +5,17 @@ clock rates need frequent resync because the client advances at real time.
 """
 import struct
 import time
+import os
+
+
+def configured_offset_ms():
+    """The same configured offset used by native World clock23354."""
+    return int(os.environ.get("WAKFU_CLOCK_OFFSET_SECONDS", "0")) * 1000
+
+
+def current_time_ms():
+    """Return current native game time without importing the World router."""
+    return time.time_ns() // 1000000 + configured_offset_ms()
 
 
 def packet(now_ms=None, offset_ms=0):

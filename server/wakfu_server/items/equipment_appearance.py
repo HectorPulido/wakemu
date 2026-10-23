@@ -13,16 +13,47 @@ def rows(character):
     level = effective_sheet_level(character, index)
     saved = character.get("builds", {}).get(index, {})
     selected = validate_sheet(
-        dict(character, level=level, effective_level=level),
+        dict(
+            character,
+            real_level=character.get("real_level", character["level"]),
+            level=level,
+            effective_level=level,
+        ),
         bytes.fromhex(saved.get("equipment", "")),
+        strict=False,
     )
     units = {item["uid"]: item for item in character.get("inventory_items", [])}
-    # Owned units currently have no persisted item-skin override authority.
-    return tuple(
-        sorted(
-            (entry["slot"], units[entry["uid"]]["reference"], 0) for entry in selected
+    from wakfu_server.item_appearance import reference as appearance_reference
+
+    appearances = {
+        entry["slot"]: (
+            units[entry["uid"]]["reference"],
+            appearance_reference(units[entry["uid"]]),
         )
-    )
+        for entry in selected
+    }
+    record = character.get("owned_cosmetics")
+    if record is not None:
+        from wakfu_server.characters.cosmetics import OwnedCosmetics
+
+        owned = OwnedCosmetics.from_record(
+            record, account_id=character.get("account_id")
+        )
+        # Original eSP.r(fnO), including cosmetic-only visuals on empty slots.
+        for category, slot in (
+            (8, 0),
+            (9, 5),
+            (10, 3),
+            (11, 13),
+            (12, 12),
+            (13, 15),
+            (14, 16),
+        ):
+            reference = owned.selected_single(character["id"], category)
+            if reference:
+                base_reference = appearances.get(slot, (0, 0))[0]
+                appearances[slot] = (base_reference, reference)
+    return tuple((slot, *values) for slot, values in sorted(appearances.items()))
 
 
 def section(character):
@@ -32,6 +63,17 @@ def section(character):
         raise ValueError("Equipment appearance exceeds native update count")
     return bytes((len(selected),)) + b"".join(
         struct.pack(">Bii", *entry) for entry in selected
+    )
+
+
+def snapshot_packet(character):
+    """Publish the selected equipment's visual slots without rebuilding actors."""
+    selected = rows(character)
+    if len(selected) > 127:
+        raise ValueError("Equipment appearance exceeds native update count")
+    return 13060, struct.pack(">qB", character["id"], len(selected)) + b"".join(
+        struct.pack(">Bii", slot, reference, skin or reference)
+        for slot, reference, skin in selected
     )
 
 

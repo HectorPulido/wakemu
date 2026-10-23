@@ -8,6 +8,7 @@ from .planting_cells import surface
 from .planting import RESOURCES
 from .monsters import reference
 from .resource_domains import is_fixed_resource
+from .environmental_group_ecology import exclusion_sql
 
 
 def snapshot(
@@ -79,9 +80,12 @@ def snapshot(
     groups = (
         db.execute(
             "SELECT members FROM combat_groups WHERE map_id=%s AND instance_id=%s "
-            "AND status!='defeated' AND NOT EXISTS(SELECT 1 FROM objectives_public_hunts h "
+            "AND status!='defeated' AND " + exclusion_sql(active_only=True) + " "
+            "AND NOT EXISTS(SELECT 1 FROM objectives_public_hunts h "
             "WHERE h.map_id=combat_groups.map_id AND combat_groups.instance_id=0 "
-            "AND h.group_id=combat_groups.group_id)",
+            "AND h.group_id=combat_groups.group_id) "
+            "AND NOT EXISTS(SELECT 1 FROM developer_item_test_groups t WHERE "
+            "(t.map_id,t.instance_id,t.group_id)=(combat_groups.map_id,combat_groups.instance_id,combat_groups.group_id))",
             (map_id, instance_id),
         )
         if "monster" in kinds

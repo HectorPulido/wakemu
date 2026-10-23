@@ -33,6 +33,13 @@ def _rows(fight):
             verified_simple_area(
                 row, native_effect_areas().get(str(row["reference"]), {})
             )
+        if row.get("native_area_contract") == "faM":
+            from .combat_effect_area import native_effect_areas
+            from .combat_artifact_area import verify_artifact_area
+
+            verify_artifact_area(
+                row, native_effect_areas().get(str(row["reference"]), {})
+            )
         if row.get("native_area_contract") == "faW":
             from .combat_effect_area import native_effect_areas
             from .combat_fake_fighter import verified_fake_fighter

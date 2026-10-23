@@ -1,0 +1,7 @@
+import importlib
+from wakfu_server.objectives import environmental_recurring_storage
+
+importlib.reload(environmental_recurring_storage)
+import test_recurring_hunter_backend
+
+importlib.reload(test_recurring_hunter_backend)

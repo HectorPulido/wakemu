@@ -22,6 +22,7 @@ from .combat_effects import _integer, _varint
 from .combat_native_timing_context import native_definition_timing
 from .combat_retained_effects import (
     RetainedEffect,
+    _RetainedManagerPass,
     NativeRetainedEffectView,
     NativeRetainedRemoval,
     register_owned_removals,
@@ -87,7 +88,7 @@ def _retained_record(record):
 
 
 def native_retained_condition_reader(fight):
-    """Return one lazy read snapshot for a single pure range query.
+    """Return one lazy read snapshot for a pure condition projection/query.
 
     The caller discards this reader when the query returns. It must never be
     stored on Fight or reused across an effect, mutation or another query.
@@ -233,7 +234,7 @@ class NativeRetainedRuntime:
             raise ValueError("Native retained population contains unregistered effects")
         self.container(None)
 
-    def _live(self):
+    def _live(self, *, _manager_pass=None):
         return (
             set(self.fight.owned_stat_effects)
             | set(self.fight.state_wire_payloads)
@@ -242,7 +243,11 @@ class NativeRetainedRuntime:
             | set(getattr(self.fight, "native_owned_spatial_effects", {}))
             | {
                 e.uid
-                for a in state_managers(self.fight)
+                for a in (
+                    state_managers(self.fight)
+                    if _manager_pass is None
+                    else _manager_pass.managers
+                )
                 for e in a.state_ledger.entries
             }
         ) - pending_state_uids(self.fight)
@@ -673,6 +678,12 @@ class NativeRetainedRuntime:
         def execute_scoped(effect, values, invocation):
             self.synchronize()
             before = self._live()
+            post_registration = getattr(handler, "on_post_retention_registration", None)
+            previous_area_uids = (
+                frozenset(getattr(self.fight, "native_effect_areas", {}))
+                if callable(post_registration)
+                else frozenset()
+            )
             first_packet = len(self.packets)
             definition = self.definition(effect, invocation)
             if not state:
@@ -717,6 +728,7 @@ class NativeRetainedRuntime:
                         320,
                         309,
                         447,
+                        449,  # eWw owns distinct world-property counters and native removal.
                         451,
                         649,
                         667,
@@ -745,8 +757,18 @@ class NativeRetainedRuntime:
                         1065,
                         1066,
                         1099,
+                        1093,  # eZJ retains its own row; faq mutation is execution-local.
                         1201,
                         1202,
+                        2000,  # eXx/eXy own additive profession-manager entries.
+                        2001,
+                        2002,
+                        2003,
+                        2004,
+                        2005,
+                        2006,
+                        2007,
+                        2008,
                     )
                     or (
                         effect["effect_class"] == 1
@@ -812,6 +834,22 @@ class NativeRetainedRuntime:
                         )
                     )
             self.normalize_owned_delivery(effect, invocation, first_packet)
+            if callable(post_registration):
+                # This reconstructed publisher must see the complete Qf
+                # population, including the parent315 just registered above.
+                areas = getattr(self.fight, "native_effect_areas", {})
+                created = tuple(
+                    row
+                    for uid, row in areas.items()
+                    if uid not in previous_area_uids
+                    and row.get("effect_reference") == invocation.reference
+                )
+                for row in created:
+                    if (
+                        getattr(self.fight, "native_effect_areas", {}).get(row["uid"])
+                        is row
+                    ):
+                        post_registration(row)
             return result
 
         def execute(effect, values, invocation):
@@ -821,6 +859,13 @@ class NativeRetainedRuntime:
         execute.native_runner_value_verified = getattr(
             handler, "native_runner_value_verified", False
         )
+        # Generic equipment route verification must distinguish the exact
+        # runner being wrapped from this transaction-scoped adapter callable.
+        # The dispatcher and its RuntimeOperationBinding still point at this
+        # wrapper; this identity is only used to validate the declared runner
+        # class before any owned source is applied.
+        execute.native_wrapped_handler = handler
+        execute.native_retention_owner = self
         eligibility = getattr(handler, "native_eligibility", None)
         if callable(eligibility):
             execute.native_eligibility = eligibility
@@ -829,6 +874,9 @@ class NativeRetainedRuntime:
             # Runtime preparation can address the registered wrapper after
             # handler installation. Preserve the original runner owner.
             execute.prepare = prepare
+        prepare_delayed = getattr(handler, "prepare_delayed", None)
+        if callable(prepare_delayed):
+            execute.prepare_delayed = prepare_delayed
         prepare_activation = getattr(handler, "prepare_activation", None)
         if callable(prepare_activation):
             execute.prepare_activation = prepare_activation
@@ -1409,6 +1457,11 @@ class NativeRetainedRuntime:
             effect["effect_class"] in DEFERRED_RUNNERS
             and _healing_uid is None
             and _damage_uid is None
+            and not (
+                effect["effect_class"] == 321
+                and invocation.native_delayed_uid is not None
+                and invocation.native_running_uid == invocation.native_delayed_uid
+            )
         ):
             payload = deferred_payload(
                 family=effect["effect_class"],
@@ -1571,7 +1624,12 @@ class NativeRetainedRuntime:
 
     def view(self):
         self.synchronize()
-        if set(self._live()) != set(self.fight.native_retained_records):
+        # synchronize/prune mutates ownership and may remove retired PVs. The
+        # shared read pass starts afterwards and never crosses a callback.
+        managers = _RetainedManagerPass(self.fight)
+        if set(self._live(_manager_pass=managers)) != set(
+            self.fight.native_retained_records
+        ):
             raise ValueError(
                 "Unregistered native retained effects prevent complete view"
             )
@@ -1588,6 +1646,7 @@ class NativeRetainedRuntime:
                 for uid in self.fight.native_retained_order
             ],
             population_verified_complete=self.fight.native_retained_tracking,
+            _manager_pass=managers,
         )
 
     def condition_effects(self, actor_id):

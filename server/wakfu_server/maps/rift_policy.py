@@ -28,8 +28,8 @@ def validate(policy):
         raise ValueError("Unsupported rift reward policy")
     if policy.get("quest_requirements") or policy.get("key_requirements"):
         raise ValueError("Native quest/key authority is not yet supported")
-    if policy.get("ultimate_enabled", False) is not False:
-        raise ValueError("Ultimate rift key authority is unavailable")
+    if type(policy.get("ultimate_enabled", False)) is not bool:
+        raise ValueError("Invalid ultimate rift enable flag")
     if type(policy.get("enabled")) is not bool:
         raise ValueError("Invalid rift enable flag")
     return dict(policy)

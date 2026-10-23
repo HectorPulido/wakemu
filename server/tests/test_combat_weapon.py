@@ -197,6 +197,250 @@ class WeaponTests(unittest.TestCase):
             self.assertGreater(damages[0], 0)
             self.assertGreaterEqual(damages[1], damages[0])
 
+    def test_paid_shushu_weapon_heals_an_ally_on_preview_and_commit(self):
+        """Exercise the real item roots through the normal weapon transaction."""
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_spell_commit import commit_spell_transaction
+        from wakfu_server.combat_los import authoritative_visible
+        from wakfu_server.combat_obstacle_condition import footprint
+        from test_combat_aptitude_healing_runtime import AptitudeHealingRuntimeTests
+
+        AptitudeHealingRuntimeTests.setUpClass()
+        healing_fixture = AptitudeHealingRuntimeTests()
+        fight, characters, monster, decks = healing_fixture.fixture(
+            active_spells=(),
+            caster_aptitudes=(),
+            injury=100,
+            level=155,
+            caster_breed=11,
+            enemy_position=(-4, -7, -1),
+            second_player_position=(-7, -7, -1),
+            third_player_position=(-6, -7, -1),
+            compact_arena=True,
+        )
+        self.assertEqual(fight.current.id, 7)
+        character = equipped(characters[7], 18445)
+        characters[7] = character
+        ally = fight.actors[9]
+        self.assertEqual(ally.team, fight.actors[7].team)
+        self.assertEqual(
+            abs(ally.position[0] - fight.actors[7].position[0])
+            + abs(ally.position[1] - fight.actors[7].position[1]),
+            2,
+        )
+
+        for critical, expected_heal in ((False, 44), (True, 55)):
+            with self.subTest(critical=critical):
+                # Rebuild the unchanged native setup for an independent branch.
+                if critical:
+                    fight, characters, monster, decks = healing_fixture.fixture(
+                        active_spells=(),
+                        caster_aptitudes=(),
+                        injury=100,
+                        level=155,
+                        caster_breed=11,
+                        enemy_position=(-4, -7, -1),
+                        second_player_position=(-7, -7, -1),
+                        third_player_position=(-6, -7, -1),
+                        compact_arena=True,
+                    )
+                    character = equipped(characters[7], 18445)
+                    characters[7] = character
+                    ally = fight.actors[9]
+                before = snapshot(fight)
+                ally_hp = ally.hp
+                caster_ap = fight.actors[7].ap
+
+                def los(origin, destination, current):
+                    return authoritative_visible(
+                        character["map_id"],
+                        origin,
+                        destination,
+                        current,
+                        blocking_footprints={
+                            actor.id: footprint(actor.position, actor.physical_radius)
+                            for actor in current.actors.values()
+                            if actor.hp > 0
+                        },
+                    )
+
+                transaction = prepare_server_weapon(
+                    struct.pack(">qqbiih", 7, 1000, 15, *ally.position),
+                    character,
+                    {-7: monster},
+                    fight,
+                    3,
+                    decks[7],
+                    action_id=1,
+                    line_of_sight=los,
+                    critical=critical,
+                    rng=Random(1),
+                    player_characters=characters,
+                    deck_blobs=decks,
+                )
+                self.assertEqual(snapshot(fight), before)
+                self.assertEqual(transaction.plan["item_reference"], 18445)
+                self.assertEqual(transaction.plan["costs"]["ap"], 5)
+                self.assertEqual(transaction.plan["target_id"], 9)
+                self.assertEqual(
+                    transaction.fight.actors[9].hp - ally_hp, expected_heal
+                )
+                self.assertEqual(transaction.fight.actors[7].ap, caster_ap - 5)
+
+                runtime = RuntimeMessages(fight)
+                packets = commit_spell_transaction(
+                    runtime,
+                    transaction,
+                    stats_serializer=lambda *_args: b"native-weapon-stats",
+                )
+                self.assertIs(runtime.fight, transaction.fight)
+                self.assertEqual(runtime.action_id, 1)
+                self.assertEqual(runtime.fight.actors[9].hp - ally_hp, expected_heal)
+                self.assertEqual(runtime.fight.actors[7].ap, caster_ap - 5)
+                self.assertTrue(any(opcode == 13509 for opcode, _ in packets))
+
+    def test_shushu_healing_weapon_rejects_invalid_ap_and_target_atomically(self):
+        from test_combat_aptitude_healing_runtime import AptitudeHealingRuntimeTests
+
+        AptitudeHealingRuntimeTests.setUpClass()
+        healing_fixture = AptitudeHealingRuntimeTests()
+        fight, characters, monster, decks = healing_fixture.fixture(
+            active_spells=(),
+            caster_aptitudes=(),
+            injury=100,
+            level=155,
+            caster_breed=11,
+            enemy_position=(-4, -7, -1),
+            second_player_position=(-7, -7, -1),
+            third_player_position=(-6, -7, -1),
+            compact_arena=True,
+        )
+        character = equipped(characters[7], 18445)
+        before = snapshot(fight)
+        fight.actors[7].ap = 4
+        insufficient = snapshot(fight)
+        for target in ((-6, -7, -1), (-3, -7, -1)):
+            with self.subTest(target=target):
+                try:
+                    prepare_server_weapon(
+                        struct.pack(">qqbiih", 7, 1000, 15, *target),
+                        character,
+                        {-7: monster},
+                        fight,
+                        3,
+                        decks[7],
+                        action_id=1,
+                        line_of_sight=lambda *_args: True,
+                        critical=False,
+                        rng=Random(1),
+                        player_characters=characters,
+                        deck_blobs=decks,
+                    )
+                except ValueError:
+                    pass
+                else:
+                    self.fail("invalid AP or out-of-range target was accepted")
+                self.assertEqual(snapshot(fight), insufficient)
+        self.assertNotEqual(before, insufficient)
+
+    def test_existing_water_and_non_shushu_light_weapon_heals_still_dispatch(self):
+        from wakfu_server.combat_los import authoritative_visible
+        from wakfu_server.combat_obstacle_condition import footprint
+        from test_combat_aptitude_healing_runtime import AptitudeHealingRuntimeTests
+
+        AptitudeHealingRuntimeTests.setUpClass()
+        healing_fixture = AptitudeHealingRuntimeTests()
+        fight, characters, monster, decks = healing_fixture.fixture(
+            active_spells=(),
+            caster_aptitudes=(),
+            injury=100,
+            level=155,
+            caster_breed=11,
+            enemy_position=(-4, -7, -1),
+            second_player_position=(-7, -7, -1),
+            third_player_position=(-6, -7, -1),
+            compact_arena=True,
+        )
+        # The test dagger is the one native water (family 25) heal and has no
+        # critical branch. Palápida is an unrelated weapon using light healing.
+        for reference, target_id, has_critical in (
+            (18096, 9, False),
+            (13058, 8, True),
+        ):
+            with self.subTest(reference=reference):
+                character = equipped(characters[7], reference)
+                characters[7] = character
+                target = fight.actors[target_id]
+                before_hp = target.hp
+                before_fight = snapshot(fight)
+
+                def los(origin, destination, current):
+                    return authoritative_visible(
+                        character["map_id"],
+                        origin,
+                        destination,
+                        current,
+                        blocking_footprints={
+                            actor.id: footprint(actor.position, actor.physical_radius)
+                            for actor in current.actors.values()
+                            if actor.hp > 0
+                        },
+                    )
+
+                transaction = prepare_server_weapon(
+                    struct.pack(">qqbiih", 7, 1000, 15, *target.position),
+                    character,
+                    {-7: monster},
+                    fight,
+                    3,
+                    decks[7],
+                    action_id=1,
+                    line_of_sight=los,
+                    critical=False,
+                    rng=Random(1),
+                    player_characters=characters,
+                    deck_blobs=decks,
+                )
+                self.assertEqual(transaction.plan["item_reference"], reference)
+                self.assertEqual(transaction.plan["target_id"], target_id)
+                self.assertGreater(
+                    transaction.fight.actors[target_id].hp - before_hp, 0
+                )
+                self.assertEqual(snapshot(fight), before_fight)
+                if not has_critical:
+                    from wakfu_server.combat_weapon import catalog
+
+                    self.assertFalse(
+                        any(
+                            root["variant"] == 1
+                            for root in catalog()[reference]["roots"]
+                        )
+                    )
+
+    def test_shushu_1083_damage_weapon_keeps_normal_dispatch(self):
+        from wakfu_server.combat_damage_contracts import DAMAGE_FAMILIES
+
+        character, monster, fight = weapon_fixture(11, 200)
+        character = equipped(character, 14667)
+        fight.actors[-7].position = (1, 0, 0)
+        before = snapshot(fight)
+        transaction = prepare_server_weapon(
+            struct.pack(">qqbiih", 7, 1000, 15, 1, 0, 0),
+            character,
+            {-7: monster},
+            fight,
+            3,
+            encode_deck((), ()),
+            action_id=1,
+            line_of_sight=lambda *_args: True,
+            critical=False,
+            rng=Random(1),
+        )
+        self.assertEqual(snapshot(fight), before)
+        self.assertEqual(transaction.plan["item_reference"], 14667)
+        self.assertIn(1083, DAMAGE_FAMILIES)
+        self.assertLess(transaction.fight.actors[-7].hp, fight.actors[-7].hp)
+
     def test_absent_native_critical_branch_rejects_without_running_dispatch(self):
         from types import SimpleNamespace
         from unittest.mock import patch

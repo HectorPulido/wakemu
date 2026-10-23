@@ -1,0 +1,30 @@
+import importlib
+
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_random_rosters")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_group_progress")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_reward_bands")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_simple_results")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_native_variables")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_group_population")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_storage")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_gameplay")
+)
+importlib.reload(
+    importlib.import_module("wakfu_server.objectives.environmental_service")
+)
+importlib.reload(importlib.import_module("test_environmental_random_group_lifecycle"))

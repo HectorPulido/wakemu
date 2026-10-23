@@ -135,6 +135,7 @@ def learn(store, account_id, generation, character_id, body):
             "inventory_item_elements",
             "inventory_item_shards",
             "inventory_mounts",
+            "inventory_pets",
         ):
             if db.execute(
                 f"SELECT 1 FROM {table} WHERE uid=%s", (source_uid,)

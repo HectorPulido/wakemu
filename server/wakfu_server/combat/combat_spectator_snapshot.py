@@ -210,6 +210,8 @@ def current_snapshot(
     ]
     if not actors or len(actors) > 127:
         raise ValueError("Unsupported live spectator roster size")
+    from .combat_companions import bootstrap_actor_type
+
     participants = []
     payloads = {}
     for actor in actors:
@@ -220,7 +222,7 @@ def current_snapshot(
         participants.append(
             dict(
                 actor_id=actor.id,
-                myB=0 if actor.controlled else 1,
+                myB=bootstrap_actor_type(fight, actor),
                 myn=actor.team,
                 myC=1,
                 myE=stats,

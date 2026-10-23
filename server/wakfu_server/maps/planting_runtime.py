@@ -112,6 +112,22 @@ class Plantings:
 
                 probability = self.probability_context(prepared)
                 succeeds(probability, 0.0)  # Validate without drawing or mutating.
+            from wakfu_server.profession_consumable_modifiers import (
+                modifiers,
+                duration_ms,
+            )
+            from wakfu_server.native_world_context import is_battleground
+
+            with self.store.connection() as db:
+                speed = modifiers(
+                    self.store,
+                    db,
+                    cid,
+                    prepared["seed"]["profession_id"],
+                    generation=generation,
+                    is_battleground=is_battleground(current["map_id"]),
+                )["plant_speed"]
+            duration = duration_ms(duration, speed)
             ticket = dict(
                 prepared=prepared,
                 account=account,
@@ -309,6 +325,8 @@ class Plantings:
                     "SELECT p.*,t.to_stage,t.delay_ms,t.probability FROM planted_resources p "
                     "JOIN resource_growth_transitions t ON t.resource_reference=p.resource_reference "
                     "AND t.from_stage=p.stage WHERE p.creation_time+t.delay_ms<=%s "
+                    "AND NOT EXISTS (SELECT 1 FROM environmental_owned_resources e "
+                    "WHERE e.resource_uid=p.resource_uid AND e.retired_at_ms IS NULL) "
                     "AND NOT EXISTS (SELECT 1 FROM resource_growth_decisions d "
                     "WHERE d.resource_uid=p.resource_uid AND d.from_stage=p.stage)",
                     (now_ms,),

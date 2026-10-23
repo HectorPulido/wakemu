@@ -423,6 +423,10 @@ def _answer_challenge_inner(
                 "fight_id": None,
                 "notify_account_id": a[0],
             }
+        from wakfu_server.territory_bonuses import reconcile_owned
+
+        source = reconcile_owned(store, a[0], a[2], source, db=db)
+        recipient = reconcile_owned(store, b[0], b[2], recipient, db=db)
         fight_id = db.execute(
             "INSERT INTO combat_fights(status,fight_kind) VALUES('placement','duel') RETURNING id"
         ).fetchone()["id"]
@@ -437,6 +441,21 @@ def _answer_challenge_inner(
                 "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (fight_id, identity[1], identity[0], team, identity[2], *baseline),
             )
+            from .combat_consumable_lifecycle import enter_participant
+
+            enter_participant(store, db, identity[1], fight_id, generation=identity[2])
+        from wakfu_server.neo_regeneration import project_entry_character
+
+        canonical_health = {
+            health["id"]: health
+            for health in db.execute(
+                "SELECT id,account_id,hp,max_hp,hp_damage,health_dead FROM characters "
+                "WHERE id=ANY(%s)",
+                ([a[1], b[1]],),
+            )
+        }
+        source = project_entry_character(source, canonical_health[a[1]])
+        recipient = project_entry_character(recipient, canonical_health[b[1]])
         db.execute(
             "UPDATE friendly_duel_invitations SET status='accepted',fight_id=%s,responded_at=%s "
             "WHERE id=%s",
@@ -668,7 +687,7 @@ def settle(
             # A duel loss is presentation/state only. Restore the captured
             # exterior tile and full effective health; never retain fight cells.
             db.execute(
-                "UPDATE characters SET hp=%s,max_hp=%s,hp_damage=0,health_dead=false,"
+                "UPDATE characters SET hp=%s,max_hp=%s,hp_damage=0,health_dead=false,hp_zero_valid=false,"
                 "map_id=%s,instance_id=%s,x=%s,y=%s,z=%s "
                 "WHERE id=%s AND account_id=%s",
                 (maximum, maximum, *original_position, actor_id, owner),
@@ -686,6 +705,15 @@ def settle(
                     exploration_coefficient(maximum, maximum),
                     now,
                 ),
+            )
+            from .combat_consumable_lifecycle import return_participant
+
+            return_participant(
+                store,
+                db,
+                actor_id,
+                candidate,
+                generation=member["session_generation"],
             )
             saved = store.character(owner, actor_id, db)
             positions[actor_id] = tuple(

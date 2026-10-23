@@ -6,9 +6,12 @@ def ordinary_npc_spellbook(fight, actor, source):
     """Reuse native csd ownership and bPO clamping; never a player deck."""
     from wakfu_server.monsters import native_abilities
 
+    from .combat_companions import registered_source
+
+    companion = registered_source(fight, actor, source) is not None
     if (
         fight.actors.get(actor.id) is not actor
-        or actor.controlled is not False
+        or (actor.controlled is not False and not companion)
         or not isinstance(source, dict)
         or source.get("id") != actor.id
         or type(source.get("ref")) is not int

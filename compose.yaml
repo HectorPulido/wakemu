@@ -44,7 +44,7 @@ services:
       # Listen on the container network; published host ports stay localhost.
       WAKFU_BIND_HOST: ${WAKFU_BIND_HOST:-0.0.0.0}
       WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
-      WAKFU_AI_URL: ${WAKFU_AI_URL:-http://ai:8090}
+      WAKFU_AI_URL: ${WAKFU_AI_URL:-tcp://ai:8090}
       WAKFU_REDIS_URL: ${WAKFU_REDIS_URL:-redis://redis:6379/0}
       WAKFU_ECOLOGY_MODE: ${WAKFU_ECOLOGY_MODE:-external}
       WAKFU_OBJECTIVES_MODE: ${WAKFU_OBJECTIVES_MODE:-external}
@@ -60,6 +60,8 @@ services:
       WAKFU_PLANT_GROWTH_SECONDS: ${WAKFU_PLANT_GROWTH_SECONDS:-30}
       WAKFU_ENABLE_COMBAT_TEST: ${WAKFU_ENABLE_COMBAT_TEST:-1}
       WAKFU_COMBAT_START_EVENTS: ${WAKFU_COMBAT_START_EVENTS:-1}
+      WAKFU_COMBAT_HELD_REFERENCES: ${WAKFU_COMBAT_HELD_REFERENCES:-}
+      WAKFU_NATIVE_PARTY_STAGED_RECOVERY: ${WAKFU_NATIVE_PARTY_STAGED_RECOVERY:-0}
       # Development fallback: omit unsupported equipment effects with chat/log diagnostics.
       WAKFU_DEV_SKIP_UNSUPPORTED_INITIALIZATION: ${WAKFU_DEV_SKIP_UNSUPPORTED_INITIALIZATION:-1}
       WAKFU_NATIVE_GRANTED_CAST: ${WAKFU_NATIVE_GRANTED_CAST:-1}
@@ -293,6 +295,7 @@ services:
       redis:
         condition: service_healthy
     environment:
+      WAKFU_AI_PORT: '8090'
       WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION}
       WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
       WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
@@ -302,7 +305,7 @@ services:
       - ai-context-data:/var/lib/wakfu-ai-context
     networks: [isolated]
     healthcheck:
-      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health',timeout=2)"]
+      test: [CMD, python3, -m, wakfu_ai.transport.health]
       interval: 5s
       timeout: 3s
       retries: 5

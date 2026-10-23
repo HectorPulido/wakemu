@@ -15,7 +15,46 @@ def _has_unsettled_holdings(service, record):
         return True
     if not record:
         return False
-    if service != "economy" or set(record) - {"kamas", "week", "bonuses"}:
+    if service != "economy" or set(record) - {
+        "kamas",
+        "week",
+        "bonuses",
+        "learning_duration_factor",
+        "maximum_simultaneous_learning",
+        "points_earned_factor",
+        "bonus_cycles",
+        "native_weekly_point_cap",
+    }:
+        return True
+    # Original learned bonus modifiers are bookkeeping, not refundable custody.
+    # Unknown/malformed state remains a blocker instead of being discarded.
+    for name, allowed in (
+        ("learning_duration_factor", (1, 0.9)),
+        ("maximum_simultaneous_learning", (1, 2)),
+        ("points_earned_factor", (1, 1.1)),
+    ):
+        if name in record and (
+            type(record[name]) not in (int, float) or record[name] not in allowed
+        ):
+            return True
+    if "bonus_cycles" in record:
+        cycles = record["bonus_cycles"]
+        if not isinstance(cycles, dict) or any(
+            not isinstance(key, str)
+            or not 1 <= len(key) <= 10
+            or not key.isascii()
+            or not key.isdecimal()
+            or str(int(key)) != key
+            or not 0 < int(key) < 2**31
+            or type(value) is not int
+            or value < 0
+            for key, value in cycles.items()
+        ):
+            return True
+    if "native_weekly_point_cap" in record and (
+        type(record["native_weekly_point_cap"]) is not int
+        or not 1 <= record["native_weekly_point_cap"] < 2**31
+    ):
         return True
     kamas = record.get("kamas", 0)
     return type(kamas) is not int or kamas != 0
@@ -42,6 +81,31 @@ class GuildService:
                 policy.get("enabled") is True
                 and policy.get("native_sync_enabled") is True
             )
+
+    def authorize_native_request(self, opcode):
+        """Keep the explicit identity-only capability separate from guild sync."""
+        with self.store.connection() as db:
+            policy = self._policy(db)
+            if (
+                policy.get("enabled") is not True
+                or policy.get("native_sync_enabled") is not True
+            ):
+                raise ValueError("Guild system is disabled")
+            primary = policy.get("primary_identity_only", False)
+            if type(primary) is not bool:
+                raise ValueError("Invalid guild primary capability policy")
+            if primary and opcode not in (13757, 12937, 12575, 15877):
+                raise ValueError("Guild operation is unavailable in identity-only mode")
+            if policy.get("management_enabled") is True:
+                allowed = policy.get("native_request_opcodes")
+                if (
+                    not isinstance(allowed, list)
+                    or any(type(value) is not int for value in allowed)
+                    or opcode not in allowed
+                ):
+                    raise ValueError(
+                        "Guild operation is unavailable in management mode"
+                    )
 
     def _start(self, db, account, generation, character):
         self.store.lock_character(db, account, generation, character)
@@ -121,22 +185,24 @@ class GuildService:
         policy = self._policy(db)
         from .guild_model import point_limits
 
-        point_limits(policy, guild)
-        from .guild_economy import bonus_snapshot
+        from .guild_economy import economy_record
 
+        economy = economy_record(db, guild_id)
+        point_limits(policy, guild, economy_record=economy, now=self.store.now())
         bonuses = [
             dict(
                 bonus_id=int(key),
                 activation_date=value.get("activated_at_ms", 0),
                 buy_date=value["purchased_at_ms"],
             )
-            for key, value in bonus_snapshot(db, guild_id).items()
+            for key, value in economy.get("bonuses", {}).items()
         ]
         result = {
             "guild": guild,
             "ranks": guild.pop("ranks"),
             "members": guild.pop("members"),
             "bonuses": bonuses,
+            "member_bonus_records": dict(economy.get("bonuses", {})),
             "policy": policy,
         }
         if policy.get("native_sync_enabled") is True:
@@ -169,6 +235,18 @@ class GuildService:
                 ).fetchone()
             ):
                 return None
+            if row:
+                from .guild_progression import settle_due
+
+                policy = self._policy(db).get("economy", {})
+                if (
+                    policy.get("bonus_catalog_authority")
+                    == "native_guild_progression_v1"
+                ):
+                    guild = db.execute(
+                        "SELECT * FROM guilds WHERE id=%s", (row["guild_id"],)
+                    ).fetchone()
+                    settle_due(db, self.store, guild, policy)
             return self._snapshot(db, row["guild_id"]) if row else None
 
     def create(
@@ -212,18 +290,8 @@ class GuildService:
                         "Original guild operation no longer belongs to this member"
                     )
                 return self._snapshot(db, prior["guild"]["id"])
-            pattern = policy.get("name_pattern")
-            if (
-                not pattern
-                or not isinstance(name, str)
-                or not re.fullmatch(pattern, name)
-            ):
-                raise ValueError(
-                    "Guild name validation policy is unavailable or rejects name"
-                )
-            self._name_bounds(name)
-            if type(blazon) is not int or not -(1 << 63) <= blazon < (1 << 63):
-                raise ValueError("Invalid guild blazon identity")
+            name = self._identity_name(name, policy)
+            self._identity_blazon(blazon)
             if policy.get("owner_id_semantics") not in ("character", "account"):
                 raise ValueError("Guild owner identity policy is unavailable")
             for label in (leader_name, member_name):
@@ -233,11 +301,7 @@ class GuildService:
                     or len(label.encode("utf-8")) > 127
                 ):
                     raise ValueError("Invalid rank name")
-            masks = [policy.get("leader_permissions"), policy.get("member_permissions")]
-            if any(
-                type(mask) is not int or not 0 <= mask < (1 << 63) for mask in masks
-            ):
-                raise ValueError("Initial rank permission policy is unavailable")
+            masks = self._initial_rank_masks(policy)
             if db.execute(
                 "SELECT 1 FROM guild_members WHERE character_id=%s", (character_id,)
             ).fetchone():
@@ -246,10 +310,6 @@ class GuildService:
             if type(cost) is not int or cost < 0 or type(item) is not int or item <= 0:
                 raise ValueError("Invalid guild creation policy")
             self._consume_identity_cost(db, account_id, character_id, item, cost)
-            if policy.get("name_normalization") != "NFKC_CASEFOLD":
-                raise ValueError("Guild name normalization policy unavailable")
-            if blazon not in policy.get("allowed_blazons", []):
-                raise ValueError("Guild blazon is not in configured catalog")
             key = unicodedata.normalize("NFKC", name).casefold()
             guild_id = db.execute(
                 "INSERT INTO guilds(name,name_key,blazon,leader_id) VALUES(%s,%s,%s,%s) RETURNING id",
@@ -285,6 +345,9 @@ class GuildService:
         return rank
 
     def _rank_values(self, actor, name, permissions):
+        from wakfu_server.guild_native_validators import validate_rank_mask
+
+        validate_rank_mask(permissions)
         if (
             not isinstance(name, str)
             or not 1 <= len(name.encode("utf-16-le")) // 2 <= 16
@@ -333,6 +396,14 @@ class GuildService:
             if rank["position"] <= actor["position"]:
                 raise ValueError("Cannot edit own or superior rank")
             self._rank_values(actor, name, permissions)
+            bottom = db.execute(
+                "SELECT max(position) AS p FROM guild_ranks WHERE guild_id=%s",
+                (g["id"],),
+            ).fetchone()["p"]
+            if rank["position"] == bottom:
+                from wakfu_server.guild_native_validators import validate_rank_mask
+
+                validate_rank_mask(permissions, lowest=True)
             db.execute(
                 "UPDATE guild_ranks SET name=%s,permissions=%s WHERE id=%s",
                 (name, permissions, rank_id),
@@ -715,24 +786,10 @@ class GuildService:
                     raise ValueError("Operation key reused with a different request")
                 return self._snapshot(db, g["id"])
             if field == "name":
-                pattern = p.get("name_pattern")
-                if (
-                    not pattern
-                    or not isinstance(value, str)
-                    or not re.fullmatch(pattern, value)
-                    or p.get("name_normalization") != "NFKC_CASEFOLD"
-                ):
-                    raise ValueError(
-                        "Guild name validation policy unavailable or rejects name"
-                    )
-                self._name_bounds(value)
+                value = self._identity_name(value, p)
                 name_key = unicodedata.normalize("NFKC", value).casefold()
-            elif (
-                type(value) is not int
-                or not -(1 << 63) <= value < (1 << 63)
-                or value not in p.get("allowed_blazons", [])
-            ):
-                raise ValueError("Guild blazon is not in configured catalog")
+            else:
+                self._identity_blazon(value)
             cost, item = policy.get("kamas"), policy.get("item")
             if type(cost) is not int or cost < 0 or type(item) is not int or item <= 0:
                 raise ValueError("Explicit identity change cost policy required")
@@ -760,6 +817,68 @@ class GuildService:
             )
             return self._snapshot(db, g["id"])
 
+    @classmethod
+    def _identity_name(cls, name, policy):
+        from .guild_native_validators import validate_name_structure
+
+        value = validate_name_structure(name)
+        cls._name_bounds(value)
+        if (
+            policy.get("primary_identity_only") is True
+            or policy.get("management_enabled") is True
+        ):
+            # Wakemu deliberately disables local censorship for this bounded
+            # capability; this is not an absent or recovered official word list.
+            if (
+                policy.get("name_validation") != "native_structure"
+                or policy.get("name_normalization") != "NFKC_CASEFOLD"
+                or policy.get("local_name_censorship")
+                != {"enabled": False, "patterns": []}
+            ):
+                raise ValueError("Guild primary name policy is unavailable")
+            return value
+        # Structural approval is distinct from censorship and the existing
+        # explicit database uniqueness policy. Keep those fail-closed.
+        pattern = policy.get("name_pattern")
+        if (
+            not isinstance(pattern, str)
+            or not pattern
+            or not re.fullmatch(pattern, value)
+            or policy.get("name_normalization") != "NFKC_CASEFOLD"
+        ):
+            raise ValueError(
+                "Guild name validation policy is unavailable or rejects name"
+            )
+        return value
+
+    @staticmethod
+    def _identity_blazon(value):
+        from .guild_native_validators import decode_blazon
+
+        decode_blazon(value)
+
+    @staticmethod
+    def _initial_rank_masks(policy):
+        from .guild_native_validators import catalog, validate_rank_mask
+
+        native = catalog()
+        result = []
+        for key, expected, highest in (
+            ("leader_permissions", native["highest_rank_authorizations"], True),
+            ("member_permissions", native["lowest_rank_authorizations"], False),
+        ):
+            configured = policy.get(key)
+            if configured is not None and (
+                type(configured) is not int or configured != expected
+            ):
+                raise ValueError(
+                    "Initial guild rank permissions conflict with the native contract"
+                )
+            result.append(
+                validate_rank_mask(expected, highest=highest, lowest=not highest)
+            )
+        return result
+
     @staticmethod
     def _name_bounds(name):
         if (
@@ -776,6 +895,9 @@ class GuildService:
         """
         if item not in (16942, 25100, 25101):
             raise ValueError("Guild identity item lacks plain consumable contract")
+        from wakfu_server.simple_item_actions import _idle
+
+        _idle(db, character_id, self.store.now())
         wallet = db.execute(
             "SELECT kamas FROM account_wallets WHERE account_id=%s FOR UPDATE",
             (account_id,),

@@ -137,6 +137,8 @@ class NativeEffectResolver:
         caster=None,
         direct_target_policies=None,
         health_operand=None,
+        fresh_group_population=None,
+        preserve_explicit_recipient=None,
     ):
         self.actors = actors
         self.native_context = native_context
@@ -145,6 +147,8 @@ class NativeEffectResolver:
         self.caster = caster
         self.direct_target_policies = direct_target_policies
         self.health_operand = health_operand
+        self.fresh_group_population = fresh_group_population
+        self.preserve_explicit_recipient = preserve_explicit_recipient
 
     def __call__(self, effect, invocation):
         if not isinstance(invocation, EffectInvocation):
@@ -251,9 +255,13 @@ class NativeEffectResolver:
             and (
                 (
                     selector["mask"] == 0
-                    and (not invocation.native_explicit_target or rebound_selection)
+                    and (
+                        (
+                            (not invocation.native_explicit_target or rebound_selection)
+                            and native_group_route(effect) == "actors"
+                        )
+                    )
                     and invocation.native_trigger_context is None
-                    and native_group_route(effect) == "actors"
                 )
                 or bool(
                     selector["mask"]
@@ -292,8 +300,58 @@ class NativeEffectResolver:
                     bool(selector["mask"] & 1)
                     and effect.get("area_class") not in (None, "anA", "anD")
                 )
+                # Explicit, version-pinned Wakemu controller reconstruction.
+                # Native PV/type/health filters alone do not prove that a
+                # transmitted recipient should become a whole population.
+                or (
+                    callable(self.fresh_group_population)
+                    and self.fresh_group_population(effect, invocation)
+                    and self.context(effect, invocation).delivery == "immediate"
+                )
             )
         )
+        # eYg transmits a chosen PV to point enemy leaves. A relationship
+        # filter does not override native Qe.a(PV, aZX=false) -> g(PV).
+        # Keep controller/group, typed-Qq and nonpoint area reconstruction
+        # separate: those branches deliberately select a new population.
+        if (
+            direct
+            and invocation.native_explicit_target
+            and policy is not None
+            and len(policy) == 3
+            and policy[0] == effect["effect_class"]
+            and policy[1] is False
+            and policy[2] is False
+            and effect.get("area_class") == "anD"
+            and native_group_route(effect) is None
+            and isinstance(selector, dict)
+            and selector.get("class") == "fcE"
+            and type(selector.get("mask")) is int
+            and selector["mask"] & 8
+            and not selector["mask"]
+            & ~(1 | 2 | 4 | 8 | 16 | 32 | 128 | 256 | 8192 | 16384)
+        ):
+            server_fresh_selection = False
+        preserve_recipient = getattr(self, "preserve_explicit_recipient", None)
+        if (
+            direct
+            and callable(preserve_recipient)
+            and preserve_recipient(effect, invocation)
+        ):
+            # A reviewed controller route must still prove the actual native
+            # eVE/Qe chosen-PV contract. No scope can override aZX or cym.
+            if (
+                not invocation.native_explicit_target
+                or policy is None
+                or len(policy) != 3
+                or policy[0] != effect["effect_class"]
+                or policy[1] is not False
+                or policy[2] is not False
+            ):
+                raise UnknownEffectResolution(
+                    "Missing native chosen-recipient binding authority"
+                )
+            server_fresh_selection = False
         # A transmitted point PV with fcE(self + area) belongs to the
         # triggering recipient. Re-selecting self here loses allied received-
         # healing modifiers: the caster is outside the recipient's point.

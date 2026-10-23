@@ -33,8 +33,8 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(opcodes.count(12053), 1)
         self.assertEqual(opcodes.count(13482), 1)
         self.assertNotIn(13337, opcodes)
-        self.assertLess(opcodes.index(12053), opcodes.index(12514))
-        self.assertLess(opcodes.index(12514), opcodes.index(13482))
+        self.assertNotIn(12514, opcodes)
+        self.assertLess(opcodes.index(12053), opcodes.index(13482))
         self.assertEqual(opcodes[-2:], [13482, 13420])
         self.assertIsNone(r.awaiting_ack)
         self.assertEqual(r.pending, [])
@@ -208,7 +208,7 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual([opcode for opcode, _ in end_packets], [12502, 13420])
         self.assertEqual(runtime.awaiting_ack, previous_turn)
         pending_opcodes = [opcode for opcode, _ in runtime.pending]
-        self.assertEqual(pending_opcodes, [12053, 12514, 13420, 13482, 13420])
+        self.assertEqual(pending_opcodes, [12053, 13420, 13482, 13420])
         self.assertNotIn(13337, pending_opcodes)
         self.assertEqual(pending_opcodes.count(13482), 1)
 
@@ -218,7 +218,7 @@ class RecoveryTests(unittest.TestCase):
         acknowledged = runtime.acknowledge_turn(struct.pack(">i", previous_turn))
         self.assertEqual(
             [opcode for opcode, _ in acknowledged],
-            [12053, 12514, 13420, 13482, 13420],
+            [12053, 13420, 13482, 13420],
         )
         self.assertEqual(runtime.awaiting_ack, None)
         self.assertEqual(fight.current.id, 6)

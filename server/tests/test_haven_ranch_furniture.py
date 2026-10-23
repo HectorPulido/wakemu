@@ -275,6 +275,23 @@ class RanchFurniturePersistenceTests(PostgresCase):
             )
         self.assertEqual(self.custody(), self.before)
 
+    def test_native_building_mask_blocks_later_scene_furniture_placement(self):
+        from wakfu_server.ranch_native_geometry import bootstrap_account_sectors
+        from wakfu_server.inventory_uids import allocate
+
+        with self.store.connection() as db:
+            bootstrap_account_sectors(db, self.account, 1)
+            uid = allocate(db)
+            db.execute(
+                "INSERT INTO account_ranch_buildings "
+                "(uid,account_id,biome_id,sector_id,building_ref,mode_id,view_kind,view_value,x,y) "
+                "VALUES(%s,%s,1,1,33,1,0,1,1,1)",
+                (uid, self.account),
+            )
+        with self.assertRaisesRegex(ValueError, "overlaps a native building"):
+            self.place(x=1, y=1)
+        self.assertEqual(self.custody(), self.before)
+
     def test_owned_hero_shares_account_ranch_and_prohibited_reference_stays_blocked(
         self,
     ):

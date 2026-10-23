@@ -4,6 +4,10 @@ from dataclasses import dataclass
 from wakfu_server.wire import proto_field
 
 
+# Original fn categories with one selectable item per character preset.
+SINGLE_CATEGORIES = frozenset((1, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+
+
 def _positive(value, label, *, bits=31):
     if type(value) is not int or not 0 < value < 1 << bits:
         raise ValueError(f"Invalid owned cosmetic {label}")
@@ -90,7 +94,7 @@ class OwnedCosmetics:
                 raise ValueError("Native selected title exceeds unsigned short")
             if (
                 type(category) is not int
-                or category not in (1, 4, 6, 7)
+                or category not in SINGLE_CATEGORIES
                 or identity not in owners
             ):
                 raise ValueError(
@@ -117,7 +121,7 @@ class OwnedCosmetics:
     def equip_single(self, character, category, reference):
         if category == 3:
             return self.equip_costume(character, reference)
-        if category not in (1, 4, 6, 7):
+        if category not in SINGLE_CATEGORIES:
             raise ValueError("Unsupported single cosmetic category")
         record = self.equip_finishers(
             character, dict(self.selections).get(character["id"], ())
@@ -367,7 +371,7 @@ def finisher_request(record, character, opcode, body):
             raise ValueError("Incomplete native col cosmetic request")
         preset, category, add, present = struct.unpack(">iiBB", body[:10])
         if (
-            category not in (1, 3, 4, 5, 6, 7)
+            category not in SINGLE_CATEGORIES | {3, 5}
             or add not in (0, 1)
             or present not in (0, 1)
         ):

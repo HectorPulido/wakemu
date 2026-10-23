@@ -26,8 +26,8 @@ def allowed_ids(db, account_id):
     )
 
 
-def snapshot(db, account_id):
-    """Publish native knowledge, including attested opaque learning outputs.
+def available(db, account_id):
+    """Return the exact fbs knowledge view, including configured DEV unlocks.
 
     fbs snapshots preserve IDs even when no executable definition exists.
     allowed_ids remains the separate definition-backed execution authority.
@@ -42,6 +42,12 @@ def snapshot(db, account_id):
             (account_id,),
         )
     )
+    return tuple(sorted(known))
+
+
+def snapshot(db, account_id):
+    """Publish the same knowledge authority used by native HasEmote criteria."""
+    known = available(db, account_id)
     payload = b""
     for emote_id in sorted(known):
         record = b"\x08" + _varint(emote_id)
@@ -97,57 +103,79 @@ def prepare_play(
         ).fetchone():
             raise ValueError("Emotes cannot interrupt crafting")
         emote_id, target_id = authorize(db, account_id, body)
-        definition = db.execute(
-            "SELECT * FROM native_emote_definitions WHERE emote_id=%s", (emote_id,)
-        ).fetchone()
-        metadata = definition["metadata"]
-        if metadata.get("ehu") not in ("", "not IsBattleground()"):
-            raise ValueError("Unverified native emote criterion")
-        if character.get("_emote_until", 0) > time.monotonic() and (
-            metadata["eiW"] or metadata["eiV"]
+        return prepare_authorized_occupation(
+            db,
+            character,
+            emote_id,
+            target_id,
+            resolve_target=resolve_target,
+            in_fight=in_fight,
+            occupied=occupied,
+        )
+
+
+def prepare_authorized_occupation(
+    db, character, emote_id, target_id, *, resolve_target, in_fight, occupied
+):
+    """Prepare a definition-backed occupation after the caller proves authority."""
+    definition = db.execute(
+        "SELECT * FROM native_emote_definitions WHERE emote_id=%s", (emote_id,)
+    ).fetchone()
+    if definition is None:
+        raise ValueError("Native emote definition is unavailable")
+    metadata = definition["metadata"]
+    if metadata.get("ehu") not in ("", "not IsBattleground()"):
+        raise ValueError("Unverified native emote criterion")
+    if metadata.get("ehu") == "not IsBattleground()":
+        from wakfu_server.native_world_context import is_battleground
+
+        if is_battleground(character["map_id"]):
+            raise ValueError("Native emote is unavailable in this battlefield")
+    if character.get("_emote_until", 0) > time.monotonic() and (
+        metadata["eiW"] or metadata["eiV"]
+    ):
+        raise ValueError("Native emote is incompatible with the active occupation")
+    parameters = []
+    if metadata["eiV"]:
+        target = resolve_target(target_id)
+        if (
+            target is None
+            or target["id"] == character["id"]
+            or (target["map_id"], target["instance_id"])
+            != (character["map_id"], character["instance_id"])
+            or target.get("hp", 0) <= 0
+            or in_fight(target_id)
+            or occupied(target_id)
+            or target.get("_emote_until", 0) > time.monotonic()
         ):
-            raise ValueError("Native emote is incompatible with the active occupation")
-        parameters = []
-        if metadata["eiV"]:
-            target = resolve_target(target_id)
-            if (
-                target is None
-                or target["id"] == character["id"]
-                or (target["map_id"], target["instance_id"])
-                != (character["map_id"], character["instance_id"])
-                or target.get("hp", 0) <= 0
-                or in_fight(target_id)
-                or occupied(target_id)
-                or target.get("_emote_until", 0) > time.monotonic()
-            ):
-                raise ValueError("Native emote target is unavailable")
-            if db.execute(
-                "SELECT 1 FROM craft_occupations WHERE character_id=%s AND state='active'",
-                (target_id,),
-            ).fetchone():
-                raise ValueError("Target is occupied with crafting")
-            parameters.append(("targetId", target_id))
-        elif target_id != -1:
-            raise ValueError("Untargeted native emote cannot specify a target")
-        expressions = metadata.get("eiY", [])
-        if expressions:
-            if len(expressions) != 3 or expressions[0] != "true":
-                raise ValueError("Unverified native emote parameters")
-            import json
-            import re
-            import secrets
+            raise ValueError("Native emote target is unavailable")
+        if db.execute(
+            "SELECT 1 FROM craft_occupations WHERE character_id=%s AND state='active'",
+            (target_id,),
+        ).fetchone():
+            raise ValueError("Target is occupied with crafting")
+        parameters.append(("targetId", target_id))
+    elif target_id != -1:
+        raise ValueError("Untargeted native emote cannot specify a target")
+    expressions = metadata.get("eiY", [])
+    if expressions:
+        if len(expressions) != 3 or expressions[0] != "true":
+            raise ValueError("Unverified native emote parameters")
+        import json
+        import re
+        import secrets
 
-            key = json.loads(expressions[1])
-            random = re.fullmatch(r"GetRandomNumber\((\d+)\)", expressions[2])
-            if random and 0 < int(random[1]) <= 1000:
-                value = secrets.randbelow(int(random[1]))
-            elif expressions[2] == "GetNationId()":
-                from .nation_state import nation_id
+        key = json.loads(expressions[1])
+        random = re.fullmatch(r"GetRandomNumber\((\d+)\)", expressions[2])
+        if random and 0 < int(random[1]) <= 1000:
+            value = secrets.randbelow(int(random[1]))
+        elif expressions[2] == "GetNationId()":
+            from .nation_state import nation_id
 
-                value = nation_id(character)
-            else:
-                raise ValueError("Unverified native emote expression")
-            parameters.append((key, value))
+            value = nation_id(character)
+        else:
+            raise ValueError("Unverified native emote expression")
+        parameters.append((key, value))
     return {
         "packet": occupation(character["id"], emote_id, parameters),
         "duration_ms": metadata["bKb"],

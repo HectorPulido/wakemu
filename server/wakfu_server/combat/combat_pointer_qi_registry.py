@@ -3,6 +3,31 @@ from copy import deepcopy
 from .combat_qi_snapshot import NativeQISnapshot
 
 
+def registered_slot(registry, byte):
+    """Read one current descriptor without projecting the whole canonical QI."""
+    if isinstance(registry, PointerRegistryCompatibility):
+        return registry.slot_row(byte)
+    return registry.slots[byte]
+
+
+def registered_terrain(registry):
+    """Read current masks without allocating the complete obstacle population."""
+    if isinstance(registry, PointerRegistryCompatibility):
+        return NativeQISnapshot(registry.qi.fight.native_qi_snapshot)
+    return registry.terrain
+
+
+def registered_population(registry):
+    """One query's terrain and membership, preserving legacy snapshot semantics."""
+    if isinstance(registry, PointerRegistryCompatibility):
+        terrain = registered_terrain(registry)
+        return terrain, lambda x, y: (
+            registry.qi.ordered_members(x, y) if terrain.aK(x, y) else ()
+        )
+    snapshot = registry.snapshot()
+    return snapshot, lambda x, y: snapshot.U(x, y) or ()
+
+
 class PointerRegistryCompatibility:
     def __init__(self, qi):
         self.qi = qi
@@ -10,18 +35,34 @@ class PointerRegistryCompatibility:
 
     @property
     def slots(self):
+        # This projection is private to the caller. Read each current QL set
+        # once, rather than scanning every cell separately for every QK.
+        indexed = {byte for value in self.qi.cells.values() for byte in value.order()}
         return [
-            None
-            if obj is None
-            else dict(
-                identity=[obj.kind, obj.identity],
-                position=[obj.x, obj.y],
-                radius=obj.radius,
-                indexed=any(byte in value.order() for value in self.qi.cells.values()),
-                movement_blocking=self.qi.movement_blocking[id(obj)],
-            )
+            self._slot_row(obj, byte in indexed)
             for byte, obj in enumerate(self.qi.slots)
         ]
+
+    def _slot_row(self, obj, indexed):
+        if obj is None:
+            return None
+        return dict(
+            identity=[obj.kind, obj.identity],
+            position=[obj.x, obj.y],
+            radius=obj.radius,
+            indexed=indexed,
+            movement_blocking=self.qi.movement_blocking[id(obj)],
+        )
+
+    def slot_row(self, byte):
+        """Fresh one-slot projection; no cache survives movement or callbacks."""
+        obj = self.qi.slots[byte]
+        if obj is None:
+            return None
+        # Preserve ordinary list indexing, including the existing -1 lookup.
+        index = byte if byte >= 0 else len(self.qi.slots) + byte
+        indexed = any(index in value.order() for value in self.qi.cells.values())
+        return self._slot_row(obj, indexed)
 
     def snapshot(self):
         result = NativeQISnapshot(self.qi.fight.native_qi_snapshot)
@@ -58,14 +99,15 @@ class PointerRegistryCompatibility:
 
     def _owned(self, slot, identity):
         self._canonical(slot, identity)
-        return self.slots[slot]
+        return self.slot_row(slot)
 
     def native_V(self, x, y):
         order = self.ordered_U(x, y)
         return None if not order else self.qi.slot_object(order[0])
 
     def native_g(self, x, y):
-        snapshot = self.snapshot()
+        # QI.g needs masks and the queried cell's QL only, not an occupancy copy.
+        snapshot = registered_terrain(self)
         index = snapshot._int32(
             snapshot._int32(snapshot._int32(y - snapshot.y) * snapshot.width)
             + snapshot._int32(x - snapshot.x)
@@ -82,11 +124,10 @@ class PointerRegistryCompatibility:
             raise ValueError("Missing actual native movement override/exclusions")
         if override:
             return False
-        rows = self.slots
         return any(
             byte not in ignored
-            and rows[byte] is not None
-            and rows[byte]["movement_blocking"]
+            and self.qi.slot_object(byte) is not None
+            and self.qi.movement_blocking[id(self.qi.slot_object(byte))]
             for byte in self.ordered_U(x, y)
         )
 

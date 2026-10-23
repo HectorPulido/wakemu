@@ -195,9 +195,9 @@ def enter(
 def authorize_start(
     db, store, account_id, generation, character_id, body, *, source_allowed
 ):
-    """Validate classic activator action 0; ultimate paid starts are separate."""
+    """Validate the native start action; payment belongs to combat admission."""
     object_id, action = decode_action(body)
-    if action != 0:
+    if action not in (0, 1):
         return None
     store.lock_character(db, account_id, generation, character_id)
     character = store.character(account_id, character_id, db)
@@ -207,12 +207,18 @@ def authorize_start(
     ).fetchone()
     if run is None:
         return None
-    if run["catalog"]["type"] != "INFINITE_WAVE":
-        raise ValueError("Ultimate rifts require a separate native key authority")
+    from wakfu_server.rift_key_admission import contract
+
+    price = contract(run["catalog"])
+    if action != (price["action"] if price else 0):
+        return None
+    if price and run["policy"].get("ultimate_enabled", False) is not True:
+        raise ValueError("Ultimate rift key authority is disabled by policy")
     sources = [
         r
         for r in run["catalog"]["objects"]
         if r["id"] == object_id
+        and (price is None or r["id"] == price["object_id"])
         and r["type"] == "GenericActivableInteractiveElement"
         and r["map_id"] == character["map_id"] == run["catalog"]["map_id"]
     ]
@@ -243,4 +249,9 @@ def authorize_start(
         for r in members
     ):
         raise ValueError("Frozen rift members left the instance")
+    if price:
+        from wakfu_server.maps.dungeon_entry_payment import available
+
+        if not available(db, character_id, price["reference"], price["quantity"]):
+            raise ValueError("Missing native ultimate rift key")
     return run

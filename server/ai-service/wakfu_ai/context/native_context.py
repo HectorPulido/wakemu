@@ -88,17 +88,19 @@ def _encode(value, *, serialize_nodes=False, _geometry_cache=True, _parts=None):
         # Count traversal work rather than node allocation so long scalar
         # arrays and heavily aliased authority graphs remain interruptible.
         visits += 1
-        if visits % 256 == 0:
+        if visits & 255 == 0:
             check()
-        if item is None or type(item) in (str, int, bool):
+        kind = type(item)
+        if item is None or kind is str or kind is int or kind is bool:
             return {"value": item}
-        if type(item) is float:
+        if kind is float:
             if not math.isfinite(item):
                 raise ValueError("Non-finite native context value")
             return {"value": item}
         identity = id(item)
-        if identity in identities:
-            return {"ref": identities[identity]}
+        existing = identities.get(identity)
+        if existing is not None:
+            return {"ref": existing}
         index = len(nodes)
         if index % 1024 == 0:
             check()

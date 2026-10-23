@@ -57,7 +57,7 @@ def private_surfaces(map_id, x, y):
 
 
 def assert_private_furniture_unoccupied(db, character, request, *, lock_owner=False):
-    """Share furniture custody serialization with the final planting commit."""
+    """Serialize furniture/building occupancy with the final planting commit."""
     if character.get("map_id") != 1440:
         raise ValueError("Private Ranch furniture occupancy requires map1440")
     owner_id = character.get("instance_id")
@@ -78,6 +78,27 @@ def assert_private_furniture_unoccupied(db, character, request, *, lock_owner=Fa
         (owner_id, request["x"], request["y"]),
     ).fetchone():
         raise ValueError("Planting surface contains Ranch furniture")
+    owner = db.execute(
+        "SELECT account_id FROM account_haven_bags WHERE character_id=%s",
+        (owner_id,),
+    ).fetchone()
+    if owner is None:
+        raise ValueError("Private Ranch has no canonical account binding")
+    from wakfu_server.ranch_native_geometry import (
+        building_footprint_cells,
+        deployed_creature_cells,
+    )
+
+    buildings = db.execute(
+        "SELECT * FROM account_ranch_buildings WHERE account_id=%s AND biome_id=%s",
+        (owner["account_id"], 1),
+    ).fetchall()
+    if (request["x"], request["y"]) in building_footprint_cells(1, buildings):
+        raise ValueError("Planting surface contains a native Ranch building")
+    if (request["x"], request["y"]) in deployed_creature_cells(
+        db, owner["account_id"], 1
+    ):
+        raise ValueError("Planting surface contains a deployed Ranch creature")
 
 
 def assert_private_cell_unoccupied(store, character, request):
@@ -201,10 +222,6 @@ def authorize(store, character, request, seed, resource, *, open_test_policy=Fal
     if len(candidates) != 1:
         raise ValueError("Absent or ambiguous native planting surface")
     cell = candidates[0]
-    if not open_test_policy:
-        from .planting_context import authorize_family
-
-        authorize_family(character["map_id"], cell["region_id"], resource)
     with store.connection() as db:
         if db.execute(
             "SELECT 1 FROM mining_vein_slots "

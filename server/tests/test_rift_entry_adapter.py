@@ -44,7 +44,7 @@ class RiftEntryAdapterTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             adapter.resolve_portal({"3": self.portal, "4": self.portal}, 527, self.body)
 
-    def test_lore_action_never_starts_fight_or_reads_database(self):
+    def test_ultimate_lore_action_never_starts_fight_or_reads_database(self):
         db = Mock()
         self.assertIsNone(
             adapter.authorize_start(
@@ -53,7 +53,7 @@ class RiftEntryAdapterTests(unittest.TestCase):
                 1,
                 "session",
                 1,
-                struct.pack(">qHH", 33012, 1, 0),
+                struct.pack(">qHH", 33012, 2, 0),
                 source_allowed=lambda *a: True,
             )
         )

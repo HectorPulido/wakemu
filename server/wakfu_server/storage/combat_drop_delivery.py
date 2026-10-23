@@ -14,14 +14,19 @@ from wakfu_server.inventory_move import ACQUISITION_STACKS as STACKS
 
 
 def _identified_uids(db, items):
-    """Socket state belongs to one unit and must never absorb plain drops."""
+    """Per-unit state must never be inherited by newly acquired plain units."""
     uids = [item["uid"] for item in items]
     if not uids:
         return set()
     return {
         row["uid"]
         for row in db.execute(
-            "SELECT uid FROM inventory_item_shards WHERE uid=ANY(%s)", (uids,)
+            "SELECT uid FROM inventory_item_shards WHERE uid=ANY(%s) "
+            "UNION SELECT uid FROM inventory_item_appearances WHERE uid=ANY(%s) "
+            "UNION SELECT uid FROM inventory_item_companions WHERE uid=ANY(%s) "
+            "UNION SELECT source_uid AS uid FROM random_item_use_counters "
+            "WHERE source_uid=ANY(%s)",
+            (uids, uids, uids, uids),
         )
     }
 
@@ -34,16 +39,16 @@ def _integer(value, name, minimum=0, maximum=(1 << 63) - 1):
 
 def _item_proto(item):
     from wakfu_server.inventory_items import item_proto
-    from wakfu_server.wire import proto_field
 
     item = dict(item)
     if item.get("damage_elements") is None and item.get("resistance_elements") is None:
         item.pop("damage_elements", None)
         item.pop("resistance_elements", None)
-    # ProtoItem field 55 is the native bind flag. The catalog default matters
-    # for older temporary rows whose migration-era `bound` value is false.
-    if _effective_bound(item):
-        return item_proto(item) + proto_field(440, 1)
+    # All publication routes share the native field55 message codec.
+    enum, binding_type, _ = _template_binding(item["reference"])
+    if enum != "NOT_BOUND" or _effective_bound(item):
+        item["binding_type"] = binding_type
+        item["bound"] = _effective_bound(item)
     return item_proto(item)
 
 
@@ -141,29 +146,18 @@ def _save_binding(db, uid, reference, bound):
 
 
 def _temporary_item_form(item):
-    """Encode native vj options, including its afx/vP bind option."""
+    """Use the shared native vj binding codec for temporary and owned units."""
     from wakfu_server.inventory_items import item_form
-    from wakfu_server.inventory_elements import masks
 
     item = dict(item)
     if item.get("damage_elements") is None and item.get("resistance_elements") is None:
         item.pop("damage_elements", None)
         item.pop("resistance_elements", None)
-    base = item_form(item)
-    values = masks(item)
-    if not _effective_bound(item):
-        return base
-    enum, bind_type, _ = _template_binding(item["reference"])
-    if enum not in ("BOUND_ON_PICKUP_TO_CHARACTER", "BOUND_ON_PICKUP_TO_ACCOUNT"):
-        raise ValueError("Unsupported bound combat drop option")
-    # vj fields 1..4 precede afx (bind), followed by afy (elements), afz and
-    # afA. The native vP payload is (bind-type byte, applied byte).
-    option = b"\x00" * 4 + b"\x01" + bytes((bind_type, 1))
-    if values is None:
-        option += b"\x00\x00\x00"
-    else:
-        option += b"\x01" + bytes(values) + b"\x00\x00"
-    return base[:14] + option
+    enum, binding_type, _ = _template_binding(item["reference"])
+    if enum != "NOT_BOUND" or _effective_bound(item):
+        item["binding_type"] = binding_type
+        item["bound"] = _effective_bound(item)
+    return item_form(item)
 
 
 def temporary_section(db, character_id):

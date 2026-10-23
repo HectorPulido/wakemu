@@ -38,6 +38,7 @@ def grant(db, character, reference, quantity):
             and rule["minimal_mergeable"]
             and masks(item) is None
             and "mount" not in item
+            and not item.get("appearance_ref", 0)
             and item["quantity"] + quantity <= rule["maximum"]
         ),
         None,

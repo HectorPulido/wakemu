@@ -67,9 +67,17 @@ class ActorSnapshot:
     native_jump_height: int | None = None
     native_cosmetic_state: dict | None = None
     native_hp_on_operand: dict | None = None
+    base_minima: dict | None = None
+    native_initial_team: int | None = None
 
     def install(self, actor):
         _fresh(actor, ())
+        if self.native_initial_team is not None and (
+            type(self.native_initial_team) is not int
+            or self.native_initial_team not in (0, 1)
+            or actor.team != self.native_initial_team
+        ):
+            raise ValueError("Actor team changed since native snapshot construction")
         if (
             actor.id != self.actor_id
             or any(
@@ -129,7 +137,9 @@ class ActorSnapshot:
         actor.effect_percentages = dict(self.percentages)
         actor.effect_base_maxima = dict(self.base_maxima)
         # Resource native PA.bqF is explicitly initialized before live effects.
-        actor.effect_base_minima = dict(self.minima)
+        actor.effect_base_minima = dict(
+            self.minima if self.base_minima is None else self.base_minima
+        )
         from .combat_hupper_resource_binding import install as install_wp_binding
 
         install_wp_binding(actor)
@@ -203,6 +213,7 @@ def _finish(
         los_height,
         native_physical_position=tuple(actor.position),
         native_jump_height=4,
+        native_initial_team=actor.team,
         native_hp_on_operand=(
             None
             if 1 in frozen
@@ -316,6 +327,48 @@ def build_player_snapshot(
         result.base_maxima[1] = effective_character(adjusted, build_index=build_index)[
             "base_max_hp"
         ] + evaluated["stats"].get(1, 0)
+    hp_projection = character.get("equipment_hp_projection")
+    if hp_projection is not None:
+        from wakfu_server.equipment_hp_lifecycle import (
+            NativeHPActor,
+            OwnedEwoHPReplay,
+        )
+
+        if (
+            not isinstance(hp_projection, dict)
+            or not isinstance(hp_projection.get("actor"), dict)
+            or not isinstance(hp_projection.get("receipts"), (tuple, list))
+        ):
+            raise ValueError("Malformed persisted eWO HP actor snapshot")
+        projected_actor = NativeHPActor(**hp_projection["actor"])
+        projected_replay = OwnedEwoHPReplay(projected_actor, hp_projection["receipts"])
+        if (
+            not projected_replay.matches(evaluated["hp_operations"])
+            or projected_actor.hp != actor.hp
+            or projected_actor.max_hp != actor.max_hp
+            or projected_actor.effect_minima[1] != result.minima[1]
+            or projected_actor.effect_percentages[1] != percentage
+            or (1 in projected_actor.effect_frozen) != (1 in result.frozen)
+        ):
+            raise ValueError("Persisted eWO HP PA disagrees with fresh player actor")
+        base_maxima = dict(result.base_maxima)
+        base_minima = dict(result.minima)
+        base_maxima[1] = projected_actor.effect_base_maxima[1]
+        base_minima[1] = projected_actor.effect_base_minima[1]
+        result = replace(
+            result,
+            base_maxima=base_maxima,
+            base_minima=base_minima,
+            native_hp_on_operand=(
+                None
+                if 1 in result.frozen
+                else dict(
+                    producer="fresh_initial_tB_HP.on_resource_override",
+                    actor_id=actor.id,
+                    raw_current=projected_actor.effect_hp_raw_current,
+                )
+            ),
+        )
     if initialization_warnings is not None:
         from .combat_initialization_policy import initialization_warning
 
@@ -428,6 +481,9 @@ def initialize_fight_snapshots(
         or set(running_effects) != identities
     ):
         raise ValueError("Missing exact fight snapshot sources or initial UID")
+    from .combat_haven_world_context import validate_placement
+
+    validate_placement(fight, characters, monsters)
     if type(dev_skip_unsupported) is not bool:
         raise ValueError("Development initialization fallback must be boolean")
     if initialization_warnings is not None and not isinstance(

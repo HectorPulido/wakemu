@@ -26,12 +26,27 @@ def connected_action_source(
     actor = fight.actors.get(actor_id)
     if actor is None or not actor.controlled or actor.owner_id != account_id:
         raise ValueError("Action actor is not controlled by the connected account")
+    from .combat_companions import registered_source
+
+    companion = getattr(fight, "native_companion_sources", {}).get(str(actor_id))
+    if companion is not None:
+        registered_source(fight, actor, companion)
+        return connected_cast_source(
+            characters, decks, companion["owner_character_id"], account_id
+        )
     identity, seen = actor_id, set()
     registrations = getattr(fight, "native_summon_registrations", {})
     while identity not in characters:
         if identity in seen:
             raise ValueError("Cyclic native summon owner chain")
         seen.add(identity)
+        companion = getattr(fight, "native_companion_sources", {}).get(str(identity))
+        if companion is not None:
+            registered_source(fight, fight.actors[identity], companion)
+            if companion["account_id"] != account_id:
+                raise ValueError("Companion controller belongs to another account")
+            identity = companion["owner_character_id"]
+            continue
         registration = registrations.get(identity)
         if (
             not isinstance(registration, dict)

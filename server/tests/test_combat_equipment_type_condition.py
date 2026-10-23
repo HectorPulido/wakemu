@@ -43,6 +43,60 @@ class EquipmentTypeConditionTests(unittest.TestCase):
         self.assertEqual(seen, [((100,), False, False), ((100,), True, True)])
         self.assertTrue(evaluate_condition("HasEquipmentType(1,103)", context))
 
+    def test_weapon_predicate_uses_caster_numeric_ancestry_and_unknown_is_explicit(
+        self,
+    ):
+        seen = []
+
+        def query(types):
+            seen.append(types)
+            return matches_types([12], types, self.catalog)
+
+        context = ConditionContext({}, weapon_type_query=query)
+        self.assertTrue(evaluate_condition("HasWeaponType(103,65536+519)", context))
+        self.assertFalse(evaluate_condition("HasWeaponType(103,118)", context))
+        self.assertEqual(seen, [(103, 65536 + 519), (103, 118)])
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition("HasWeaponType(519)", ConditionContext({}))
+        for expression in (
+            "HasWeaponType()",
+            'HasWeaponType(519,"TARGET")',
+            'HasWeaponType("inventory")',
+        ):
+            with self.subTest(expression=expression), self.assertRaises(
+                UnknownCondition
+            ):
+                evaluate_condition(expression, context, validate_only=True)
+
+    def test_weapon_positions_include_either_hand_and_exclude_other_equipment_or_bags(
+        self,
+    ):
+        from unittest.mock import patch
+        from wakfu_server.combat_equipment_type_condition import (
+            character_has_weapon_type,
+        )
+
+        character = dict(
+            level=100,
+            active_build_index=0,
+            builds={0: dict(equipment="")},
+            inventory_items=[dict(uid=1, reference=12), dict(uid=2, reference=2022)],
+        )
+        with patch("wakfu_server.equipment.validate_sheet") as selected, patch(
+            "wakfu_server.builds.effective_sheet_level", return_value=100
+        ), patch(
+            "wakfu_server.combat_equipment_type_condition.type_catalog",
+            return_value=self.catalog,
+        ):
+            for slot in (15, 16):
+                selected.return_value = [dict(uid=1, slot=slot)]
+                self.assertTrue(character_has_weapon_type(character, (100,)))
+                self.assertFalse(character_has_weapon_type(character, (103,)))
+            selected.return_value = [dict(uid=1, slot=10)]
+            self.assertFalse(character_has_weapon_type(character, (100,)))
+            selected.return_value = []
+            self.assertFalse(character_has_weapon_type(character, (100,)))
+
     def test_unknown_authority_or_slot_never_becomes_false_success(self):
         with self.assertRaises(UnknownCondition):
             evaluate_condition("HasEquipmentType(100)", ConditionContext({}))

@@ -39,8 +39,31 @@ def group_pa(fight, identity, characteristic):
         row = retained_area_pv_row(fight, identity)
         contract = row.get("native_area_contract")
         # These concrete classes inherit faV.b(PC), literally returning null.
-        if contract in ("faY", "faZ", "faN", "faX", "faU", "fbb"):
+        if contract in ("faY", "faZ", "faN", "faX", "faU", "fbb", "faP"):
             return None
+        if contract == "fbc":
+            # registered_area_pv already verifies the actual fbc.rMB/eRF
+            # population. Missing PC entries are native null, not zero PA.
+            values = pv.native_characteristics
+            if not isinstance(values, dict):
+                raise ValueError("Missing native trap characteristic population")
+            if characteristic not in values:
+                return None
+            # A present trap PA needs its actual maximum as well as current;
+            # the existing trap component does not publish that pair here.
+            raise ValueError("Missing native trap PA maximum authority")
+        if contract == "fbd":
+            from .combat_effect_area import native_effect_areas
+            from .combat_wall_area import wall_damage_snapshot
+
+            snapshot = wall_damage_snapshot(
+                row, native_effect_areas()[str(row["reference"])]
+            )
+            if characteristic not in snapshot["stats"]:
+                return None
+            if characteristic not in snapshot["maxima"]:
+                raise ValueError("Missing native wall PA maximum authority")
+            return snapshot["stats"][characteristic], snapshot["maxima"][characteristic]
         if contract == "faW":
             from .combat_effect_area import native_effect_areas
             from .combat_fake_fighter import verified_fake_fighter

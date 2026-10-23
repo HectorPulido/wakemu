@@ -32,20 +32,37 @@ def matches_types(references, requested, catalog):
     return False
 
 
-def character_has_equipment_type(character, requested, include_inventory=False):
+def character_has_equipment_type(
+    character, requested, include_inventory=False, *, slots=None
+):
     from wakfu_server.equipment import validate_sheet
     from wakfu_server.builds import effective_sheet_level, valid_index
 
     index = character.get("active_build_index", 0)
     if not valid_index(index):
         raise ValueError("Invalid active equipment sheet")
-    adjusted = dict(character, level=effective_sheet_level(character, index))
+    adjusted = dict(
+        character,
+        real_level=character.get("real_level", character["level"]),
+        level=effective_sheet_level(character, index),
+    )
     sheet = character.get("builds", {}).get(index, {})
-    selected = validate_sheet(adjusted, bytes.fromhex(sheet.get("equipment", "")))
+    selected = validate_sheet(
+        adjusted, bytes.fromhex(sheet.get("equipment", "")), strict=False
+    )
     owned = {row["uid"]: row for row in character.get("inventory_items", [])}
-    references = [owned[row["uid"]]["reference"] for row in selected]
+    references = [
+        owned[row["uid"]]["reference"]
+        for row in selected
+        if slots is None or row["slot"] in slots
+    ]
     if include_inventory:
         references.extend(row["reference"] for row in owned.values())
     if not references:
         return False
     return matches_types(references, requested, type_catalog())
+
+
+def character_has_weapon_type(character, requested):
+    """eMV reads FIRST_WEAPON15 and SECOND_WEAPON16, never bag contents."""
+    return character_has_equipment_type(character, requested, slots=(15, 16))

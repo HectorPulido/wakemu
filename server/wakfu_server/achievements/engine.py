@@ -15,16 +15,29 @@ def advance(state, event, rules, *, now_ms):
     objectives = set(candidate["objectives"])
     completed = set(candidate["completed"])
     prior_objectives, prior_completed = set(objectives), set(completed)
-    by_variable, by_dungeon, by_breed = {}, {}, {}
+    by_variable, by_dungeon, by_breed, by_chest = {}, {}, {}, {}
     for rule in rules["definitions"].values():
         for objective in rule["objectives"]:
-            if "variable_id" in objective:
+            if "chest_binding_id" in objective:
+                by_chest.setdefault(objective["chest_binding_id"], []).append(
+                    (rule, objective)
+                )
+            elif "variable_id" in objective:
                 by_variable.setdefault(objective["variable_id"], []).append(objective)
             elif "breed_id" in objective:
                 by_breed.setdefault(objective["breed_id"], []).append(objective)
             else:
                 by_dungeon.setdefault(objective["dungeon_id"], []).append(objective)
-    for breed in event["original_breeds"]:
+    if event.get("kind") == "authenticated_native_chest_open_v1":
+        # Only the transaction-scoped chest adapter supplies this server fact;
+        # rule eligibility was evaluated against locked original journal state.
+        eligible = event.get("eligible_definition_ids", ())
+        for rule, objective in by_chest.get(event.get("binding_id"), ()):
+            if rule["definition_id"] in eligible and objective[
+                "objective_id"
+            ] == event.get("objective_id"):
+                objectives.add(objective["objective_id"])
+    for breed in event.get("original_breeds", ()):
         for objective in by_breed.get(breed, ()):
             objectives.add(objective["objective_id"])
         variable = rules["breed_variables"].get(breed)
@@ -53,6 +66,11 @@ def advance(state, event, rules, *, now_ms):
     while changed:
         changed = False
         for identity, rule in rules["definitions"].items():
+            if rule.get("event_policy") == "authenticated_native_chest_open_v1" and (
+                event.get("kind") != "authenticated_native_chest_open_v1"
+                or identity not in event.get("eligible_definition_ids", ())
+            ):
+                continue
             if identity in completed or not set(rule["prerequisites"]) <= completed:
                 continue
             if all(o["objective_id"] in objectives for o in rule["objectives"]):

@@ -4,11 +4,11 @@ import struct
 from .inventory_owner import lock_inventory_character, lock_item_owner
 
 
-def library_payload(references):
-    """Original fxS.foH/a: empty owned animals/biomes plus fBX known/new sets.
+def library_payload(references, *, biomes=None, animals=None):
+    """Original fxS account sections and fBX known/new building references.
 
-    Ranch animals and breeding have no server-owned implementation here. Never
-    import another account's captured component to fill those empty sections.
+    The default empty collections also serve standalone target validation.
+    Owned biome snapshots use the same fBE serializer as scene bootstrap.
     """
     refs = sorted(references)
     if len(refs) != len(set(refs)) or any(
@@ -19,14 +19,94 @@ def library_payload(references):
         struct.pack(">i", ref) for ref in refs
     )
     library = values + values  # fBX.abO adds newly learned entries to both sets.
-    animals = struct.pack(">II", 0, 0)
-    biomes = b"\x00\x00"  # Original empty fBI.aqv, verified by native roundtrip.
+    animals = struct.pack(">II", 0, 0) if animals is None else animals
+    if not isinstance(animals, bytes):
+        raise ValueError("Invalid native Ranch animal section")
+    biomes = {} if biomes is None else biomes
+    if not isinstance(biomes, dict) or len(biomes) > 32767:
+        raise ValueError("Invalid native Ranch biome collection")
+    for identity, record in biomes.items():
+        if (
+            type(identity) is not int
+            or not 0 < identity < 2**31
+            or not isinstance(record, bytes)
+        ):
+            raise ValueError("Invalid native Ranch biome record")
+    biomes = struct.pack(">h", len(biomes)) + b"".join(
+        struct.pack(">i", identity) + biomes[identity] for identity in sorted(biomes)
+    )
     return b"".join(
         struct.pack(">I", len(part)) + part for part in (animals, biomes, library)
     )
 
 
-def _snapshot(db, account_id):
+def herd_sectors(db, account_id, biome_id, sectors):
+    """Read the same durable herd collections for account and scene snapshots."""
+    from .haven_ranch_herd import sector_records, paddocks
+
+    creatures_by_sector = {sector: [] for sector in sectors}
+    paddocks_by_sector = {sector: [] for sector in sectors}
+    for sector_id, creatures in sector_records(db, account_id, biome_id).items():
+        if sector_id not in creatures_by_sector:
+            raise ValueError("Owned creature references an unknown Ranch sector")
+        creatures_by_sector[sector_id] = creatures
+    for paddock in paddocks(db, account_id, biome_id):
+        if paddock["sector_id"] not in paddocks_by_sector:
+            raise ValueError("Owned paddock references an unknown Ranch sector")
+        paddocks_by_sector[paddock["sector_id"]].append(paddock)
+    return creatures_by_sector, paddocks_by_sector
+
+
+def _owned_biomes(db, account_id, now_ms):
+    """Read persisted ownership without creating sectors in a read-only snapshot."""
+    owned = {}
+    for row in db.execute(
+        "SELECT biome_id,sector_id FROM account_ranch_sectors "
+        "WHERE account_id=%s ORDER BY biome_id,sector_id",
+        (account_id,),
+    ):
+        owned.setdefault(row["biome_id"], []).append(row["sector_id"])
+    if not owned:
+        return {}
+    from .ranch_native_geometry import initial_sectors, account_buildings_by_sector
+    from .haven_ranch_furniture import _rows, _policy
+    from .haven_ranch_furniture_wire import biome_record
+    from .haven_ranch_bridges import snapshot as bridge_snapshot
+    from .ranch_reward_retrieval import records as reward_records
+
+    bag = db.execute(
+        "SELECT character_id FROM account_haven_bags WHERE account_id=%s",
+        (account_id,),
+    ).fetchone()
+    if bag is None:
+        raise ValueError("Owned Ranch sectors have no account Haven Bag")
+    policy, _, _ = _policy(db)
+    result = {}
+    for biome_id, sectors in owned.items():
+        if biome_id != policy["biome_id"] or tuple(sectors) != initial_sectors(
+            biome_id
+        ):
+            raise ValueError("Owned Ranch biome sectors differ from native topology")
+        creatures_by_sector, paddocks_by_sector = herd_sectors(
+            db,
+            account_id,
+            biome_id,
+            sectors,
+        )
+        result[biome_id] = biome_record(
+            sectors,
+            _rows(db, bag["character_id"]),
+            now_ms,
+            building_states=bridge_snapshot(db, bag["character_id"]),
+            buildings_by_sector=account_buildings_by_sector(db, account_id, biome_id),
+            creatures_by_sector=creatures_by_sector,
+            paddocks_by_sector=paddocks_by_sector,
+            rewards=reward_records(db, account_id),
+        )
+    return result
+
+
+def _snapshot(db, account_id, *, now_ms):
     refs = [
         row["building_ref"]
         for row in db.execute(
@@ -35,12 +115,35 @@ def _snapshot(db, account_id):
             (account_id,),
         )
     ]
-    return 13873, struct.pack(">II", 1, 18) + library_payload(refs)
+    from .haven_ranch_herd import records
+    from .haven_ranch_herd_wire import account_animals
+
+    return 13873, struct.pack(">II", 1, 18) + library_payload(
+        refs,
+        biomes=_owned_biomes(db, account_id, now_ms),
+        animals=account_animals(records(db, account_id)),
+    )
 
 
 def packet(store, account_id):
     with store.connection() as db:
-        return _snapshot(db, account_id)
+        return _snapshot(db, account_id, now_ms=int(store.now().timestamp() * 1000))
+
+
+def scene_packet(store, account_id, *, biome_id):
+    """Publish host-tagged scene state after a separately authorized mutation.
+
+    Owner-only creature deltas must never populate a visitor's fxS library.
+    This fBE context identifies its actual host account instead.
+    """
+    from .ranch_native_geometry import native_biome
+
+    world = native_biome(biome_id)["native_world_map_id"]
+    with store.connection() as db:
+        biomes = _owned_biomes(db, account_id, int(store.now().timestamp() * 1000))
+    if biome_id not in biomes:
+        raise ValueError("Ranch scene publication requires an owned biome")
+    return 13864, struct.pack(">qqB", account_id, world, 1) + biomes[biome_id]
 
 
 def learn(store, account_id, generation, character_id, body):
@@ -67,7 +170,11 @@ def learn(store, account_id, generation, character_id, body):
                 )
             return {
                 "character": store.character(account_id, character_id, db),
-                "packets": [_snapshot(db, account_id)],
+                "packets": [
+                    _snapshot(
+                        db, account_id, now_ms=int(store.now().timestamp() * 1000)
+                    )
+                ],
                 "applied": False,
             }
         character_id = lock_item_owner(
@@ -120,6 +227,7 @@ def learn(store, account_id, generation, character_id, body):
             "inventory_item_elements",
             "inventory_item_shards",
             "inventory_mounts",
+            "inventory_pets",
         ):
             if db.execute(
                 f"SELECT 1 FROM {table} WHERE uid=%s", (source_uid,)
@@ -129,6 +237,10 @@ def learn(store, account_id, generation, character_id, body):
                 )
         refs = native["building_refs"]
         library_payload(refs)  # Validate the exact immutable native target domain.
+        from .haven_ranch_building_catalog import validate_published
+
+        for ref in refs:
+            validate_published(db, ref)
         known = {
             row["building_ref"]
             for row in db.execute(
@@ -163,7 +275,7 @@ def learn(store, account_id, generation, character_id, body):
             "character": store.character(account_id, character_id, db),
             "packets": [
                 (12470, struct.pack(">qh", source_uid, -1)),
-                _snapshot(db, account_id),
+                _snapshot(db, account_id, now_ms=int(store.now().timestamp() * 1000)),
             ],
             "applied": True,
         }

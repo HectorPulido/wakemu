@@ -81,6 +81,41 @@ def directed_adjacencies(edges, *, cells=None):
     return forward, reverse
 
 
+@lru_cache(maxsize=16)
+def _immutable_adjacencies(edges, cells):
+    forward, reverse = directed_adjacencies(edges, cells=cells)
+    return tuple(
+        MappingProxyType(
+            {cell: frozenset(neighbors) for cell, neighbors in direction.items()}
+        )
+        for direction in (forward, reverse)
+    )
+
+
+def immutable_directed_adjacencies(edges, *, cells):
+    """Reuse read-only adjacency for an exact complete terrain snapshot.
+
+    Mutable inputs are reread by value every time, never cached by identity.
+    Live occupancy, actor state, hazards and movement budgets are deliberately
+    absent: callers derive those dynamic facts freshly from each native state.
+    All XYZ cells and directed edges participate in the bounded cache key.
+    """
+    check()
+    frozen_cells = []
+    for index, cell in enumerate(cells):
+        if index % 1024 == 0:
+            check()
+        frozen_cells.append(tuple(cell))
+    frozen_edges = []
+    for index, (start, end) in enumerate(edges):
+        if index % 1024 == 0:
+            check()
+        frozen_edges.append((tuple(start), tuple(end)))
+    result = _immutable_adjacencies(frozenset(frozen_edges), frozenset(frozen_cells))
+    check()
+    return result
+
+
 def distance_field_from_reverse(reverse, goals, blocked):
     """Measure fresh occupancy and goals using an already derived adjacency."""
     check()
@@ -126,7 +161,7 @@ def exposure_field_from_reverse(reverse, goals, blocked, hazards, *, until=None)
     return distances
 
 
-def measure(cells, edges, actors, *, actor_id=None):
+def _measure(cells, edges, actors, *, actor_id=None):
     live = [actor for actor in actors if actor["hp"] > 0]
     source = next((actor for actor in live if actor["id"] == actor_id), None)
     allies = [
@@ -144,7 +179,12 @@ def measure(cells, edges, actors, *, actor_id=None):
     )
     extra = dict(nativeSupportApproach=support) if actor_id is not None else {}
     if edges is None:
-        return dict(topologyDistances=None, topologyCellCount=len(cells), **extra)
+        return dict(
+            topologyDistances=None,
+            allyRelaxedTopologyDistances=None,
+            topologyCellCount=len(cells),
+            **extra
+        )
     reverse = _topology_reverse(edges, cells)
     occupied = {tuple(actor["position"]) for actor in live}
     if source is not None and allies:
@@ -180,4 +220,104 @@ def measure(cells, edges, actors, *, actor_id=None):
             primary_result[str(actor["id"])] = primary_distances.get(origin)
     if primary_result:
         extra["primaryTopologyDistances"] = primary_result
+    # Navigation can look beyond a teammate occupying a corridor. These
+    # separate facts never certify that the actor can walk through that cell.
+    # Derive one complete reverse field per affiliation, not one per actor.
+    relaxed, relaxed_primary = {}, {}
+    for team in {actor["team"] for actor in live}:
+        check()
+        friendly = [actor for actor in live if actor["team"] == team]
+        enemy_cells = {
+            tuple(actor["position"]) for actor in live if actor["team"] != team
+        }
+        if not enemy_cells:
+            relaxed.update((str(actor["id"]), 0) for actor in friendly)
+            continue
+        friendly_cells = {tuple(actor["position"]) for actor in friendly}
+        field = _field(reverse, enemy_cells, occupied - enemy_cells - friendly_cells)
+        for actor in friendly:
+            relaxed[str(actor["id"])] = field.get(tuple(actor["position"]))
+        primary_cells = {
+            tuple(actor["position"])
+            for actor in live
+            if actor["team"] != team and actor.get("registeredSummon") is not True
+        }
+        if primary_cells and primary_cells != enemy_cells:
+            # A hostile summon is still a blocker when the goal is its owner.
+            # Only friendly occupancy is relaxed; terrain and hostile occupancy
+            # retain the same exact directed XYZ authority as the strict facts.
+            primary_field = _field(reverse, primary_cells, enemy_cells - primary_cells)
+            for actor in friendly:
+                relaxed_primary[str(actor["id"])] = primary_field.get(
+                    tuple(actor["position"])
+                )
+    extra["allyRelaxedTopologyDistances"] = relaxed
+    if relaxed_primary:
+        extra["allyRelaxedPrimaryTopologyDistances"] = relaxed_primary
     return dict(topologyDistances=result, topologyCellCount=len(cells), **extra)
+
+
+@lru_cache(maxsize=128)
+def _immutable_measure(cells, edges, actors, actor_id):
+    # HP magnitude does not affect topology: only live occupancy and whether
+    # an ally needs healing matter. Keep team, XYZ and summon identity exact.
+    return _measure(
+        cells,
+        edges,
+        [
+            dict(
+                id=identity,
+                team=team,
+                position=position,
+                hp=1,
+                max_hp=2 if wounded else 1,
+                registeredSummon=summon,
+            )
+            for identity, team, position, wounded, summon in actors
+        ],
+        actor_id=actor_id,
+    )
+
+
+def measure(cells, edges, actors, *, actor_id=None):
+    """Reuse topology facts only across exactly equivalent immutable states."""
+    check()
+    try:
+        from wakfu_server.combat_geometry_snapshot import ImmutableTerrainSet
+    except ImportError:
+        return _measure(cells, edges, actors, actor_id=actor_id)
+    if type(edges) is not ImmutableTerrainSet or type(cells) is not ImmutableTerrainSet:
+        return _measure(cells, edges, actors, actor_id=actor_id)
+    live = [actor for actor in actors if actor["hp"] > 0]
+    source = next((actor for actor in live if actor["id"] == actor_id), None)
+    descriptors = tuple(
+        (
+            actor["id"],
+            actor["team"],
+            tuple(actor["position"]),
+            source is not None
+            and actor["id"] != source["id"]
+            and actor["team"] == source["team"]
+            and actor["hp"] < actor["max_hp"],
+            actor.get("registeredSummon") is True,
+        )
+        for actor in live
+    )
+    cached = _immutable_measure(cells, edges, descriptors, actor_id)
+    check()
+    # The cache owns its dictionaries. Callers may enrich or mutate public
+    # facts without poisoning subsequent previews or another fight.
+    result = dict(cached)
+    for name in (
+        "topologyDistances",
+        "primaryTopologyDistances",
+        "allyRelaxedTopologyDistances",
+        "allyRelaxedPrimaryTopologyDistances",
+    ):
+        if isinstance(result.get(name), dict):
+            result[name] = dict(result[name])
+    if "nativeSupportApproach" in result:
+        support = dict(result["nativeSupportApproach"])
+        support["targetIds"] = list(support["targetIds"])
+        result["nativeSupportApproach"] = support
+    return result

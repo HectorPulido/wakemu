@@ -54,6 +54,7 @@ def ensure_singleton(db, character_id, uid):
         ("inventory_item_bindings", "bound,template_reference"),
         ("inventory_item_recycling_state", "unidentified,socketed"),
         ("inventory_item_shards", "shard_state"),
+        ("inventory_item_appearances", "appearance_ref"),
     ):
         db.execute(
             f"INSERT INTO {table}(uid,{columns}) SELECT %s,{columns} FROM {table} WHERE uid=%s",
@@ -134,6 +135,7 @@ def normalize(db, character_id, *, uids=None):
                 ("inventory_item_bindings", "bound,template_reference"),
                 ("inventory_item_recycling_state", "unidentified,socketed"),
                 ("inventory_item_shards", "shard_state"),
+                ("inventory_item_appearances", "appearance_ref"),
             ):
                 db.execute(
                     f"INSERT INTO {table}(uid,{columns}) SELECT %s,{columns} FROM {table} WHERE uid=%s",

@@ -23,6 +23,22 @@ def relocate(
                 is not None
             )
     if not known_dungeon:
+        if source.get("instance_id", 0) > 0 and positions is not None:
+            from wakfu_server.haven_world_travel import owned_scope
+
+            with store.connection() as db:
+                haven_world = owned_scope(db, source)
+            if haven_world:
+                from .dungeon_position_barrier import run_account_exit
+
+                return run_account_exit(
+                    store,
+                    positions,
+                    account_id,
+                    transition=lambda: store.transition_map(
+                        account_id, generation, character_id, source, destination
+                    ),
+                )
         return store.transition_map(
             account_id, generation, character_id, source, destination
         )
@@ -44,13 +60,25 @@ def relocate(
     )
 
 
-def _relocate_dungeon(store, account_id, generation, character_id, source, destination):
+def _relocate_dungeon(
+    store,
+    account_id,
+    generation,
+    character_id,
+    source,
+    destination,
+    *,
+    db=None,
+    expected_cohort=None
+):
     if destination.get("instance_id") != 0:
         raise ValueError("Console relocation requires an exterior destination")
     from wakfu_server import player_parties
     from wakfu_server.characters.heroes import _outside_combat
 
-    with store.connection() as db:
+    from contextlib import nullcontext
+
+    with store.connection() if db is None else nullcontext(db) as db:
         identity = db.execute(
             "SELECT party_id FROM dungeon_instances WHERE instance_id=%s",
             (source.get("instance_id"),),
@@ -64,6 +92,8 @@ def _relocate_dungeon(store, account_id, generation, character_id, source, desti
             (account_id, character_id),
         ).fetchall()
         cohort = sorted({character_id, *(row["character_id"] for row in snapshot)})
+        if expected_cohort is not None and cohort != list(expected_cohort):
+            raise ValueError("Relocation company changed before transactional exit")
         player_parties._lock_members(db, cohort)
         db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
         db.execute(
@@ -164,3 +194,88 @@ def _relocate_dungeon(store, account_id, generation, character_id, source, desti
         )
         player_parties.cleanup_dungeon_solo(db, run["party_id"])
         return store.character(account_id, character_id, db)
+
+
+def lock_relocation_company(store, db, account_id, character_id):
+    """Take the same party-member locks as dungeon exit, before account locks."""
+    from wakfu_server import player_parties
+
+    snapshot = db.execute(
+        "SELECT h.character_id FROM account_hero_slots h "
+        "JOIN account_hero_rosters r USING(account_id) "
+        "WHERE h.account_id=%s AND r.leader_id=%s ORDER BY h.character_id",
+        (account_id, character_id),
+    ).fetchall()
+    cohort = tuple(sorted({character_id, *(row["character_id"] for row in snapshot)}))
+    player_parties._lock_members(db, cohort)
+    return cohort
+
+
+def relocate_in_transaction(
+    store, db, account_id, generation, character_id, source, destination, *, cohort
+):
+    """Complete allowed public/dungeon travel in a consuming action transaction.
+
+    Unlike the console wrapper, ordinary item travel must not bypass unknown
+    private-run lifecycles. Bag/ranch callers supply their durable exterior.
+    """
+    from psycopg.pq import TransactionStatus
+
+    if db.info.transaction_status != TransactionStatus.INTRANS:
+        raise ValueError("Relocation requires an active transaction")
+    rows = db.execute(
+        "SELECT h.character_id FROM account_hero_slots h "
+        "JOIN account_hero_rosters r USING(account_id) "
+        "WHERE h.account_id=%s AND r.leader_id=%s ORDER BY h.character_id",
+        (account_id, character_id),
+    ).fetchall()
+    if tuple(sorted({character_id, *(row["character_id"] for row in rows)})) != tuple(
+        cohort
+    ):
+        raise ValueError("Relocation company changed")
+    if source.get("instance_id", 0) > 0:
+        dungeon = db.execute(
+            "SELECT 1 FROM dungeon_instances WHERE instance_id=%s",
+            (source["instance_id"],),
+        ).fetchone()
+        if dungeon is None:
+            from wakfu_server.haven_world_travel import owned_scope
+
+            if destination.get("instance_id") == 0 and owned_scope(
+                db, source, character_id=character_id
+            ):
+                return store.transition_map_in_transaction(
+                    db, account_id, generation, character_id, source, destination
+                )
+            raise ValueError(
+                "Utiliza la salida de esta instancia antes de teletransportarte"
+            )
+        return _relocate_dungeon(
+            store,
+            account_id,
+            generation,
+            character_id,
+            source,
+            destination,
+            db=db,
+            expected_cohort=cohort,
+        )
+    from wakfu_server.characters.heroes import _outside_combat
+
+    _outside_combat(db, cohort)
+    if db.execute(
+        "SELECT 1 FROM dungeon_instance_members WHERE character_id=ANY(%s) "
+        "AND status='active' LIMIT 1",
+        (list(cohort),),
+    ).fetchone():
+        raise ValueError("Tu compañía conserva una pertenencia activa a una mazmorra")
+    if db.execute(
+        "SELECT 1 FROM rift_instances WHERE status IN('entered','running') "
+        "AND EXISTS(SELECT 1 FROM jsonb_array_elements_text(members) m "
+        "WHERE m::bigint=ANY(%s)) LIMIT 1",
+        (list(cohort),),
+    ).fetchone():
+        raise ValueError("Utiliza la salida de la grieta antes de teletransportarte")
+    return store.transition_map_in_transaction(
+        db, account_id, generation, character_id, source, destination
+    )

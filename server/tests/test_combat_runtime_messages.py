@@ -7,6 +7,104 @@ from wakfu_server.combat_wire import decode_actor_state
 
 
 class RuntimeMessageTests(unittest.TestCase):
+    def test_initial_hero_grants_follow_all_action_restoration_without_replay(self):
+        from wakfu_server.combat_effects import _integer, _varint
+        from wakfu_server.combat_stat_effects import (
+            owned_effect_payload,
+            owned_effect_delivery,
+        )
+
+        for hero_owner in (1, 2):
+            for enemy_initiative in (100, 1200):
+                with self.subTest(
+                    hero_owner=hero_owner, enemy_initiative=enemy_initiative
+                ):
+                    main = Actor(100, 0, (0, 0, 0), 60, 6, 3, 1000, 1, 1, True)
+                    hero = Actor(200, 0, (1, 0, 0), 60, 6, 3, 900, 1, hero_owner, True)
+                    enemy = Actor(-200, 1, (3, 0, 0), 20, 4, 2, enemy_initiative, 1)
+                    actors = (main, hero, enemy)
+                    fight = Fight(
+                        91,
+                        actors,
+                        {actor.position for actor in actors},
+                        {0: {main.position, hero.position}, 1: {enemy.position}},
+                    )
+                    fight.ready(1)
+                    if hero_owner != 1:
+                        fight.ready(hero_owner)
+                    grants = []
+                    for index, actor in enumerate((main, hero)):
+                        additional = b"".join(
+                            _integer(field, value)
+                            for field, value in ((10, 4604), (14, 1), (19, 2), (20, 4))
+                        )
+                        payload = (
+                            owned_effect_payload(
+                                uid=901 + index,
+                                base_uid=901 + index,
+                                generic_effect=96363,
+                                caster_id=actor.id,
+                                target_id=actor.id,
+                                value=0,
+                                execution_status=0,
+                                inherit_container=False,
+                            )
+                            + b"\x42"
+                            + _varint(len(additional))
+                            + additional
+                        )
+                        grants.append(
+                            owned_effect_delivery(
+                                fight.id,
+                                1,
+                                native_opcode=12613,
+                                effect_class=649,
+                                target_id=actor.id,
+                                uid=901 + index,
+                                running_effect_payload=payload,
+                            )
+                        )
+                    callback = (13827, b"committed-turn-start")
+                    runtime = RuntimeMessages(
+                        fight,
+                        clock=lambda: 0.0,
+                        turn_start_provider=lambda candidate, **_: (
+                            deepcopy(candidate),
+                            [callback],
+                        ),
+                    )
+                    packets = runtime.combat_started(
+                        {actor.id: (b"native-stats", bytes(2)) for actor in actors},
+                        initialization_packets=grants,
+                    )
+                    opcodes = [opcode for opcode, _ in packets]
+                    action_indices = [
+                        index for index, opcode in enumerate(opcodes) if opcode == 12514
+                    ]
+                    self.assertEqual(len(action_indices), 2)
+                    self.assertLess(opcodes.index(12053), action_indices[-1])
+                    self.assertLess(action_indices[-1], opcodes.index(12613))
+                    self.assertLess(
+                        max(
+                            index
+                            for index, opcode in enumerate(opcodes)
+                            if opcode == 12613
+                        ),
+                        opcodes.index(13827),
+                    )
+                    self.assertLess(opcodes.index(13827), opcodes.index(13482))
+                    self.assertEqual(
+                        [
+                            body[:4] + body[8:]
+                            for opcode, body in packets
+                            if opcode == 12613
+                        ],
+                        [body[:4] + body[8:] for _, body in grants],
+                    )
+                    self.assertNotIn(13560, opcodes)
+                    self.assertEqual(fight.turn_id, 1)
+                    self.assertEqual(fight.current.turn_count, 1)
+
     def test_default_sixty_second_turn_matches_wire_and_server_expiration(self):
         fight, _ = self.state()
         now = [10.0]
@@ -73,13 +171,17 @@ class RuntimeMessageTests(unittest.TestCase):
         self.assertLess(opcodes.index(12514), opcodes.index(12053))
         self.assertLess(opcodes.index(12053), action_transitions[-1])
         self.assertNotIn(13337, opcodes)
-        self.assertNotIn(13482, opcodes)
+        self.assertEqual(opcodes.count(13482), 1)
+        self.assertLess(action_transitions[-1], opcodes.index(13482))
         recovery_body = next(body for opcode, body in packets if opcode == 12053)
         envelope_size = struct.unpack_from(">h", recovery_body, 4)[0]
         envelope = recovery_body[6 : 6 + envelope_size]
         state = envelope[9:]
-        restored_round, restored_turn, _, _ = struct.unpack_from(">hiBq", state)
-        self.assertEqual((restored_round, restored_turn), (1, 1))
+        restored_round, restored_turn, restored_phase, _ = struct.unpack_from(
+            ">hiBq", state
+        )
+        # Initial SU waits in BEGINNING; the single13482 enters turn1 once.
+        self.assertEqual((restored_round, restored_turn, restored_phase), (1, 0, 4))
         cursor = struct.calcsize(">hiBq")
         member_count = struct.unpack_from(">b", state, cursor)[0]
         cursor += 1
@@ -89,7 +191,7 @@ class RuntimeMessageTests(unittest.TestCase):
         )
         self.assertEqual(restored_order, server_order)
         self.assertEqual(fight.current.id, server_current)
-        self.assertEqual(fight.turn_id, restored_turn)
+        self.assertEqual(fight.turn_id, restored_turn + 1)
 
         ended = runtime.end_turn(
             fight.current.owner_id, fight.current.id, fight.current.turn_count
@@ -234,7 +336,9 @@ class RuntimeMessageTests(unittest.TestCase):
                     ]
                     self.assertEqual(len(action_indices), 2)
                     self.assertLess(action_indices[0], opcodes.index(12053))
-                    self.assertLess(opcodes.index(13827), action_indices[1])
+                    self.assertLess(opcodes.index(12053), action_indices[1])
+                    self.assertLess(action_indices[1], opcodes.index(12613))
+                    self.assertLess(action_indices[1], opcodes.index(13827))
                     self.assertNotIn(13477, opcodes)
                     recovery_body = next(
                         body for opcode, body in packets if opcode == 12053
@@ -408,7 +512,7 @@ class RuntimeMessageTests(unittest.TestCase):
         now[0] = 31.0
         packets, error = wire.expire_current_or_recover(1, now_ms=31000)
         self.assertEqual(error, "unverified native predicate")
-        self.assertEqual([op for op, _ in packets], [12053, 12514, 13420])
+        self.assertEqual([op for op, _ in packets], [12053, 13420])
         self.assertEqual(source_snapshot(fight), before)
         self.assertEqual((fight.turn_id, fight.current.id), (1, 100))
         self.assertIsNone(wire.awaiting_ack)

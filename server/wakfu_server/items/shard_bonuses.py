@@ -65,7 +65,7 @@ def _slots(blob):
     return result
 
 
-def bonuses(item, equipment_family):
+def bonuses(item, equipment_family, *, include_operations=False):
     """Return native-confirmed passive stat deltas for one equipped item.
 
     Unsupported shard effects are reported and skipped using the same narrow
@@ -75,9 +75,13 @@ def bonuses(item, equipment_family):
         raise ValueError("Invalid native equipment family")
     blob = item.get("shard_state")
     if blob is None:
-        return {"stats": {}, "unsupported": []}
+        result = {"stats": {}, "unsupported": []}
+        if include_operations:
+            result["stat_operations"] = ()
+        return result
 
     stats = {}
+    operations = []
     unsupported = []
     slots = _slots(bytes(blob))
     templates = _socket_templates()
@@ -163,5 +167,9 @@ def bonuses(item, equipment_family):
                 continue
             delta = values[0] * (2 if matching_family else 1)
             stats[native["stat_id"]] = stats.get(native["stat_id"], 0) + delta
+            operations.append((native["stat_id"], delta, False))
 
-    return {"stats": stats, "unsupported": unsupported}
+    result = {"stats": stats, "unsupported": unsupported}
+    if include_operations:
+        result["stat_operations"] = tuple(operations)
+    return result

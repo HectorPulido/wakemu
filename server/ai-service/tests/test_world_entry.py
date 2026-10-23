@@ -14,6 +14,17 @@ if str(_HERE) not in sys.path:
 from wakfu_ai.bridge import world_entry
 
 
+def npc(identity, **attributes):
+    return SimpleNamespace(
+        id=identity,
+        controlled=False,
+        hp=20,
+        owner_id=None,
+        native_controlled_by_ai=True,
+        **attributes
+    )
+
+
 class NativeWorldEntryTests(unittest.TestCase):
     def test_default_complete_turn_budget_is_ten_seconds(self):
         import inspect
@@ -37,7 +48,7 @@ class NativeWorldEntryTests(unittest.TestCase):
         ), patch.object(
             world_entry, "native_exporter"
         ), patch.object(
-            world_entry, "ContextTransport"
+            world_entry, "context_transport"
         ), patch.object(
             world_entry, "NativeStats"
         ), patch.object(
@@ -54,11 +65,12 @@ class NativeWorldEntryTests(unittest.TestCase):
             )
         self.assertEqual(turn.call_args.kwargs["budget_seconds"], 10)
 
-    def test_preparation_timeout_closes_native_turn_without_http_or_planning(self):
+    def test_preparation_timeout_closes_native_turn_without_transport_or_planning(self):
         import time
         from unittest.mock import Mock
         from wakfu_ai.native.native_deadline import bounded, remaining
 
+        actor = npc(-7)
         runtime = SimpleNamespace(
             awaiting_ack=None,
             pending=[],
@@ -66,7 +78,8 @@ class NativeWorldEntryTests(unittest.TestCase):
                 id=41,
                 phase="active",
                 turn_id=3,
-                current=SimpleNamespace(id=-7, controlled=False),
+                current=actor,
+                actors={actor.id: actor},
             ),
             end_server_turn=Mock(return_value=["native-barrier"]),
         )
@@ -80,7 +93,7 @@ class NativeWorldEntryTests(unittest.TestCase):
 
         with patch.object(
             world_entry, "load_authorities", side_effect=slow_authorities
-        ), patch.object(world_entry, "ContextTransport") as transport, patch.object(
+        ), patch.object(world_entry, "context_transport") as transport, patch.object(
             world_entry, "run_turn"
         ) as turn:
             with bounded(time.monotonic() + 0.005):
@@ -104,10 +117,13 @@ class NativeWorldEntryTests(unittest.TestCase):
         world_entry._EXPORTERS.clear()
 
     def test_entry_forwards_all_authorities_policy_flags_and_transport_to_sdk(self):
+        actor = npc(7)
         runtime = SimpleNamespace(
             awaiting_ack=None,
             pending=[],
-            fight=SimpleNamespace(id=41, current=SimpleNamespace(id=7)),
+            fight=SimpleNamespace(
+                id=41, current=actor, phase="active", actors={actor.id: actor}
+            ),
         )
         characters = {1: {"id": 1, "future": b"pc"}, 2: {"id": 2, "future": b"party"}}
         monsters = {
@@ -146,7 +162,7 @@ class NativeWorldEntryTests(unittest.TestCase):
                 "WAKFU_NATIVE_AREA_CALLBACKS": "1",
                 "WAKFU_COMBAT_START_EVENTS": "0",
                 "WAKFU_NATIVE_FUTURE_SWITCH": "future-value",
-                "WAKFU_AI_URL": "http://native-ai:9100",
+                "WAKFU_AI_URL": "tcp://native-ai:9100",
                 "UNRELATED_SECRET": "must-not-forward",
             },
             clear=True,
@@ -155,7 +171,7 @@ class NativeWorldEntryTests(unittest.TestCase):
         ) as load, patch.object(
             world_entry, "encounter_profiles", return_value={None: default, 777: bound}
         ) as profiles, patch.object(
-            world_entry, "ContextTransport", return_value=transport
+            world_entry, "context_transport", return_value=transport
         ) as transport_ctor, patch.object(
             world_entry, "native_exporter", return_value=exporter
         ) as get_exporter, patch.object(
@@ -175,7 +191,7 @@ class NativeWorldEntryTests(unittest.TestCase):
         load.assert_called_once()
         self.assertEqual(load.call_args.kwargs["viewer_id"], 1)
         profiles.assert_called_once_with(runtime, load.call_args.args[1], monsters)
-        transport_ctor.assert_called_once_with("http://native-ai:9100")
+        transport_ctor.assert_called_once_with("tcp://native-ai:9100", first_turn=False)
         get_exporter.assert_called_once_with()
         turn.assert_called_once()
         self.assertIs(calls["runtime"], runtime)
@@ -220,7 +236,7 @@ class NativeWorldEntryTests(unittest.TestCase):
             with self.subTest(runtime=runtime), patch.object(
                 world_entry, "load_authorities"
             ) as load, patch.object(
-                world_entry, "ContextTransport"
+                world_entry, "context_transport"
             ) as transport, patch.object(
                 world_entry, "run_turn"
             ) as turn:
@@ -239,11 +255,13 @@ class NativeWorldEntryTests(unittest.TestCase):
             turn.assert_not_called()
 
     def test_preparation_failure_ends_native_turn_without_spending_or_querying(self):
-        actor = SimpleNamespace(id=-7, controlled=False, ap=6, mp=3)
+        actor = npc(-7, ap=6, mp=3)
         runtime = SimpleNamespace(
             awaiting_ack=None,
             pending=[],
-            fight=SimpleNamespace(phase="active", current=actor, turn_id=4),
+            fight=SimpleNamespace(
+                phase="active", current=actor, turn_id=4, actors={actor.id: actor}
+            ),
         )
         calls = []
 
@@ -257,7 +275,7 @@ class NativeWorldEntryTests(unittest.TestCase):
         psycopg.Error = type("DatabaseError", (Exception,), {})
         with patch.dict(sys.modules, {"psycopg": psycopg}), patch.object(
             world_entry, "load_authorities", side_effect=ValueError("missing authority")
-        ), patch.object(world_entry, "ContextTransport") as transport:
+        ), patch.object(world_entry, "context_transport") as transport:
             deliveries = list(
                 world_entry.run_npc_turn(
                     runtime,

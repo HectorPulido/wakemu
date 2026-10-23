@@ -12,14 +12,22 @@ def base_costs(character, spell_id):
     spell = next(
         (
             s
-            for s in available_spells(character["breed"], character["level"])
+            for s in available_spells(
+                character["breed"], character["level"], character=character
+            )
             if s["id"] == spell_id and s["kind"] == "active"
         ),
         None,
     )
     if spell is None:
         raise ValueError("Spell is not owned/unlocked")
-    record = _COSTS[str(spell_id)]
+    record = _COSTS.get(str(spell_id))
+    if record is None:
+        from .combat_common_spell_catalog import merge_cost_records
+
+        record = merge_cost_records(_COSTS).get(str(spell_id))
+    if record is None:
+        raise ValueError("Missing native owned spell costs")
     index = character["level"] - 1
     if index >= len(record["levels"]):
         raise ValueError("Spell level outside native range")

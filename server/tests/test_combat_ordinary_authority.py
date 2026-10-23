@@ -20,8 +20,12 @@ class OrdinaryAuthorityTests(unittest.TestCase):
         self.f = f
         self.preview = deepcopy(f.fight)
         self.authority = OrdinaryActorAuthority(
-            characters={7: dict(id=7, breed=15, level=1)},
-            monsters={8: dict(id=8, ref=5525), -7: dict(id=-7, ref=5525)},
+            # Ordinary actors carry their original positive-map POSITION identity.
+            characters={7: dict(id=7, breed=15, map_id=1134, level=1)},
+            monsters={
+                8: dict(id=8, ref=5525, map_id=1134),
+                -7: dict(id=-7, ref=5525, map_id=1134),
+            },
             decks={7: [6266]},
             excluded_decks={7: []},
         )

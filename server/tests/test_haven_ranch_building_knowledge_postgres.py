@@ -108,6 +108,66 @@ class RanchBuildingKnowledgePostgresTests(PostgresCase):
             packet, (13873, struct.pack(">II", 1, 18) + ranch.library_payload([]))
         )
 
+    def test_missing_published_target_rejects_learning_without_consuming_source(self):
+        # Native records 119 bIA sources whose targets are absent from the
+        # installed aMR catalog. Their exact source/action mapping remains
+        # authoritative, but it must not consume an item or publish knowledge.
+        with self.store.connection() as db:
+            native = db.execute(
+                "SELECT item_ref,action_id,building_refs FROM "
+                "native_ranch_building_learning_actions "
+                "WHERE item_ref=33319"
+            ).fetchone()
+        self.assertIsNotNone(native)
+        self.assertEqual(native["building_refs"], [131])
+        uid = self.add_item(reference=native["item_ref"])
+        with self.assertRaisesRegex(
+            ValueError, "no installed native building definition"
+        ):
+            self.learn(uid, action=native["action_id"])
+        self.assertEqual(self.quantity(uid), 1)
+        self.assertEqual(self.refs(), [])
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM ranch_building_learning_receipts "
+                    "WHERE account_id=%s AND source_uid=%s",
+                    (self.account, uid),
+                ).fetchone()["n"],
+                0,
+            )
+
+    def test_changed_published_definition_rejects_learning_atomically(self):
+        from psycopg.types.json import Jsonb
+
+        uid = self.add_item(reference=33110)
+        with self.store.connection() as db:
+            row = db.execute(
+                "SELECT descriptor FROM native_ranch_building_definitions "
+                "WHERE reference=16"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            altered = deepcopy(row["descriptor"])
+            altered["epF"] = altered["epF"] + 1
+            db.execute(
+                "UPDATE native_ranch_building_definitions SET descriptor=%s "
+                "WHERE reference=16",
+                (Jsonb(altered),),
+            )
+        with self.assertRaisesRegex(ValueError, "definition has changed"):
+            self.learn(uid)
+        self.assertEqual(self.quantity(uid), 1)
+        self.assertEqual(self.refs(), [])
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM ranch_building_learning_receipts "
+                    "WHERE account_id=%s AND source_uid=%s",
+                    (self.account, uid),
+                ).fetchone()["n"],
+                0,
+            )
+
     def test_native_library_payload_matches_empty_sections_and_known_new_sets(self):
         expected = (
             struct.pack(">I", 8)

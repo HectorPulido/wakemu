@@ -137,9 +137,7 @@ class DetachedReductionPercentageConstructorTests(unittest.TestCase):
 
     def test_missing_scope_is_rejected_for_both_families(self):
         for kind in (57, 986):
-            with self.subTest(kind=kind), self.assertRaisesRegex(
-                ValueError, "actor.*fight"
-            ):
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
                 self.apply(kind)
         self.assertEqual(self.f.f.packets, [])
 

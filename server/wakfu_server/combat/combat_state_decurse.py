@@ -42,14 +42,9 @@ class NativeStateDecurseHandler:
         self.prepared = {}
 
     def _parameters(self, effect, values):
-        if effect["effect_class"] != 321:
-            raise UnsupportedEffectExecution(
-                "Only native state decurse321 is supported"
-            )
-        parameters = values["parameters"]
-        if len(parameters) not in (1, 2) or any(type(v) is not int for v in parameters):
-            raise UnsupportedEffectExecution("Unsupported native decurse parameters")
-        return parameters
+        from .combat_state_decurse_parameters import state_decurse_parameters
+
+        return state_decurse_parameters(effect, values)
 
     def _phase(self, effect, invocation, runner, channel):
         masks = effect.get("target_masks")
@@ -103,7 +98,48 @@ class NativeStateDecurseHandler:
             raise
 
     def prepare(self, effect, values, invocation):
+        if invocation.native_delayed_uid is not None:
+            from .combat_native_delayed_effects import scope_for
+            from .combat_trigger_value_modifier import NativeRunnerAmount
+
+            scope = scope_for(effect)
+            uid = invocation.native_delayed_uid
+            source = self.fight.native_owned_group_effects.get(uid)
+            if (
+                scope is None
+                or scope["mode"] != "delivery"
+                or scope["uid"] != uid
+                or source is None
+                or source.get("effect_class") != 321
+                or source.get("native_delayed") is not True
+                or source.get("invocation") != vars(invocation)
+                or invocation.native_running_uid != uid
+            ):
+                raise ValueError("Missing actual delayed eZi calculation source")
+            from .combat_effect_removal import _identity_fields
+
+            fields = _identity_fields(
+                bytes.fromhex(source["payload"]), integer_fields=(1, 3, 4)
+            )
+            value = ((fields.get(4, 0) + 2**31) % 2**32) - 2**31
+            if (
+                fields.get(1) != uid
+                or fields.get(3) != invocation.reference
+                or value != source["native_delayed_value"]
+            ):
+                raise ValueError("Delayed eZi value differs from owned Qe payload")
+            runner = NativeRunnerAmount(uid, 321, rng=self.rng, value=value)
+            self.prepared[uid] = runner
+            return invocation
         return self._prepare(effect, values, invocation)
+
+    def prepare_delayed(self, effect, values, invocation):
+        """Qe.d runs L1/C once before Tu; retain its calculated state reference."""
+        selected = self._prepare(effect, values, invocation)
+        runner = self.prepared.pop(selected.native_running_uid, None)
+        if runner is None:
+            raise ValueError("Missing delayed eZi initial calculation")
+        return selected, runner.value
 
     def prepare_activation(self, effect, values, invocation, *, clone_uid):
         return self._prepare(effect, values, invocation, clone_uid=clone_uid)
@@ -181,6 +217,11 @@ class NativeStateDecurseHandler:
                 raise UnsupportedEffectExecution(
                     "Missing owned state payload for decurse"
                 )
+        from .combat_consumable_counter import capture, reconcile
+
+        counter_evidence = capture(
+            self.fight, invocation, eligible, reference, parameters
+        )
         for entry in eligible:
             payload = bytes.fromhex(self.fight.state_wire_payloads[entry.uid])
             self.state_handler.remove_state_children(entry.uid)
@@ -207,7 +248,9 @@ class NativeStateDecurseHandler:
                 source="decurse321",
             )
         if remainder > 0:
+            previous_uids = {entry.uid for entry in target.state_ledger.entries}
             self.reapply_state(effect, reference, remainder, invocation)
+            reconcile(self.fight, counter_evidence, previous_uids, remainder)
         if runner is not None:
             runner.finish_application()
             for channel in (3, 4):

@@ -532,6 +532,9 @@ def record_result(db, fight_id, winnerchar, loserchar, reason, *, fight=None):
         "UPDATE objectives_pvp_events SET status='completed',winner_character_id=%s,completed_at=%s,rewards_reserved=true WHERE id=%s RETURNING *",
         (winnerchar, outcome["settled_at"], event["id"]),
     ).fetchone()
+    from wakfu_server.national_earnings import hourly_pvp
+
+    hourly_pvp(db, event["id"], fight=fight)
     _notify(db)
     return row
 

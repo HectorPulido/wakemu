@@ -45,7 +45,19 @@ def add(scene_map_id, area_id, item):
     )
 
 
-def context(owner_account_id, map_id, area_ids, items, now_ms, *, building_states=()):
+def context(
+    owner_account_id,
+    map_id,
+    area_ids,
+    items,
+    now_ms,
+    *,
+    building_states=(),
+    buildings_by_sector=None,
+    creatures_by_sector=None,
+    paddocks_by_sector=None,
+    rewards=(),
+):
     """czY13864/fBE with native areas and furniture, without invented animals.
 
     Area identifiers must come from the installed fBm.gxf terrain definitions,
@@ -53,11 +65,94 @@ def context(owner_account_id, map_id, area_ids, items, now_ms, *, building_state
     """
     owner = _integer(owner_account_id, 1, 9223372036854775807, "owner")
     world = _integer(map_id, 1, 9223372036854775807, "world")
+    return 13864, struct.pack(">qqB", owner, world, 1) + biome_record(
+        area_ids,
+        items,
+        now_ms,
+        building_states=building_states,
+        buildings_by_sector=buildings_by_sector,
+        creatures_by_sector=creatures_by_sector,
+        paddocks_by_sector=paddocks_by_sector,
+        rewards=rewards,
+    )
+
+
+def biome_record(
+    area_ids,
+    items,
+    now_ms,
+    *,
+    building_states=(),
+    buildings_by_sector=None,
+    creatures_by_sector=None,
+    paddocks_by_sector=None,
+    rewards=(),
+):
+    """Encode the shared original fBE for scene and account component 18."""
     clock = _integer(now_ms, 1, 9223372036854775807, "clock")
     areas = list(area_ids)
     if not areas or len(areas) != len(set(areas)):
         raise ValueError("Ranch context requires distinct accredited terrain areas")
+    buildings_by_sector = {} if buildings_by_sector is None else buildings_by_sector
+    if not isinstance(buildings_by_sector, dict) or set(buildings_by_sector) - set(
+        areas
+    ):
+        raise ValueError("Native Ranch buildings reference an unknown terrain area")
+    creatures_by_sector = {} if creatures_by_sector is None else creatures_by_sector
+    paddocks_by_sector = {} if paddocks_by_sector is None else paddocks_by_sector
+    for collection in (creatures_by_sector, paddocks_by_sector):
+        if not isinstance(collection, dict) or set(collection) - set(areas):
+            raise ValueError("Native Ranch herd references an unknown terrain area")
+        if any(not isinstance(rows, (list, tuple)) for rows in collection.values()):
+            raise ValueError("Native Ranch herd sector requires a row sequence")
+    from .haven_ranch_herd_wire import encode_creature, encode_paddock
+
+    creature_uids = set()
+    paddock_uids = set()
+    for area, rows in creatures_by_sector.items():
+        for row in rows:
+            paddock = next(
+                (
+                    p
+                    for p in paddocks_by_sector.get(area, ())
+                    if p["uid"] == row["native_tJU"]
+                ),
+                None,
+            )
+            if paddock is None or row["native_tJT"] is not False:
+                raise ValueError("Ranch sector animal has no matching owned paddock")
+            cells = {
+                tuple(cell)
+                for cell in tuple(paddock["interior"]) + tuple(paddock["boundary"])
+            }
+            if (row["x"], row["y"]) not in cells:
+                raise ValueError("Ranch animal lies outside its referenced paddock")
+            encode_creature(row)
+            if row["uid"] in creature_uids:
+                raise ValueError("Duplicate native Ranch creature UID")
+            creature_uids.add(row["uid"])
+    for area, rows in paddocks_by_sector.items():
+        for row in rows:
+            if row["sector_id"] != area or row["uid"] in paddock_uids:
+                raise ValueError(
+                    "Ranch paddock has inconsistent sector or duplicate UID"
+                )
+            encode_paddock(row)
+            paddock_uids.add(row["uid"])
     grouped = {area: [] for area in areas}
+    grouped_buildings = {area: [] for area in areas}
+    from wakfu_server.haven_ranch_building_wire import building_record
+
+    seen_building_uids = set()
+    for area, rows in buildings_by_sector.items():
+        if not isinstance(rows, (list, tuple)):
+            raise ValueError("Native Ranch sector buildings must be a row sequence")
+        for row in rows:
+            uid = _integer(row["uid"], 1, 9223372036854775807, "building UID")
+            if uid in seen_building_uids:
+                raise ValueError("Duplicate native Ranch building UID")
+            seen_building_uids.add(uid)
+            grouped_buildings[area].append(building_record(row))
     identities = set()
     for area in areas:
         _integer(area, 0, 2147483647, "area")
@@ -66,13 +161,32 @@ def context(owner_account_id, map_id, area_ids, items, now_ms, *, building_state
             raise ValueError("Unknown Ranch furniture area or duplicate identity")
         identities.add(item["item_uid"])
         grouped[item["area_id"]].append(furniture_record(item))
-    payload = struct.pack(">qqBi", owner, world, 1, len(areas))
+    payload = struct.pack(">i", len(areas))
     for area in sorted(areas):
         records = grouped[area]
-        # fBV: area, animals count, furniture count/records, production map,
-        # paddock list and bridge list. Empty collections grant no extra feature.
-        payload += struct.pack(">iii", area, 0, len(records)) + b"".join(records)
-        payload += struct.pack(">iii", 0, 0, 0)
+        building_records = grouped_buildings[area]
+        # Original fBV: fBG buildings, fBM scene objects, group->fBS lists,
+        # deployed fBQ animals and fBT bridges. fxS also carries all owned fBQ.
+        payload += struct.pack(">ii", area, len(building_records))
+        payload += b"".join(building_records)
+        payload += struct.pack(">i", len(records)) + b"".join(records)
+        groups = {}
+        for paddock in paddocks_by_sector.get(area, ()):
+            groups.setdefault(paddock["group"], []).append(paddock)
+        payload += struct.pack(">i", len(groups))
+        for group, rows in sorted(groups.items()):
+            _integer(group, -2147483648, 2147483647, "paddock group")
+            _integer(len(rows), 0, 32767, "paddock count")
+            payload += struct.pack(">ih", group, len(rows))
+            payload += b"".join(
+                encode_paddock(row) for row in sorted(rows, key=lambda r: r["uid"])
+            )
+        animals = creatures_by_sector.get(area, ())
+        payload += struct.pack(">i", len(animals))
+        payload += b"".join(
+            encode_creature(row) for row in sorted(animals, key=lambda r: r["uid"])
+        )
+        payload += struct.pack(">i", 0)  # No account-owned fBT bridge instances.
     # fBF uses native slot identity and fBq enum: ABSENT=0, PRESENT=1.
     buildings = []
     slots = set()
@@ -85,8 +199,23 @@ def context(owner_account_id, map_id, area_ids, items, now_ms, *, building_state
         buildings.append((slot, struct.pack(">iB", slot, state)))
     payload += struct.pack(">i", len(buildings))
     payload += b"".join(record for _, record in sorted(buildings))
-    # Global animals and snapshot clock are independent from bridge state.
-    return 13864, payload + struct.pack(">iq", 0, clock)
+    # Native fBE writes the map size followed by full fBU values, without keys.
+    from wakfu_server.ranch_reward_retrieval import encode_reward
+
+    if not isinstance(rewards, (list, tuple)):
+        raise ValueError("Native Ranch rewards require a row sequence")
+    _integer(len(rewards), 0, 2147483647, "reward count")
+    reward_uids = set()
+    encoded_rewards = []
+    for reward in rewards:
+        encoded = encode_reward(reward)
+        if reward["uid"] in reward_uids:
+            raise ValueError("Duplicate native Ranch reward UID")
+        reward_uids.add(reward["uid"])
+        encoded_rewards.append((reward["uid"], encoded))
+    payload += struct.pack(">i", len(encoded_rewards))
+    payload += b"".join(record for _, record in sorted(encoded_rewards))
+    return payload + struct.pack(">q", clock)
 
 
 def moved(scene_map_id, item):

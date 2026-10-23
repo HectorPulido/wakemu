@@ -102,7 +102,11 @@ class Guilds:
     def _projection(self, character, generation, snapshot):
         model = guild_model.native_model(snapshot)
         self.world.set_guild_projection(
-            character, generation, model, guild_model.moderation_factor(snapshot)
+            character,
+            generation,
+            model,
+            guild_model.moderation_factor(snapshot),
+            member_bonus_records=(snapshot or {}).get("member_bonus_records", {}),
         )
         if self.company_packet is not None:
             live = self.world.live_identity(character_id=character)
@@ -189,12 +193,20 @@ class Guilds:
         self._identity(account, generation, character)
         if not self.service.native_enabled():
             raise ValueError("Guild system is disabled")
+        self.service.authorize_native_request(opcode)
         if opcode == 15877:
             if body:
                 raise ValueError("Guild management request must be empty")
             return self.refresh(account, generation, character)
         request = guild_wire.decode_request(opcode, body)
         with self._guard(character):
+            from wakfu_server.guild_machine_context import PRIMARY_OPCODES, validate
+
+            if opcode in PRIMARY_OPCODES:
+                from wakfu_server.world_static import objects
+
+                actor = self._identity(account, generation, character)
+                validate(actor, objects(actor["map_id"]))
             previous = self.service.snapshot(account, generation, character)
             args = (account, generation, character)
             key = (
@@ -283,6 +295,13 @@ class Guilds:
                     character,
                     generation,
                     *guild_wire.creation_ack(current["guild"]["name"]),
+                )
+            elif opcode in (12937, 12575):
+                field = "name" if opcode == 12937 else "blazon"
+                self.world.send_to(
+                    character,
+                    generation,
+                    *guild_wire.identity_change_ack(field, current["guild"][field]),
                 )
             return current
 

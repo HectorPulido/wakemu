@@ -1,8 +1,7 @@
 """Native region ecology initialization; populations are owned local counts.
 
-Installed region definitions specify families, not captured account data.
-The caller must supply the actual region from map partition state: choosing
-an arbitrary region would enable seeds in the wrong ecosystem.
+Installed region definitions specify the families shown in regional ecology
+counts. They do not restrict which families players can plant.
 """
 from wakfu_server import native_catalog as protocol_catalog
 import json
@@ -94,13 +93,10 @@ def bootstrap(
 
 
 def authorize_family(map_id, region_id, resource):
-    """Check the native ecosystem family gate; ground/profession still required."""
-    definition = region(map_id, region_id)
-    if resource["monster_resource"]:
-        available = {r["family_id"] for r in definition["monster_families"]}
-        if not set(resource["monster_family_ids"]).issubset(available):
-            raise ValueError("Monster family is unavailable in this native region")
-    elif resource["family_id"] not in {
-        r["family_id"] for r in definition["plant_families"]
-    }:
-        raise ValueError("Plant family is unavailable in this native region")
+    """Regional family lists describe balance; planting is unrestricted by zone.
+
+    Retain the compatibility entry point for callers using the former policy.
+    Native surfaces, occupancy, seed identity and profession checks are owned
+    by the planting authorization path.
+    """
+    return None

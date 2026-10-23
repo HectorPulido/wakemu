@@ -1,0 +1,161 @@
+{
+  "groups": [
+    {
+      "event_id": 17014,
+      "group_id": "journal_part_1",
+      "input_references": [
+        20423,
+        20424,
+        20425,
+        20426,
+        20427,
+        20428
+      ],
+      "items": [
+        {
+          "action_id": 8054,
+          "criterion": "GetItemQuantity(20423) >=1 && GetItemQuantity(20424) >=1  && GetItemQuantity(20425) >=1  && GetItemQuantity(20426) >=1  && GetItemQuantity(20427) >=1  && GetItemQuantity(20428) >=1",
+          "item_ref": 20423,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8055,
+          "criterion": "GetItemQuantity(20423) >=1 && GetItemQuantity(20424) >=1  && GetItemQuantity(20425) >=1  && GetItemQuantity(20426) >=1  && GetItemQuantity(20427) >=1  && GetItemQuantity(20428) >=1",
+          "item_ref": 20424,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8056,
+          "criterion": "GetItemQuantity(20423) >=1 && GetItemQuantity(20424) >=1  && GetItemQuantity(20425) >=1  && GetItemQuantity(20426) >=1  && GetItemQuantity(20427) >=1  && GetItemQuantity(20428) >=1",
+          "item_ref": 20425,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8057,
+          "criterion": "GetItemQuantity(20423) >=1 && GetItemQuantity(20424) >=1  && GetItemQuantity(20425) >=1  && GetItemQuantity(20426) >=1  && GetItemQuantity(20427) >=1  && GetItemQuantity(20428) >=1",
+          "item_ref": 20426,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8058,
+          "criterion": "GetItemQuantity(20423) >=1 && GetItemQuantity(20424) >=1  && GetItemQuantity(20425) >=1  && GetItemQuantity(20426) >=1  && GetItemQuantity(20427) >=1  && GetItemQuantity(20428) >=1",
+          "item_ref": 20427,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8059,
+          "criterion": "GetItemQuantity(20423) >=1 && GetItemQuantity(20424) >=1  && GetItemQuantity(20425) >=1  && GetItemQuantity(20426) >=1  && GetItemQuantity(20427) >=1  && GetItemQuantity(20428) >=1",
+          "item_ref": 20428,
+          "native_consumes_source": false
+        }
+      ],
+      "mission_binding": {
+        "definition_id": 2907,
+        "objective_id": 5923
+      },
+      "policy": "supported_inference_wakemu_native_journal_part",
+      "products": {
+        "20443": 1
+      },
+      "scenario_id": 2116
+    },
+    {
+      "event_id": 17015,
+      "group_id": "journal_part_2",
+      "input_references": [
+        20430,
+        20431,
+        20433,
+        20434
+      ],
+      "items": [
+        {
+          "action_id": 8061,
+          "criterion": "GetItemQuantity(20430) >=1 && GetItemQuantity(20431) >=1  && GetItemQuantity(20434) >=1  && GetItemQuantity(20433) >=1",
+          "item_ref": 20430,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8062,
+          "criterion": "GetItemQuantity(20430) >=1 && GetItemQuantity(20431) >=1  && GetItemQuantity(20434) >=1  && GetItemQuantity(20433) >=1",
+          "item_ref": 20431,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8064,
+          "criterion": "GetItemQuantity(20430) >=1 && GetItemQuantity(20431) >=1  && GetItemQuantity(20434) >=1  && GetItemQuantity(20433) >=1",
+          "item_ref": 20433,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8065,
+          "criterion": "GetItemQuantity(20430) >=1 && GetItemQuantity(20431) >=1  && GetItemQuantity(20434) >=1  && GetItemQuantity(20433) >=1",
+          "item_ref": 20434,
+          "native_consumes_source": false
+        }
+      ],
+      "mission_binding": {
+        "definition_id": 2907,
+        "objective_id": 5911
+      },
+      "policy": "supported_inference_wakemu_native_journal_part",
+      "products": {
+        "20444": 1
+      },
+      "scenario_id": 2117
+    },
+    {
+      "event_id": 17016,
+      "group_id": "journal_part_3",
+      "input_references": [
+        20435,
+        20436,
+        20437,
+        20438,
+        20439
+      ],
+      "items": [
+        {
+          "action_id": 8066,
+          "criterion": "GetItemQuantity(20435) >=1 && GetItemQuantity(20436) >=1  && GetItemQuantity(20437) >=1  && GetItemQuantity(20438) >=1   && GetItemQuantity(20439) >=1",
+          "item_ref": 20435,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8067,
+          "criterion": "GetItemQuantity(20435) >=1 && GetItemQuantity(20436) >=1  && GetItemQuantity(20437) >=1  && GetItemQuantity(20438) >=1   && GetItemQuantity(20439) >=1",
+          "item_ref": 20436,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8068,
+          "criterion": "GetItemQuantity(20435) >=1 && GetItemQuantity(20436) >=1  && GetItemQuantity(20437) >=1  && GetItemQuantity(20438) >=1   && GetItemQuantity(20439) >=1",
+          "item_ref": 20437,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8069,
+          "criterion": "GetItemQuantity(20435) >=1 && GetItemQuantity(20436) >=1  && GetItemQuantity(20437) >=1  && GetItemQuantity(20438) >=1   && GetItemQuantity(20439) >=1",
+          "item_ref": 20438,
+          "native_consumes_source": false
+        },
+        {
+          "action_id": 8070,
+          "criterion": "GetItemQuantity(20435) >=1 && GetItemQuantity(20436) >=1  && GetItemQuantity(20437) >=1  && GetItemQuantity(20438) >=1   && GetItemQuantity(20439) >=1",
+          "item_ref": 20439,
+          "native_consumes_source": false
+        }
+      ],
+      "mission_binding": {
+        "definition_id": 2907,
+        "objective_id": 5912
+      },
+      "policy": "supported_inference_wakemu_native_journal_part",
+      "products": {
+        "20445": 1
+      },
+      "scenario_id": 2118
+    }
+  ],
+  "qualification": "Native page sets, unique journal outputs and objective links; server callback reward edge inferred. Quest completion engine remains unqualified."
+}

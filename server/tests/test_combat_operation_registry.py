@@ -18,6 +18,27 @@ from wakfu_server import combat_operation_registry as registry
 
 
 class CombatOperationRegistryTests(unittest.TestCase):
+    def test_triggering_amount_requires_its_real_handler_and_parameter_triple(self):
+        effect = {"effect_class": 430, "parameters": [1, 0, -800, 0, 0, 0]}
+        contract = registry.operation_for_family(430)
+        self.assertEqual(
+            contract.executor, "combat_trigger_value_handler.NativeTriggerValueHandler"
+        )
+        self.assertIn("exact live triggering Qe identity", contract.prerequisites)
+        self.assertEqual(registry.assess_operation(effect).status, "conditional")
+        self.assertEqual(
+            registry.assess_operation(effect, runtime_bindings={}).status,
+            "unsupported",
+        )
+        for parameters in ([], [1, 0], [1, 0, 800, 0, 0], [1, 0, 800, 0, 0, 0, 0, 0]):
+            with self.subTest(parameters=parameters):
+                self.assertEqual(
+                    registry.assess_operation(
+                        dict(effect, parameters=parameters)
+                    ).status,
+                    "unsupported",
+                )
+
     def test_compiler_and_dispatcher_share_one_flat_registry_module(self):
         env = dict(os.environ)
         env.pop("WAKFU_DATABASE_URL", None)

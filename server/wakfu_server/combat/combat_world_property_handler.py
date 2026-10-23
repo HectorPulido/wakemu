@@ -175,6 +175,7 @@ class NativeWorldPropertyHandler:
             target_id=actor.id,
             uid=runner.uid,
             running_effect_payload=payload,
+            notify_unapplication=False,
         )[:-16]
         self.packets.append(
             (

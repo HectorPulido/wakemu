@@ -69,13 +69,17 @@ def complete_resurrection(fight, target, prepared, *, action_id, packets):
     from .combat_timeline_snapshot import insert
 
     current_id = fight.current.id
+    current_index = fight.turn_index
     row = prepared["removed"]
     if row is not None:
         # fem.rD consumes its saved feu and reinserts at that position.
         slot = min(row["position"], len(fight.order))
         insert(fight, target.id, slot)
         fight.order.insert(slot, target.id)
-        fight.turn_index = fight.order.index(current_id)
+        # Additional turns repeat IDs; preserve this occurrence across insertion.
+        fight.turn_index = current_index + (slot <= current_index)
+        if fight.order[fight.turn_index] != current_id:
+            raise ValueError("Resurrection lost the current timeline actor")
         fight.native_timeline_removed = [
             item
             for item in fight.native_timeline_removed

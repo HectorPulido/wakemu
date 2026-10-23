@@ -1,0 +1,592 @@
+{
+  "status": "four_positive_native_start_descriptors_source_only_not_activation",
+  "source_sha256": "2cbd04023587c43342b6baf617e200883957e8ed3a718459acb3d4c8d3851d69",
+  "descriptors": [
+    {
+      "carrier_state": 6998,
+      "listener_reference": 325709,
+      "trigger_reference": 325711,
+      "spell_reference": 7272,
+      "parent_reference": 319310,
+      "event_id": 1001,
+      "channel": 60,
+      "native_effect": {
+        "variant": 0,
+        "children": [
+          325710,
+          325712
+        ],
+        "criteria": "",
+        "area_class": "anD",
+        "parameters": [],
+        "area_native": "point",
+        "effect_class": 330,
+        "removal_flag": "EFFECT_CARRIER",
+        "target_masks": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          [
+            1001
+          ],
+          null
+        ],
+        "maximum_level": 32767,
+        "minimum_level": 0,
+        "parameter_count": 0,
+        "application_flag": "EFFECT_CARRIER",
+        "probability_base": 100.0,
+        "native_hmi_actions": {
+          "rzc": [],
+          "rzd": [],
+          "rze": [],
+          "rzf": [],
+          "rzg": [],
+          "rzh": []
+        },
+        "native_effect_flags": [],
+        "native_timing_checks": {
+          "0": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "1": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "200": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "32767": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          }
+        },
+        "native_execution_mode": 2,
+        "probability_per_level": 0.0,
+        "native_target_selector": {
+          "mask": 1,
+          "class": "fcE"
+        },
+        "native_definition_class": "eVy",
+        "native_timing_definition": {
+          "esr": false,
+          "ryE": -1,
+          "ryF": 0.0,
+          "ryG": false,
+          "ryH": 0,
+          "ryI": 0.0,
+          "clock_on_caster": false,
+          "clock_on_target": true
+        },
+        "native_localization_enabled": false
+      },
+      "native_metadata": {
+        "variant": 0,
+        "parameters": [],
+        "effect_class": 330,
+        "subscription": true,
+        "maximum_level": 32767,
+        "minimum_level": 0,
+        "event_priority": 50,
+        "definition_type": 2,
+        "owner_on_caster": false,
+        "event_caster_code": 2,
+        "event_target_code": 2,
+        "event_execution_count": -1,
+        "definition_dispellable": false,
+        "event_global_subscription": false,
+        "event_reverse_subscription": true,
+        "event_suppresses_level_one": false,
+        "event_execution_count_per_level": 0.0
+      }
+    },
+    {
+      "carrier_state": 7013,
+      "listener_reference": 318946,
+      "trigger_reference": 318947,
+      "spell_reference": 7276,
+      "parent_reference": 318945,
+      "event_id": 1001,
+      "channel": 60,
+      "native_effect": {
+        "variant": 0,
+        "children": [
+          324703,
+          324705,
+          318947
+        ],
+        "criteria": "",
+        "area_class": "anD",
+        "parameters": [],
+        "area_native": "point",
+        "effect_class": 330,
+        "removal_flag": "EFFECT_CARRIER",
+        "target_masks": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          [
+            1001
+          ],
+          null
+        ],
+        "maximum_level": 32767,
+        "minimum_level": 0,
+        "parameter_count": 0,
+        "application_flag": "EFFECT_CARRIER",
+        "probability_base": 100.0,
+        "native_hmi_actions": {
+          "rzc": [],
+          "rzd": [],
+          "rze": [],
+          "rzf": [],
+          "rzg": [],
+          "rzh": []
+        },
+        "native_effect_flags": [],
+        "native_timing_checks": {
+          "0": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "1": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "200": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "32767": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          }
+        },
+        "native_execution_mode": 2,
+        "probability_per_level": 0.0,
+        "native_target_selector": {
+          "mask": 1,
+          "class": "fcE"
+        },
+        "native_definition_class": "eVy",
+        "native_timing_definition": {
+          "esr": false,
+          "ryE": -1,
+          "ryF": 0.0,
+          "ryG": false,
+          "ryH": 0,
+          "ryI": 0.0,
+          "clock_on_caster": false,
+          "clock_on_target": true
+        },
+        "native_localization_enabled": false
+      },
+      "native_metadata": {
+        "variant": 0,
+        "parameters": [],
+        "effect_class": 330,
+        "subscription": true,
+        "maximum_level": 32767,
+        "minimum_level": 0,
+        "event_priority": 13,
+        "definition_type": 2,
+        "owner_on_caster": false,
+        "event_caster_code": 2,
+        "event_target_code": 2,
+        "event_execution_count": -1,
+        "definition_dispellable": false,
+        "event_global_subscription": false,
+        "event_reverse_subscription": true,
+        "event_suppresses_level_one": false,
+        "event_execution_count_per_level": 0.0
+      }
+    },
+    {
+      "carrier_state": 7014,
+      "listener_reference": 318957,
+      "trigger_reference": 318958,
+      "spell_reference": 7277,
+      "parent_reference": 318956,
+      "event_id": 1001,
+      "channel": 60,
+      "native_effect": {
+        "variant": 0,
+        "children": [
+          318958,
+          324706
+        ],
+        "criteria": "",
+        "area_class": "anD",
+        "parameters": [],
+        "area_native": "point",
+        "effect_class": 330,
+        "removal_flag": "EFFECT_CARRIER",
+        "target_masks": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          [
+            1001
+          ],
+          null
+        ],
+        "maximum_level": 32767,
+        "minimum_level": 0,
+        "parameter_count": 0,
+        "application_flag": "EFFECT_CARRIER",
+        "probability_base": 100.0,
+        "native_hmi_actions": {
+          "rzc": [],
+          "rzd": [],
+          "rze": [],
+          "rzf": [],
+          "rzg": [],
+          "rzh": []
+        },
+        "native_effect_flags": [],
+        "native_timing_checks": {
+          "0": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "1": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "200": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "32767": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          }
+        },
+        "native_execution_mode": 2,
+        "probability_per_level": 0.0,
+        "native_target_selector": {
+          "mask": 1,
+          "class": "fcE"
+        },
+        "native_definition_class": "eVy",
+        "native_timing_definition": {
+          "esr": false,
+          "ryE": -1,
+          "ryF": 0.0,
+          "ryG": false,
+          "ryH": 0,
+          "ryI": 0.0,
+          "clock_on_caster": false,
+          "clock_on_target": true
+        },
+        "native_localization_enabled": false
+      },
+      "native_metadata": {
+        "variant": 0,
+        "parameters": [],
+        "effect_class": 330,
+        "subscription": true,
+        "maximum_level": 32767,
+        "minimum_level": 0,
+        "event_priority": 12,
+        "definition_type": 2,
+        "owner_on_caster": false,
+        "event_caster_code": 2,
+        "event_target_code": 2,
+        "event_execution_count": -1,
+        "definition_dispellable": false,
+        "event_global_subscription": false,
+        "event_reverse_subscription": true,
+        "event_suppresses_level_one": false,
+        "event_execution_count_per_level": 0.0
+      }
+    },
+    {
+      "carrier_state": 7015,
+      "listener_reference": 318968,
+      "trigger_reference": 318969,
+      "spell_reference": 7278,
+      "parent_reference": 318967,
+      "event_id": 1001,
+      "channel": 60,
+      "native_effect": {
+        "variant": 0,
+        "children": [
+          324707,
+          324708,
+          318969
+        ],
+        "criteria": "",
+        "area_class": "anD",
+        "parameters": [],
+        "area_native": "point",
+        "effect_class": 330,
+        "removal_flag": "EFFECT_CARRIER",
+        "target_masks": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          [
+            1001
+          ],
+          null
+        ],
+        "maximum_level": 32767,
+        "minimum_level": 0,
+        "parameter_count": 0,
+        "application_flag": "EFFECT_CARRIER",
+        "probability_base": 100.0,
+        "native_hmi_actions": {
+          "rzc": [],
+          "rzd": [],
+          "rze": [],
+          "rzf": [],
+          "rzg": [],
+          "rzh": []
+        },
+        "native_effect_flags": [],
+        "native_timing_checks": {
+          "0": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "1": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "200": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          },
+          "32767": {
+            "cxq": false,
+            "delay": [
+              0,
+              false,
+              0,
+              false
+            ],
+            "duration": [
+              -1,
+              false,
+              0,
+              false
+            ]
+          }
+        },
+        "native_execution_mode": 2,
+        "probability_per_level": 0.0,
+        "native_target_selector": {
+          "mask": 1,
+          "class": "fcE"
+        },
+        "native_definition_class": "eVy",
+        "native_timing_definition": {
+          "esr": false,
+          "ryE": -1,
+          "ryF": 0.0,
+          "ryG": false,
+          "ryH": 0,
+          "ryI": 0.0,
+          "clock_on_caster": false,
+          "clock_on_target": true
+        },
+        "native_localization_enabled": false
+      },
+      "native_metadata": {
+        "variant": 0,
+        "parameters": [],
+        "effect_class": 330,
+        "subscription": true,
+        "maximum_level": 32767,
+        "minimum_level": 0,
+        "event_priority": 11,
+        "definition_type": 2,
+        "owner_on_caster": false,
+        "event_caster_code": 2,
+        "event_target_code": 2,
+        "event_execution_count": -1,
+        "definition_dispellable": false,
+        "event_global_subscription": false,
+        "event_reverse_subscription": true,
+        "event_suppresses_level_one": false,
+        "event_execution_count_per_level": 0.0
+      }
+    }
+  ]
+}

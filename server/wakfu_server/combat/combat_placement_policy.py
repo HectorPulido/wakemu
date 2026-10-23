@@ -41,6 +41,15 @@ def _arena(map_id, instance_id, layout):
     # Placement regenerates wire masks, so preserve the actual native Vy
     # selection rather than silently replacing every surface index with zero.
     indices = native_surface_indices(native_qi_surfaces(map_id), cells)
+    from .combat_arena_empty_gaps import restored_gap_indices
+
+    gap_indices = restored_gap_indices(map_id, cells, layout)
+    if (
+        layout.get("native_los_gap_policy") is not None
+        and layout.get("native_encounter_scene_layout", {}).get("native_los_gap_policy")
+        != layout["native_los_gap_policy"]
+    ):
+        raise ValueError("Persisted encounter empty-gap policy changed")
     result = arena(
         map_id,
         layout["wire_instance_id"],
@@ -48,11 +57,22 @@ def _arena(map_id, instance_id, layout):
         placement,
         surface_indices=indices,
         border_cells=layout.get("native_border_cells", []),
+        gap_surface_indices=gap_indices,
     )
     from .combat_border_policy import validate as validate_border
 
     border = layout.get("border")
     reference = 46 if border is None else validate_border(border)
+    scene_reference = layout.get("scene_terrain_effect_id")
+    if scene_reference is not None:
+        if (
+            type(scene_reference) is not int
+            or not 0 < scene_reference < 2**31
+            or layout.get("native_encounter_scene_layout", {}).get("terrain_effect_id")
+            != scene_reference
+        ):
+            raise ValueError("Persisted encounter terrain reference changed")
+        reference = scene_reference
     result.update(
         terrain_effect_id=reference,
         native_border_receipt=border,
@@ -66,6 +86,29 @@ def _arena(map_id, instance_id, layout):
         ),
         native_border_policy=layout.get("native_border_policy"),
     )
+    if layout.get("native_encounter_scene_layout") is not None:
+        result["native_encounter_scene_layout"] = layout[
+            "native_encounter_scene_layout"
+        ]
+        result["participant_player_position"] = layout["participant_player_position"]
+    if "native_encounter_roles" in layout:
+        from .combat_encounter_roles import roles_from_record
+
+        result["native_encounter_roles"] = roles_from_record(
+            layout["native_encounter_roles"],
+            map_id=map_id,
+        ).record()
+    for key in (
+        "native_border_scope_cells",
+        "native_initial_glyphs",
+        "native_initial_glyph_policy",
+        "native_initial_glyph_authority",
+        "native_initial_glyph_source_url",
+        "native_los_gap_policy",
+        "native_los_gap_surfaces",
+    ):
+        if key in layout:
+            result[key] = layout[key]
     return result
 
 
@@ -115,22 +158,65 @@ def freeze(
             if [tuple(pair[0]) for pair in relocations] != [tuple(c) for c in seeds[1]]:
                 raise ValueError("Encounter relocation source changed")
             seeds = {0: seeds[0], 1: [tuple(pair[1]) for pair in relocations]}
-        placement = generate(
-            cells,
-            edges,
-            seeds,
-            slots_per_team=policy["slots_per_team"],
-            variation_seed=(fight_id << 31) | policy["version"]
-            if policy["variation_enabled"]
-            else None,
-            spread_teams=selected_arena.get("native_border_policy")
-            == "wakemu.compact-cardinal-perimeter-v1",
-            avoid_cells=selected_arena.get("native_border_cells", ()),
+        scene = selected_arena.get("native_encounter_scene_layout")
+        from .combat_encounter_roles import roles_from_record
+
+        role_record = selected_arena.get("native_encounter_roles")
+        roles = (
+            None
+            if role_record is None
+            else roles_from_record(role_record, map_id=map_id)
         )
+        player_relocation = selected_arena.get("participant_player_position")
+        if scene is not None:
+            if (
+                player_relocation is None
+                or len(seeds[0]) != 1
+                or tuple(player_relocation[0]) != tuple(seeds[0][0])
+                or tuple(player_relocation[1]) != tuple(scene["anchor"])
+            ):
+                raise ValueError("Reconstructed placement player origin changed")
+            seeds = {0: [tuple(player_relocation[1])], 1: seeds[1]}
+        if scene is not None:
+            players = {tuple(cell) for cell in scene["party_placement_cells"]}
+            npcs = {tuple(scene["source"])}
+            placement = (
+                {0: players, 1: npcs}
+                if roles is None
+                else roles.placement_cells(players, npcs)
+            )
+            if roles is not None:
+                seeds = roles.placement_cells(seeds[0], seeds[1])
+            if (
+                not placement[0] <= cells
+                or not placement[1] <= cells
+                or placement[0] & placement[1]
+                or any(
+                    not set(group) <= placement[team] for team, group in seeds.items()
+                )
+            ):
+                raise ValueError("Reconstructed scene cannot place its admitted actors")
+        else:
+            if roles is not None:
+                seeds = roles.placement_cells(seeds[0], seeds[1])
+            placement = generate(
+                cells,
+                edges,
+                seeds,
+                slots_per_team=policy["slots_per_team"],
+                variation_seed=(fight_id << 31) | policy["version"]
+                if policy["variation_enabled"]
+                else None,
+                spread_teams=selected_arena.get("native_border_policy")
+                == "wakemu.compact-cardinal-perimeter-v1",
+                avoid_cells=selected_arena.get("native_border_cells", ()),
+            )
         from .combat_border_policy import choose as choose_border
 
         layout = dict(
-            border=choose_border(db),
+            border=None
+            if scene is not None and "terrain_effect_id" in scene
+            else choose_border(db),
             native_border_cells=sorted(selected_arena.get("native_border_cells", [])),
             native_border_policy=selected_arena.get("native_border_policy"),
             participant_positions=relocations,
@@ -139,6 +225,29 @@ def freeze(
             wire_instance_id=selected_arena["instance_id"],
             placement={str(t): sorted(group) for t, group in placement.items()},
         )
+        if scene is not None:
+            layout.update(
+                native_encounter_scene_layout=scene,
+                participant_player_position=player_relocation,
+            )
+            if "terrain_effect_id" in scene:
+                layout["scene_terrain_effect_id"] = scene["terrain_effect_id"]
+        if roles is not None:
+            layout["native_encounter_roles"] = roles.record()
+        for key in (
+            "native_border_scope_cells",
+            "native_initial_glyphs",
+            "native_initial_glyph_policy",
+            "native_initial_glyph_authority",
+            "native_initial_glyph_source_url",
+            "native_los_gap_policy",
+            "native_los_gap_surfaces",
+        ):
+            if key in selected_arena:
+                value = selected_arena[key]
+                layout[key] = (
+                    sorted(value) if key == "native_border_scope_cells" else value
+                )
         result = _arena(map_id, instance_id, layout)
         db.execute(
             "INSERT INTO fight_placement_layouts(fight_id,map_id,instance_id,policy,layout) VALUES(%s,%s,%s,%s,%s)",

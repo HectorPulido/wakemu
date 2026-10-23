@@ -1,7 +1,34 @@
 """Native faP bootstrap PV and its QI.P shape, independent of fighter owners."""
 
 POLICY = "wakemu.compact-cardinal-perimeter-v1"
+RECONSTRUCTED_POLICY = "wakemu.reconstructed-native-cardinal-perimeter-v1"
+DECLARED_COMPONENT_POLICY = "wakemu.reconstructed-native-component-perimeter-v1"
+SUPPORTED_POLICIES = frozenset(
+    (POLICY, RECONSTRUCTED_POLICY, DECLARED_COMPONENT_POLICY)
+)
 SOURCE = "buS.cvb.fbm_null_owner.faP_h.Qs_a"
+
+
+def validate_border_component(cells, edges, scope):
+    """Require a whole native terrain component, preserving isolated platforms."""
+    cells = set(cells)
+    scope = frozenset(tuple(cell) for cell in scope)
+    if not scope or not scope <= cells:
+        raise ValueError("Declared border scope leaves native terrain")
+    adjacency = {}
+    for start, end in edges:
+        adjacency.setdefault(start, set()).add(end)
+        adjacency.setdefault(end, set()).add(start)
+    connected = set()
+    pending = [min(scope)]
+    while pending:
+        cell = pending.pop()
+        if cell not in connected:
+            connected.add(cell)
+            pending.extend(adjacency.get(cell, set()) - connected)
+    if connected != scope:
+        raise ValueError("Declared border scope is not a complete native component")
+    return scope
 
 
 def verify_battleground_border(fight, row):
@@ -9,7 +36,7 @@ def verify_battleground_border(fight, row):
 
     if (
         row.get("native_border_source") != SOURCE
-        or row.get("native_border_policy") != POLICY
+        or row.get("native_border_policy") not in SUPPORTED_POLICIES
         or row.get("owner_id") is not None
         or row.get("level") != 0
         or row.get("direction") != -1
@@ -56,6 +83,8 @@ def ensure_battleground_border(fight):
         if (
             existing.get("native_border_source") != SOURCE
             or existing.get("reference") != source["reference"]
+            or existing.get("native_border_policy")
+            != source["arena"].get("native_border_policy")
         ):
             raise ValueError("Battleground constructor identity collision")
         verify_battleground_border(fight, existing)
@@ -76,7 +105,7 @@ def install_battleground_border(fight, arena, *, reference, identity):
     """
     if arena.get("native_border_policy") is None:
         return None
-    if arena.get("native_border_policy") != POLICY:
+    if arena.get("native_border_policy") not in SUPPORTED_POLICIES:
         raise ValueError("Unknown battleground perimeter policy")
     from .combat_effect_area import native_effect_areas
     from .combat_qi_snapshot import NativeQISnapshot
@@ -97,6 +126,23 @@ def install_battleground_border(fight, arena, *, reference, identity):
     cells = frozenset(tuple(cell) for cell in supplied)
     if any(len(cell) != 3 or any(type(v) is not int for v in cell) for cell in cells):
         raise ValueError("Invalid battleground perimeter coordinates")
+    if arena["native_border_policy"] == RECONSTRUCTED_POLICY:
+        from .combat_arena_selection import cardinal_border_cells
+
+        if cells != cardinal_border_cells(fight.walkable):
+            raise ValueError(
+                "Reconstructed border differs from native room cardinal perimeter"
+            )
+    if arena["native_border_policy"] == DECLARED_COMPONENT_POLICY:
+        from .combat_arena_selection import cardinal_border_cells
+
+        scope = validate_border_component(
+            fight.walkable,
+            fight.edges,
+            arena.get("native_border_scope_cells", ()),
+        )
+        if cells != cardinal_border_cells(scope):
+            raise ValueError("Declared border differs from native component perimeter")
     qi = NativeQISnapshot(fight.native_qi_snapshot)
     actual = {
         (x, y)
@@ -135,13 +181,13 @@ def install_battleground_border(fight, arena, *, reference, identity):
         native_fight_affiliation=-1,
         native_fight_affiliation_source="faV.constructor.null_owner",
         native_border_source=SOURCE,
-        native_border_policy=POLICY,
+        native_border_policy=arena["native_border_policy"],
     )
     areas[identity] = row
     from .combat_global_pv_collections import register_global_area
 
     register_global_area(fight, identity)
     fight.native_border_cells = tuple(sorted(cells))
-    fight.native_border_policy = POLICY
+    fight.native_border_policy = arena["native_border_policy"]
     fight.native_border_installed = True
     return row

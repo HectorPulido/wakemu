@@ -12,6 +12,7 @@ import os
 from ..context.native_context import encode_bytes
 from ..planning.team_blackboard import observe, confirm
 from .world_bridge import turn_catalogue_scope
+from ..planning import turn_continuation
 
 
 class _NoPublication(Exception):
@@ -29,7 +30,7 @@ def run_shared_turn(
     expected_sequence=None,
     started_at=None,
 ):
-    with turn_catalogue_scope():
+    with turn_catalogue_scope(), turn_continuation.scope(publication_required=True):
         yield from _run_shared_turn(
             runtime,
             adapter,
@@ -56,6 +57,7 @@ def _run_shared_turn(
     from wakfu_server.combat_shared import Transition
 
     registry = adapter.registry
+    continuation = turn_continuation.current()
     shared = registry.lookup(runtime.fight.id)
     preparation_started = time.monotonic()
     if started_at is not None:
@@ -115,6 +117,7 @@ def _run_shared_turn(
                     return
                 before = observe(shared.fight)
                 sequence = shared.sequence
+                continuation.begin(shared.runtime, publication_revision=shared.sequence)
                 candidate, native = deepcopy((shared.fight, shared.runtime))
                 if native is None or native.fight is not candidate:
                     raise ValueError("Shared native encounter/runtime identity differs")
@@ -220,6 +223,7 @@ def _run_shared_turn(
                 ):
                     return
                 if shared.sequence != sequence:
+                    continuation.discard()
                     continue
                 if failure is None:
                     registry.execute_server(
@@ -236,6 +240,7 @@ def _run_shared_turn(
                         incident_turn_id=turn_id,
                     )
                 else:
+                    continuation.discard()
                     # Discard the failed private pair. Earlier published actions
                     # remain authoritative; stage the native barrier afresh.
                     diagnostics = [
@@ -259,6 +264,12 @@ def _run_shared_turn(
                 if shared.runtime.awaiting_ack is not None:
                     registry.arm_ack(shared.fight.id, shared.runtime.awaiting_ack)
                 confirm(shared.runtime, before, diagnostics)
+                if failure is None:
+                    continuation.confirm(
+                        shared.runtime,
+                        action=diagnostics[-1].get("action"),
+                        publication_revision=shared.sequence,
+                    )
             for diagnostic in diagnostics:
                 yield [], dict(
                     diagnostic, shared=True, actorId=actor_id, turnId=turn_id

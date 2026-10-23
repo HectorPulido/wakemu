@@ -150,6 +150,16 @@ def prepare_and_register(
         arena["placement_cells"],
         arena.get("valid_edges"),
     )
+    from wakfu_server.neo_regeneration import freeze_fight_configuration
+
+    freeze_fight_configuration(db, fight)
+    from wakfu_server.combat_protector_fight_condition import (
+        capture_world_registry_record,
+    )
+
+    fight.native_protector_registry = capture_world_registry_record(
+        db, challenger, fight.id
+    )
     from wakfu_server.combat_qi_snapshot import NativeQISnapshot
     from wakfu_server.combat_global_pv_collections import (
         initialize_global_pv_collections,

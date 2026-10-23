@@ -116,7 +116,7 @@ class ObservedDialogueTests(unittest.TestCase):
                 character = {
                     key: row[key] for key in ("map_id", "instance_id", "x", "y", "z")
                 }
-                character["level"] = 6
+                character.update(id=100, account_id=200, level=6)
                 original = copy.deepcopy(character)
                 facts = {}
                 session, _ = npc_world.begin(
@@ -140,7 +140,9 @@ class ObservedDialogueTests(unittest.TestCase):
         for mutation in ("facts", "distance"):
             row = otomai()
             row["native_capture_contract"]["source_sha256"] = SOURCE
-            character = dict(map_id=1385, instance_id=0, x=20, y=17, z=1)
+            character = dict(
+                id=100, account_id=200, map_id=1385, instance_id=0, x=20, y=17, z=1
+            )
             facts = {}
             session, _ = npc_world.begin(
                 lambda: character,
@@ -178,7 +180,15 @@ class ObservedDialogueTests(unittest.TestCase):
     ):
         row = captured_row(-1706442035962340, 5458, 1387, -12, 0, 2, 1, 5764, 1238)
         character = dict(
-            map_id=1387, instance_id=0, x=-12, y=0, z=2, level=5, effective_level=200
+            id=100,
+            account_id=200,
+            map_id=1387,
+            instance_id=0,
+            x=-12,
+            y=0,
+            z=2,
+            level=5,
+            effective_level=200,
         )
         session, _ = npc_world.begin(
             lambda: character,

@@ -186,14 +186,15 @@ class Fight:
         uid = self.native_effect_uid_next
         if type(uid) is not int or not 0 < uid < (1 << 63) - 1:
             raise ValueError("Native effect UID sequence is missing or exhausted")
+        # Qe.bfx running-effect IDs and PV.Sn entity IDs are separate native
+        # namespaces. An initial/retired Qq may have the same numeric ID;
+        # only another owned runner can collide with this sequence.
         occupied = (
             set(self.state_wire_payloads)
             | set(self.owned_stat_effects)
             | set(self.native_owned_group_effects)
             | set(getattr(self, "native_owned_area_effects", {}))
             | set(getattr(self, "native_owned_spatial_effects", {}))
-            | set(getattr(self, "native_effect_areas", {}))
-            | set(getattr(self, "native_retired_area_managers", {}))
         )
         occupied.update(
             entry.uid
@@ -224,6 +225,18 @@ class Fight:
             for row in self.native_owned_area_effects.values()
             if isinstance(row, dict) and type(row.get("area_uid")) is int
         )
+        # Scene PVs are published before this running-effect counter starts.
+        # Removing an initial Qq without a retained Qf leaves no retired manager,
+        # but its constructor still identifies that original entity. PW must
+        # not reuse it for a new area when the counter reaches that namespace.
+        pvs.update(
+            source["uid"]
+            for source in getattr(self, "native_environment_glyph_constructors", ())
+            if isinstance(source, dict) and type(source.get("uid")) is int
+        )
+        border = getattr(self, "native_border_constructor", None)
+        if isinstance(border, dict) and type(border.get("identity")) is int:
+            pvs.add(border["identity"])
         while uid in pvs:
             uid += 1
             if uid >= (1 << 63) - 1:
@@ -748,9 +761,9 @@ class Fight:
         The ledger returns child effects, including instant states. This method
         records the application but does not claim those effects were executed.
         """
-        from .combat_state_managers import state_manager
+        from .combat_state_managers import registered_source_pv, state_manager
 
-        source = state_manager(self, source_id)
+        source = registered_source_pv(self, source_id)
         target = state_manager(self, target_id)
         from .combat_summon_initialization import detached_actor
 

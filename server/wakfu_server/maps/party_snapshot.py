@@ -13,9 +13,31 @@ def packet(snapshot, *, effective_levels, fighting_ids=()):
     members = []
     fighting = set(fighting_ids)
     for row in snapshot["members"]:
-        if type(row.get("sex")) is not bool or type(row.get("health_dead")) is not bool:
+        if row.get("companion_record") is not None:
+            identity = row["id"]
+            if identity not in effective_levels:
+                raise ValueError("Missing current companion effective level")
+            members.append(
+                dict(
+                    row,
+                    effective_level=effective_levels[identity],
+                    in_fight=identity in fighting,
+                )
+            )
+            continue
+        if (
+            type(row.get("sex")) is not bool
+            or type(row.get("health_dead")) is not bool
+            or type(row.get("hp_zero_valid", False)) is not bool
+        ):
             raise ValueError("Missing authoritative party appearance or death state")
-        if row["health_dead"] != (row["hp"] == 0):
+        if (
+            row["health_dead"]
+            and row["hp"] != 0
+            or row["hp"] == 0
+            and not row["health_dead"]
+            and row.get("hp_zero_valid") is not True
+        ):
             raise ValueError("Party death state disagrees with health")
         if row["id"] not in effective_levels:
             raise ValueError("Missing current party member effective level")

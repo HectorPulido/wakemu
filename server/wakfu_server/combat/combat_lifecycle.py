@@ -1,6 +1,7 @@
 """Own fight finish/reward/return orchestration; no dispatcher or GUI effects."""
 import os
 import struct
+from copy import deepcopy
 from . import combat_rewards, combat_results, health_store, health, wire
 
 
@@ -66,11 +67,27 @@ def prepare_finish(
         fight_model=fight_model,
     )
     previous_ack, previous_pending = runtime.awaiting_ack, runtime.pending
+    previous_fight = None
+    previous_action_id = runtime.action_id
+    outcome_packets = ()
     try:
         with store.connection() as db:
             from .fight_store import finish
 
             finish(store, db, account_id, generation, character["id"], fight.id)
+            from .combat_consumable_lifecycle import prepare_outcome
+
+            candidate, outcome_packets = prepare_outcome(
+                fight,
+                runtime.expiration_runtime_factory,
+                action_id=runtime.action_id + 1,
+            )
+            if candidate is not fight:
+                previous_fight = deepcopy(fight.__dict__)
+                fight.__dict__.clear()
+                fight.__dict__.update(candidate.__dict__)
+                if outcome_packets:
+                    runtime.action_id += 1
             if getattr(fight, "boss_score_profile", None) is not None:
                 from wakfu_server.maps.boss_score_runtime import finalize
 
@@ -164,13 +181,30 @@ def prepare_finish(
                 )
                 _validate_progression_packets(progression_packets, {account_id})
                 saved = store.character(account_id, character["id"], db)
-            packets = combat_results.finish_messages(
-                runtime,
-                metadata,
-                duration_ms=duration_ms,
-                fight_instance_id=fight_instance_id,
-                initiator_id=character["id"],
-                fight_model=fight_model,
+            from .combat_equipment_finish import prepare_equipment_finish
+
+            terminal, terminal_packets = prepare_equipment_finish(
+                fight,
+                runtime.expiration_runtime_factory,
+                action_id=runtime.action_id + 1,
+            )
+            if terminal is not fight:
+                if previous_fight is None:
+                    previous_fight = deepcopy(fight.__dict__)
+                fight.__dict__.clear()
+                fight.__dict__.update(terminal.__dict__)
+                runtime.action_id += 1
+            packets = (
+                list(outcome_packets)
+                + list(terminal_packets)
+                + combat_results.finish_messages(
+                    runtime,
+                    metadata,
+                    duration_ms=duration_ms,
+                    fight_instance_id=fight_instance_id,
+                    initiator_id=character["id"],
+                    fight_model=fight_model,
+                )
             )
             packets.extend(loot_packets)
             packets.extend(progression_packets.get(account_id, ()))
@@ -193,6 +227,10 @@ def prepare_finish(
                 ecology=ecology,
             )
     except Exception:
+        if previous_fight is not None:
+            fight.__dict__.clear()
+            fight.__dict__.update(previous_fight)
+        runtime.action_id = previous_action_id
         runtime.awaiting_ack, runtime.pending = previous_ack, previous_pending
         raise
 
@@ -274,9 +312,27 @@ def prepare_finish_shared(
     if set(base_metadata) != set(fight.actors):
         raise ValueError("Shared fight report metadata does not match roster")
 
+    previous_fight = None
+    previous_action_id = runtime.action_id
+
     def settle(db, members, candidate):
+        nonlocal previous_fight
         from .combat_captured_roster_checkpoint import persist_captured_roster_updates
 
+        from .combat_consumable_lifecycle import prepare_outcome
+
+        outcome, outcome_packets = prepare_outcome(
+            candidate,
+            runtime.expiration_runtime_factory,
+            action_id=runtime.action_id + 1,
+        )
+        if outcome is not candidate:
+            previous_fight = deepcopy(candidate.__dict__)
+            candidate.__dict__.clear()
+            candidate.__dict__.update(outcome.__dict__)
+            if outcome_packets:
+                runtime.action_id += 1
+        # Preserve the actual Fight identity: World reward closures read it.
         # Capture and roster mutations share the reward/terminal transaction;
         # every character snapshot below observes the actual settled roster.
         if getattr(candidate, "boss_score_profile", None) is not None:
@@ -332,6 +388,14 @@ def prepare_finish_shared(
                     raise ValueError("Invalid shared loot packets")
             participant_loot[actor_id] = delivery
 
+        from wakfu_server.characters.companions import (
+            settle_rewards as settle_companion_rewards,
+        )
+        from .combat_companions import report_metadata as companion_report_metadata
+
+        observe("companion_rewards", settle_companion_rewards, db, store, candidate)
+        shared_report = companion_report_metadata(db, candidate, shared_report)
+
         ecology = None
         if group_settlement is not None:
             ecology = observe(
@@ -358,6 +422,20 @@ def prepare_finish_shared(
             _validate_progression_packets(
                 progression_packets, {member["account_id"] for member in members}
             )
+        from .combat_equipment_finish import prepare_equipment_finish
+
+        terminal, terminal_packets = prepare_equipment_finish(
+            candidate,
+            runtime.expiration_runtime_factory,
+            action_id=runtime.action_id + 1,
+        )
+        if terminal is not candidate:
+            if previous_fight is None:
+                previous_fight = deepcopy(candidate.__dict__)
+            candidate.__dict__.clear()
+            candidate.__dict__.update(terminal.__dict__)
+            runtime.action_id += 1
+        outcome_packets = tuple(outcome_packets) + tuple(terminal_packets)
         packets_by_owner = {}
         original_ack, original_pending = runtime.awaiting_ack, runtime.pending
         try:
@@ -406,7 +484,7 @@ def prepare_finish_shared(
                 ]
                 for recipient_id, delivery in deliveries:
                     report[recipient_id]["loots"] = delivery["loots"]
-                packets = []
+                packets = list(outcome_packets)
                 if reward is not None:
                     from wakfu_server.wire import account_kamas_update
 
@@ -460,15 +538,22 @@ def prepare_finish_shared(
             raise ValueError("Shared settlement contains an invalid native packet")
         return packets_by_owner
 
-    return settle_shared(
-        store,
-        account_id,
-        generation,
-        character_id,
-        fight,
-        settle,
-        **({"trace": trace} if trace is not None else {}),
-    )
+    try:
+        return settle_shared(
+            store,
+            account_id,
+            generation,
+            character_id,
+            fight,
+            settle,
+            **({"trace": trace} if trace is not None else {}),
+        )
+    except Exception:
+        runtime.action_id = previous_action_id
+        if previous_fight is not None:
+            fight.__dict__.clear()
+            fight.__dict__.update(previous_fight)
+        raise
 
 
 def outside_progression(character, *, wp=None, ap=None, mp=None):
@@ -480,8 +565,10 @@ def outside_progression(character, *, wp=None, ap=None, mp=None):
     from .combat_actor import actor_stats
     from wakfu_server.equipment_stats import effective_character, combat_resources
 
-    owned = effective_character(character)
-    resources = combat_resources(owned, wp=wp, base_ap=ap, base_mp=mp)
+    owned = effective_character(character, include_consumable_buffs=True)
+    resources = combat_resources(
+        owned, wp=wp, base_ap=ap, base_mp=mp, include_consumable_buffs=True
+    )
     blob = actor_stats(
         owned,
         1,
@@ -489,6 +576,7 @@ def outside_progression(character, *, wp=None, ap=None, mp=None):
         ap=resources["ap"],
         mp=resources["mp"],
         initiative=resources["initiative"],
+        include_consumable_buffs=True,
     )
     from wakfu_server.wire import complete_public_characteristics
 

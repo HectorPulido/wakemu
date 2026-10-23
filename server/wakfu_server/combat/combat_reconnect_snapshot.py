@@ -35,6 +35,9 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     retained_packets = _retained_carrier_packets(
         fight, runtime.native_action_id, area_rehydration=area_rehydration
     )
+    from .combat_reconnect_grants import ReconnectGrantProjection
+
+    grant_projection = ReconnectGrantProjection(retained_packets)
     deadline = runtime.turn_deadline
     # An ACK-paused turn has no running deadline. Preserve that pause, while
     # presenting its actual current member; no timer is armed by this snapshot.
@@ -48,6 +51,8 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     )
     deadline_ms = int(time.time() * 1000 + remaining * 1000)
     current_timeline = timeline(fight, deadline_ms=deadline_ms)
+    from .combat_companions import bootstrap_actor_type
+
     participants = []
     payloads = {}
     from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
@@ -78,18 +83,23 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
         # unexecuted duplicate through bootstrap or the later13912 reset.
         effects = _project_rehydrated_area_creators(effects, actor.id, area_rehydration)
         payloads[actor.id] = (stats, effects)
+        # Only the final13912 after ACTION constructs649. Keep its complete
+        # canonical payload and remote remaining timer, rather than replaying
+        # both a snapshot and an evaluated carrier for the same runner.
+        bootstrap_effects = grant_projection.effects(actor.id, effects)
         if actor.id in birth_ids:
             continue  # Its exact birth enrolls the actor, once, after bootstrap.
         participants.append(
             dict(
                 actor_id=actor.id,
-                myB=0 if actor.controlled else 1,
+                myB=bootstrap_actor_type(fight, actor),
                 myn=actor.team,
                 myC=1,
                 myE=stats,
-                myF=effects,
+                myF=bootstrap_effects,
             )
         )
+    grant_projection.verify_complete()
     value = dict(
         fight_id=fight.id,
         kind=getattr(fight, "native_fight_model", None),
@@ -124,13 +134,21 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     recovery = (
         struct.pack(">BBiBh", 1, 0, 6, 0, len(current_timeline)) + current_timeline
     )
-    packets = [(12847, bootstrap(value))]
+    # Establish ACTION over the INITIAL baseline before any birth or649 can
+    # construct a temporary shortcut. The later cvn restores SU in place;
+    # its native consumer preserves ACTION and the actual actor controllers.
+    packets = [
+        (12847, bootstrap(value)),
+        (12233, struct.pack(">i", fight.id)),
+        action_transition(fight.id),
+    ]
     packets.extend(birth_packets)
     if birth_packets:
         # Close the native creation group before authoritative SU restoration.
         packets.append((13420, struct.pack(">i", fight.id)))
-    # Restore current PA and retained remote-effect state after creation. These
-    # are snapshot streams, never the gameplay effect dispatcher.
+    packets.append((12053, struct.pack(">ih", fight.id, len(recovery)) + recovery))
+    # ACTION must bind the controller before649 is executed from13912.
+    # big.dU resets frm, so its matching authoritative stats still follow it.
     for identity, (stats, effects) in payloads.items():
         packets.extend(
             (
@@ -138,16 +156,7 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
                 (12873, actor_state(12873, fight.id, identity, stats)),
             )
         )
-    packets.extend(
-        (
-            (12233, struct.pack(">i", fight.id)),
-            (12053, struct.pack(">ih", fight.id, len(recovery)) + recovery),
-            # cvn resets native delivery before restoring the timeline;
-            # restore ACTION last, after placement and recovery processing.
-            action_transition(fight.id),
-        )
-    )
-    packets.extend(retained_packets)
+    packets.extend(grant_projection.other_carriers)
     from .combat_death_script_snapshot import immediate_death_script_packets
 
     packets.extend(

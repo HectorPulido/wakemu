@@ -280,10 +280,12 @@ def running_effect_removal(
     if not generic_valid or fields[6] == 0:
         raise ValueError("Missing owned effect/caster identity in original payload")
     if (
-        configured_area or effect_class in (STATE_CARRIER_EFFECT_CLASS, 649, 933)
+        configured_area
+        or effect_class in (STATE_CARRIER_EFFECT_CLASS, 400, 449, 649, 933)
     ) and notify_unapplication:
         # aVz requires fMV before Qf.q. These authoritative book/carrier
         # removals must carry iB1 even when PK has no subscriptions or delay.
+        # Direct eXE/eWw roots without subscriptions also have aZN/bbW false.
         # Configured eYQ areas share this gate: without it, aVz skips Qf.q
         # and eYQ.bbR never reaches Qs.b / buH.g to unregister the visual.
         running_effect_payload = state_unapplication_payload(running_effect_payload)

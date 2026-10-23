@@ -28,7 +28,9 @@ class CapturedNpcWorldTests(unittest.TestCase):
             publication_authorized=True,
             source_sha256="eedbfd7561e0ae53398bab0eddd26bfac674fb77953d537cea4dbbecd9c4cd69",
         )
-        self.character = dict(map_id=1387, instance_id=0, x=-11, y=0, z=2)
+        self.character = dict(
+            id=100, account_id=200, map_id=1387, instance_id=0, x=-11, y=0, z=2
+        )
 
     def test_original_actor_actual_catalog_action_root_and_spawn(self):
         self.assertEqual(validate_placements([self.row]), (self.row,))

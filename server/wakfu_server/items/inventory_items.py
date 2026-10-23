@@ -11,20 +11,38 @@ def load(db, character_id):
     from .inventory_elements import hydrate
     from .inventory_shards import hydrate as hydrate_shards
     from .mount_inventory import hydrate as hydrate_mounts
+    from .pet_inventory import hydrate as hydrate_pets
+    from .item_appearance import hydrate as hydrate_appearances
 
-    return hydrate_mounts(
+    from .inventory_companion_info import hydrate as hydrate_companions
+
+    from .item_binding import hydrate as hydrate_bindings
+
+    return hydrate_bindings(
         db,
-        hydrate_shards(
+        hydrate_companions(
             db,
-            hydrate(
+            hydrate_appearances(
                 db,
-                [
-                    dict(row)
-                    for row in db.execute(
-                        "SELECT * FROM inventory_items WHERE character_id=%s ORDER BY container,slot",
-                        (character_id,),
-                    )
-                ],
+                hydrate_pets(
+                    db,
+                    hydrate_mounts(
+                        db,
+                        hydrate_shards(
+                            db,
+                            hydrate(
+                                db,
+                                [
+                                    dict(row)
+                                    for row in db.execute(
+                                        "SELECT * FROM inventory_items WHERE character_id=%s ORDER BY container,slot",
+                                        (character_id,),
+                                    )
+                                ],
+                            ),
+                        ),
+                    ),
+                ),
             ),
         ),
     )
@@ -72,7 +90,9 @@ def grant(
     ):
         raise ValueError("Invalid owned item grant")
     with store.connection() if db is None else nullcontext(db) as db:
-        _lease(store, db, account_id, generation, character_id)
+        from .inventory_owner import lock_inventory_character
+
+        lock_inventory_character(store, db, account_id, generation, character_id)
         from . import quest_inventory
         from . import account_quest_inventory
 
@@ -98,8 +118,13 @@ def grant(
         mount_model = db.execute(
             "SELECT model_id FROM mount_models WHERE reference=%s", (reference,)
         ).fetchone()
-        if mount_model is not None and quantity != 1:
-            raise ValueError("Mount grants require one unstacked unit")
+        pet_model = db.execute(
+            "SELECT model_id FROM native_pet_models WHERE reference=%s", (reference,)
+        ).fetchone()
+        if mount_model is not None and pet_model is not None:
+            raise ValueError("An item cannot be both a pet and a mount")
+        if (mount_model is not None or pet_model is not None) and quantity != 1:
+            raise ValueError("Pet and mount grants require one unstacked unit")
         bag = db.execute(
             "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s",
             (container, character_id),
@@ -132,7 +157,13 @@ def grant(
             from .mount_inventory import initialize
 
             item["mount"] = initialize(db, uid, character_id, store.now())
-        return item
+        if pet_model is not None:
+            from .pet_inventory import initialize
+
+            item["pet"] = initialize(db, uid, character_id, store.now())
+        from .item_binding import hydrate as hydrate_bindings
+
+        return hydrate_bindings(db, [item])[0]
 
 
 def remove(store, account_id, generation, character_id, uid, quantity):
@@ -188,14 +219,25 @@ def item_proto(item):
         raise ValueError("Invalid minimal item")
     from .inventory_elements import proto
     from .inventory_shards import proto as shard_proto
+    from .item_appearance import proto as appearance_proto
+    from .inventory_companion_info import proto as companion_proto
+    from .item_binding import proto as binding_proto
 
     mount_proto = b""
+    if "mount" in item and "pet" in item:
+        raise ValueError("A native item cannot have two pet records")
     if "mount" in item:
         if qty != 1:
             raise ValueError("Mount protobuf requires an unstacked unit")
         from .mount_codec import item_pet
 
         mount_proto = item_pet(item["mount"])
+    elif "pet" in item:
+        if qty != 1:
+            raise ValueError("Pet protobuf requires an unstacked unit")
+        from .pet_codec import item_pet
+
+        mount_proto = item_pet(item["pet"])
 
     return (
         b"\x08"
@@ -207,6 +249,9 @@ def item_proto(item):
         + proto(item)
         + shard_proto(item)
         + mount_proto
+        + appearance_proto(item)
+        + companion_proto(item)
+        + binding_proto(item)
     )
 
 

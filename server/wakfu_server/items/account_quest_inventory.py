@@ -1,5 +1,5 @@
 """Owned native ACCOUNT_QUEST quantities, separate from projected artifacts."""
-from .quest_inventory import _SOURCE
+from .quest_inventory import QuestCapacity, _SOURCE
 
 REFERENCES = frozenset(_SOURCE["account_quest_property_references"])
 
@@ -51,7 +51,7 @@ def grant(db, account_id, reference, quantity):
         (account_id, reference),
     ).fetchone()
     if (old["quantity"] if old else 0) + quantity > 32767:
-        raise ValueError("Native account quest quantity capacity exceeded")
+        raise QuestCapacity("Native account quest quantity capacity exceeded")
     return dict(
         db.execute(
             "INSERT INTO account_quest_items(account_id,reference,quantity) VALUES(%s,%s,%s) "

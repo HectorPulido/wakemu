@@ -26,6 +26,22 @@ def _source_registration(fight, identity):
     )
 
 
+def _dependent_lifetime(fight, identity, registration):
+    """Creation provenance is distinct from the native controller relationship."""
+    controller = registration["controller_id"]
+    if controller == identity:
+        authority = fight.native_summon_registrations[identity]["authority"]
+        if (
+            type(authority.get("summon_root_id")) is not int
+            or authority["summon_root_id"] != identity
+        ):
+            raise ValueError("Missing native self-controller summon root")
+        return False
+    if controller != registration["caster_id"]:
+        raise ValueError("Missing native dependent summon controller")
+    return True
+
+
 def verify_transition(fight, update, death):
     """Authenticate retained relationship death without requiring owner HP now.
 
@@ -36,6 +52,8 @@ def verify_transition(fight, update, death):
 
     identity = death.get("actor_id")
     actor, registration = _source_registration(fight, identity)
+    if not _dependent_lifetime(fight, identity, registration):
+        raise ValueError("Independent summon has no owner-death lifetime")
     sequence = update.get("parent_death_sequence")
     if (
         update.get("policy") != SOURCE
@@ -125,6 +143,8 @@ def settle(fight):
             if identity in closed or identity in departed:
                 continue
             actor, receipt = _source_registration(fight, identity)
+            if not _dependent_lifetime(fight, identity, receipt):
+                continue
             world = getattr(actor, "native_world_properties", None)
             if (
                 actor.hp <= 0

@@ -151,6 +151,7 @@ def damage_amount(
     if not coefficient_mask & 1:
         arithmetic_context["additional_final"] = 0
         arithmetic_context["additional_mastery"] = 0
+        arithmetic_context["encounter_multiplier_bp"] = 10000
     if not coefficient_mask & 2:
         arithmetic_context["additional_resistance"] = 0
     # Native forced MELEE and RANGED may both apply (or neither). The older

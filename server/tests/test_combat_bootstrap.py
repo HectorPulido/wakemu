@@ -396,6 +396,10 @@ class BootstrapTests(unittest.TestCase):
             [a["actor_id"] for a in value["participants"]], [100, -200, -201]
         )
         self.assertEqual(value["myJ"], -200)
+        # This placement-only fixture omits actor snapshot installation, which
+        # normally assigns the actual player/tactical-controller flags.
+        for actor in fight.actors.values():
+            actor.native_controlled_by_ai = not actor.controlled
         fight.ready(1)
         self.assertEqual(set(fight.order), {100, -200, -201})
         runtime = RuntimeMessages(fight)

@@ -153,6 +153,8 @@ def validate_group_registration_flags(
     Flag8 is accepted only with the exact source-qualified faI ordering
     definition. Target PA lookup and ordering remain the resolver's job;
     flags-only callers cannot attest this additional native contract.
+    Flag25 uses exact append-only faJ identity authority and the shared PA
+    provider; health ordering executes before the original signed target cap.
     """
     if (
         type(active) is not bool
@@ -188,6 +190,13 @@ def validate_group_registration_flags(
 
         validate_native_target_ordering_identity(effect, reference)
         unknown.remove(8)
+    if 25 in unknown and effect is not None and reference is not None:
+        if set(effect.get("native_effect_flags", ())) != set(flags):
+            raise ValueError("Native group ordering flags differ from definition")
+        from .combat_target_ordering import validate_native_target_ordering_identity
+
+        validate_native_target_ordering_identity(effect, reference)
+        unknown.remove(25)
     if 22 in unknown and effect is not None and reference is not None:
         # eXt owns SINGLE_TARGET_EFFECT mastery and event2216. Its fresh
         # subscribed listener reaches central retention before activation;

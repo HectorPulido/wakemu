@@ -21,6 +21,11 @@ POLICY = "generated_native_species_policy"
 def materialize(batch, routes, topologies, native_monsters, *, version):
     if batch.get("policy_mode") != POLICY or batch.get("official") is not False:
         raise ValueError("Explicit non-official local roster policy required")
+    from wakfu_server.dungeon_monster_admission import current_policy, require
+
+    admission_policy = current_policy()
+    from wakfu_server.dungeon_local_roster_policy import BOSS_PROPERTIES
+
     native = {row["ref"]: row for row in native_monsters}
     configurations, coverage = [], []
     for draft in batch["drafts"]:
@@ -76,6 +81,22 @@ def materialize(batch, routes, topologies, native_monsters, *, version):
                     raise ValueError(
                         "Generated monster leaves native dungeon species pool"
                     )
+                properties = reference.get("raw_visual_arrays", {}).get("csc", [])
+                if (
+                    room["policy_applied"]
+                    and set(properties) & BOSS_PROPERTIES
+                    and monster.get("role") != "boss"
+                ):
+                    raise ValueError(
+                        "Generated ordinary slots cannot contain native boss actors; explicit encounter composition required"
+                    )
+                require(
+                    admission_policy,
+                    monster["ref_id"],
+                    reference["min_level"],
+                    reference["max_level"],
+                    native=reference,
+                )
                 monsters.append(copy.deepcopy(monster))
             rooms.append(dict(order=room["order"], monsters=monsters, diagnostics=[]))
         if reasons:

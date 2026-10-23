@@ -14,10 +14,26 @@ _COMPARISONS = {
     ast.Eq: operator.eq,
     ast.NotEq: operator.ne,
 }
-_CALLS = {"GetRealLevel", "GetDate", "IsBefore", "IsAfter", "IsAchievementComplete"}
+_CALLS = {
+    "GetRealLevel",
+    "GetDate",
+    "IsBefore",
+    "IsAfter",
+    "IsAchievementComplete",
+    "HasEmote",
+    "IsAchievementObjectiveComplete",
+}
 
 
-def evaluate(expression, character, *, now_ms, achievement_complete=None):
+def evaluate(
+    expression,
+    character,
+    *,
+    now_ms,
+    achievement_complete=None,
+    emote_known=None,
+    objective_complete=None
+):
     """Unknown/malformed predicates raise; callers must reject the whole route.
 
     Validate every branch before evaluation, including branches made unreachable
@@ -71,7 +87,12 @@ def evaluate(expression, character, *, now_ms, achievement_complete=None):
                 and len(args) in (0, 6)
                 or name in ("IsBefore", "IsAfter")
                 and len(args) == 6
-                or name == "IsAchievementComplete"
+                or name
+                in (
+                    "IsAchievementComplete",
+                    "HasEmote",
+                    "IsAchievementObjectiveComplete",
+                )
                 and len(args) == 1
                 and 0 < args[0].value < 2**31
             ):
@@ -110,9 +131,14 @@ def evaluate(expression, character, *, now_ms, achievement_complete=None):
         if name in ("IsBefore", "IsAfter"):
             date = calendar_milliseconds(args)
             return now_ms < date if name == "IsBefore" else now_ms > date
-        if not callable(achievement_complete):
-            raise ValueError("Missing owned transport achievement authority")
-        return boolean(achievement_complete(args[0]))
+        query = {
+            "IsAchievementComplete": achievement_complete,
+            "HasEmote": emote_known,
+            "IsAchievementObjectiveComplete": objective_complete,
+        }[name]
+        if not callable(query):
+            raise ValueError("Missing owned transport predicate authority")
+        return boolean(query(args[0]))
 
     check(tree)
     return boolean(visit(tree))

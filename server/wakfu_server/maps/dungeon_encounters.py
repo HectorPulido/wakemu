@@ -150,6 +150,10 @@ def room_members(
     if len(matches) != 1 or type(order) is not int:
         raise ValueError("Dungeon current room is absent or ambiguous")
     roster = matches[0]["monsters"]
+    from wakfu_server.dungeon_monster_admission import current_policy, require
+
+    admission_policy = current_policy()
+    selected = {}
     expanded = []
     for row in roster:
         native = reference(row["ref_id"])
@@ -158,6 +162,9 @@ def room_members(
             native["max_level"],
         ):
             raise ValueError("Frozen dungeon roster differs from native level bounds")
+        level = select_level(native, row)
+        require(admission_policy, row["ref_id"], level, level, native=native)
+        selected[id(row)] = level
         count = row["count"]
         if type(count) is not int or count <= 0:
             raise ValueError("Dungeon roster has an unresolved monster count")
@@ -185,7 +192,7 @@ def room_members(
     return tuple(
         owned_instance(
             row["ref_id"],
-            select_level(native, row),
+            selected[id(row)],
             -(actor_id_base + index),
             map_id=asset_map_id,
             instance_id=instance_id,

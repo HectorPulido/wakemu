@@ -7,6 +7,8 @@ The ecology delivery queue durably retries publication after the SQL commit.
 from copy import deepcopy
 import time
 
+from .environmental_group_ecology import exclusion_sql, is_owned_group
+
 _SCAN_STATE = None
 _SCAN_SECONDS = 60
 _SCAN_GROUPS = 512
@@ -51,6 +53,9 @@ def prepare(store, snapshot, limit=16, *, clock=time.monotonic):
         rows = db.execute(
             "SELECT map_id,instance_id,group_id,members FROM combat_groups "
             "WHERE instance_id=0 AND status='available' AND map_id=ANY(%s) "
+            "AND " + exclusion_sql() + " "
+            "AND NOT EXISTS(SELECT 1 FROM developer_item_test_groups t WHERE "
+            "(t.map_id,t.instance_id,t.group_id)=(combat_groups.map_id,combat_groups.instance_id,combat_groups.group_id)) "
             "AND (map_id,group_id)>(%s,%s) ORDER BY map_id,group_id LIMIT %s",
             (outdoor_maps, *cursor, _SCAN_GROUPS),
         )
@@ -122,6 +127,8 @@ def apply(store, groups, harvests, world, proposal, *, world_epoch):
                 "SELECT * FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s FOR UPDATE",
                 key,
             ).fetchone()
+            if is_owned_group(db, key):
+                return {"status": "environmental_owned"}
             if row is None or row["status"] == "fighting":
                 return {"status": "stale_group"}
             if {member["id"] for member in row["members"]} & set(harvests.targets):

@@ -1,4 +1,6 @@
+import copy
 import unittest
+from unittest.mock import patch
 from wakfu_server.dungeon_encounters import room_members, reachable_cells
 from wakfu_server.monsters import reference
 
@@ -32,6 +34,20 @@ class DungeonEncounterTests(unittest.TestCase):
                 [[2, 0, 0], [3, 0, 0]],
             ],
         )
+
+    def test_unadmitted_pinned_roster_refuses_before_actor_construction(self):
+        before = copy.deepcopy(self.run)
+        policy = dict(schema="native-npc-activation-v1", enabled_monsters={})
+        with patch(
+            "wakfu_server.dungeon_monster_admission.current_policy", return_value=policy
+        ):
+            with patch("wakfu_server.dungeon_encounters.owned_instance") as constructor:
+                with self.assertRaisesRegex(
+                    ValueError, "1 lacks ordinary NPC admission"
+                ):
+                    self.build()
+                constructor.assert_not_called()
+        self.assertEqual(self.run, before)
 
     def build(self, **kwargs):
         options = dict(

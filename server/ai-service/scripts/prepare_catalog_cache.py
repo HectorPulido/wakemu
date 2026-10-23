@@ -4,8 +4,8 @@ import json
 import os
 import time
 
-from wakfu_ai.bridge.world_entry import native_exporter
-from wakfu_ai.bridge.world_bridge import ContextTransport
+from wakfu_ai.bridge.world_entry import native_exporter, context_transport
+from wakfu_ai.transport.endpoint import DEFAULT_ENDPOINT
 
 
 def main():
@@ -19,8 +19,8 @@ def main():
     started = time.monotonic()
     exporter = native_exporter()
     if args.seal:
-        transport = ContextTransport(
-            os.environ.get("WAKFU_AI_URL", "http://ai:8090"), timeout=60
+        transport = context_transport(
+            os.environ.get("WAKFU_AI_URL", DEFAULT_ENDPOINT), timeout=60
         )
         try:
             digest = transport.catalog(exporter)

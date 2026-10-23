@@ -189,6 +189,14 @@ def resolve(character, body, *, source_allowed, geometry, criterion_evaluator=No
         for cell in edge
         if tuple(cell[:2]) == (destination["x"], destination["y"])
     }
+    if not surfaces:
+        from . import native_boat_arrivals
+
+        recovered = native_boat_arrivals.arrival(
+            destination, geometry(destination["map_id"])
+        )
+        if recovered is not None:
+            surfaces.add(recovered)
     if len(surfaces) != 1:
         raise ValueError("Native boat arrival altitude is not uniquely walkable")
     x, y, z = surfaces.pop()

@@ -1,0 +1,4 @@
+import importlib
+import test_environmental_resource_bulk_pipeline
+
+importlib.reload(test_environmental_resource_bulk_pipeline)

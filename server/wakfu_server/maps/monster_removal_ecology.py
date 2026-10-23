@@ -12,6 +12,7 @@ from .ecology_feedback import describe, information
 from .personal_ecology import apply
 from .ecology_context import population_region
 from .monsters import reference
+from .environmental_group_ecology import is_owned_group
 
 
 def finish(
@@ -56,6 +57,11 @@ def finish(
         != (generation, fight_id, revision)
     ):
         return {"applied": False, "packets": [], "receipts": []}
+    # Environmental event groups settle their normal combat lease and rewards,
+    # but never ecological affinity, citizenship or ordinary population quotas.
+    if is_owned_group(db, key):
+        applied = groups.finish(lease, defeated=defeated, db=db)
+        return {"applied": applied, "packets": [], "receipts": []}
     # Dedicated challenge actors are finite, owned encounter resources. They
     # must never change public ecological population, affinity or birth quotas.
     challenge = db.execute(
@@ -123,6 +129,7 @@ def finish(
         result = apply(
             db,
             character_id,
+            national_action=True,
             operation=f"monster-removal:{key[0]}:{key[1]}:{key[2]}:{revision}:{region}:{family}",
             **evaluation,
         )

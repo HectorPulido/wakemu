@@ -23,6 +23,7 @@ ENTITY_DEFAULTS = {
 }
 EMPTY_SECTIONS = {
     "HP",
+    "PHOENIX_PART",
     "ACCOUNT_INFORMATION",
     "GUILD_ID",
     "GUILD_BLAZON",
@@ -84,7 +85,11 @@ def minimal_entity(body, character):
         raise ValueError("Entity fixture does not match verified section boundaries")
     for section in reversed(layout["sections"]):
         replacement = None
-        if (
+        if section["name"] == "CREATION_DATA" and character.get("recustomization"):
+            from wakfu_server.character_recustomization import creation_section
+
+            replacement = creation_section(character)
+        elif (
             section["name"] in ("GUILD_ID", "GUILD_BLAZON")
             and "guild_native" in character
         ):
@@ -120,10 +125,20 @@ def minimal_entity(body, character):
             from wakfu_server.characters.nation_state import nation_id
 
             replacement = struct.pack(">i", nation_id(character))
+        elif section["name"] == "PHOENIX_PART":
+            from wakfu_server.phoenix_points import section as phoenix_section
+
+            replacement = phoenix_section(character)
         elif section["name"] == "NATION_SYNCHRO":
             from wakfu_server.characters.nation_state import synchro
 
             replacement = synchro(character)
+        elif section["name"] == "CITIZEN_POINT":
+            from wakfu_server.national_progression import citizen_section
+
+            replacement = citizen_section(character)
+            if replacement is None:
+                replacement = ENTITY_DEFAULTS[section["name"]]
         elif (
             section["name"] == "WORLD_PROPERTIES"
             and character.get("exploration_secrets") is not None
@@ -172,7 +187,10 @@ def minimal_entity(body, character):
         elif section["name"] == "HP":
             from wakfu_server.equipment_stats import effective_character
 
-            replacement = struct.pack(">i", effective_character(character)["hp"])
+            replacement = struct.pack(
+                ">i",
+                effective_character(character, include_consumable_buffs=True)["hp"],
+            )
         elif section["name"] == "PET":
             from .mount_inventory import actor_pet
 
@@ -189,10 +207,10 @@ def minimal_entity(body, character):
         elif section["name"] == "XP":
             replacement = struct.pack(">q", character_xp(character))
         elif section["name"] == "XP_CHARACTERISTICS":
-            from .personal_ecology import value as ecology_value
+            from .ecology_progression import native_score
 
             replacement = struct.pack(
-                ">i", ecology_value(character.get("ecology_value", 0))
+                ">i", native_score(character.get("ecology_value", 0))
             )
         elif section["name"] == "SHORTCUT_INVENTORIES":
             from wakfu_server.world_shortcuts import owned_collection
@@ -221,8 +239,8 @@ def owned_public_characteristics(character):
     from wakfu_server.combat_actor import actor_stats
     from wakfu_server.equipment_stats import effective_character, combat_resources
 
-    owned = effective_character(character)
-    resources = combat_resources(owned)
+    owned = effective_character(character, include_consumable_buffs=True)
+    resources = combat_resources(owned, include_consumable_buffs=True)
     blob = actor_stats(
         owned,
         1,
@@ -230,6 +248,7 @@ def owned_public_characteristics(character):
         ap=resources["ap"],
         mp=resources["mp"],
         initiative=resources["initiative"],
+        include_consumable_buffs=True,
     )
     offset = 1 + 8 + struct.calcsize(">iihqBB") + struct.calcsize(">iBBBBbB")
     count = struct.unpack_from(">H", blob, offset)[0]
@@ -488,11 +507,12 @@ def position(body, character):
         struct.pack(">iih", character["x"], character["y"], character["z"]),
     )
     if "map_id" in character:
-        map_id = character["map_id"]
-        if type(map_id) is not int or not 0 <= map_id < 2**63:
-            raise ValueError("Invalid native world map identity")
-        # rE.Vp becomes eGj.arM(), used by world/compass ownership. Private
-        # instance identity is separate and must not replace the asset map ID.
+        from wakfu_server.guild_haven_world import world_identity
+
+        map_id = world_identity(character)
+        # rE.Vp becomes eGj.arM(). Ordinary actors retain the positive asset
+        # identity; an owned Haven World uses native fiH.su(guild)=-guild.
+        # Positive server-instance identity remains separate in both cases.
         map_offset = offset + struct.calcsize(">iih")
         if map_offset + 8 > len(result):
             raise ValueError("Truncated native world position")

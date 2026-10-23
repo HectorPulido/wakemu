@@ -99,6 +99,28 @@ class FakeCapabilityProvider(NativeProvider):
         return Preview(candidate)
 
 
+class FixtureMovementAuthority:
+    """Explicit no-carry/no-property facts for these synthetic point fighters."""
+
+    def __call__(self, fight, actor):
+        from wakfu_server.combat_runtime_adapter import NativeActorAuthority
+
+        return NativeActorAuthority(
+            targeting=dict(baF=True, baG=False, baK=False, dpu_id=actor.id),
+            is_player=actor.controlled,
+            deck_spell_ids=frozenset(),
+            excluded_deck_spell_ids=frozenset(),
+            is_carried=False,
+            breed_id=1,
+            summon_count=0,
+            summon_counts_by_breed={},
+            occupant_blocks=True,
+        )
+
+    def properties(self, fight, actor):
+        return frozenset()
+
+
 class CapabilityGenerationTests(unittest.TestCase):
     def fight(self, *, npc_position=0, enemy_position=5, ally=None, mp=3):
         cells = {(x, 0, 0) for x in range(7)}
@@ -118,8 +140,16 @@ class CapabilityGenerationTests(unittest.TestCase):
         enemy = Actor(7, 0, (enemy_position, 0, 0), 30, 6, 3, 0, 1, 20, True)
         actors.append(enemy)
         for actor in actors:
-            actor.effect_stats = {1: actor.hp, 2: actor.ap, 3: actor.mp, 4: 2, 97: 0}
+            actor.effect_stats = {
+                1: actor.hp,
+                2: actor.ap,
+                3: actor.mp,
+                4: 2,
+                8: 0,
+                97: 0,
+            }
             actor.effect_maxima = {1: actor.max_hp, 4: 2}
+            actor.physical_radius = 0
         fight = Fight(
             77,
             actors,
@@ -128,6 +158,7 @@ class CapabilityGenerationTests(unittest.TestCase):
             edges,
         )
         fight.ready(20)
+        fight.native_rail_movement_authority = FixtureMovementAuthority()
         return RuntimeMessages(fight)
 
     @staticmethod

@@ -212,14 +212,62 @@ def persist(
     dead = actor.hp == 0
     if reason == "return":
         damage, dead = recover_finished_return(maximum, damage, dead)
+        from wakfu_server.neo_regeneration import state_from_database
+
+        # Finished-return fencing above owns this one full restoration. Keep
+        # aborts/disconnects outside the account potion's end-of-combat grant.
+        restored = state_from_database(
+            db,
+            dict(
+                saved,
+                hp=visible(maximum, damage, dead),
+                max_hp=maximum,
+                hp_damage=damage,
+                health_dead=dead,
+            ),
+            native_map_id=character["map_id"],
+            boundary="return",
+        )
+        if restored is not None:
+            damage, dead = restored["hp_damage"], restored["health_dead"]
     hp = visible(maximum, damage, dead)
-    coefficient = health.exploration_coefficient(maximum, hp)
+    from wakfu_server.equipment_hp_lifecycle import sync_fight_raw_current
+
+    existing_hp_projection = sync_fight_raw_current(
+        db,
+        saved,
+        actor,
+        resulting_hp=hp,
+        resulting_maximum=maximum,
+    )
+    hp_zero_valid = existing_hp_projection and hp == 0 and not dead
     now = store.now()
     db.execute(
-        "UPDATE characters SET hp=%s,max_hp=%s,hp_damage=%s,health_dead=%s "
+        "UPDATE characters SET hp=%s,max_hp=%s,hp_damage=%s,health_dead=%s,hp_zero_valid=%s "
         "WHERE account_id=%s AND id=%s",
-        (hp, maximum, damage, dead, account_id, character["id"]),
+        (hp, maximum, damage, dead, hp_zero_valid, account_id, character["id"]),
     )
+    if existing_hp_projection:
+        from wakfu_server.equipment_hp_lifecycle import rebase_after_fight
+
+        rebased = rebase_after_fight(
+            db,
+            dict(
+                saved,
+                hp=hp,
+                max_hp=maximum,
+                hp_damage=damage,
+                health_dead=dead,
+                hp_zero_valid=hp_zero_valid,
+            ),
+            actor,
+        )
+        if rebased is not None:
+            hp = rebased["character"]["hp"]
+            maximum = rebased["character"]["max_hp"]
+            damage = rebased["character"]["hp_damage"]
+            dead = rebased["character"]["health_dead"]
+    coefficient = health.exploration_coefficient(maximum, hp)
     db.execute(
         "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) VALUES(%s,%s,%s,%s,%s) ON CONFLICT(character_id) DO UPDATE SET "
         "initial_hp=excluded.initial_hp,started_at=excluded.started_at,coefficient=excluded.coefficient,last_at=excluded.last_at",
@@ -243,8 +291,38 @@ def persist(
     # membership and duplicate-receipt guards. Keep capture availability and HP
     # atomic, and load the returned character after both writes.
     persist_departing_captured_roster(db, fight, saved)
+    from .combat_consumable_lifecycle import return_participant
+
+    return_fight = fight
+    captured_external = ()
+    if reason == "return" and getattr(fight, "native_external_state_origins", None):
+        from copy import copy
+        from .combat_external_retained_state import capture_all
+
+        # Only the return binding map is changed. Actors, native ledgers and
+        # origins are read-only; SQL rollback discards this private binding map.
+        return_fight = copy(fight)
+        captured_external = capture_all(
+            store,
+            db,
+            account_id,
+            generation,
+            character["id"],
+            return_fight,
+        )
+    return_participant(store, db, character["id"], return_fight, generation=generation)
+    returned = store.character(account_id, character["id"], db)
+    if any(row is not None for row in captured_external):
+        from wakfu_server.consumable_characteristics import reconcile_health
+
+        returned = reconcile_health(db, returned)
+        coefficient = health.exploration_coefficient(returned["max_hp"], returned["hp"])
+        db.execute(
+            "UPDATE character_regeneration SET coefficient=%s WHERE character_id=%s",
+            (coefficient, character["id"]),
+        )
     return dict(
-        character=store.character(account_id, character["id"], db),
+        character=returned,
         applied=True,
         coefficient=coefficient,
     )
@@ -341,7 +419,9 @@ def persist_aborted_shared_fight(
             raise ValueError("Missing current owned reconnect for shared PvE abort")
     from .combat_terminal_metadata import registered_summon_actor_ids
 
-    summon_ids = registered_summon_actor_ids(fight)
+    from .combat_companions import registered_companion_ids
+
+    summon_ids = registered_summon_actor_ids(fight) | registered_companion_ids(fight)
     controlled_roster = {
         (actor.owner_id, actor.id)
         for actor in fight.actors.values()
@@ -591,6 +671,10 @@ def persist_aborted_shared_fight(
                 session_character_id=session.character_id,
             )
 
+        from wakfu_server.characters.companions import settle_owner_exit
+
+        for owner in sorted(sessions_by_account):
+            settle_owner_exit(db, store, fight, owner)
         anchor = requesting_session if requesting_session is not None else sessions[0]
         if fight_row["status"] != "aborted" and not abort(
             store,
@@ -627,7 +711,9 @@ def persist_owned(
     main_id = character["id"]
     from .combat_terminal_metadata import registered_summon_actor_ids
 
-    registrations = registered_summon_actor_ids(fight)
+    from .combat_companions import registered_companion_ids
+
+    registrations = registered_summon_actor_ids(fight) | registered_companion_ids(fight)
     identities = [main_id] + sorted(
         actor.id
         for actor in fight.actors.values()
@@ -653,6 +739,10 @@ def persist_owned(
             db=db,
             session_character_id=main_id,
         )
+    if reason == "abort":
+        from wakfu_server.characters.companions import settle_owner_exit
+
+        settle_owner_exit(db, store, fight, account_id)
     main = results[main_id]
     return dict(
         main,

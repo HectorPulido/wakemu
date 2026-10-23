@@ -166,7 +166,12 @@ class ExternalFightMarkers:
         ):
             return None
         leaders = context.get("leaders")
-        if not isinstance(leaders, dict) or leaders.get(1) not in monsters:
+        from .combat_encounter_roles import assigned_roles
+
+        if (
+            not isinstance(leaders, dict)
+            or leaders.get(assigned_roles(fight).npc_team) not in monsters
+        ):
             return None
         try:
             from wakfu_server.combat_monster_world import spawn_group
@@ -221,6 +226,8 @@ class ExternalFightMarkers:
         if not isinstance(actors, dict) or len(actors) < 2 or len(actors) > 32767:
             return None
         retired = retired_pve_actor_ids(fight)
+        # Native wire slots remain team0/team1, independently of which side
+        # owns the players or the original NPC group in this encounter.
         leader_ids = [leaders.get(0), leaders.get(1)]
         for team, leader_id in enumerate(leader_ids):
             if leader_id in retired:
@@ -278,6 +285,9 @@ class ExternalFightMarkers:
         ):
             return None
 
+        from .combat_encounter_roles import assigned_roles
+
+        roles = assigned_roles(fight)
         teams = []
         for actor_id, actor in actors.items():
             if (
@@ -298,7 +308,7 @@ class ExternalFightMarkers:
                 or monster.get("map_id") != shared.map_id
                 or monster.get("instance_id", 0) != shared.instance_id
                 or monster_id not in actors
-                or actors[monster_id].team != 1
+                or actors[monster_id].team != roles.npc_team
                 for monster_id, monster in monsters.items()
             )
             or not monsters

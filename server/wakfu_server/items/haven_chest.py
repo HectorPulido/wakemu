@@ -11,16 +11,16 @@ import uuid
 
 from psycopg.types.json import Jsonb
 
-from .haven_chest_wire import decode_deposit, decode_withdraw, decode_relocate
-from .haven_chest_layout import TAB_CAPACITY, provisioned_capacity, resolve
-
-_METADATA = (
-    "inventory_item_elements",
-    "inventory_item_shards",
-    "inventory_mounts",
-    "inventory_item_bindings",
-    "inventory_item_recycling_state",
+from .haven_chest_wire import (
+    decode_deposit,
+    decode_withdraw,
+    decode_relocate,
+    decode_lock,
 )
+from .haven_chest_layout import TAB_CAPACITY, provisioned_capacity, resolve
+from . import item_custody_metadata
+
+_METADATA = tuple(item_custody_metadata.TABLE_KEYS)
 _RETRY_WINDOW = timedelta(seconds=3)
 _NAMESPACE = uuid.UUID("a888142e-f9d3-4d38-91b8-64ccac719c6b")
 
@@ -50,26 +50,47 @@ def _identity(entry):
     item = {
         key: value
         for key, value in entry["item"].items()
-        if key not in {"uid", "quantity", "container", "slot", "character_id"}
+        if key
+        not in {
+            "uid",
+            "quantity",
+            "container",
+            "slot",
+            "character_id",
+            "bound",
+            "binding_type",
+        }
     }
+    # Binding display fields are derived projections. Durable binding state
+    # and owner below remain the authority for both old and new snapshots.
     metadata = {
-        table: {key: value for key, value in row.items() if key != "uid"}
+        table: {
+            key: value
+            for key, value in row.items()
+            if key != item_custody_metadata.TABLE_KEYS[table]
+        }
         for table, row in entry.get("metadata", {}).items()
     }
-    return item, metadata
+    nonce_owner = (
+        entry["item"]["uid"] if "random_item_use_counters" in metadata else None
+    )
+    return item, metadata, entry.get("binding_owner_character_id"), nonce_owner
 
 
 def _clone(entry, uid):
     entry = deepcopy(entry)
     entry["item"]["uid"] = uid
-    for row in entry.get("metadata", {}).values():
-        row["uid"] = uid
+    entry["metadata"] = item_custody_metadata.clone(entry.get("metadata", {}), uid)
     if "mount" in entry["item"]:
         entry["item"]["mount"]["uid"] = uid
+    if "pet" in entry["item"]:
+        entry["item"]["pet"]["uid"] = uid
     return entry
 
 
 def _move(source, destination, quantity, maximum, allocate):
+    if "companion_xp" in source["item"]:
+        maximum = 1  # Native companionInfo is one transferable XP-bearing unit.
     if type(quantity) is not int or not 1 <= quantity <= source["item"]["quantity"]:
         raise ValueError("Chest quantity exceeds owned source")
     if type(maximum) is not int or not 1 <= maximum <= 32767:
@@ -95,6 +116,42 @@ def _move(source, destination, quantity, maximum, allocate):
     return moved
 
 
+def _locks(chest):
+    result = {}
+    for row in chest.get("locks", ()):
+        if (
+            not isinstance(row, dict)
+            or set(row) != {"slot", "reference", "remembered_uid"}
+            or any(type(row[key]) is not int for key in row)
+            or not 0 <= row["slot"] < chest["capacity"]
+            or row["reference"] <= 0
+            or not 0 < row["remembered_uid"] < 1 << 63
+            or row["slot"] in result
+        ):
+            raise ValueError("Invalid native chest slot lock")
+        result[row["slot"]] = row
+    for entry in chest["items"]:
+        lock = result.get(entry["slot"])
+        if lock is not None and lock["reference"] != entry["item"]["reference"]:
+            raise ValueError("Chest item conflicts with reserved reference")
+    if len({row["remembered_uid"] for row in result.values()}) != len(result):
+        raise ValueError("Duplicate native chest memory identity")
+    return result
+
+
+def _free_position(chest, start, capacity, reference, occupied):
+    locks = _locks(chest)
+    available = [
+        slot
+        for slot in range(start, capacity)
+        if slot not in occupied
+        and (slot not in locks or locks[slot]["reference"] == reference)
+    ]
+    return next(
+        (slot for slot in available if slot in locks), next(iter(available), -1)
+    )
+
+
 def plan(
     inventory, chest, requests, *, deposit, character_id, containers, rules, allocate
 ):
@@ -104,6 +161,7 @@ def plan(
     destinations prefer compatible stacks, then free cells, as the native UI.
     """
     inventory, chest = deepcopy(inventory), deepcopy(chest)
+    locks = _locks(chest)
     if any(entry["item"].get("character_id") != character_id for entry in inventory):
         raise ValueError("Foreign chest inventory snapshot")
     inventory_ids = [entry["item"]["uid"] for entry in inventory]
@@ -166,6 +224,11 @@ def plan(
             )
             if source is None or source["item"]["reference"] != request["reference"]:
                 raise ValueError("Chest withdrawal source changed or unavailable")
+            binding_owner = source.get("binding_owner_character_id")
+            if binding_owner is not None and binding_owner != character_id:
+                raise ValueError(
+                    "Character-bound chest item belongs to another character"
+                )
             container = next(
                 (
                     row
@@ -204,10 +267,22 @@ def plan(
             slot = (
                 position(compatible)
                 if compatible
-                else next((n for n in range(start, capacity) if n not in used), -1)
+                else (
+                    _free_position(
+                        chest, start, capacity, source["item"]["reference"], used
+                    )
+                    if deposit
+                    else next((n for n in range(start, capacity) if n not in used), -1)
+                )
             )
         if type(slot) is not int or not start <= slot < capacity:
             raise ValueError("Chest destination inventory is full or invalid")
+        if (
+            deposit
+            and slot in locks
+            and locks[slot]["reference"] != source["item"]["reference"]
+        ):
+            raise ValueError("Chest position is reserved for another reference")
         destination = next(
             (entry for entry in destinations if position(entry) == slot), None
         )
@@ -232,6 +307,7 @@ def plan(
 def plan_relocate(chest, requests, *, rules, allocate):
     """Move complete owned metadata between tabs on a detached atomic plan."""
     chest = deepcopy(chest)
+    locks = _locks(chest)
     items = chest["items"]
     if (
         len({entry["slot"] for entry in items}) != len(items)
@@ -255,6 +331,11 @@ def plan_relocate(chest, requests, *, rules, allocate):
         source = next((entry for entry in items if entry["slot"] == source_slot), None)
         if source is None:
             raise ValueError("Chest relocation source unavailable")
+        if (
+            destination_slot in locks
+            and locks[destination_slot]["reference"] != source["item"]["reference"]
+        ):
+            raise ValueError("Chest position is reserved for another reference")
         if source_slot == destination_slot:
             if not 1 <= request["quantity"] <= source["item"]["quantity"]:
                 raise ValueError("Chest quantity exceeds owned source")
@@ -267,6 +348,11 @@ def plan_relocate(chest, requests, *, rules, allocate):
         if maximum is None:
             raise ValueError("Missing native stack rule for chest item")
         if destination is not None and _identity(source) != _identity(destination):
+            if (
+                source_slot in locks
+                and locks[source_slot]["reference"] != destination["item"]["reference"]
+            ):
+                raise ValueError("Chest position is reserved for another reference")
             # Native drag permits unlocked occupied destinations. A whole
             # stack exchanges positions; a partial incompatible move rejects.
             if request["quantity"] != source["item"]["quantity"]:
@@ -280,6 +366,51 @@ def plan_relocate(chest, requests, *, rules, allocate):
         if source["item"]["quantity"] == 0:
             items.remove(source)
     return chest
+
+
+def plan_lock(chest, requests, *, allocate):
+    chest = deepcopy(chest)
+    locks = _locks(chest)
+    for request in requests:
+        tab = resolve(chest, request["compartment"])
+        if not 0 <= request["slot"] < tab["capacity"]:
+            raise ValueError("Invalid chest lock position")
+        slot = tab["offset"] + request["slot"]
+        physical = next(
+            (entry for entry in chest["items"] if entry["slot"] == slot), None
+        )
+        if request["locked"]:
+            if physical is None and slot not in locks:
+                raise ValueError("Cannot lock an empty unremembered chest slot")
+            if physical is not None:
+                if slot not in locks:
+                    # This is a reserved-slot identity, never physical item
+                    # custody. A stable distinct UID avoids native bmM index
+                    # collisions when the real item moves to another slot.
+                    locks[slot] = dict(
+                        slot=slot,
+                        reference=physical["item"]["reference"],
+                        remembered_uid=allocate(),
+                    )
+        else:
+            locks.pop(slot, None)
+    chest["locks"] = [locks[slot] for slot in sorted(locks)]
+    return chest
+
+
+def _persist_locks(db, chest):
+    locks = _locks(chest)
+    chest["locks"] = [locks[slot] for slot in sorted(locks)]
+    db.execute(
+        "DELETE FROM account_haven_chest_locks WHERE account_id=%s",
+        (chest["account_id"],),
+    )
+    for row in chest["locks"]:
+        db.execute(
+            "INSERT INTO account_haven_chest_locks(account_id,slot,reference,remembered_uid) "
+            "VALUES(%s,%s,%s,%s)",
+            (chest["account_id"], row["slot"], row["reference"], row["remembered_uid"]),
+        )
 
 
 def _ensure(db, account_id):
@@ -301,14 +432,25 @@ def _ensure(db, account_id):
             "UPDATE account_haven_chests SET capacity=%s,revision=%s WHERE account_id=%s",
             (capacity, revision, account_id),
         )
-    return dict(
+    locks = [
+        dict(row)
+        for row in db.execute(
+            "SELECT slot,reference,remembered_uid FROM account_haven_chest_locks "
+            "WHERE account_id=%s ORDER BY slot FOR UPDATE",
+            (account_id,),
+        )
+    ]
+    result = dict(
         id=str(row["compartment_id"]),
         account_id=account_id,
         capacity=capacity,
         compartment_size=TAB_CAPACITY,
         revision=revision,
         items=_unjson(row["items"]),
+        locks=locks,
     )
+    _locks(result)
+    return result
 
 
 def load(store, account_id, generation, character_id):
@@ -319,15 +461,20 @@ def load(store, account_id, generation, character_id):
         return _ensure(db, account_id)
 
 
-def _snapshot(db, item):
-    metadata = {}
-    for table in _METADATA:
-        row = db.execute(
-            f"SELECT * FROM {table} WHERE uid=%s", (item["uid"],)
-        ).fetchone()
-        if row is not None:
-            metadata[table] = dict(row)
-    return dict(item=deepcopy(item), metadata=metadata)
+def _snapshot(db, item, *, metadata=None):
+    if metadata is None:
+        metadata = item_custody_metadata.snapshot(db, item["uid"])
+    result = dict(item=deepcopy(item), metadata=metadata)
+    from .exchange_rules import ITEMS
+
+    template = ITEMS.get(str(item["reference"]), {}).get("binding_template", {})
+    binding = metadata.get("inventory_item_bindings", {})
+    if template.get("enum") == "BOUND_ON_PICKUP_TO_CHARACTER" or (
+        binding.get("bound") is True
+        and template.get("enum") != "BOUND_ON_PICKUP_TO_ACCOUNT"
+    ):
+        result["binding_owner_character_id"] = item["character_id"]
+    return result
 
 
 def _equipped(character):
@@ -348,7 +495,7 @@ def _equipment_positions(character):
     return result
 
 
-def deposit_requests(character, chest, requests):
+def deposit_requests(character, chest, requests, *, skipped_quest=None):
     """Keep equipped items in place while validating the complete owned batch.
 
     Opcode12038 has no quick-transfer flag, so this applies uniformly to
@@ -361,6 +508,10 @@ def deposit_requests(character, chest, requests):
         if row["character_id"] == character["id"] and row["kind"] in (0, 1, 2, 3)
     }
     equipped = _equipped(character)
+    from .quest_inventory import REFERENCES as character_quest_references
+    from .account_quest_inventory import REFERENCES as account_quest_references
+
+    quest_references = character_quest_references | account_quest_references
     totals, accepted, skipped = {}, [], set()
     for request in requests:
         tab = resolve(chest, request["compartment"])
@@ -377,6 +528,10 @@ def deposit_requests(character, chest, requests):
         totals[item["uid"]] = totals.get(item["uid"], 0) + quantity
         if totals[item["uid"]] > item["quantity"]:
             raise ValueError("Chest quantity exceeds owned source")
+        if item["reference"] in quest_references:
+            if skipped_quest is not None:
+                skipped_quest.append(item["uid"])
+            continue
         if item["uid"] in equipped:
             skipped.add(item["uid"])
         else:
@@ -414,18 +569,133 @@ def persist_inventory(db, character_id, inventory, planned):
                 item["slot"],
             ),
         )
-        for table, row in entry["metadata"].items():
-            if table not in _METADATA:
-                raise ValueError("Unsupported stored chest metadata table")
-            # Column names derive only from original SELECT rows and our
-            # fixed metadata table whitelist, never from a client packet.
-            if any(not key.replace("_", "").isalnum() for key in row):
-                raise ValueError("Invalid stored chest metadata column")
-            columns = list(row)
-            db.execute(
-                f"INSERT INTO {table} ({','.join(columns)}) VALUES({','.join(['%s'] * len(columns))})",
-                tuple(row[key] for key in columns),
+        item_custody_metadata.restore(db, entry["metadata"])
+
+
+def _planning_allocator(inventory, chest):
+    """Provide detached-plan identities without reserving physical UIDs."""
+    temporary_uid = (1 << 63) - 1
+    used_uids = {row["item"]["uid"] for row in inventory + chest["items"]}
+
+    def temporary():
+        nonlocal temporary_uid
+        temporary_uid -= 1
+        while temporary_uid in used_uids:
+            temporary_uid -= 1
+        used_uids.add(temporary_uid)
+        return temporary_uid
+
+    return temporary
+
+
+def _all_deposit_requests(character, inventory, chest, rules, compartment=None):
+    """Build a capacity-checked server batch without fabricating client slots."""
+    from .haven_chest_layout import compartments
+    from .quest_inventory import REFERENCES as personal_quests
+    from .account_quest_inventory import REFERENCES as account_quests
+
+    tabs = compartments(chest)
+    if compartment is not None:
+        tabs = (resolve(chest, compartment),)
+    equipped = _equipped(character)
+    virtual_inventory, virtual_chest = deepcopy(inventory), deepcopy(chest)
+    requests = []
+    temporary = _planning_allocator(inventory, chest)
+
+    for original in inventory:
+        item = original["item"]
+        if (
+            item["uid"] in equipped
+            or item["reference"] in personal_quests | account_quests
+        ):
+            continue
+        remaining = item["quantity"]
+        rule = rules.get(item["reference"], {})
+        maximum = rule.get("native_maximum", rule.get("maximum"))
+        if "companion_xp" in item:
+            maximum = 1
+        if type(maximum) is not int or maximum <= 0:
+            raise ValueError("Missing native stack rule for chest item")
+        while remaining:
+            chosen = None
+            # Prefer existing compatible stacks across every selected tab.
+            for tab in tabs:
+                for target in virtual_chest["items"]:
+                    if (
+                        tab["offset"]
+                        <= target["slot"]
+                        < tab["offset"] + tab["capacity"]
+                        and _identity(target) == _identity(original)
+                        and target["item"]["quantity"] < maximum
+                    ):
+                        chosen = (
+                            tab,
+                            target["slot"] - tab["offset"],
+                            min(remaining, maximum - target["item"]["quantity"]),
+                        )
+                        break
+                if chosen:
+                    break
+            if chosen is None:
+                used = {row["slot"] for row in virtual_chest["items"]}
+                for tab in tabs:
+                    free = _free_position(
+                        virtual_chest,
+                        tab["offset"],
+                        tab["offset"] + tab["capacity"],
+                        item["reference"],
+                        used,
+                    )
+                    if free != -1:
+                        chosen = (tab, free - tab["offset"], min(remaining, maximum))
+                        break
+            if chosen is None:
+                raise ValueError("Chest destination inventory is full or invalid")
+            tab, slot, quantity = chosen
+            request = dict(
+                compartment=tab["id"], uid=item["uid"], slot=slot, quantity=quantity
             )
+            virtual_inventory, virtual_chest = plan(
+                virtual_inventory,
+                virtual_chest,
+                [request],
+                deposit=True,
+                character_id=character["id"],
+                containers=character["inventory_containers"],
+                rules=rules,
+                allocate=temporary,
+            )
+            requests.append(request)
+            remaining -= quantity
+    return requests
+
+
+def deposit_all(
+    store,
+    account_id,
+    generation,
+    character_id,
+    *,
+    opening_token,
+    location,
+    ranch_session=None,
+    inventory_character_id=None,
+    compartment=None,
+):
+    """Deposit every eligible owned unit atomically through ordinary chest custody."""
+    return transfer(
+        store,
+        account_id,
+        generation,
+        character_id,
+        12038,
+        b"",
+        opening_token=opening_token,
+        location=location,
+        ranch_session=ranch_session,
+        _bulk_owner=inventory_character_id or character_id,
+        _bulk_compartment=compartment,
+    )
 
 
 def transfer(
@@ -439,6 +709,8 @@ def transfer(
     opening_token,
     location,
     ranch_session=None,
+    _bulk_owner=None,
+    _bulk_compartment=None,
 ):
     """Commit item custody and receipt together, then return owned snapshots.
 
@@ -458,7 +730,14 @@ def transfer(
     except (ValueError, TypeError, AttributeError) as error:
         raise ValueError("Missing active chest opening") from error
     relocate = opcode == 13050
-    if relocate:
+    locking = opcode == 12529
+    if _bulk_owner is not None:
+        if opcode != 12038 or body != b"":
+            raise ValueError("Invalid server bulk chest operation")
+        requests, deposit = [], True
+    elif locking:
+        requests, deposit = decode_lock(body), False
+    elif relocate:
         requests, deposit = decode_relocate(body), False
     elif opcode == 12038:
         requests, deposit = decode_deposit(body), True
@@ -467,6 +746,13 @@ def transfer(
         deposit = False
     else:
         raise ValueError("Unsupported chest opcode")
+    # Original cYz has single-compartment drag/list producers and a Map-based
+    # quick producer. Only more than one distinct compartment proves the latter.
+    expand_quick_all = (
+        opcode == 12038
+        and _bulk_owner is None
+        and len({request["compartment"] for request in requests}) > 1
+    )
     digest = hashlib.sha256(opcode.to_bytes(2, "big") + body).digest()
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
@@ -495,7 +781,8 @@ def transfer(
         ).fetchone()
         character = store.character(account_id, character_id, db)
         if (
-            receipt is not None
+            _bulk_owner is None
+            and receipt is not None
             and receipt["revision"] == chest["revision"]
             and timedelta(0) <= now - receipt["completed_at"] < _RETRY_WINDOW
         ):
@@ -509,7 +796,11 @@ def transfer(
                 inventory_characters=(roster["leader"], *roster["heroes"]),
             )
         inventory_owner_id = character_id
-        if deposit:
+        if _bulk_owner is not None:
+            inventory_owner_id = lock_inventory_character(
+                store, db, account_id, generation, _bulk_owner
+            )
+        elif deposit:
             inventory_owner_id = lock_item_owner(
                 store,
                 db,
@@ -518,7 +809,7 @@ def transfer(
                 character_id,
                 sorted({request["uid"] for request in requests}),
             )
-        elif not relocate:
+        elif not relocate and not locking:
             inventory_owner_id = lock_inventory_character(
                 store,
                 db,
@@ -531,46 +822,56 @@ def transfer(
             if inventory_owner_id == character_id
             else store.character(account_id, inventory_owner_id, db)
         )
-        skipped_equipped = []
+        from .simple_item_actions import _idle
+
+        _idle(db, character_id, now)
+        if inventory_owner_id != character_id:
+            _idle(db, inventory_owner_id, now)
+        metadata = item_custody_metadata.snapshot_many(
+            db, [item["uid"] for item in inventory_character["inventory_items"]]
+        )
+        inventory = [
+            _snapshot(db, item, metadata=metadata[item["uid"]])
+            for item in inventory_character["inventory_items"]
+        ]
+        if _bulk_owner is not None:
+            requests = _all_deposit_requests(
+                inventory_character, inventory, chest, STACKS, _bulk_compartment
+            )
+        skipped_equipped, skipped_quest = [], []
         if deposit:
             requests, skipped_equipped = deposit_requests(
-                inventory_character, chest, requests
+                inventory_character, chest, requests, skipped_quest=skipped_quest
             )
+            if expand_quick_all:
+                # Validate the actual original batch before interpreting its
+                # proven quick-button origin; an invalid source or target must
+                # never become authority for a broader server operation.
+                plan(
+                    inventory,
+                    chest,
+                    requests,
+                    deposit=True,
+                    character_id=inventory_owner_id,
+                    containers=inventory_character["inventory_containers"],
+                    rules=STACKS,
+                    allocate=_planning_allocator(inventory, chest),
+                )
+                requests = _all_deposit_requests(
+                    inventory_character, inventory, chest, STACKS
+                )
             if not requests:
                 return dict(
                     character=character,
                     chest=chest,
                     applied=False,
                     skipped_equipped=skipped_equipped,
+                    skipped_quest=skipped_quest,
                     inventory_characters=(inventory_character,),
                 )
-        inventory = [
-            _snapshot(db, item) for item in inventory_character["inventory_items"]
-        ]
-        if deposit:
-            from .exchange_rules import ITEMS
-
-            selected_uids = {request["uid"] for request in requests}
-            for entry in inventory:
-                if entry["item"]["uid"] not in selected_uids:
-                    continue
-                template = ITEMS.get(str(entry["item"]["reference"]), {}).get(
-                    "binding_template", {}
-                )
-                binding = entry["metadata"].get("inventory_item_bindings")
-                if template.get("enum") == "BOUND_ON_PICKUP_TO_CHARACTER":
-                    raise ValueError(
-                        "Character-bound items cannot enter an account chest"
-                    )
-                if (
-                    binding
-                    and binding["bound"] is True
-                    and template.get("enum") != "BOUND_ON_PICKUP_TO_ACCOUNT"
-                ):
-                    raise ValueError(
-                        "Stored binding does not permit account chest custody"
-                    )
-        if relocate:
+        if locking:
+            updated = plan_lock(chest, requests, allocate=lambda: allocate(db))
+        elif relocate:
             updated = plan_relocate(
                 chest, requests, rules=STACKS, allocate=lambda: allocate(db)
             )
@@ -586,6 +887,7 @@ def transfer(
                 allocate=lambda: allocate(db),
             )
             persist_inventory(db, inventory_owner_id, inventory, planned)
+        _persist_locks(db, updated)
         updated["revision"] += 1
         db.execute(
             "UPDATE account_haven_chests SET items=%s,revision=%s WHERE account_id=%s",
@@ -610,6 +912,7 @@ def transfer(
             chest=updated,
             applied=True,
             skipped_equipped=skipped_equipped,
+            skipped_quest=skipped_quest,
         )
 
 

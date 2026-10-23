@@ -18,16 +18,8 @@ def damage_effect_level(*, context_override, container_level):
     return ((level + 32768) % 65536) - 32768
 
 
-def interpret_damage_parameters(
-    parameters, level, *, hp_context, rng, allow_signed_base=False
-):
-    """Evaluate eVE parameter pairs at eXt.fRR's authoritative level.
-
-    far1..6 use HP1 only (exclude virtual HP92). hp_context supplies
-    source/target current/max values explicitly when percentages require them.
-    Unknown far byte values map to CLASSIC natively; signed-byte conversion is
-    preserved. Integer multiplication precedes float32 percentage conversion.
-    """
+def damage_parameter_specification(parameters, level):
+    """Decode native shape and modes without actor HP or rounding draws."""
     if len(parameters) not in (2, 4, 6):
         raise ValueError("Unsupported eXt parameter count (native expects1..3)")
     values = [
@@ -40,6 +32,23 @@ def interpret_damage_parameters(
     if kind not in range(7):
         kind = 0
     base = values[0]
+    return dict(base=base, coefficient_mask=mask, base_kind=kind, level=level)
+
+
+def interpret_damage_parameters(
+    parameters, level, *, hp_context, rng, allow_signed_base=False
+):
+    """Evaluate eVE parameter pairs at eXt.fRR's authoritative level.
+
+    far1..6 use HP1 only (exclude virtual HP92). hp_context supplies
+    source/target current/max values explicitly when percentages require them.
+    Unknown far byte values map to CLASSIC natively; signed-byte conversion is
+    preserved. Integer multiplication precedes float32 percentage conversion.
+    """
+    specification = damage_parameter_specification(parameters, level)
+    base = specification["base"]
+    mask = specification["coefficient_mask"]
+    kind = specification["base_kind"]
     if kind:
         side = "source" if kind in (1, 2, 3) else "target"
         mode = ((kind - 1) % 3) + 1

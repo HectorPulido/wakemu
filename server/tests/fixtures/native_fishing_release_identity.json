@@ -1,0 +1,258 @@
+{
+  "revision": "20f2731c921701c025af2d8416696e5b01c7346fc9393408b47533c092cab5fa",
+  "identity_scheme": "fishing-json-manifest-v1",
+  "record_policy": "raw-only",
+  "complete": true,
+  "document_count": 41,
+  "source_bytes": 514480,
+  "manifest_sha256": "055d159580d4e11dfcdbc08e26f9006bb869ab7406357a3317c784d119eaf150",
+  "provenance": "Original stage_fishing_navigation_catalog.stage JSON(path,sha256,source_bytes) producer; exported published document raw SHA256 verified",
+  "documents": [
+    {
+      "path": "fishing-navigation/1004.json",
+      "sha256": "78aa17e039de39cdf1be28788d9e783866b99d6ce61bb87430f42ef318b9f371",
+      "source_bytes": 3814,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1053.json",
+      "sha256": "2163a0e8e18a0ea9bef3cc0912dcda4bf8e7b2eae1887fde26b1f88927ed5949",
+      "source_bytes": 7530,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1118.json",
+      "sha256": "0a85362aa70531f5e86a4f692ed867ba50ae2b27d5c5cc7ad5f1c7d4a604b7c2",
+      "source_bytes": 6371,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1120.json",
+      "sha256": "3d6969d5dbb7bdcfb6f65ee92b0af9f9b314e7f39431e0b102f7c1f77131ff3d",
+      "source_bytes": 6847,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1122.json",
+      "sha256": "9a3b5f04d0a7dca59cfc9db00c7b9f1f68f59c8771115d1574f42f06ca2c04bd",
+      "source_bytes": 6690,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1124.json",
+      "sha256": "4e5bb293d90f09c30ed636c3aac6aa0d6ebf43b0b87f150284c3fbe06d9c52ba",
+      "source_bytes": 7484,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1134.json",
+      "sha256": "5e3224562d046671d4d26768bfd9d86d95143d22947220a7d122fa0a45e6a679",
+      "source_bytes": 13340,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1135.json",
+      "sha256": "d9c1a0b064000bea809df116eac2161e43272b1bbdebe9672f1c4e260d2bfe45",
+      "source_bytes": 14377,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1136.json",
+      "sha256": "2f8f8645741972bfd80c836e657527dfe136466f5278061153502d566aa584bd",
+      "source_bytes": 13387,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1137.json",
+      "sha256": "f893e4d58bb0d7fa474ebc12b83774a1350e47587b8efb47ab63eb6592febe87",
+      "source_bytes": 14445,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1156.json",
+      "sha256": "78bd03ddd4a0fb948ebb151983330b952a47d06d309feedcbf35efd8314ba985",
+      "source_bytes": 727,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1208.json",
+      "sha256": "10e46785d48836a9541a88acaddabb5c1046f30d7a75ed12c6305ddc18d68461",
+      "source_bytes": 6477,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1252.json",
+      "sha256": "45b5ba2876e8359b5af5b516da1b80bd6d7debb142640aabd8a9ba374aa39469",
+      "source_bytes": 13619,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1264.json",
+      "sha256": "1d0f119e943c5bf4675e1d1544e788a20fe3633de31d09f47887ea9e9f9926bd",
+      "source_bytes": 46728,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1275.json",
+      "sha256": "4c4dd9ef2ea75bcd0cb914d2076bd6a9b585fe32493eb378343ff4621998711a",
+      "source_bytes": 13658,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1276.json",
+      "sha256": "49faed289bb37af36e328c89ce3dd1a64ea6134a5bce6bed768af88012cb8a81",
+      "source_bytes": 12116,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1295.json",
+      "sha256": "62145e00b6b9b15fd07e41beaff67bf9e961568e075a0c00f8ab577b5a69a3b3",
+      "source_bytes": 4157,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1297.json",
+      "sha256": "6a1c95f5961e74600523c74bde7894e2d837c5b792647e75b4304f44ad3a5414",
+      "source_bytes": 6942,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1298.json",
+      "sha256": "640618085adda99ede60792e50ffae627c7e2b39a105d1d34d49ba75a0643743",
+      "source_bytes": 7620,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1326.json",
+      "sha256": "715b938cc9496c01d527eef3fc58b01173b0f544f3f92b938ae0edbb51c65030",
+      "source_bytes": 7343,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1338.json",
+      "sha256": "5b5b5c7a68e565d96b088c11dd44cdfbc268f11653fa5a85a45b98b8f42c6d03",
+      "source_bytes": 7463,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1358.json",
+      "sha256": "e79fdb38bebf8e15d1d5ee5755242b41133b54b19321d2cbb30c2d9aa96e0009",
+      "source_bytes": 7333,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1359.json",
+      "sha256": "e501e7a2811be41bde4bf8dd0c4968eb137100b835ff632824bd6f625170a062",
+      "source_bytes": 7424,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1364.json",
+      "sha256": "a5fa784649fbd5cde0981359954feb22485eaa0be59d98ec45de8e9baaf36faa",
+      "source_bytes": 8803,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1384.json",
+      "sha256": "bd3efdd7cda8dbb2b63fa27a4ae5b224b0aa5be811c67a806a628ac30e634e57",
+      "source_bytes": 20959,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/1401.json",
+      "sha256": "9e90a7e251f5fe63c339f8bcd67af22e2b812cdc0b3f06730c9e4677a31776f6",
+      "source_bytes": 11699,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/235.json",
+      "sha256": "5e50c16bf19d40405108db27cd53ce2eb32a495b96e9881bf71e070901c93432",
+      "source_bytes": 120313,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/323.json",
+      "sha256": "6e2ced17f8cc56dfaae5269d3424e347530591cd5ebaad65e75d0cb01df3f09c",
+      "source_bytes": 6414,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/444.json",
+      "sha256": "1c2a1e2ddf5d76f7f1368705a202370166fb0262c27c59401ebdad70e987e261",
+      "source_bytes": 7189,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/455.json",
+      "sha256": "21eba896ef837d218a798c3770e9eb41ee34b4d1d0a91f7c983283068c1f19fc",
+      "source_bytes": 5607,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/458.json",
+      "sha256": "a89db73b440a2fb15c279a51aaaa81575b0ba127200128a4508710d04d30155d",
+      "source_bytes": 6495,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/527.json",
+      "sha256": "1ab1163315d5137ad5979725897be5c256d6da395f90bb48edc8d8e5f9063b92",
+      "source_bytes": 28419,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/711.json",
+      "sha256": "c356f9b0349c418eae50b1632b1f6fd75d2d5b2af24788f9160aa4c946552091",
+      "source_bytes": 6920,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/792.json",
+      "sha256": "38bb33f39476084eb7c9305998a9dd0de44c4b2ec04e5200f5da6bf1c2a85e4a",
+      "source_bytes": 9325,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/796.json",
+      "sha256": "9b25c72d54c583dd75a01c79f4182dab5a21b8da0851b31b438069a723529b4a",
+      "source_bytes": 7401,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/843.json",
+      "sha256": "cf6ec3777e19276b9798051fe0c6732b3b25161d817ba0854a02bdbf74172316",
+      "source_bytes": 4948,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/853.json",
+      "sha256": "b493cc209bc9b78ebee2212d4f6916475b2c8b2473eb91bfe2ee90e5aff4bedd",
+      "source_bytes": 5659,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/922.json",
+      "sha256": "f1832a8796ec23dda5add8cb29acfef90ae3615e785c1b25e743a77d5314ce79",
+      "source_bytes": 5398,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/923.json",
+      "sha256": "19dbbfc68274839033d86937bcdd8bc2891b801a318be8a718137c9360d95d4c",
+      "source_bytes": 6352,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/943.json",
+      "sha256": "162a1368237aaba7093ea4e46bbd41b813302e47420e295611890c93eac246ef",
+      "source_bytes": 4389,
+      "record_count": 0
+    },
+    {
+      "path": "fishing-navigation/999.json",
+      "sha256": "06df501938ebff2e6ff578ee1f39dd534862089fbd470579bc9101135b4d16b1",
+      "source_bytes": 12298,
+      "record_count": 0
+    }
+  ]
+}

@@ -472,20 +472,22 @@ class NativeTacticalPreviewTests(unittest.TestCase):
         # The native compiled catalog is process cached and costly to build.
         from wakfu_server.combat_npc_attack import npc_runtime_catalog
         from wakfu_server.combat_server_spell import prewarm_runtime_catalogs
-        from tests.test_ai_service import service
+        from wakfu_ai.transport.framed_server import FramedServer
 
         npc_runtime_catalog()
         prewarm_runtime_catalogs()
-        cls.http = service.ThreadingHTTPServer(("127.0.0.1", 0), service.Handler)
-        cls.http_thread = threading.Thread(target=cls.http.serve_forever, daemon=True)
-        cls.http_thread.start()
-        cls.ai_url = "http://127.0.0.1:" + str(cls.http.server_port)
+        cls.channel = FramedServer(("127.0.0.1", 0))
+        cls.channel_thread = threading.Thread(
+            target=cls.channel.serve_forever, daemon=True
+        )
+        cls.channel_thread.start()
+        cls.ai_url = "tcp://127.0.0.1:" + str(cls.channel.server_address[1])
 
     @classmethod
     def tearDownClass(cls):
-        cls.http.shutdown()
-        cls.http.server_close()
-        cls.http_thread.join(2)
+        cls.channel.shutdown()
+        cls.channel.server_close()
+        cls.channel_thread.join(2)
 
     def test_real_native_los_known_map_1134_adjacent_edge(self):
         from tests.test_combat_npc_attack import NativeNpcAttackTests
@@ -670,14 +672,14 @@ class NativeTacticalPreviewTests(unittest.TestCase):
         responses = []
 
         def post_to_local_ai(request):
-            call = urllib.request.Request(
-                self.ai_url + "/v2/decide",
-                data=json.dumps(request, allow_nan=False).encode(),
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(call, timeout=5) as reply:
-                response = json.load(reply)
+            from wakfu_ai.transport.framed import FramedClient
+
+            client = FramedClient(*self.channel.server_address, timeout=5)
+            try:
+                status, response = client.request("/v2/decide", request)
+            finally:
+                client.close()
+            self.assertEqual(status, 200)
             responses.append((request, response))
             return response
 

@@ -34,7 +34,19 @@ def deliver_fight_start(dispatcher, *, initialized_actor_ids):
             "Fight-start event requires active fight at first-turn boundary"
         )
     installed = getattr(fight, "native_class_initializations", {})
-    if any(a.controlled and a.id not in installed for a in fight.actors.values()):
+    from .combat_companions import registered_companion_ids
+
+    companion_ids = registered_companion_ids(fight)
+    npc_initializations = getattr(fight, "native_npc_initialization_receipts", {})
+    if any(
+        npc_initializations.get(identity, {}).get("initialized") is not True
+        for identity in companion_ids
+    ):
+        raise ValueError("Native companion constructor states are not initialized")
+    if any(
+        a.controlled and a.id not in companion_ids and a.id not in installed
+        for a in fight.actors.values()
+    ):
         raise ValueError("Controlled native class roots are not initialized")
     # Explicit Wakemu startup policy: the private preview is already in the
     # first native SU cycle, while wire13477 is emitted later by RuntimeMessages.

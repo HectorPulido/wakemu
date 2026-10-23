@@ -2,7 +2,8 @@
 
 Costs and target validation are fcH/fcj; ordinary damage/areas/conditions are
 executed by the same native dispatcher as spells. Critical branch is explicit.
-Only direct damage roots are admitted; other item actions remain unsupported.
+Direct damage and healing roots reuse their native effect handlers; other
+item actions remain unsupported.
 """
 from wakfu_server import native_catalog as protocol_catalog
 import json
@@ -21,7 +22,7 @@ from .combat_effect_dispatch import EffectInvocation
 from .combat_geometry_snapshot import source_snapshot
 from .combat_random_transaction import rollback_external_rng
 
-from .combat_damage_healing import DAMAGE_FAMILIES
+from .combat_damage_contracts import DAMAGE_FAMILIES, HEAL_ELEMENTS
 
 
 @lru_cache(maxsize=1)
@@ -58,7 +59,9 @@ def decode_request(body):
 def owned_weapon(character, request):
     index = character.get("active_build_index", 0)
     saved = character.get("builds", {}).get(index, {})
-    selected = validate_sheet(character, bytes.fromhex(saved.get("equipment", "")))
+    selected = validate_sheet(
+        character, bytes.fromhex(saved.get("equipment", "")), strict=False
+    )
     if request["slot"] != 15 or not any(
         row["uid"] == request["item_uid"] and row["slot"] == 15 for row in selected
     ):
@@ -164,11 +167,14 @@ def prepare_server_weapon(
         if row["active"] and row["execution_mode"] == 2
     )
     if not roots or any(
-        compiled.effects[str(ref)]["effect_class"] not in DAMAGE_FAMILIES
+        compiled.effects[str(ref)]["effect_class"]
+        not in (*DAMAGE_FAMILIES, *HEAL_ELEMENTS)
         or compiled.effects[str(ref)].get("children")
         for ref in roots
     ):
-        raise ValueError("Weapon contains actions beyond native direct damage")
+        raise ValueError(
+            "Weapon contains actions beyond native direct damage or healing"
+        )
     from .combat_server_spell import server_runtime
 
     factory, _ = server_runtime(

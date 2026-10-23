@@ -81,7 +81,7 @@ class Parties:
             if party is None:
                 return False
             rows = db.execute(
-                "SELECT c.id,c.account_id,c.name,c.level,c.hp,c.max_hp,c.breed,c.sex,c.health_dead "
+                "SELECT c.id,c.account_id,c.name,c.level,c.hp,c.max_hp,c.breed,c.sex,c.health_dead,c.hp_zero_valid "
                 "FROM player_party_members m JOIN characters c ON c.id=m.character_id "
                 "WHERE m.party_id=%s ORDER BY m.joined_order",
                 (party_id,),
@@ -90,15 +90,18 @@ class Parties:
 
             rows = augment_party(db, self.store, rows)
             members, levels, fighting = [], {}, set()
+            owner_snapshots = {}
             recipients = []
             for row in rows:
                 member = dict(row)
                 current = self.store.character(member["account_id"], member["id"], db)
+                owner_snapshots[member["id"]] = current
                 levels[member["id"]] = current["effective_level"]
                 member.update(
                     hp=current["hp"],
                     max_hp=current["max_hp"],
                     health_dead=current["health_dead"],
+                    hp_zero_valid=current.get("hp_zero_valid", False),
                     level=current["level"],
                 )
                 active = db.execute(
@@ -137,6 +140,62 @@ class Parties:
                     ).fetchone()
                     if lease is not None:
                         recipients.append((member["id"], live[0]))
+            from wakfu_server import companions
+
+            for owner in rows:
+                if owner.get("hero_main_id") is not None:
+                    continue
+                raw = {
+                    row["id"]: row
+                    for row in companions.roster(db, owner["account_id"], owner["id"])
+                }
+                if not raw:
+                    continue
+                current = owner_snapshots[owner["id"]]
+                for source in companions.combat_sources(
+                    db,
+                    owner["account_id"],
+                    owner["id"],
+                    owner_character=current,
+                    store=self.store,
+                ):
+                    companion_id = source["id"]
+                    party_identity = -companion_id
+                    native_record = dict(
+                        raw[companion_id], hp=source["hp"], max_hp=source["max_hp"]
+                    )
+                    effective_level = source["level"]
+                    active = db.execute(
+                        "SELECT f.id,k.snapshot FROM combat_fight_companions c "
+                        "JOIN combat_fights f ON f.id=c.fight_id "
+                        "LEFT JOIN fight_checkpoints k ON k.fight_id=f.id AND k.status='active' "
+                        "WHERE c.companion_id=%s AND f.status IN ('placement','active') "
+                        "ORDER BY f.id DESC LIMIT 1",
+                        (companion_id,),
+                    ).fetchone()
+                    if active is not None:
+                        checkpoint = active["snapshot"]
+                        actor = (
+                            None
+                            if checkpoint is None
+                            else checkpoint.get("actors", {}).get(str(companion_id))
+                        )
+                        if actor is None:
+                            raise PartySnapshotUnavailable(
+                                party_id, companion_id, active["id"]
+                            )
+                        native_record.update(hp=actor["hp"], max_hp=actor["max_hp"])
+                        effective_level = actor["effective_level"]
+                        fighting.add(party_identity)
+                    levels[party_identity] = effective_level
+                    members.append(
+                        companions.party_member(
+                            native_record,
+                            account_id=owner["account_id"],
+                            effective_level=effective_level,
+                            in_fight=party_identity in fighting,
+                        )
+                    )
             packet = party_snapshot.packet(
                 dict(party_id=party_id, leader_id=party["leader_id"], members=members),
                 effective_levels=levels,

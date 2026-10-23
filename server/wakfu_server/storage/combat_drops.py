@@ -106,6 +106,13 @@ def native_prospection_bonus(actor):
     )
 
 
+def native_shop_drop_factor(actor):
+    """Original ffw119 SHOP_CONSUMABLE_DROP_BONUS_FACTOR, default100."""
+    from wakfu_server.combat_reward_context import native_shop_consumable_factor
+
+    return native_shop_consumable_factor(actor, 119)
+
+
 def _condition_matches(condition, fight_context):
     if not isinstance(condition, dict):
         return False
@@ -142,6 +149,8 @@ def _normalize_fight_context(context):
         "stasis_level",
         "score",
         "dungeon_drop_rate_bp",
+        "boss_score_drop_rate_bp",
+        "nox_complex_loot",
         "selected_stele_item_references",
     }
     if set(context) - allowed:
@@ -174,10 +183,27 @@ def _normalize_fight_context(context):
         normalized["dungeon_drop_rate_bp"] = _integer(
             context["dungeon_drop_rate_bp"], "dungeon drop rate", 1, 71000
         )
+    if "boss_score_drop_rate_bp" in context:
+        if "score" not in normalized:
+            raise ValueError("Boss score multiplier requires terminal score")
+        normalized["boss_score_drop_rate_bp"] = _integer(
+            context["boss_score_drop_rate_bp"],
+            "boss score drop rate",
+            10000,
+            2**63 - 1,
+        )
+    if "nox_complex_loot" in context:
+        from wakfu_server.combat_nox_complex_loot_policy import validate_context
+
+        normalized["nox_complex_loot"] = validate_context(
+            context["nox_complex_loot"], normalized.get("score")
+        )
     return normalized
 
 
-def _row_is_eligible(row, *, fight_context, effective_prospection):
+def _row_is_eligible(
+    row, *, fight_context, effective_prospection, monster_reference=None
+):
     if not isinstance(row, dict):
         return False
     if row.get("is_loot_table") is not False:
@@ -185,7 +211,15 @@ def _row_is_eligible(row, *, fight_context, effective_prospection):
         # expression resolver in this project; do not invent one.
         return False
     if row.get("complex_criteria") is not False:
-        return False
+        permission = fight_context.get("nox_complex_loot")
+        if (
+            row.get("complex_criteria") is not True
+            or monster_reference != 5664
+            or permission is None
+            or row.get("conditions") != []
+            or row.get("reference_id") not in permission["item_references"]
+        ):
+            return False
     conditions = row.get("conditions")
     # A selected reward subset authorizes only its actual native item rows.
     # The legacy Boolean cannot unlock every Stele-capable monster row.
@@ -245,6 +279,7 @@ def _factors(
     conquest_rate_bp,
     drop_rate_bp,
     breach_bonus_bp,
+    shop_consumable_factor=100,
 ):
     # Wakfu PP is a bonus capped at 200, including in-fight sources.
     applied_prospection = min(200, max(0, prospecting_bonus))
@@ -268,6 +303,7 @@ def _factors(
         * conquest_factor
         * drop_rate_factor
         * breach_factor
+        * (Decimal(shop_consumable_factor) / Decimal(100))
     )
 
 
@@ -283,6 +319,7 @@ def plan_player_drops(
     conquest_rate_bp=10000,
     drop_rate_bp=10000,
     breach_bonus_bp=10000,
+    shop_consumable_factor=100,
     rng=None,
     catalog=None,
 ):
@@ -297,6 +334,9 @@ def plan_player_drops(
     prospecting_bonus = _integer(
         prospecting_bonus, "Wakfu prospection bonus", -1000, 1000
     )
+    shop_consumable_factor = _integer(
+        shop_consumable_factor, "native shop consumable drop factor", 0, 1000
+    )
     if type(can_loot) is not bool:
         raise ValueError("Invalid loot eligibility")
     fight_context = _normalize_fight_context(fight_context)
@@ -310,6 +350,20 @@ def plan_player_drops(
         _integer(value, name, minimum, maximum)
     catalog = native_drop_catalog() if catalog is None else catalog
     normalized_monsters = _validate_monsters(monsters, catalog)
+    if "nox_complex_loot" in fight_context:
+        from wakfu_server.combat_nox_complex_loot_policy import (
+            policy_from_context,
+            validate_native_rows,
+        )
+
+        policy = policy_from_context(
+            fight_context["nox_complex_loot"], fight_context.get("score")
+        )
+        validate_native_rows(
+            policy,
+            protocol_catalog.release(),
+            catalog["monsters"].get(policy.monster_reference, ()),
+        )
     native_gate_pp, modifiers = _factors(
         prospecting_bonus=prospecting_bonus,
         challenge_drop_percent=challenge_drop_percent,
@@ -317,8 +371,12 @@ def plan_player_drops(
         conquest_rate_bp=conquest_rate_bp,
         drop_rate_bp=drop_rate_bp,
         breach_bonus_bp=breach_bonus_bp,
+        shop_consumable_factor=shop_consumable_factor,
     )
     modifiers *= Decimal(fight_context.get("dungeon_drop_rate_bp", 10000)) / Decimal(
+        10000
+    )
+    modifiers *= Decimal(fight_context.get("boss_score_drop_rate_bp", 10000)) / Decimal(
         10000
     )
     if not can_loot:
@@ -329,7 +387,10 @@ def plan_player_drops(
         rows = catalog["monsters"][monster["reference"]]
         for row_index, row in enumerate(rows):
             if not _row_is_eligible(
-                row, fight_context=fight_context, effective_prospection=native_gate_pp
+                row,
+                fight_context=fight_context,
+                effective_prospection=native_gate_pp,
+                monster_reference=monster["reference"],
             ):
                 continue
             probability = _decimal(
@@ -460,7 +521,9 @@ def resolve(
     star_bonus_percent=0,
     conquest_rate_bp=10000,
     breach_bonus_bp=10000,
+    shop_consumable_factor=100,
     rng=None,
+    companion_rolls=(),
 ):
     """Persist one winner's drop outcomes inside an existing victory TX.
 
@@ -499,6 +562,12 @@ def resolve(
         return current
     if reward["generation"] != generation:
         raise ValueError("New drop award must share the victory reward session")
+    if isinstance(fight_context, dict) and "nox_complex_loot" in fight_context:
+        from wakfu_server.combat_nox_complex_loot_policy import (
+            validate_durable_permission,
+        )
+
+        validate_durable_permission(db, fight_id, fight_context)
 
     settings = db.execute(
         "SELECT v.version,v.drop_rate_bp FROM combat_drop_policy_active a "
@@ -510,6 +579,25 @@ def resolve(
 
     catalog = native_drop_catalog()
     normalized_monsters = _validate_monsters(monsters, catalog)
+    profiles = []
+    for profile in companion_rolls:
+        if not isinstance(profile, dict) or set(profile) != {
+            "actor_id",
+            "prospecting_bonus",
+            "shop_consumable_factor",
+        }:
+            raise ValueError("Invalid companion loot profile")
+        identity = _integer(profile["actor_id"], "companion identity", 1)
+        if any(row["actor_id"] == identity for row in profiles) or len(profiles) >= 2:
+            raise ValueError("Invalid companion loot roster")
+        enrolled = db.execute(
+            "SELECT 1 FROM combat_fight_companions WHERE fight_id=%s "
+            "AND companion_id=%s AND account_id=%s AND owner_character_id=%s",
+            (fight_id, identity, account_id, character_id),
+        ).fetchone()
+        if enrolled is None:
+            raise ValueError("Companion loot requires its actual owning participant")
+        profiles.append(dict(profile))
     decisions = plan_player_drops(
         monsters=normalized_monsters,
         character_id=character_id,
@@ -521,12 +609,54 @@ def resolve(
         conquest_rate_bp=conquest_rate_bp,
         drop_rate_bp=settings["drop_rate_bp"],
         breach_bonus_bp=breach_bonus_bp,
+        shop_consumable_factor=shop_consumable_factor,
         rng=rng,
         catalog=catalog,
     )
+    if profiles:
+        from dataclasses import replace
+
+        # One independent native loot line per admitted companion, delivered
+        # into its owner's existing atomic batch. Disjoint attempt ranges
+        # preserve the established roll/delivery receipt keys and replay path.
+        combined = list(decisions)
+        for index, profile in enumerate(profiles, 1):
+            extra = plan_player_drops(
+                monsters=normalized_monsters,
+                character_id=character_id,
+                prospecting_bonus=profile["prospecting_bonus"],
+                can_loot=can_loot,
+                fight_context=fight_context,
+                challenge_drop_percent=challenge_drop_percent,
+                star_bonus_percent=star_bonus_percent,
+                conquest_rate_bp=conquest_rate_bp,
+                drop_rate_bp=settings["drop_rate_bp"],
+                breach_bonus_bp=breach_bonus_bp,
+                shop_consumable_factor=profile["shop_consumable_factor"],
+                rng=rng,
+                catalog=catalog,
+            )
+            combined.extend(
+                replace(
+                    row, attempt_index=row.attempt_index + index * _MAX_SAFE_ATTEMPTS
+                )
+                for row in extra
+            )
+        decisions = tuple(combined)
     from .drop_allocation import allocate
 
     decisions, allocation = allocate(db, fight_id, character_id, decisions)
+    if profiles:
+        decisions = tuple(
+            sorted(
+                decisions,
+                key=lambda row: (
+                    row.defeated_actor_id,
+                    row.drop_row_index,
+                    row.attempt_index,
+                ),
+            )
+        )
     snapshot = {
         "algorithm": ALGORITHM,
         "allocation": allocation,
@@ -538,6 +668,7 @@ def resolve(
         "character_id": character_id,
         "prospection_stat_id": PROSPECTION_STAT_ID,
         "prospection_bonus": prospecting_bonus,
+        "shop_consumable_drop_factor": shop_consumable_factor,
         "applied_prospection_bonus": min(200, max(0, prospecting_bonus)),
         "effective_prospection": 100 + min(200, max(0, prospecting_bonus)),
         "native_gate_prospection": 100 + prospecting_bonus,
@@ -554,6 +685,11 @@ def resolve(
         "attempt_count": len(decisions),
         "success_count": sum(1 for decision in decisions if decision.success),
     }
+    if profiles:
+        snapshot["companion_rolls"] = [
+            dict(row, attempt_offset=(index + 1) * _MAX_SAFE_ATTEMPTS)
+            for index, row in enumerate(profiles)
+        ]
     encoded = _canonical_json(snapshot).encode("utf8")
     digest = sha256(encoded).hexdigest()
     inserted = db.execute(
@@ -615,7 +751,7 @@ def resolve(
     )
 
 
-def report_loots(batch):
+def report_loots(batch, *, loot_actor_id=None):
     """Return committed successful decisions as the FightReport loots shape.
 
     Entries intentionally remain separate by native drop row/attempt. The
@@ -624,8 +760,30 @@ def report_loots(batch):
     """
     if not isinstance(batch, AwardBatch):
         raise ValueError("Committed drop award batch is required")
+    offset = None
+    if loot_actor_id is not None:
+        _integer(loot_actor_id, "loot report actor", 1)
+        if loot_actor_id == batch.character_id:
+            offset = 0
+        else:
+            profile = next(
+                (
+                    row
+                    for row in batch.snapshot.get("companion_rolls", ())
+                    if row["actor_id"] == loot_actor_id
+                ),
+                None,
+            )
+            if profile is None:
+                raise ValueError("Loot report actor is absent from this award")
+            offset = profile["attempt_offset"]
     result = []
     for decision in batch.decisions:
+        if (
+            offset is not None
+            and not offset <= decision.attempt_index < offset + _MAX_SAFE_ATTEMPTS
+        ):
+            continue
         if not decision.success:
             continue
         if decision.quantity is None or not 1 <= decision.quantity <= 32767:

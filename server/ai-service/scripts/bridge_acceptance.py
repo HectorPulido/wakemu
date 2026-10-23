@@ -5,7 +5,8 @@ import hashlib
 import json
 from pathlib import Path
 
-from wakfu_ai.bridge.world_bridge import CompleteContextExporter, ContextTransport
+from wakfu_ai.bridge.world_bridge import CompleteContextExporter
+from wakfu_ai.bridge.world_entry import context_transport
 
 
 def main():
@@ -25,7 +26,7 @@ def main():
         if path.is_file()
     }
     assert expected == {entry["path"] for entry in manifest["entries"]}
-    transport = ContextTransport(args.url, timeout=30)
+    transport = context_transport(args.url, timeout=30)
     digest = transport.catalog(exporter)
     sealed = transport.request("/v3/context/manifest", dict(sha256=digest))
     assert sealed["complete"] and not sealed["missing"]

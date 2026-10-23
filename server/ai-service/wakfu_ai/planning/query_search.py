@@ -5,7 +5,8 @@ enter the search; unknown mechanics never become presumed legal actions.
 """
 import time
 import math
-from collections import deque
+import json
+from collections import OrderedDict, deque
 
 from ..context.native_context import NativeGraph
 from ..context.native_graph_parts import load_graph
@@ -19,6 +20,7 @@ from .tactical import DEFAULT_WEIGHTS
 from .capability_evidence import observed
 from .topology_distance import (
     directed_adjacencies,
+    immutable_directed_adjacencies,
     distance_field_from_reverse,
     minimum_exposure,
     exposure_field_from_reverse,
@@ -30,7 +32,10 @@ from .casting_prerequisites import (
 from ..native.native_deadline import check
 from .query_identity import identity as state_identity
 from .movement_routes import hazard_route_alternatives
+from .attack_opportunities import attack_opportunity_routes
 from .feature_values import DEFAULT_FEATURE_WEIGHTS, validate_features
+from .decision_context_cache import DecisionContextCache
+from .turn_continuation import recovery_proposal
 from .team_posture import (
     decide as decide_team_posture,
     apply_position,
@@ -44,6 +49,91 @@ def _fight(graph):
 
 
 _MEMO_GRAPH = object()
+
+
+def _preview_cache_key(state, action):
+    """Complete runtime identity, or an exact receipt for custom old oracles."""
+    check()
+    identity = state_identity(state)
+    scope = "runtime" if "runtimeIdentity" in state else "receipt"
+    encoded = json.dumps(
+        action,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    check()
+    return scope, identity, encoded
+
+
+def _warm_start_actions(raw):
+    """Copy bounded advisory actions; custody/freshness belongs to NativeSession.
+
+    A malformed hint cannot invalidate normal search. Nothing returned here is
+    executable until a new preview accepts it for the exact current source.
+    """
+    check()
+    if (
+        not isinstance(raw, dict)
+        or set(raw) != {"schema", "actions"}
+        or raw.get("schema") != "verified-turn-continuation-v1"
+        or not isinstance(raw.get("actions"), list)
+        or not 1 <= len(raw["actions"]) <= 3
+    ):
+        return []
+    result = []
+    for action in raw["actions"]:
+        if not isinstance(action, dict):
+            return []
+        if action.get("type") == "move":
+            path = action.get("path")
+            if (
+                set(action) != {"type", "path"}
+                or not isinstance(path, list)
+                or not 1 <= len(path) <= 32767
+            ):
+                return []
+            copied = []
+            for index, cell in enumerate(path):
+                if index % 256 == 0:
+                    check()
+                if (
+                    not isinstance(cell, list)
+                    or len(cell) != 3
+                    or any(type(value) is not int for value in cell)
+                ):
+                    return []
+                copied.append(list(cell))
+            check()
+            result.append(dict(type="move", path=copied))
+        elif action.get("type") == "cast":
+            if (
+                set(action) - {"type", "spellId", "level", "target", "targetId"}
+                or type(action.get("spellId")) is not int
+                or action["spellId"] <= 0
+                or type(action.get("level")) is not int
+                or action["level"] < 0
+                or not isinstance(action.get("target"), list)
+                or len(action["target"]) != 3
+                or any(type(value) is not int for value in action["target"])
+                or ("targetId" in action and type(action["targetId"]) is not int)
+            ):
+                return []
+            result.append(dict(action, target=list(action["target"])))
+        elif action.get("type") == "portal_travel":
+            destination = action.get("destination")
+            if (
+                set(action) != {"type", "destination"}
+                or not isinstance(destination, list)
+                or len(destination) != 3
+                or any(type(value) is not int for value in destination)
+            ):
+                return []
+            result.append(dict(type="portal_travel", destination=list(destination)))
+        else:
+            return []
+    check()
+    return result
 
 
 def _sequence(graph, reference, memo=None):
@@ -181,6 +271,43 @@ def _cast_recipient_ids(actors):
         if living:
             result[cell] = living
     return result
+
+
+def _portal_candidates(repertoire, state, actor_id, cells):
+    """A source-bound native endpoint is advice, never a terrain edge."""
+    fact = repertoire.get("nativePortalTravel")
+    if (
+        not isinstance(fact, dict)
+        or set(fact)
+        != {"schema", "sourceState", "stateRevision", "actorId", "destinations"}
+        or fact.get("schema") != "native-portal-travel-v1"
+        or not isinstance(fact.get("sourceState"), str)
+        or not fact["sourceState"]
+        or fact.get("sourceState") != state.get("key")
+        or type(fact.get("stateRevision")) is not int
+        or fact["stateRevision"] != state.get("stateRevision")
+        or type(fact.get("actorId")) is not int
+        or fact["actorId"] != actor_id
+        or type(state.get("currentId")) is not int
+        or state["currentId"] != actor_id
+        or not isinstance(fact.get("destinations"), list)
+        or not fact["destinations"]
+    ):
+        return
+    walkable, seen = {tuple(cell) for cell in cells}, set()
+    for index, cell in enumerate(fact["destinations"]):
+        if index % 256 == 0:
+            check()
+        if (
+            not isinstance(cell, list)
+            or len(cell) != 3
+            or any(type(value) is not int for value in cell)
+        ):
+            continue
+        destination = tuple(cell)
+        if destination in walkable and destination not in seen:
+            seen.add(destination)
+            yield dict(type="portal_travel", destination=list(cell))
 
 
 def candidates(
@@ -418,9 +545,30 @@ def candidates(
         cells,
         actors,
         actor_id,
+        spells=spells,
+        capability_evidence=capability_evidence,
         geometry=geometry,
         prepare=prepare,
     )
+    ordinary_moves = moves
+
+    def movement_stream():
+        streams = deque(
+            [
+                iter(_portal_candidates(repertoire, state, actor_id, cells)),
+                ordinary_moves,
+            ]
+        )
+        while streams:
+            stream = streams.popleft()
+            try:
+                action = next(stream)
+            except StopIteration:
+                continue
+            streams.append(stream)
+            yield action
+
+    moves = movement_stream()
     casting = deque(cast_streams)
     moving = True
     if move_before_first_cast:
@@ -465,6 +613,14 @@ def _native_range_hints(spell):
         "costs",
         "categories",
         "conditional",
+        "range_modifiable",
+        "path_option",
+        "diagonal",
+        "linear_path",
+        "allow_self",
+        "forbid_QI_P",
+        "cast_criterion_raw",
+        "cast_criterion_native_present",
     }
     known_conditional = {
         "linear",
@@ -473,6 +629,11 @@ def _native_range_hints(spell):
         "criteria",
         "ranges",
         "free_cell",
+        "range_modifiable",
+        "path_option",
+        "diagonal",
+        "linear_path",
+        "allow_self",
     }
     if (
         type(casting) is not dict
@@ -531,7 +692,15 @@ def _in_any_range(origin, target, ranges):
 
 
 def _movement_candidates(
-    graph, edges_reference, cells, actors, actor_id, geometry=None, prepare=None
+    graph,
+    edges_reference,
+    cells,
+    actors,
+    actor_id,
+    geometry=None,
+    prepare=None,
+    spells=(),
+    capability_evidence=None,
 ):
     """Decode the complete movement graph only when its stream is explored."""
     decode = geometry or (lambda reference: _sequence(graph, reference))
@@ -546,6 +715,8 @@ def _movement_candidates(
         team_posture=after_attack,
         attacked_targets=damaged_targets_this_turn(graph, _fight(graph), actor_id),
         hazard_cells=battleground_border_cells(graph, _fight(graph)),
+        spells=spells,
+        capability_evidence=capability_evidence,
     )
     route_orders = operation() if prepare is None else prepare(operation)
 
@@ -578,6 +749,8 @@ def _movement_orders(
     hazard_cells=(),
     team_posture=False,
     attacked_targets=(),
+    spells=(),
+    capability_evidence=None,
 ):
     """Prepare complete route orders; candidate exploration is timed separately.
 
@@ -588,17 +761,16 @@ def _movement_orders(
     origin = tuple(actor["position"])
     occupied = {tuple(a["position"]): a["id"] for a in actors.values() if a["hp"] > 0}
     cell_set = set(cells)
-    adjacency, reverse = directed_adjacencies(edges, cells=cell_set)
+    adjacency, reverse = immutable_directed_adjacencies(edges, cells=cell_set)
+    posture_mode = None
     if team_posture:
-        retreat = (
-            decide_team_posture(
-                actors,
-                actor_id,
-                adjacency,
-                attacked_targets=attacked_targets,
-            )["mode"]
-            == "retreat"
-        )
+        posture_mode = decide_team_posture(
+            actors,
+            actor_id,
+            adjacency,
+            attacked_targets=attacked_targets,
+        )["mode"]
+        retreat = posture_mode == "retreat"
     routes, reached = [], {origin: ()}
     queue = deque([origin])
     while queue:
@@ -628,11 +800,25 @@ def _movement_orders(
     approach = distance_field_from_reverse(
         reverse, enemy_cells, set(occupied) - enemy_cells - {origin}
     )
+    navigation_blocked = set(occupied) - enemy_cells - {origin}
+    if not retreat and origin not in approach:
+        # An allied queue can block every complete route this turn. Use the
+        # terrain objective to order already reachable, occupied-safe routes;
+        # this neither creates a route nor authorizes crossing an actor.
+        hostile_blockers = {
+            tuple(other["position"])
+            for other in actors.values()
+            if other["hp"] > 0 and other["team"] != actor["team"]
+        } - enemy_cells
+        relaxed = distance_field_from_reverse(reverse, enemy_cells, hostile_blockers)
+        if origin in relaxed:
+            approach = relaxed
+            navigation_blocked = hostile_blockers
     exposure_field = (
         exposure_field_from_reverse(
             reverse,
             enemy_cells,
-            set(occupied) - enemy_cells - {origin},
+            navigation_blocked,
             hazard_cells,
         )
         if hazard_cells and not retreat
@@ -666,6 +852,18 @@ def _movement_orders(
     # budget; it does not classify or exclude any actor, and the full route
     # stream remains available for native preview.
     route_orders = [iter(sorted(routes, key=route_priority))]
+    if not retreat and posture_mode != "hold":
+        opportunities = attack_opportunity_routes(
+            routes,
+            actors,
+            actor_id,
+            spells,
+            range_hints=_native_range_hints,
+            capability_evidence=capability_evidence,
+            route_priority=route_priority,
+        )
+        if opportunities:
+            route_orders.insert(0, iter(opportunities))
     if routes and not retreat:
         for enemy in sorted(enemies, key=lambda value: value["id"]):
             check()
@@ -719,15 +917,52 @@ def _movement_orders(
     return route_orders
 
 
-def _metrics(raw, actor_id, *, unreachable_penalty=None, retreat=False):
+def _approach_topology(raw, actor_id, *, retreat=False):
+    """Choose a navigation objective once; occupied paths stay authoritative."""
+    if retreat or not isinstance(raw.get("topologyDistances"), dict):
+        return None
+    primary = raw.get("primaryTopologyDistances")
+    use_primary = "primaryTopologyDistances" in raw and (
+        primary is None or isinstance(primary, dict) and str(actor_id) in primary
+    )
+    strict = primary if use_primary else raw["topologyDistances"]
+    name = (
+        "allyRelaxedPrimaryTopologyDistances"
+        if use_primary
+        else "allyRelaxedTopologyDistances"
+    )
+    relaxed = raw.get(name)
+    if (
+        isinstance(strict, dict)
+        and str(actor_id) in strict
+        and strict[str(actor_id)] is None
+        and isinstance(relaxed, dict)
+        and type(relaxed.get(str(actor_id))) is int
+        and relaxed[str(actor_id)] >= 0
+    ):
+        return name
+    return None
+
+
+def _metrics(
+    raw, actor_id, *, unreachable_penalty=None, retreat=False, approach_topology=None
+):
     features = validate_features(
         raw.get("outcomeFeatures", {}), "outcome features", 1e9
     )
     actors = {a["id"]: dict(a, position=tuple(a["position"])) for a in raw["actors"]}
     repertoires = raw.get("actorRepertoires")
     if isinstance(repertoires, dict):
+        # Validate receipt binding before projecting tactical metadata. Opaque
+        # native receipts can differ for unobserved state; they are not role
+        # inputs and must not enter otherwise identical observation metrics.
+        # Keep the original graph/receipt intact for native authority checks.
         repertoires = {
-            identity: row
+            identity: {
+                name: value
+                for name, value in row.items()
+                if name not in ("sourceState", "stateRevision")
+            }
             for identity, row in repertoires.items()
             if isinstance(row, dict)
             and ("sourceState" not in row or row["sourceState"] == raw.get("key"))
@@ -779,6 +1014,13 @@ def _metrics(raw, actor_id, *, unreachable_penalty=None, retreat=False):
             if topology is None
             else "directed_xyz_topology"
         )
+        if approach_topology is not None:
+            # A fixed decision objective prevents an endpoint from switching
+            # scales when an ally moves or a strict route becomes reachable.
+            topology = raw.get(approach_topology)
+            if topology is None:
+                topology = {str(actor_id): None}
+            position_basis = "directed_xyz_ally_relaxed_approach"
         if topology is None:
             distance = 0  # Unknown topology supplies no positional advantage.
         else:
@@ -806,7 +1048,9 @@ def _metrics(raw, actor_id, *, unreachable_penalty=None, retreat=False):
     )
 
 
-def _remaining_border_exposure(reverse, actors, actor_id, hazards):
+def _remaining_border_exposure(
+    reverse, actors, actor_id, hazards, *, relax_allies=False
+):
     actor = actors[actor_id]
     enemies = [
         other
@@ -817,7 +1061,11 @@ def _remaining_border_exposure(reverse, actors, actor_id, hazards):
     goals = {tuple(other["position"]) for other in primary or enemies}
     origin = tuple(actor["position"])
     blocked = (
-        {tuple(other["position"]) for other in actors.values() if other["hp"] > 0}
+        {
+            tuple(other["position"])
+            for other in actors.values()
+            if other["hp"] > 0 and (not relax_allies or other["team"] != actor["team"])
+        }
         - goals
         - {origin}
     )
@@ -899,15 +1147,31 @@ def _diverse_beam(options, limit, actor_id=None, support_reference=None):
                     node["key"],
                 ),
             )
-    if ranked and preferred_support is not None:
-        for node in (ranked[0], preferred_support):
+    # A setup can cost AP before its newly enabled cast repays it. Keep one
+    # certified, still-outstanding progress/AP-gain continuation alongside the strongest outcome,
+    # rather than requiring that setup to beat immediate damage already. This
+    # allocates exploration only: final utility remains the outcome score.
+    preparation = min(
+        (node for node in ranked if node.get("preparationProgress", 0) > 0),
+        key=lambda node: (
+            -node["preparationProgress"],
+            -node["score"],
+            len(node["actions"]),
+            node["key"],
+        ),
+        default=None,
+    )
+    # With only two slots, existing support priority takes the second slot.
+    preferred = [node for node in (preferred_support, preparation) if node is not None]
+    if ranked and preferred:
+        for node in (ranked[0], *preferred):
             identity = state_identity(node.get("state", node))
             if identity not in seen:
                 selected.append(node)
                 represented.add((node["intent"], node["target"]))
                 seen.add(identity)
-        if len(selected) == limit:
-            return selected
+                if len(selected) == limit:
+                    return selected
     for node in ranked:
         category = node["intent"], node["target"]
         state = node.get("state", {})
@@ -944,11 +1208,27 @@ def _prune_frontier(frames, limit, actor_id, support_reference=None):
         [frame["node"] for frame in branches], limit, actor_id, support_reference
     )
     retained = {id(node) for node in selected}
-    return deque(
-        frame
-        for frame in frames
-        if frame["depth"] == 0 or id(frame["node"]) in retained
-    )
+    cursors = {}
+    for frame in branches:
+        identity = id(frame["node"])
+        if identity not in retained:
+            continue
+        previous = cursors.get(identity)
+        if previous is None or (
+            previous["stream"] is None and frame["stream"] is not None
+        ):
+            # A reused warm node may arrive through normal enumeration too.
+            # Retain its already advanced iterator instead of restarting it.
+            cursors[identity] = frame
+    result, emitted = deque(), set()
+    for frame in frames:
+        identity = id(frame["node"])
+        if frame["depth"] == 0:
+            result.append(frame)
+        elif identity not in emitted and cursors.get(identity) is frame:
+            result.append(frame)
+            emitted.add(identity)
+    return result
 
 
 def search(envelope, store, *, clock=time.monotonic, root_graph=None):
@@ -998,7 +1278,8 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
     feature_weights.update(
         validate_features(policy.get("featureWeights", {}), "feature weights", 1000)
     )
-    memory_graph = root_graph or load_graph(store, envelope["root"]["nativeContext"])
+    context_cache = DecisionContextCache(store, graph_loader=load_graph)
+    memory_graph = root_graph or context_cache.graph(envelope["root"]["nativeContext"])
     retreat = attacked_this_turn(memory_graph, _fight(memory_graph), actor_id)
     attacked_targets = damaged_targets_this_turn(
         memory_graph,
@@ -1006,7 +1287,10 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         actor_id,
     )
     border_cells = battleground_border_cells(memory_graph, _fight(memory_graph))
-    root = _metrics(envelope["root"], actor_id, retreat=retreat)
+    approach_topology = _approach_topology(envelope["root"], actor_id, retreat=retreat)
+    root = _metrics(
+        envelope["root"], actor_id, retreat=retreat, approach_topology=approach_topology
+    )
     posture_adjacency = None
     if retreat:
         fight_reference = _fight(memory_graph)
@@ -1039,7 +1323,11 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                 _sequence(memory_graph, edges_reference), cells=cells
             )
             unavoidable_border = _remaining_border_exposure(
-                border_reverse, root["actors"], actor_id, border_cells
+                border_reverse,
+                root["actors"],
+                actor_id,
+                border_cells,
+                relax_allies=approach_topology is not None,
             )
     if root["actors"][actor_id]["hp"] <= 0:
         raise ValueError("Native search requires a live source actor")
@@ -1181,6 +1469,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
     update_turn_budget(envelope)
     stop_reasons = []
     work_at_budget_check = 0.0
+    search_allowance_exhausted = False
 
     def exhausted():
         nonlocal work_at_budget_check, stop_reasons
@@ -1190,6 +1479,8 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                 0.0, limits["budgetMs"] + (now - deadline) * 1000
             )
         reasons = []
+        if search_allowance_exhausted:
+            reasons.append("native_search_allowance_exhausted")
         if deadline is not None and now >= deadline:
             reasons.append("search_work_budget")
         # A slow mandatory root repertoire/context lookup must not spend the
@@ -1233,7 +1524,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                 deadline += elapsed
 
     def exchange(query):
-        nonlocal deadline, waiting
+        nonlocal deadline, waiting, search_allowance_exhausted
         started = clock()
         response = yield query
         elapsed = max(0.0, clock() - started)
@@ -1241,12 +1532,83 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         if deadline is not None:
             deadline += elapsed
         update_turn_budget(response)
+        if (
+            isinstance(response, dict)
+            and response.get("supported") is False
+            and "native_search_allowance_exhausted"
+            in response.get("unknownDependencies", [])
+        ):
+            search_allowance_exhausted = True
         return answer(response, query)
 
     def request(operation, key, **fields):
         nonlocal sequence
         sequence += 1
-        return dict(id=str(sequence), operation=operation, state=key, **fields)
+        query = dict(id=str(sequence), operation=operation, state=key, **fields)
+        if root_action_certified:
+            boundaries = [
+                value
+                for value in (search_decision_deadline, movement_only_deadline)
+                if value is not None
+            ]
+            if turn_deadline is not None:
+                boundaries.append(turn_deadline - reserve / 1000)
+            if boundaries:
+                query["searchAllowanceMs"] = max(
+                    0.0, (min(boundaries) - clock()) * 1000
+                )
+        return with_incumbent(query)
+
+    risk_phase = False
+    risk_incumbent = None
+
+    def with_incumbent(query):
+        incumbent = risk_incumbent if risk_phase else independent_best
+        if root_action_certified and (incumbent is None or not incumbent["actions"]):
+            # End-turn has no root preview certificate. Clear the previous
+            # snapshot so the owner uses its safe fallback instead of a cast.
+            return dict(query, incumbent=None)
+        if not root_action_certified or (not risk_phase and not incumbent["actions"]):
+            return query
+        action = dict(incumbent["actions"][0])
+        if "path" in action:
+            action["path"] = [list(cell) for cell in action["path"]]
+        if "target" in action:
+            action["target"] = list(action["target"])
+        if "destination" in action:
+            action["destination"] = list(action["destination"])
+        return dict(
+            query,
+            incumbent=dict(
+                protocol=3,
+                requestId=envelope["requestId"],
+                sourceKey=envelope["sourceKey"],
+                rootState=root_key,
+                action=action,
+                plan=[action],
+                partial=True,
+                unknownDependencies=["native_search_budget_partial"],
+            ),
+        )
+
+    def forward_risk_queries(generator, risk_deadline):
+        response = None
+        try:
+            while True:
+                try:
+                    query = (
+                        next(generator)
+                        if response is None
+                        else generator.send(response)
+                    )
+                except StopIteration as completed:
+                    return completed.value
+                query = dict(
+                    query, searchAllowanceMs=max(0.0, (risk_deadline - clock()) * 1000)
+                )
+                response = yield with_incumbent(query)
+        finally:
+            generator.close()
 
     def answer(response, query):
         if (
@@ -1274,21 +1636,196 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         postureMode=root["teamPosture"]["mode"],
     )
     alternatives = [best]
+    # Recovery executes one action. Score its actual root outcome rather than
+    # assigning the utility of an unavailable multi-action continuation to it.
+    independent_best = best
     root_node = dict(**best, visited=frozenset({state_identity(envelope["root"])}))
     pending = deque([dict(node=root_node, depth=0, stream=None)])
     expanded_by_depth = {}
     peak_continuations = 0
+    # Retain sampled native outcomes only within this decision/session. The
+    # full identity includes private runtime, authorities and flags; policy
+    # and catalogue are fixed by this search's guarded envelope. A cache hit
+    # never inherits another path's option, score or visited-state set.
+    preview_cache = OrderedDict()
+    preview_cache_capacity = min(256, limits["nodes"])
+    preview_cache_hits = 0
+    preview_cache_evictions = 0
+    missing_preview = object()
+
+    def remember_preview(node, action, state, key=None):
+        nonlocal preview_cache_evictions
+        if search_allowance_exhausted:
+            return
+        if key is None:
+            key = _preview_cache_key(node["state"], action)
+        preview_cache[key] = (state, node["key"])
+        preview_cache.move_to_end(key)
+        if len(preview_cache) > preview_cache_capacity:
+            preview_cache.popitem(last=False)
+            preview_cache_evictions += 1
+
+    def record_preview(node, action, state, *, sample_source=None):
+        nonlocal best, independent_best
+        metrics = _metrics(
+            state,
+            actor_id,
+            unreachable_penalty=unreachable_penalty,
+            retreat=retreat,
+            approach_topology=approach_topology,
+        )
+        apply_position(
+            metrics,
+            actor_id,
+            posture_adjacency,
+            after_attack=retreat,
+            allow_approach=allow_approach,
+            attacked_targets=attacked_targets,
+        )
+        if metrics["actors"][actor_id]["hp"] <= 0:
+            metrics["position"] = root["position"]
+        if action["type"] == "cast":
+            before = {row["id"]: row for row in node["state"]["actors"]}
+            roles = observed(before, metrics["actors"], actor_id)
+            identity = action["spellId"], action["level"]
+            capability_evidence.setdefault(identity, set()).update(roles)
+        score, components, intent, target = evaluate_state(metrics)
+        # Compare to the decision root, not the immediately preceding
+        # action. Walking must not erase an unspent setup, and consuming
+        # the actual PA/state progress must remove its beam protection.
+        before_progress = root["features"].get("owned_state_progress")
+        after_progress = metrics["features"].get("owned_state_progress")
+        preparation_progress = max(
+            0, metrics["actors"][actor_id]["ap"] - root["actors"][actor_id]["ap"]
+        )
+        if before_progress is not None and after_progress is not None:
+            preparation_progress += max(0, after_progress - before_progress)
+        option = dict(
+            score=score,
+            preparationProgress=preparation_progress,
+            postureMode=metrics["teamPosture"]["mode"],
+            components=components,
+            key=state["key"],
+            actions=node["actions"] + [action],
+            state=state,
+            intent=intent,
+            target=target,
+            orientationEvidence=node["orientationEvidence"]
+            + [
+                dict(
+                    row,
+                    sourceState=sample_source or node["key"],
+                    previewState=state["key"],
+                    **(
+                        {"reusedForState": node["key"]}
+                        if sample_source is not None and sample_source != node["key"]
+                        else {}
+                    ),
+                )
+                for row in state.get("damageContextEvidence", [])
+            ],
+            borderExposure=node.get("borderExposure", 0)
+            + (
+                sum(tuple(cell) in border_cells for cell in action["path"])
+                if action["type"] == "move"
+                else int(tuple(action["destination"]) in border_cells)
+                if action["type"] == "portal_travel"
+                else 0
+            ),
+            visited=node["visited"] | {state_identity(state)},
+        )
+        if option["borderExposure"]:
+            # Prefer avoiding the perimeter when a safer route exists.
+            # Required crossings must not deadlock a narrow native bridge;
+            # actual resource/damage loss remains in the native outcome.
+            avoidable_exposure = option["borderExposure"]
+            if unavoidable_border is not None:
+                remaining = _remaining_border_exposure(
+                    border_reverse,
+                    metrics["actors"],
+                    actor_id,
+                    border_cells,
+                    relax_allies=approach_topology is not None,
+                )
+                if remaining is not None:
+                    avoidable_exposure = max(
+                        0, avoidable_exposure + remaining - unavoidable_border
+                    )
+            penalty = 2.0 * avoidable_exposure
+            option["score"] -= penalty
+            option["components"]["battleground_border_exposure"] = -penalty
+        alternatives.append(option)
+        if len(option["actions"]) == 1 and option["score"] > independent_best["score"]:
+            independent_best = option
+        if option["score"] > best["score"]:
+            best = option
+        return option, metrics
+
+    # Re-preview a bounded published continuation, then explore alternatives.
+    # These are proposals for the fresh root, never inherited native forecasts.
+    warm_actions = _warm_start_actions(envelope.get("warmStart"))
+    warm_limit = min(len(warm_actions), limits["depth"], limits["nodes"] // 4)
+    warm_attempted, warm_accepted = 0, 0
+    warm_previews = []
+    warm_reused = 0
+    missing_warm_preview = object()
+    warm_node = root_node
+    if warm_limit:
+        deadline = clock() + limits["budgetMs"] / 1000
+    for action in warm_actions[:warm_limit]:
+        if exhausted():
+            break
+        warm_attempted += 1
+        expanded += 1
+        depth = len(warm_node["actions"]) + 1
+        expanded_by_depth[depth] = expanded_by_depth.get(depth, 0) + 1
+        if warm_node is root_node:
+            root_action_attempted = True
+        query = request("preview", warm_node["key"], action=action)
+        state = yield from exchange(query)
+        remember_preview(warm_node, action, state)
+        if state is None or state_identity(state) in warm_node["visited"]:
+            warm_previews.append((warm_node, action, None))
+            break
+        if warm_node is root_node:
+            root_action_certified = True
+        option, metrics = record_preview(warm_node, action, state)
+        warm_previews.append((warm_node, action, (option, metrics)))
+        warm_accepted += 1
+        before = {row["id"]: row for row in warm_node["state"]["actors"]}
+        hostile_damage = action["type"] == "cast" and any(
+            old["team"] != before[actor_id]["team"]
+            and metrics["actors"].get(identity, old)["hp"] < old["hp"]
+            for identity, old in before.items()
+        )
+        # An actual attack changes post-attack positioning. Do not carry an
+        # old approach tail past it: the next real decision reads its ledger
+        # and selects hold/retreat from the newly published result.
+        if (
+            hostile_damage
+            or state["phase"] != "active"
+            or state["currentId"] != actor_id
+            or metrics["actors"][actor_id]["hp"] <= 0
+        ):
+            break
+        warm_node = option
+        if depth < limits["depth"]:
+            pending.append(dict(node=option, depth=depth, stream=None))
+
     while pending and expanded < limits["nodes"] and not exhausted():
         frame = pending.popleft()
         node = frame["node"]
         if frame["stream"] is None:
-            query = request("repertoire", node["key"], actorId=actor_id)
-            repertoire = yield from exchange(query)
+            repertoire = context_cache.get_repertoire(node["state"], actor_id)
+            if repertoire is None:
+                query = request("repertoire", node["key"], actorId=actor_id)
+                repertoire = yield from exchange(query)
+                if repertoire is not None:
+                    context_cache.put_repertoire(node["state"], actor_id, repertoire)
             if repertoire is None:
                 continue
             preparing = clock()
-            metadata = load_graph(store, repertoire["nativeMetadata"])
-            repertoire = metadata.plain(metadata.data["root"])
+            repertoire = context_cache.plain(repertoire["nativeMetadata"])
             if node["key"] == root_key and all_owned_spells_unavailable(
                 repertoire, node["state"], actor_id
             ):
@@ -1340,7 +1877,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                     raise ValueError("Invalid validated native root graph")
                 graph = root_graph
             else:
-                graph = load_graph(store, node["state"]["nativeContext"])
+                graph = context_cache.graph(node["state"]["nativeContext"])
             frame["stream"] = iter(
                 candidates(
                     graph,
@@ -1369,80 +1906,48 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                 break
             if expanded >= limits["nodes"] or exhausted():
                 break
-            expanded += 1
-            depth = frame["depth"] + 1
-            expanded_by_depth[depth] = expanded_by_depth.get(depth, 0) + 1
-            if frame["depth"] == 0 and node["key"] == root_key:
-                root_action_attempted = True
-            query = request("preview", node["key"], action=action)
-            state = yield from exchange(query)
-            if state is None or state_identity(state) in node["visited"]:
-                continue
-            if frame["depth"] == 0 and node["key"] == root_key:
-                root_action_certified = True
-            metrics = _metrics(
-                state,
-                actor_id,
-                unreachable_penalty=unreachable_penalty,
-                retreat=retreat,
-            )
-            apply_position(
-                metrics,
-                actor_id,
-                posture_adjacency,
-                after_attack=retreat,
-                allow_approach=allow_approach,
-                attacked_targets=attacked_targets,
-            )
-            if metrics["actors"][actor_id]["hp"] <= 0:
-                metrics["position"] = root["position"]
-            if action["type"] == "cast":
-                before = {row["id"]: row for row in node["state"]["actors"]}
-                roles = observed(before, metrics["actors"], actor_id)
-                identity = action["spellId"], action["level"]
-                capability_evidence.setdefault(identity, set()).update(roles)
-            score, components, intent, target = evaluate_state(metrics)
-            option = dict(
-                score=score,
-                postureMode=metrics["teamPosture"]["mode"],
-                components=components,
-                key=state["key"],
-                actions=node["actions"] + [action],
-                state=state,
-                intent=intent,
-                target=target,
-                orientationEvidence=node["orientationEvidence"]
-                + [
-                    dict(row, sourceState=node["key"], previewState=state["key"])
-                    for row in state.get("damageContextEvidence", [])
-                ],
-                borderExposure=node.get("borderExposure", 0)
-                + (
-                    sum(tuple(cell) in border_cells for cell in action["path"])
-                    if action["type"] == "move"
-                    else 0
+            # These at most three previews were obtained during this search
+            # from this exact parent node, not retained from the previous
+            # publication. Keep their normal descendants eligible without
+            # paying for or scoring the same transition a second time.
+            reused = next(
+                (
+                    cached
+                    for parent, tried, cached in warm_previews
+                    if parent is node and tried == action
                 ),
-                visited=node["visited"] | {state_identity(state)},
+                missing_warm_preview,
             )
-            if option["borderExposure"]:
-                # Prefer avoiding the perimeter when a safer route exists.
-                # Required crossings must not deadlock a narrow native bridge;
-                # actual resource/damage loss remains in the native outcome.
-                avoidable_exposure = option["borderExposure"]
-                if unavoidable_border is not None:
-                    remaining = _remaining_border_exposure(
-                        border_reverse, metrics["actors"], actor_id, border_cells
-                    )
-                    if remaining is not None:
-                        avoidable_exposure = max(
-                            0, avoidable_exposure + remaining - unavoidable_border
-                        )
-                penalty = 2.0 * avoidable_exposure
-                option["score"] -= penalty
-                option["components"]["battleground_border_exposure"] = -penalty
-            alternatives.append(option)
-            if option["score"] > best["score"]:
-                best = option
+            if reused is not missing_warm_preview:
+                warm_reused += 1
+                if reused is None:
+                    continue
+                option, metrics = reused
+                state = option["state"]
+            else:
+                if frame["depth"] == 0 and node["key"] == root_key:
+                    root_action_attempted = True
+                cache_key = _preview_cache_key(node["state"], action)
+                cached_preview = preview_cache.get(cache_key, missing_preview)
+                sample_source = node["key"]
+                if cached_preview is missing_preview:
+                    expanded += 1
+                    depth = frame["depth"] + 1
+                    expanded_by_depth[depth] = expanded_by_depth.get(depth, 0) + 1
+                    query = request("preview", node["key"], action=action)
+                    state = yield from exchange(query)
+                    remember_preview(node, action, state, key=cache_key)
+                else:
+                    state, sample_source = cached_preview
+                    preview_cache_hits += 1
+                    preview_cache.move_to_end(cache_key)
+                if state is None or state_identity(state) in node["visited"]:
+                    continue
+                if frame["depth"] == 0 and node["key"] == root_key:
+                    root_action_certified = True
+                option, metrics = record_preview(
+                    node, action, state, sample_source=sample_source
+                )
             if (
                 frame["depth"] + 1 < limits["depth"]
                 and state["phase"] == "active"
@@ -1560,7 +2065,8 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         if decision_deadline is not None:
             risk_deadline = min(risk_deadline, decision_deadline)
         if not root_action_certified or (
-            risk_deadline <= clock()
+            search_allowance_exhausted
+            or risk_deadline <= clock()
             or turn_deadline is not None
             and clock() >= turn_deadline - reserve / 1000
         ):
@@ -1571,41 +2077,21 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             unsupported.append("rival_forecast_skipped_after_root_action_budget")
         baseline_penalty = None
         evaluated = []
-        if not rival_forecast_skipped:
-            rival_search_started = clock()
-        for option in [] if rival_forecast_skipped else shortlist:
-            risk = (
-                dict(
-                    risk=0,
-                    knownLowerBound=0,
-                    complete=True,
-                    rivals=[],
-                    unknownDependencies=[],
-                )
-                if option["state"]["phase"] != "active"
-                else (
-                    yield from forecast(
-                        option["state"],
-                        actor_id,
-                        store,
-                        weights,
-                        deadline=risk_deadline,
-                        clock=clock,
-                        **risk_limits,
-                    )
-                )
-            )
-            unsupported.extend(risk["unknownDependencies"])
+
+        def assess_risk_option(option, risk):
             penalty = risk["knownLowerBound"] * weights["threat"]
             uncertainty_penalty = (
                 0 if risk["complete"] else unknown_penalty * weights["uncertainty"]
             )
-            if baseline_penalty is None:
-                baseline_penalty = penalty + uncertainty_penalty
             adjusted = (
                 option["score"] + baseline_penalty - penalty - uncertainty_penalty
             )
-            option_metrics = _metrics(option["state"], actor_id, retreat=retreat)
+            option_metrics = _metrics(
+                option["state"],
+                actor_id,
+                retreat=retreat,
+                approach_topology=approach_topology,
+            )
             posture = apply_position(
                 option_metrics,
                 actor_id,
@@ -1623,7 +2109,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                 else 0.0
             )
             adjusted -= posture_penalty
-            assessed = dict(
+            return dict(
                 option,
                 riskForecast=risk,
                 score=adjusted,
@@ -1636,7 +2122,167 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                     contradicted_hold_preference=-posture_penalty,
                 ),
             )
+
+        unknown_independent = {}
+
+        def option_identity(option):
+            return option["key"], json.dumps(
+                option["actions"], sort_keys=True, separators=(",", ":")
+            )
+
+        def recovery_risk_pool():
+            # A missing forecast certifies neither safety nor danger. Include
+            # every certified one-action outcome with explicit missing coverage,
+            # then impute observed rival danger on the same basis as real runs.
+            actual = {option_identity(item) for item in evaluated}
+            pool = list(evaluated)
+            for candidate in alternatives:
+                if len(candidate["actions"]) > 1:
+                    continue
+                identity = option_identity(candidate)
+                if identity in actual:
+                    continue
+                if identity not in unknown_independent:
+                    active = candidate["state"]["phase"] == "active"
+                    friendly = next(
+                        row["team"]
+                        for row in candidate["state"]["actors"]
+                        if row["id"] == actor_id
+                    )
+                    missing = dict(
+                        risk=None if active else 0,
+                        knownLowerBound=0,
+                        complete=not active,
+                        rivals=[
+                            dict(
+                                actorId=row["id"],
+                                knownLowerBound=0,
+                                complete=False,
+                                expanded=0,
+                            )
+                            for row in candidate["state"]["actors"]
+                            if active and row["team"] != friendly and row["hp"] > 0
+                        ],
+                        unknownDependencies=["rival_response_not_evaluated"]
+                        if active
+                        else [],
+                    )
+                    unknown_independent[identity] = assess_risk_option(
+                        candidate, missing
+                    )
+                pool.append(unknown_independent[identity])
+            return pool
+
+        def recovery_risk_incumbent():
+            # Rank a separate snapshot with the same coverage policy as the
+            # completed phase. Never mutate scores that final ranking adjusts.
+            from .risk_coverage import comparable_bounds
+
+            recovery_pool = recovery_risk_pool()
+            partial_bounds = comparable_bounds(
+                [item["riskForecast"] for item in recovery_pool]
+            )
+            # Preserve an observed aggregate lower bound even when a provider
+            # cannot attribute all of it to individual rivals. This remains
+            # imputed unknown coverage, not a certified loss in another state.
+            unattributed = max(
+                (
+                    max(
+                        0,
+                        item["riskForecast"]["knownLowerBound"]
+                        - sum(
+                            rival.get("knownLowerBound", 0)
+                            for rival in item["riskForecast"].get("rivals", [])
+                        ),
+                    )
+                    for item in evaluated
+                ),
+                default=0,
+            )
+            comparable = []
+            for item, bound in zip(recovery_pool, partial_bounds):
+                if (
+                    "rival_response_not_evaluated"
+                    in item["riskForecast"]["unknownDependencies"]
+                ):
+                    bound += unattributed
+                imputation = (
+                    -item["components"]["rival_risk_lower_bound"]
+                    - bound * weights["threat"]
+                )
+                comparable.append(
+                    dict(
+                        item,
+                        score=item["score"] + imputation,
+                        components=dict(
+                            item["components"],
+                            rival_risk_coverage_imputation=imputation,
+                        ),
+                    )
+                )
+            independent_comparable = [
+                item for item in comparable if len(item["actions"]) <= 1
+            ]
+            return min(
+                independent_comparable,
+                key=lambda item: (
+                    -item["score"],
+                    len(item["actions"]),
+                    item["key"],
+                ),
+            )
+
+        if not rival_forecast_skipped:
+            risk_phase = True
+            rival_search_started = clock()
+            # Before the first response, every independent outcome has the
+            # same explicitly unknown risk. Keep its certified own utility
+            # available to RPC recovery without borrowing a combo forecast.
+            baseline_penalty = unknown_penalty * weights["uncertainty"]
+            risk_incumbent = recovery_risk_incumbent()
+            # The first real baseline replaces this provisional reference.
+            # Never retain provisional scores in the per-option assessment cache.
+            baseline_penalty = None
+            unknown_independent.clear()
+        for option in [] if rival_forecast_skipped else shortlist:
+            risk = (
+                dict(
+                    risk=0,
+                    knownLowerBound=0,
+                    complete=True,
+                    rivals=[],
+                    unknownDependencies=[],
+                )
+                if option["state"]["phase"] != "active"
+                else (
+                    yield from forward_risk_queries(
+                        forecast(
+                            option["state"],
+                            actor_id,
+                            store,
+                            weights,
+                            deadline=risk_deadline,
+                            clock=clock,
+                            **risk_limits,
+                        ),
+                        risk_deadline,
+                    )
+                )
+            )
+            unsupported.extend(risk["unknownDependencies"])
+            if "native_search_allowance_exhausted" in risk["unknownDependencies"]:
+                search_allowance_exhausted = True
+                if "native_search_allowance_exhausted" not in stop_reasons:
+                    stop_reasons.append("native_search_allowance_exhausted")
+            if baseline_penalty is None:
+                baseline_penalty = risk["knownLowerBound"] * weights["threat"] + (
+                    0 if risk["complete"] else unknown_penalty * weights["uncertainty"]
+                )
+            assessed = assess_risk_option(option, risk)
+            adjusted = assessed["score"]
+            contradiction = assessed["postureRiskReason"]
             evaluated.append(assessed)
+            risk_incumbent = recovery_risk_incumbent()
             risk_trace.append(
                 dict(
                     state=option["key"],
@@ -1646,6 +2292,8 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                     postureRiskReason=contradiction,
                 )
             )
+            if search_allowance_exhausted:
+                break
         if rival_search_started is not None:
             rival_search_used_ms = max(0.0, clock() - rival_search_started) * 1000
         if evaluated:
@@ -1671,11 +2319,48 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             )
     else:
         unsupported.append("native_rival_projection_operation_unavailable")
+    recovery_selection = search_allowance_exhausted
+    if recovery_selection:
+        if risk_phase:
+            # This snapshot includes actual forecasts and explicitly unknown
+            # independent outcomes, normalized before final trace mutation.
+            best = risk_incumbent if risk_incumbent is not None else alternatives[0]
+            unsupported.extend(
+                best.get("riskForecast", {}).get("unknownDependencies", [])
+            )
+        else:
+            best = independent_best
+    recovery_continuation = None
+    if recovery_selection and best["actions"]:
+        # Advice can outlive exploration, but only a branch beginning with the
+        # exact independently selected action matches the next publication.
+        # The risk shortlist is not the complete preview inventory. Rank all
+        # matching branches by own utility only; advice inherits no risk score.
+        matching = [
+            option
+            for option in alternatives
+            if len(option["actions"]) > 1 and option["actions"][0] == best["actions"][0]
+        ]
+        for option in sorted(
+            matching,
+            key=lambda item: (-item["score"], len(item["actions"]), item["key"]),
+        ):
+            check()
+            recovery_continuation = recovery_proposal(
+                option["actions"][1:],
+                root_action=best["actions"][0],
+                source=envelope["sourceKey"],
+                root=root_key,
+                request=envelope["requestId"],
+            )
+            if recovery_continuation is not None:
+                break
     selected = _metrics(
         best["state"],
         actor_id,
         unreachable_penalty=unreachable_penalty,
         retreat=retreat,
+        approach_topology=approach_topology,
     )
     apply_position(
         selected,
@@ -1711,6 +2396,11 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             else None
         ),
         plan=best["actions"],
+        **(
+            {"recoveryContinuation": recovery_continuation}
+            if recovery_continuation is not None
+            else {}
+        ),
         score=best["score"],
         components=best["components"],
         expanded=expanded,
@@ -1718,6 +2408,14 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         teamPosture=dict(root=root["teamPosture"], selected=selected["teamPosture"]),
         postureRiskReason=best.get("postureRiskReason"),
         searchBudgetEvidence=dict(
+            decisionContextCache=dict(context_cache.metrics),
+            previewCacheHits=preview_cache_hits,
+            previewCacheEntries=len(preview_cache),
+            previewCacheCapacity=preview_cache_capacity,
+            previewCacheEvictions=preview_cache_evictions,
+            warmStartPreviews=warm_attempted,
+            warmStartAccepted=warm_accepted,
+            warmStartReused=warm_reused,
             nativeWaitMs=waiting * 1000,
             stopReasons=stop_reasons,
             searchWorkMsAtLastBudgetCheck=work_at_budget_check,
@@ -1734,6 +2432,11 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             },
             peakContinuationFrames=peak_continuations,
             rootActionCertified=root_action_certified,
+            recoverySelection=(
+                ("certified_single_action" if best["actions"] else "end_turn")
+                if recovery_selection
+                else None
+            ),
             rootActionAttempted=root_action_attempted,
             rootActionReserveUsed=(
                 root_action_certified

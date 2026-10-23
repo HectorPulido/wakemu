@@ -23,10 +23,15 @@ class PreparedReconnect:
     fight: object = None
     runtime: object = None
     ack: object = None
+    pending_turn_recovered: bool | None = None
 
     @property
     def recovered_pending_turn(self):
-        return self.fight is not None
+        return (
+            self.fight is not None
+            if self.pending_turn_recovered is None
+            else self.pending_turn_recovered
+        )
 
 
 def native_packets(packets):
@@ -78,7 +83,13 @@ def settlement_batches(batches, participants):
 
 
 def prepare_reconnect(
-    shared, session, bootstrap_packets, *, recover_disconnected, now_ms
+    shared,
+    session,
+    bootstrap_packets,
+    *,
+    recover_disconnected,
+    now_ms,
+    prepare_authority=None,
 ):
     """Stage a native recovery snapshot before the durable lease takeover.
 
@@ -98,20 +109,23 @@ def prepare_reconnect(
         and shared.runtime is not None
         and getattr(shared.runtime, "awaiting_ack", None) is not None
     )
-    if not recover_pending:
+    if not recover_pending and prepare_authority is None:
         return PreparedReconnect(
             native_packets(bootstrap_packets(shared.fight, shared, session))
         )
     fight, runtime = deepcopy((shared.fight, shared.runtime))
     ack = deepcopy(shared.ack)
-    ack.cancel_for_recovery()
     view = copy(shared)
     view.fight, view.runtime, view.ack = fight, runtime, ack
-    view.reconnect_turn_end_packets = None
-    view.reconnect_remaining_turn_seconds = None
-    runtime.recover(session.account_id, struct.pack(">i", fight.id), now_ms=now_ms)
+    if prepare_authority is not None:
+        prepare_authority(fight, view, session)
+    if recover_pending:
+        ack.cancel_for_recovery()
+        view.reconnect_turn_end_packets = None
+        view.reconnect_remaining_turn_seconds = None
+        runtime.recover(session.account_id, struct.pack(">i", fight.id), now_ms=now_ms)
     packets = native_packets(bootstrap_packets(fight, view, session))
-    return PreparedReconnect(packets, fight, runtime, ack)
+    return PreparedReconnect(packets, fight, runtime, ack, recover_pending)
 
 
 def initial_summon_timeline(fight, birth_ids):

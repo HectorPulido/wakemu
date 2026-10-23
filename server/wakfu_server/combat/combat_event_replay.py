@@ -284,12 +284,17 @@ class NativeEventReplay:
         self.dispatcher, self.retention = dispatcher, retention
         self.history = NativeTriggerHistory()
 
-    def __call__(self, source, *, authority):
+    def __call__(self, source, *, authority, eligible_uids=None):
         if not isinstance(
             source, (NativeEventSource, NativeExternalEvent)
         ) or not isinstance(authority, NativeCloneAuthority):
             raise ValueError("Native event source and clone authority required")
         source.validate()
+        if eligible_uids is not None and (
+            not isinstance(eligible_uids, frozenset)
+            or any(type(uid) is not int or uid <= 0 for uid in eligible_uids)
+        ):
+            raise ValueError("Explicit retained UID scope required")
         if not callable(authority.executable) or not callable(
             authority.condition_context
         ):
@@ -298,6 +303,8 @@ class NativeEventReplay:
         queued = []
         remove = []
         for entry in view.entries:
+            if eligible_uids is not None and entry.uid not in eligible_uids:
+                continue
             if entry.manager_id != source.manager_actor_id:
                 continue
             row = self.retention.fight.native_owned_group_effects.get(entry.uid)
@@ -396,6 +403,42 @@ class NativeEventReplay:
                 source_target=source.target_id,
                 source_present=isinstance(source, NativeEventSource),
             )
+            from .combat_encounter_owned_start_binding import owned_start_caster
+
+            reconstructed_caster = owned_start_caster(
+                self.retention.fight,
+                source,
+                entry=entry,
+                original=original,
+                definition=definition,
+                effect=self.dispatcher.effects[str(original.reference)],
+            )
+            if reconstructed_caster is not None:
+                caster = reconstructed_caster
+            from .combat_encounter_movement_binding import movement_caster
+
+            committed_caster = movement_caster(
+                self.retention.fight,
+                source,
+                entry=entry,
+                original=original,
+                definition=definition,
+                effect=self.dispatcher.effects[str(original.reference)],
+            )
+            if committed_caster is not None:
+                caster = committed_caster
+            from .combat_encounter_npc_start_binding import npc_start_caster
+
+            npc_caster = npc_start_caster(
+                self.retention.fight,
+                source,
+                entry=entry,
+                original=original,
+                definition=definition,
+                effect=self.dispatcher.effects[str(original.reference)],
+            )
+            if npc_caster is not None:
+                caster = npc_caster
             from .combat_external_turn_recipient import external_turn_recipient
 
             target = external_turn_recipient(

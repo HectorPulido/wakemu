@@ -48,7 +48,9 @@ def _party(db, character_id):
 def _controlled_count(db, party_id):
     return db.execute(
         "SELECT count(*) + coalesce(sum((SELECT count(*) FROM account_hero_slots h "
-        "JOIN account_hero_rosters r USING(account_id) WHERE r.leader_id=m.character_id)),0) AS n "
+        "JOIN account_hero_rosters r USING(account_id) WHERE r.leader_id=m.character_id)),0) "
+        "+ coalesce(sum((SELECT count(*) FROM account_companion_slots c "
+        "WHERE c.owner_character_id=m.character_id)),0) AS n "
         "FROM player_party_members m WHERE m.party_id=%s",
         (party_id,),
     ).fetchone()["n"]
@@ -202,8 +204,14 @@ def answer(store, account_id, generation, character_id, token, accepted):
         if party["leader_id"] != inviter:
             raise ValueError("Inviter no longer leads the party")
         count = _controlled_count(db, party["id"])
-        if count >= policy["max_members"]:
-            raise ValueError("Player party is full")
+        invitee_count = db.execute(
+            "SELECT 1 + (SELECT count(*) FROM account_hero_slots h JOIN account_hero_rosters r "
+            "USING(account_id) WHERE r.leader_id=%s) + (SELECT count(*) FROM account_companion_slots "
+            "WHERE owner_character_id=%s) AS n",
+            (character_id, character_id),
+        ).fetchone()["n"]
+        if count + invitee_count > policy["max_members"]:
+            raise ValueError("Player party including companions is full")
         db.execute(
             "INSERT INTO player_party_members(character_id,party_id) VALUES(%s,%s)",
             (character_id, party["id"]),
@@ -297,7 +305,7 @@ def snapshot(store, account_id, generation, character_id):
         rows = db.execute(
             "SELECT p.id AS party_id,p.leader_id,p.revision,"
             "c.id,c.account_id,c.name,c.level,c.hp,c.max_hp,c.breed,c.sex,"
-            "c.health_dead,m.joined_order "
+            "c.health_dead,c.hp_zero_valid,m.joined_order "
             "FROM player_party_members own "
             "JOIN player_parties p ON p.id=own.party_id "
             "JOIN player_party_members m ON m.party_id=p.id "
@@ -317,6 +325,7 @@ def snapshot(store, account_id, generation, character_id):
             "breed",
             "sex",
             "health_dead",
+            "hp_zero_valid",
             "joined_order",
         )
         return {

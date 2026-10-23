@@ -14,6 +14,11 @@ from psycopg.types.json import Jsonb
 from postgres_case import PostgresCase
 from wakfu_server.characters import guild_character
 from wakfu_server.characters.guild_service import GuildService
+from wakfu_server.characters.guild_native_validators import (
+    encode_blazon,
+    permission_bits,
+    validate_rank_mask,
+)
 from wakfu_server.haven_bag_store import initial_layout
 
 
@@ -25,6 +30,13 @@ class GuildServicePostgresTests(PostgresCase):
             )
         super().setUp()
         self.service = GuildService(self.store)
+        self.blazon = encode_blazon(
+            emblem_id=1, background_id=2, background_color=3, emblem_color=4
+        )
+        self.alternate_blazon = encode_blazon(
+            emblem_id=2, background_id=3, background_color=4, emblem_color=5
+        )
+        bits = permission_bits()
         self.policy = {
             "enabled": True,
             "native_sync_enabled": True,
@@ -36,19 +48,19 @@ class GuildServicePostgresTests(PostgresCase):
             "max_ranks": 15,
             "name_pattern": r"[A-Za-z][A-Za-z0-9 ]{2,30}",
             "name_normalization": "NFKC_CASEFOLD",
-            "allowed_blazons": [123],
-            "leader_permissions": (1 << 63) - 1,
-            "member_permissions": 0,
+            "allowed_blazons": [self.blazon, self.alternate_blazon],
+            "leader_permissions": validate_rank_mask(268435454, highest=True),
+            "member_permissions": validate_rank_mask(0, lowest=True),
             "permissions": {
-                "invite": 0,
-                "rank_create": 1,
-                "rank_edit": 2,
-                "rank_remove": 3,
-                "rank_move": 4,
-                "member_rank": 5,
-                "kick": 6,
-                "description": 7,
-                "message": 8,
+                "invite": bits["ADD_MEMBER"],
+                "rank_create": bits["EDIT_RANK"],
+                "rank_edit": bits["EDIT_RANK"],
+                "rank_remove": bits["EDIT_RANK"],
+                "rank_move": bits["EDIT_RANK"],
+                "member_rank": bits["CHANGE_MEMBER_RANK"],
+                "kick": bits["REMOVE_MEMBER"],
+                "description": bits["CHANGE_GUILD_DESCRIPTION"],
+                "message": bits["CHANGE_GUILD_MESSAGE"],
             },
             "invitation_seconds": 3600,
             "description_max_bytes": 500,
@@ -133,7 +145,7 @@ class GuildServicePostgresTests(PostgresCase):
             player["generation"],
             player["character"],
             name,
-            123,
+            self.blazon,
             "Leader",
             "Member",
             operation_key="create-" + name,
@@ -157,20 +169,29 @@ class GuildServicePostgresTests(PostgresCase):
         before_wallet = self._wallet(owner["account"])
         before_item = self._item_quantity(owner["item"])
 
-        first = self._create(owner, "Guild Atomic")
-        replay = self._create(owner, "Guild Atomic")
+        first = self._create(owner, "gUiLd atomic")
+        replay = self._create(owner, "gUiLd atomic")
 
         self.assertEqual(first, replay)
+        self.assertEqual("Guild Atomic", first["guild"]["name"])
+        self.assertEqual(self.blazon, first["guild"]["blazon"])
+        self.assertEqual(
+            [268435454, 0],
+            [
+                row["permissions"]
+                for row in sorted(first["ranks"], key=lambda row: row["position"])
+            ],
+        )
         with self.assertRaisesRegex(ValueError, "different request"):
             self.service.create(
                 owner["account"],
                 owner["generation"],
                 owner["character"],
                 "Guild Other",
-                123,
+                self.blazon,
                 "Leader",
                 "Member",
-                operation_key="create-Guild Atomic",
+                operation_key="create-gUiLd atomic",
             )
         self.assertEqual(
             before_wallet - self.policy["creation_kamas"],
@@ -241,6 +262,370 @@ class GuildServicePostgresTests(PostgresCase):
                     "SELECT 1 FROM guild_operation_receipts WHERE character_id=%s AND operation_key=%s",
                     (owner["character"], "rename-two"),
                 ).fetchone()
+            )
+
+    def test_native_blazon_change_and_name_rename_are_normalized_and_idempotent(self):
+        owner = self._player("Guild Identity Native")
+        guild = self._create(owner, "Guild Identity Native")
+        self.policy["identity_changes"] = {
+            "name": dict(enabled=True, authority="leader", item=25101, kamas=1000),
+            "blazon": dict(enabled=True, authority="leader", item=25100, kamas=1200),
+        }
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='guild_policy'",
+                (Jsonb(self.policy),),
+            )
+            bag = db.execute(
+                "SELECT uid FROM inventory_containers WHERE character_id=%s AND kind=0",
+                (owner["character"],),
+            ).fetchone()["uid"]
+            db.execute(
+                "INSERT INTO inventory_items(character_id,reference,quantity,container,slot) "
+                "VALUES(%s,25101,2,%s,1),(%s,25100,2,%s,2)",
+                (owner["character"], bag, owner["character"], bag),
+            )
+
+        args = (owner["account"], owner["generation"], owner["character"])
+        renamed = self.service.change_identity(
+            *args, "name", "gUiLd Renamed", operation_key="native-name"
+        )
+        self.assertEqual("Guild Renamed", renamed["guild"]["name"])
+        self.assertEqual(
+            renamed,
+            self.service.change_identity(
+                *args, "name", "gUiLd Renamed", operation_key="native-name"
+            ),
+        )
+        recolored = self.service.change_identity(
+            *args, "blazon", self.alternate_blazon, operation_key="native-blazon"
+        )
+        self.assertEqual(self.alternate_blazon, recolored["guild"]["blazon"])
+        self.assertEqual(
+            recolored,
+            self.service.change_identity(
+                *args, "blazon", self.alternate_blazon, operation_key="native-blazon"
+            ),
+        )
+        self.assertEqual(guild["guild"]["id"], recolored["guild"]["id"])
+
+    def test_isolated_primary_policy_create_rename_blazon_and_character_reload(self):
+        """Exercise the explicit Wakemu primary-only policy without enabling it live."""
+        from wakfu_server.guild_primary_policy import policy as primary_policy
+
+        owner = self._player("Primary Route")
+        isolated_policy = primary_policy(enabled=True)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='guild_policy'",
+                (Jsonb(isolated_policy),),
+            )
+            bag = db.execute(
+                "SELECT uid FROM inventory_containers WHERE character_id=%s AND kind=0",
+                (owner["character"],),
+            ).fetchone()["uid"]
+            db.execute(
+                "INSERT INTO inventory_items(character_id,reference,quantity,container,slot) "
+                "VALUES(%s,25101,1,%s,1),(%s,25100,1,%s,2)",
+                (owner["character"], bag, owner["character"], bag),
+            )
+        wallet_before = self._wallet(owner["account"])
+        item_before = self._item_quantity(owner["item"])
+        with self.store.connection() as db:
+            name_uid = db.execute(
+                "SELECT uid FROM inventory_items WHERE character_id=%s AND reference=25101",
+                (owner["character"],),
+            ).fetchone()["uid"]
+            blazon_uid = db.execute(
+                "SELECT uid FROM inventory_items WHERE character_id=%s AND reference=25100",
+                (owner["character"],),
+            ).fetchone()["uid"]
+
+        created = self._create(owner, "Primary Guild")
+        self.assertEqual(created, self._create(owner, "Primary Guild"))
+        renamed = self.service.change_identity(
+            owner["account"],
+            owner["generation"],
+            owner["character"],
+            "name",
+            "Primary Renamed",
+            operation_key="primary-rename",
+        )
+        self.assertEqual("Primary Renamed", renamed["guild"]["name"])
+        alternate = encode_blazon(
+            emblem_id=2, background_id=3, background_color=4, emblem_color=5
+        )
+        recolored = self.service.change_identity(
+            owner["account"],
+            owner["generation"],
+            owner["character"],
+            "blazon",
+            alternate,
+            operation_key="primary-blazon",
+        )
+        self.assertEqual(alternate, recolored["guild"]["blazon"])
+        self.assertEqual(
+            recolored,
+            self.service.change_identity(
+                owner["account"],
+                owner["generation"],
+                owner["character"],
+                "blazon",
+                alternate,
+                operation_key="primary-blazon",
+            ),
+        )
+        self.assertEqual(wallet_before, self._wallet(owner["account"]))
+        self.assertEqual(item_before - 1, self._item_quantity(owner["item"]))
+        self.assertEqual(0, self._item_quantity(name_uid))
+        self.assertEqual(0, self._item_quantity(blazon_uid))
+
+        reloaded = self.reopen().character(owner["account"], owner["character"])
+        projection = reloaded["guild_native"]
+        self.assertEqual(created["guild"]["id"], projection["guildId"])
+        self.assertEqual("Primary Renamed", projection["name"])
+        self.assertEqual(alternate, projection["blazon"])
+        self.assertEqual(owner["account"], projection["members"][0]["ownerId"])
+        self.assertEqual(0, reloaded["guild_moderation_factor"])
+
+    def test_isolated_management_policy_lifecycle_and_permission_boundaries(self):
+        """Exercise the opt-in native management surface without enabling live settings."""
+        from wakfu_server.guild_primary_policy import management_policy
+
+        owner = self._player("Management Owner")
+        member = self._player("Management Member")
+        guest = self._player("Management Guest")
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='guild_policy'",
+                (Jsonb(management_policy(enabled=True)),),
+            )
+        wallet_before = self._wallet(owner["account"])
+        item_before = self._item_quantity(owner["item"])
+
+        created = self._create(owner, "Management Guild")
+        guild_id = created["guild"]["id"]
+        self.assertEqual(wallet_before, self._wallet(owner["account"]))
+        self.assertEqual(item_before - 1, self._item_quantity(owner["item"]))
+
+        invite = self.service.invite(
+            owner["account"], owner["generation"], owner["character"], member["name"]
+        )
+        self.assertEqual(member["character"], invite["target_id"])
+        joined = self.service.respond_invitation(
+            member["account"], member["generation"], member["character"], True
+        )
+        self.assertEqual(
+            {owner["character"], member["character"]},
+            {row["character_id"] for row in joined["members"]},
+        )
+
+        bits = permission_bits()
+        officer_mask = sum(1 << bits[name] for name in ("ADD_MEMBER", "REMOVE_MEMBER"))
+        ranked = self.service.rank_create(
+            owner["account"],
+            owner["generation"],
+            owner["character"],
+            "Officer",
+            officer_mask,
+        )
+        officer = next(row for row in ranked["ranks"] if row["name"] == "Officer")
+        support = self.service.rank_create(
+            owner["account"], owner["generation"], owner["character"], "Support", 0
+        )
+        support_rank = next(row for row in support["ranks"] if row["name"] == "Support")
+        moved = self.service.rank_move(
+            owner["account"],
+            owner["generation"],
+            owner["character"],
+            support_rank["id"],
+            1,
+        )
+        self.assertEqual(
+            1,
+            next(
+                row["position"]
+                for row in moved["ranks"]
+                if row["id"] == support_rank["id"]
+            ),
+        )
+        assigned = self.service.member_rank(
+            owner["account"],
+            owner["generation"],
+            owner["character"],
+            member["character"],
+            officer["id"],
+        )
+        with self.assertRaisesRegex(ValueError, "lowest"):
+            self.service.rank_edit(
+                owner["account"],
+                owner["generation"],
+                owner["character"],
+                assigned["ranks"][-1]["id"],
+                "Member",
+                1 << bits["ADD_MEMBER"],
+            )
+        with self.assertRaisesRegex(ValueError, "permission denied"):
+            self.service.metadata_set(
+                member["account"],
+                member["generation"],
+                member["character"],
+                "description",
+                "member cannot edit guild description",
+            )
+        description = self.service.metadata_set(
+            owner["account"],
+            owner["generation"],
+            owner["character"],
+            "description",
+            "Native management lifecycle",
+        )
+        self.assertEqual(
+            "Native management lifecycle", description["guild"]["description"]
+        )
+        self.service.metadata_set(
+            owner["account"],
+            owner["generation"],
+            owner["character"],
+            "message",
+            "Welcome",
+        )
+
+        leader_rank = next(row for row in description["ranks"] if row["position"] == 0)
+        transferred = self.service.member_rank(
+            owner["account"],
+            owner["generation"],
+            owner["character"],
+            member["character"],
+            leader_rank["id"],
+        )
+        self.assertEqual(member["character"], transferred["guild"]["leader_id"])
+        with self.assertRaisesRegex(ValueError, "permission denied"):
+            self.service.metadata_set(
+                owner["account"],
+                owner["generation"],
+                owner["character"],
+                "description",
+                "former leader is now an ordinary officer",
+            )
+        self.service.remove_member(
+            owner["account"],
+            owner["generation"],
+            owner["character"],
+            owner["character"],
+        )
+
+        self.service.invite(
+            member["account"], member["generation"], member["character"], guest["name"]
+        )
+        guest_joined = self.service.respond_invitation(
+            guest["account"], guest["generation"], guest["character"], True
+        )
+        self.assertIn(
+            guest["character"], {row["character_id"] for row in guest_joined["members"]}
+        )
+        kicked = self.service.remove_member(
+            member["account"],
+            member["generation"],
+            member["character"],
+            guest["character"],
+        )
+        self.assertNotIn(
+            guest["character"], {row["character_id"] for row in kicked["members"]}
+        )
+
+        restored = self.reopen()
+        member_character = restored.character(member["account"], member["character"])
+        self.assertEqual(guild_id, member_character["guild_native"]["guildId"])
+        self.assertEqual(
+            "Native management lifecycle",
+            member_character["guild_native"]["description"],
+        )
+        dissolved = self.service.dissolve(
+            member["account"], member["generation"], member["character"]
+        )
+        self.assertIsNotNone(dissolved["guild"]["dissolved_at"])
+        self.assertIsNone(
+            self.reopen().character(member["account"], member["character"])[
+                "guild_native"
+            ]
+        )
+
+    def test_invalid_native_name_blazon_and_rank_masks_are_atomic(self):
+        owner = self._player("Guild Native Reject")
+        before_wallet = self._wallet(owner["account"])
+        before_item = self._item_quantity(owner["item"])
+        bad_blazon = 999 << 48  # Signed64-valid, but emblem 999 is outside the picker.
+
+        with self.assertRaises(ValueError):
+            self.service.create(
+                owner["account"],
+                owner["generation"],
+                owner["character"],
+                "Guild 123",
+                self.blazon,
+                "Leader",
+                "Member",
+                operation_key="reject-native-name",
+            )
+        self.assertEqual(
+            (before_wallet, before_item),
+            (self._wallet(owner["account"]), self._item_quantity(owner["item"])),
+        )
+
+        self.policy["allowed_blazons"] = [bad_blazon]
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='guild_policy'",
+                (Jsonb(self.policy),),
+            )
+        with self.assertRaises(ValueError):
+            self.service.create(
+                owner["account"],
+                owner["generation"],
+                owner["character"],
+                "Guild Blazon",
+                bad_blazon,
+                "Leader",
+                "Member",
+                operation_key="reject-native-blazon",
+            )
+        self.assertEqual(
+            (before_wallet, before_item),
+            (self._wallet(owner["account"]), self._item_quantity(owner["item"])),
+        )
+
+        for field, value in (
+            ("leader_permissions", 268435453),
+            ("member_permissions", 1),
+        ):
+            self.policy["allowed_blazons"] = [self.blazon]
+            self.policy[field] = value
+            with self.store.connection() as db:
+                db.execute(
+                    "UPDATE settings SET value=%s WHERE name='guild_policy'",
+                    (Jsonb(self.policy),),
+                )
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self._create(owner, "Guild Bad Mask")
+            self.assertEqual(
+                (before_wallet, before_item),
+                (self._wallet(owner["account"]), self._item_quantity(owner["item"])),
+            )
+        with self.store.connection() as db:
+            self.assertEqual(
+                0,
+                db.execute(
+                    "SELECT count(*) AS n FROM guilds WHERE leader_id=%s",
+                    (owner["character"],),
+                ).fetchone()["n"],
+            )
+            self.assertEqual(
+                0,
+                db.execute(
+                    "SELECT count(*) AS n FROM guild_operation_receipts WHERE character_id=%s",
+                    (owner["character"],),
+                ).fetchone()["n"],
             )
 
     def test_creation_rolls_back_wallet_item_and_guild_when_snapshot_fails(self):

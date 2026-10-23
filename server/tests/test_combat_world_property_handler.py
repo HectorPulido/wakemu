@@ -50,6 +50,11 @@ class WorldPropertyHandlerTests(unittest.TestCase):
 
     def test_actual268501_retains_distinct_world_counter_and_removes_it(self):
         fight, actor, h, packets, effect, inv = self.fixture()
+        from wakfu_server.combat_effects import _integer
+        from wakfu_server.combat_protocol_reconstruction import decode_packet, _effect
+
+        timing = _integer(2, -1) + _integer(3, 17) + _integer(5, 1)
+        h.context = lambda *a: StatExecutionContext(True, True, None, True, timing)
         with patch(
             "wakfu_server.combat_world_property_handler.registry",
             return_value={"83": {"fight_property": -1}},
@@ -58,9 +63,19 @@ class WorldPropertyHandlerTests(unittest.TestCase):
         self.assertEqual(actor.native_world_property_counts, {12: 2, 83: 1})
         self.assertEqual(actor.native_fight_property_counts, {31: 2})
         self.assertFalse(hasattr(actor, "native_world_property_since_ms"))
+        retained = _effect(bytes.fromhex(fight.owned_stat_effects[901]["payload"]), 449)
+        application = decode_packet(*packets[0])["effect"]
+        self.assertEqual(application["timing"], retained["timing"])
+        self.assertNotIn(1, application["timing"])
         remove_world_property(h, 901)
         self.assertEqual(actor.native_world_property_counts, {12: 2})
         self.assertEqual([p[0] for p in packets], [12613, 13560])
+        removal = decode_packet(*packets[-1])["effect"]
+        self.assertEqual(removal["timing"].get(1), [(0, 1)])
+        self.assertEqual(
+            {k: v for k, v in removal["timing"].items() if k != 1},
+            retained["timing"],
+        )
 
     def test_constructor_skips_mapped_apply_but_removal_always_decrements(self):
         fight, actor, h, packets, effect, inv = self.fixture()

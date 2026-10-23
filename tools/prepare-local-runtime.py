@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SECRET_NAMES = (
     "postgres-password",
     "ecology-token",
+    "objectives-token",
     "admin-control-token",
 )
 

@@ -29,8 +29,8 @@ class AIControlRuntimeTests(unittest.TestCase):
         timing = NativeEffectTimingProvider(fx.states)
         actors = OrdinaryActorAuthority(
             characters={
-                7: dict(id=7, breed=3, level=1),
-                8: dict(id=8, breed=3, level=1),
+                7: dict(id=7, breed=3, level=1, map_id=0),
+                8: dict(id=8, breed=3, level=1, map_id=0),
             },
             monsters={-7: dict(id=-7, ref=5525)},
             decks={7: [6266], 8: []},

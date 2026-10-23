@@ -2,6 +2,7 @@
 from copy import deepcopy
 from types import SimpleNamespace
 import unittest
+from unittest.mock import Mock, patch
 from wakfu_server import dungeon_stele_states
 
 
@@ -18,7 +19,7 @@ class DungeonSteleStateTests(unittest.TestCase):
         )
         self.monsters = {-3: {"ref": 100}, -4: {"ref": 101}}
         self.snapshot = dict(
-            fight_id=17, player_team=0, selections=[dict(state_ids=[4020])]
+            fight_id=17, player_team=0, selections=[dict(state_ids=[4020], weight=12)]
         )
         self.rooms = [
             dict(
@@ -42,6 +43,7 @@ class DungeonSteleStateTests(unittest.TestCase):
         )
         self.assertEqual(receipt["actor_ids"], [-3])
         self.assertEqual(receipt["state_ids"], [4020])
+        self.assertEqual(receipt["difficulty_weight"], 12)
         changed = deepcopy(self.catalog)
         changed["effects"]["11"]["effect_class"] = 55
         self.assertNotEqual(
@@ -87,6 +89,31 @@ class DungeonSteleStateTests(unittest.TestCase):
             dungeon_stele_states.plan(
                 self.fight, self.monsters, self.snapshot, self.rooms, self.catalog
             )
+
+    def test_legacy_receipt_gains_weight_without_reapplying_states(self):
+        snapshot = dict(self.snapshot, instance_id=19)
+        receipt = dungeon_stele_states.plan(
+            self.fight, self.monsters, snapshot, self.rooms, self.catalog
+        )
+        legacy = dict(receipt)
+        del legacy["difficulty_weight"]
+        self.fight.native_dungeon_stele_receipt = legacy
+        db = Mock()
+        db.execute.return_value.fetchone.return_value = dict(rooms=self.rooms)
+        factory = Mock(side_effect=AssertionError("Legacy states must not repeat"))
+        with patch(
+            "wakfu_server.dungeon_stele.encounter_snapshot", return_value=snapshot
+        ), patch(
+            "wakfu_server.combat_server_spell.states_catalog", return_value=self.catalog
+        ):
+            preview, restored, packets = dungeon_stele_states.initialize(
+                db, self.fight, self.monsters, runtime_factory=factory
+            )
+        self.assertIsNot(preview, self.fight)
+        self.assertEqual(self.fight.native_dungeon_stele_receipt, legacy)
+        self.assertEqual(restored["difficulty_weight"], 12)
+        self.assertEqual(packets, [])
+        factory.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -44,7 +44,13 @@ class WorldHookTests(unittest.TestCase):
         )
         calls = []
         npc = SimpleNamespace(
-            id=-7, team=1, hp=20, controlled=False, effect_stats={97: 0}
+            id=-7,
+            team=1,
+            hp=20,
+            controlled=False,
+            effect_stats={97: 0},
+            owner_id=None,
+            native_controlled_by_ai=True,
         )
         fight = SimpleNamespace(
             id=41, current=npc, phase="active", turn_id=1, sequence=1, actors={-7: npc}

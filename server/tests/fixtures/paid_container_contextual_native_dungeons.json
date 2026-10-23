@@ -1,0 +1,123 @@
+{
+  "source": "Original installed aKU document119 export; member maps aHA and original breed roster cno are not server-created dungeon guesses",
+  "source_sha256": "9a5a2a207400d16d74d9ff6a667dd8573acc5e76730a1e0b49e14e97cc03ffc5",
+  "definitions": [
+    {
+      "id": 151,
+      "aWb": 81,
+      "cng": 1,
+      "arM": 1137,
+      "aHA": [
+        909
+      ],
+      "cnk": [
+        216
+      ],
+      "cnl": 0,
+      "cnm": "stasis.dungeon.tooltip.bonus.type.3.rarity.2.3.7",
+      "cnn": 3,
+      "azD": 0,
+      "cno": [
+        4909,
+        4910,
+        4911,
+        4912,
+        4913
+      ]
+    },
+    {
+      "id": 139,
+      "aWb": 156,
+      "cng": 1,
+      "arM": 1207,
+      "aHA": [
+        301
+      ],
+      "cnk": [
+        217,
+        264
+      ],
+      "cnl": 0,
+      "cnm": "stasis.dungeon.tooltip.bonus.type.4.rarity.2.3.4.5.7",
+      "cnn": 4,
+      "azD": 0,
+      "cno": [
+        4534,
+        4535,
+        4536,
+        4537,
+        4538
+      ]
+    },
+    {
+      "id": 208,
+      "aWb": 21,
+      "cng": 1,
+      "arM": 527,
+      "aHA": [
+        1460
+      ],
+      "cnk": [
+        304
+      ],
+      "cnl": 0,
+      "cnm": "stasis.dungeon.tooltip.bonus.type.3.rarity.1.2.3.7",
+      "cnn": 3,
+      "azD": 0,
+      "cno": [
+        87,
+        88,
+        90,
+        271,
+        272,
+        5792
+      ]
+    },
+    {
+      "id": 89,
+      "aWb": 21,
+      "cng": 1,
+      "arM": 527,
+      "aHA": [
+        901
+      ],
+      "cnk": [
+        130,
+        135
+      ],
+      "cnl": 0,
+      "cnm": "stasis.dungeon.tooltip.bonus.type.3.rarity.1.2.3.7",
+      "cnn": 3,
+      "azD": 0,
+      "cno": [
+        3212,
+        3214,
+        3215,
+        3216
+      ]
+    },
+    {
+      "id": 211,
+      "aWb": 66,
+      "cng": 1,
+      "arM": 1136,
+      "aHA": [
+        1458
+      ],
+      "cnk": [
+        295
+      ],
+      "cnl": 0,
+      "cnm": "stasis.dungeon.tooltip.bonus.type.3.rarity.2.3.5",
+      "cnn": 3,
+      "azD": 0,
+      "cno": [
+        4760,
+        4761,
+        4762,
+        4766,
+        5795
+      ]
+    }
+  ]
+}

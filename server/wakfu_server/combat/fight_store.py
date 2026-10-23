@@ -10,12 +10,15 @@ def _require_transaction(db):
 
 def _health_baseline(db, account_id, character_id):
     row = db.execute(
-        "SELECT hp,max_hp,hp_damage,health_dead FROM characters "
+        "SELECT id,account_id,map_id,hp,max_hp,hp_damage,health_dead FROM characters "
         "WHERE account_id=%s AND id=%s AND deleted_at IS NULL FOR UPDATE",
         (account_id, character_id),
     ).fetchone()
     if row is None:
         raise ValueError("Fight participant character is unavailable")
+    from wakfu_server.neo_regeneration import restore_entry_baseline
+
+    row = restore_entry_baseline(db, dict(row))
     hp, maximum, damage, dead = (
         row["hp"],
         row["max_hp"],
@@ -53,6 +56,9 @@ def create(store, account_id, generation, character_id, *, team=0, on_created=No
             "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (fight_id, character_id, account_id, team, generation, *baseline),
         )
+        from .combat_consumable_lifecycle import enter_participant
+
+        enter_participant(store, db, character_id, fight_id, generation=generation)
         if on_created is not None:
             on_created(db, fight_id)
         return fight_id
@@ -136,6 +142,9 @@ def join_participant(
         "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (fight_id, character_id, account_id, team, generation, *baseline),
     )
+    from .combat_consumable_lifecycle import enter_participant
+
+    enter_participant(store, db, character_id, fight_id, generation=generation)
     return True
 
 
@@ -177,7 +186,9 @@ def settle_shared(
         raise ValueError("Invalid shared fight settlement")
     from .combat_terminal_metadata import registered_summon_actor_ids
 
-    summon_ids = registered_summon_actor_ids(fight)
+    from .combat_companions import registered_companion_ids
+
+    summon_ids = registered_summon_actor_ids(fight) | registered_companion_ids(fight)
     controlled = {
         actor.id: actor.owner_id
         for actor in fight.actors.values()
@@ -278,6 +289,9 @@ def settle_shared(
         # locks above authorize this transaction's earned offline-peer loot.
         with _durable_settlement_scope(db, fight, rows):
             packets = settle(db, rows, fight)
+            from wakfu_server.characters.companions import settle_rewards
+
+            settle_rewards(db, store, fight)
             from wakfu_server.custom_tasks.external import enabled as objectives_enabled
 
             if objectives_enabled():
@@ -313,6 +327,9 @@ def _write_terminal_checkpoint(db, store, account_id, generation, fight):
 
     if getattr(fight, "phase", None) != "finished":
         raise ValueError("Terminal checkpoint requires a finished fight")
+    from .combat_consumable_handoff import persist as persist_consumable_handoff
+
+    persist_consumable_handoff(store, db, fight)
     state = snapshot(fight)
     row = db.execute(
         "SELECT revision,status FROM fight_checkpoints WHERE fight_id=%s FOR UPDATE",
@@ -531,6 +548,9 @@ def recover_finished_return(
                 phase="finished",
                 actors=actors,
             )
+            from .combat_consumable_states import restore_checkpoint_projection
+
+            restore_checkpoint_projection(fight, checkpoint_state)
         elif (
             getattr(fight, "id", None) != fight_id
             or getattr(fight, "phase", None) != "finished"

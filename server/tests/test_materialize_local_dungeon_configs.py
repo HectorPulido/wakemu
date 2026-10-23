@@ -1,6 +1,7 @@
 import copy
 from dataclasses import asdict
 import unittest
+from unittest.mock import patch
 
 from wakfu_server.dungeon_instances import _load_routes
 from wakfu_server.maps.dungeon_runtime_config import canonical_hash
@@ -16,6 +17,17 @@ def native_route_payload(route):
 
 class MaterializeLocalDungeonConfigsTests(unittest.TestCase):
     def setUp(self):
+        admission = patch(
+            "wakfu_server.dungeon_monster_admission.current_policy",
+            return_value={
+                "schema": "native-npc-activation-v1",
+                "enabled_monsters": {
+                    "7001": {"min_level": 1, "max_level": 32767, "spell_ids": [549]}
+                },
+            },
+        )
+        admission.start()
+        self.addCleanup(admission.stop)
         self.route = native_route_payload(_load_routes()["jalato_normal"])
         self.monster = {
             "name": "Native monster",
@@ -64,7 +76,14 @@ class MaterializeLocalDungeonConfigsTests(unittest.TestCase):
             "rooms": [{"order": 1, "anchor": [1, 2, 0], "cells": [[1, 2, 0]]}],
             "doors": [],
         }
-        self.native = [{"ref": 7001, "min_level": 10, "max_level": 20}]
+        self.native = [
+            {
+                "ref": 7001,
+                "min_level": 10,
+                "max_level": 20,
+                "native_abilities": [{"spell_id": 549}],
+            }
+        ]
 
     def materialize(self, *, batch=None, routes=None, topology=None, native=None):
         return materialize(
@@ -135,6 +154,13 @@ class MaterializeLocalDungeonConfigsTests(unittest.TestCase):
         route["start_map_id"] += 1
         with self.assertRaisesRegex(RuntimeError, "route no longer matches"):
             self.materialize(routes=[route])
+
+    def test_stale_generated_ordinary_slot_cannot_materialize_native_ultimate(self):
+        self.native[0]["raw_visual_arrays"] = dict(csc=[49])
+        with self.assertRaisesRegex(
+            ValueError, "explicit encounter composition required"
+        ):
+            self.materialize()
 
 
 if __name__ == "__main__":

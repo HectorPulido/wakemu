@@ -157,6 +157,8 @@ def attempt(
         ticket["monster_id"],
         ticket["cycle"],
     )
+    from .environmental_group_ecology import is_owned_group
+
     group_key = (*key[:2], ticket["group_id"])
     with store.connection() as db:
         db.execute(
@@ -168,6 +170,8 @@ def attempt(
             "AND group_id=%s FOR UPDATE",
             group_key,
         ).fetchone()
+        if is_owned_group(db, group_key):
+            return None
         from .monster_life_plans import fence
 
         if not fence(
@@ -261,8 +265,9 @@ def attempt(
             if (p["map_id"], p["instance_id"]) == key[:2]
         }
         if prepared is None:
-            for row in living_groups:
-                blocked.update((m["x"], m["y"]) for m in row["members"])
+            from .monster_population_capacity import physical_cells
+
+            blocked.update(cell[:2] for cell in physical_cells(db, *key[:2]))
             blocked.update(
                 (m["x"], m["y"])
                 for reservation in capacity["reservations"]
@@ -489,6 +494,8 @@ def observe(
 def pending(store, map_id, instance_id):
     if dungeon_population(store, instance_id):
         return []
+    from .environmental_group_ecology import exclusion_sql
+
     with store.connection() as db:
         return [
             dict(row)
@@ -497,7 +504,8 @@ def pending(store, map_id, instance_id):
                 "FROM monster_reproduction_timers t JOIN combat_group_members m "
                 "USING(map_id,instance_id,monster_id) JOIN combat_groups g "
                 "USING(map_id,instance_id,group_id) "
-                "WHERE t.map_id=%s AND t.instance_id=%s AND t.due AND g.status!='defeated' ORDER BY t.monster_id",
+                "WHERE t.map_id=%s AND t.instance_id=%s AND t.due AND g.status!='defeated' "
+                "AND " + exclusion_sql("g") + " ORDER BY t.monster_id",
                 (map_id, instance_id),
             )
         ]

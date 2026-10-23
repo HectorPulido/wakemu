@@ -4,6 +4,8 @@ An area is not a fighter and never receives invented HP, resources or turns.
 The view is execution-local; only its owned StateLedger is checkpointed in Qq.
 """
 from types import SimpleNamespace
+from functools import lru_cache
+from importlib import import_module
 from .combat_state_ledger import StateLedger
 from .combat_area_contracts import AREA_CONTRACTS, SUPPORTED_AREA_CONTRACTS
 
@@ -12,6 +14,12 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 
 _area_pv_scopes = ContextVar("native_area_pv_scopes", default=())
+
+
+@lru_cache(maxsize=16)
+def _dependency_module(name):
+    """Bind modules lazily for import cycles; never retain PVs or guard results."""
+    return import_module("." + name, __package__)
 
 
 @contextmanager
@@ -72,43 +80,43 @@ def registered_area_pv(fight, identity):
     row = retained_area_pv_row(fight, identity)
     if row is None:
         return None
-    from .combat_effect_area import native_effect_areas
-
-    definition = native_effect_areas().get(str(row.get("reference")))
+    definition = (
+        _dependency_module("combat_effect_area")
+        .native_effect_areas()
+        .get(str(row.get("reference")))
+    )
     if not isinstance(definition, dict):
         raise ValueError("Missing registered area native prototype")
-    from .combat_effect_area_geometry import refresh_area_geometry
-
-    refresh_area_geometry(fight, row)
-    from .combat_area_property import area_properties
-
-    properties = area_properties(row, definition)
+    _dependency_module("combat_effect_area_geometry").refresh_area_geometry(fight, row)
+    properties = _dependency_module("combat_area_property").area_properties(
+        row, definition
+    )
     entry_masks = definition.get("entry_masks")
     cell = row.get("cell")
     faw = None
     wall = None
     simple = None
     if definition.get("type") == "SIMPLE":
-        from .combat_simple_area import verified_simple_area
-
-        simple = verified_simple_area(row, definition)
+        simple = _dependency_module("combat_simple_area").verified_simple_area(
+            row, definition
+        )
     if definition.get("type") == "FAKE_FIGHTER":
-        from .combat_fake_fighter import verified_fake_fighter
-
-        faw = verified_fake_fighter(row, definition)
+        faw = _dependency_module("combat_fake_fighter").verified_fake_fighter(
+            row, definition
+        )
     if definition.get("type") == "ENUTROF_DEPOSIT":
-        from .combat_area_contracts import verified_deposit_grade
-
-        verified_deposit_grade(row, definition)
+        _dependency_module("combat_area_contracts").verified_deposit_grade(
+            row, definition
+        )
     if definition.get("type") == "WALL":
-        from .combat_wall_area import verified_wall_constructor
-
-        wall = verified_wall_constructor(row, definition, fight=fight)
+        wall = _dependency_module("combat_wall_area").verified_wall_constructor(
+            row, definition, fight=fight
+        )
     trap_stats = None
     if definition.get("type") == "TRAP":
-        from .combat_trap_area import verified_trap_characteristics
-
-        trap_stats = verified_trap_characteristics(row, definition)
+        trap_stats = _dependency_module(
+            "combat_trap_area"
+        ).verified_trap_characteristics(row, definition)
     if (
         row.get("uid") != identity
         or definition.get("type") not in AREA_CONTRACTS
@@ -203,13 +211,32 @@ def verified_native_owner_root(fight, identity, actor_authority):
     return None
 
 
+def registered_source_pv(fight, identity):
+    """Resolve the actual source PV without requiring a target-side Qf.
+
+    A neutral faY is a valid Qe caster even though PV.bax() returns null.
+    Retired areas remain usable only through their real retained checkpoint;
+    this lookup neither restores Qs membership nor manufactures a ledger.
+    """
+    if (
+        type(identity) is not int
+        or identity == 0
+        or not -(1 << 63) <= identity < 1 << 63
+    ):
+        return None
+    from .combat_native_actor_lookup import native_actor
+
+    actor = native_actor(fight, identity)
+    return actor if actor is not None else registered_area_pv(fight, identity)
+
+
 def state_manager(fight, identity):
     actor = fight.actors.get(identity)
     if actor is not None:
         return actor
-    from .combat_summon_initialization import detached_actor
-
-    actor = detached_actor(fight, identity)
+    actor = _dependency_module("combat_summon_initialization").detached_actor(
+        fight, identity
+    )
     if actor is not None:
         return actor
     row = getattr(fight, "native_effect_areas", {}).get(identity)
@@ -219,9 +246,7 @@ def state_manager(fight, identity):
         return None
     if row.get("native_area_contract") in ("faW", "faU", "fbd", "fbc", "fbb"):
         registered_area_pv(fight, identity)
-    from .combat_effect_area_geometry import refresh_area_geometry
-
-    refresh_area_geometry(fight, row)
+    _dependency_module("combat_effect_area_geometry").refresh_area_geometry(fight, row)
     if row.get("native_running_effect_manager") is False:
         return None  # Original faV.bax falls through to PV null without fbo12.
     ledger = row.get("state_ledger")
@@ -260,16 +285,43 @@ def state_managers(fight):
 def prune_retired_state_managers(fight):
     """Release removed Qq objects only after their actual Qf/PL users vanish."""
     retired = getattr(fight, "native_retired_area_managers", {})
+    if not retired:
+        return
     records = getattr(fight, "native_retained_records", {})
     facts = getattr(fight, "native_owned_state_containers", {})
+    from .combat_summon_initialization import detached_actors
+
+    # Read actual ledgers, not the spatial/geometry projections of every Qq.
+    # Most installed areas have null Qf and cannot hold a state carrier.
+    ledgers = [
+        (actor.id, getattr(actor, "state_ledger", None))
+        for actor in (*fight.actors.values(), *detached_actors(fight))
+    ]
+    ledgers.extend(
+        (identity, row.get("state_ledger"))
+        for identity, row in (
+            *getattr(fight, "native_effect_areas", {}).items(),
+            *retired.items(),
+        )
+    )
+    source_ids = set()
+    for identity, ledger in ledgers:
+        if ledger is None:
+            continue
+        if not isinstance(ledger, StateLedger) or ledger.actor_id != identity:
+            raise ValueError("Missing actual state carrier ledger authority")
+        source_ids.update(entry.caster_id for entry in ledger.entries)
     for identity, row in tuple(retired.items()):
         if row.get("executing") or row.get("removing"):
             continue  # The actual Qq is still owned by a synchronous stack.
         ledger = row.get("state_ledger")
         if ledger is not None and ledger.entries:
             continue
+        if identity in source_ids:
+            continue  # A live state carrier still holds this actual source PV.
         if any(
             record.get("manager_id") == identity
+            or record.get("caster_id") == identity
             or (
                 record.get("container_kind") == "effect_area"
                 and record.get("container_id") == identity
@@ -277,6 +329,12 @@ def prune_retired_state_managers(fight):
             for record in records.values()
         ):
             continue
-        if any(state.get("target_id") == identity for state in facts.values()):
+        from .combat_native_container import owned_container_users
+
+        if any(
+            (state.get("target_id") == identity or state.get("caster_id") == identity)
+            and owned_container_users(fight, state.get("uid"))
+            for state in facts.values()
+        ):
             continue
         del retired[identity]

@@ -187,8 +187,14 @@ class AchievementTests(unittest.TestCase):
         self.assertEqual(section[-1], 0)
         self.assertEqual(
             [op for op, _ in wire.changes(1, empty_state(), state, [617], [], 1000)],
-            [13205, 13295, 13832],
+            [13312, 13295, 13832],
         )
+        activation = wire.changes(1, empty_state(), state, [617], [], 1000)[0]
+        import struct
+
+        self.assertEqual(activation, (13312, struct.pack(">qi", 1, 238)))
+        # Retained progress and reconnect snapshots do not reset/reannounce it.
+        self.assertEqual(wire.changes(1, state, state, [], [], 1000), [])
 
 
 class AchievementCombatAdapterTests(unittest.TestCase):

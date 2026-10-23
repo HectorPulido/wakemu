@@ -67,9 +67,12 @@ def nation_id(character):
 
 def synchro(character):
     nation_id(character)
-    # rk: government office, jobs, vote date, opinion, candidacy, PvP flag.
-    # No corresponding authoritative systems exist yet; preserve neutral state.
-    return bytes(27)
+    # rk: government office, jobs, vote date, opinion, candidacy, PvP rank.
+    # Its final byte is the indexed rank identity, not a boolean PvP flag.
+    from wakfu_server.national_progression import owned_snapshot
+
+    snapshot = None if character is None else owned_snapshot(character)
+    return bytes(26) + bytes((0 if snapshot is None else snapshot.rank_id,))
 
 
 def load(db, character_id):

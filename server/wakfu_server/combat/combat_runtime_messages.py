@@ -454,7 +454,6 @@ class RuntimeMessages:
             # Restore the authoritative current SU instead of incrementing a
             # client timeline that may still contain those defeated actors.
             from .combat_recovery import recovery_packet
-            from .combat_phase import action_transition
             from .combat_turn_duration import current_turn_duration
 
             packets.extend(
@@ -475,10 +474,16 @@ class RuntimeMessages:
                             else ()
                         ),
                     ),
-                    action_transition(self.fight.id),
-                    self._flush(),
                 ]
             )
+            if initial_recovery:
+                from .combat_phase import action_transition
+
+                packets.append(action_transition(self.fight.id))
+            # Original cvn restores SU and retains ACTION/controller objects.
+            # Reentering ACTION during an ongoing fight repeats ckv.eDR's649
+            # shortcut insertion. Only initial placement needs that transition.
+            packets.append(self._flush())
             # Recovery restores BEGINNING rather than ON. Publish the original
             # native begin action once so fyS per-turn/target counters reset;
             # server callbacks above have already committed and are not rerun.
@@ -634,15 +639,17 @@ class RuntimeMessages:
                 raise ValueError(
                     "Initial timeline restore changed its native action barrier"
                 )
-            # Install the baseline before 307, then keep initialization and
-            # turn-start callbacks/stats ahead of the original ACTION binding.
-            # Any skip-turn packets remain after that binding as usual.
-            packets.extend(turn_packets[recovery_index : recovery_index + 1])
+            # Restore the baseline and ACTION controller before publishing
+            # initialization. Native ckv.eDR replays every non-owner controlled
+            # actor's retained649 on ACTION, even if its shortcut already exists.
+            # Publishing grants before this barrier therefore inserts them twice.
+            # Keep both phase transitions, SU-before-307 and ACTION-before-BEGIN;
+            # no grant, callback, clock or spellbook is removed or regenerated.
+            packets.extend(turn_packets[recovery_index : flush_index + 1])
             if initialization_packets:
                 packets.extend(initialization_packets)
                 packets.append(self._flush())
             packets.extend(turn_packets[:recovery_index])
-            packets.extend(turn_packets[action_index : flush_index + 1])
             packets.extend(turn_packets[flush_index + 1 :])
         else:
             if initialization_packets:
@@ -940,11 +947,10 @@ class RuntimeMessages:
             actor = self.fight.current
             packets.append((12873, actor_state(12873, self.fight.id, actor.id, stats)))
             packets.append(self._flush())
-        # A restored SU identifies the current actor. ACTION installs its
-        # controller before any still-unpublished native begin is delivered.
-        from .combat_phase import action_transition
-
-        packets.extend([action_transition(self.fight.id), self._flush()])
+        # Original cjv/cvn restores SU in place and keeps the existing ACTION,
+        # actor controller, granted book and shortcut objects. Reentering that
+        # phase would replay nonowner649 over their already present shortcuts.
+        packets.append(self._flush())
         if first_begin:
             # aUN/buH.bp requires the original global ACTION phase installed
             # before the restored SU enters its native fighter turn.

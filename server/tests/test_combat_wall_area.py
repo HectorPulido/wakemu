@@ -377,11 +377,24 @@ class NativeWallConstructorTests(unittest.TestCase):
         self.assertEqual(row["native_wall_hp_current"], initial_hp - 25)
         self.assertNotIn(wall_id, fight.actors)
         self.assertEqual(row["native_obstacle_id"], slot)
+        from wakfu_server.combat_area_damage_guard import completed_wall_without_ko_pa
+
+        self.assertFalse(completed_wall_without_ko_pa(fight, wall_id))
 
         effect["parameters"] = [1_100_000_000, 0]
+        from wakfu_server.combat_effect_area_events import NativeAreaEventRuntime
+        from wakfu_server.combat_effect_area import native_effect_areas
+
+        damage.retention = SimpleNamespace(
+            area_events=NativeAreaEventRuntime(
+                fight, SimpleNamespace(effects={}), definitions=native_effect_areas()
+            )
+        )
         self.assertTrue(damage(effect, {}, invocation))
         self.assertEqual(row["native_wall_hp_current"], 0)
         self.assertEqual(row["native_obstacle_id"], slot)
+        self.assertTrue(row["native_qq_bhi"])
+        self.assertEqual(row["native_qq_guard_source"], "Qq.b")
         self.assertEqual(
             current_registry(fight).slots[slot]["identity"], ["effect_area", wall_id]
         )
@@ -391,6 +404,13 @@ class NativeWallConstructorTests(unittest.TestCase):
                 for event in fight.events
             )
         )
+        self.assertTrue(completed_wall_without_ko_pa(fight, wall_id))
+        self.assertFalse(completed_wall_without_ko_pa(fight, actor.id))
+        ledger_before = list(fight.events)
+        self.assertTrue(damage(effect, {}, invocation))
+        self.assertEqual(fight.events, ledger_before)
+        self.assertEqual(row["native_wall_hp_current"], 0)
+        self.assertEqual(row["native_obstacle_id"], slot)
 
 
 if __name__ == "__main__":

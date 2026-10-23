@@ -15,6 +15,21 @@ from wakfu_server.monsters import statistics as monster_statistics
 WISDOM_STAT_ID = 36
 
 
+def native_shop_consumable_factor(actor, identity):
+    """ffw118/119 store absolute percentage factors, with native default100.
+
+    Legacy fixture actors may omit these characteristics; the ordinary stat
+    executor cannot apply a consumable to a missing stat, so those actors have
+    no shop-factor mutation. Complete production snapshots contain both IDs.
+    """
+    if type(identity) is not int or identity not in (118, 119):
+        raise ValueError("Unknown native shop consumable characteristic")
+    stats = getattr(actor, "effect_stats", None)
+    if not isinstance(stats, dict):
+        raise ValueError("Missing native shop consumable actor characteristics")
+    return _integer(stats.get(identity, 100), "shop consumable factor", 0, 1000)
+
+
 def _integer(value, name, minimum, maximum):
     if type(value) is not int or not minimum <= value <= maximum:
         raise ValueError(f"Invalid combat reward {name}")
@@ -152,6 +167,10 @@ def build_context(
                     wisdom=_wisdom(actor, catalog) if is_player else 0,
                 )
             )
+            if is_player:
+                factor = native_shop_consumable_factor(actor, 118)
+                if factor != 100:
+                    winners[-1]["shop_consumable_xp_factor"] = factor
         else:
             losers.append(
                 dict(

@@ -1,0 +1,4 @@
+import importlib
+from wakfu_server.objectives import environmental_reward_bands
+
+importlib.reload(environmental_reward_bands)

@@ -162,6 +162,7 @@ class DeliveryBoundaryTests(unittest.TestCase):
         before = fixture._fight_state(shared)
         old_fight, old_runtime = (shared.fight, shared.runtime)
         old_ack = deepcopy(vars(shared.ack))
+        old_pending = deepcopy(shared.runtime.pending)
         snapshots = []
 
         def bootstrap(fight, view, session):
@@ -173,7 +174,7 @@ class DeliveryBoundaryTests(unittest.TestCase):
                 fight,
                 view,
                 session,
-                actor_payload=lambda *args: (b"current-stats", b"current-effects"),
+                actor_payload=lambda *args: (b"current-stats", b"\x00\x00"),
             )
             snapshots.append(packets)
             return packets
@@ -193,7 +194,7 @@ class DeliveryBoundaryTests(unittest.TestCase):
             self.assertIs(shared.runtime, old_runtime)
             self.assertEqual(fixture._fight_state(shared), before)
             self.assertEqual(vars(shared.ack), old_ack)
-            self.assertEqual(shared.runtime.pending, [(12502, b"stale-turn-end")])
+            self.assertEqual(shared.runtime.pending, old_pending)
             registry.takeover(
                 99,
                 replacement,

@@ -37,6 +37,26 @@ def portal_network_pair(entries, exits):
     return entries[0]["uid"], exits[0]["uid"]
 
 
+def _gate_actor(fight, owner_id, actor_id, *, server_controlled=False):
+    if type(server_controlled) is not bool:
+        raise ValueError("Invalid native gate control mode")
+    if not server_controlled:
+        return fight._current_owned(owner_id, actor_id)
+    from .combat_effective_control import effective_server_controlled
+
+    actor = fight.current
+    if (
+        owner_id is not None
+        or actor is None
+        or actor.id != actor_id
+        or fight.phase != "active"
+        or not fight._in_play(actor)
+        or not effective_server_controlled(fight, actor)
+    ):
+        raise ValueError("Invalid server controlled gate movement")
+    return actor
+
+
 def try_apply_portal_travel(
     runtime,
     owner_id,
@@ -46,6 +66,7 @@ def try_apply_portal_travel(
     *,
     runtime_stats_serializer=None,
     step_callback=None,
+    server_controlled=False,
 ):
     """Return a fully prepared gate delivery, or None for ordinary movement.
 
@@ -62,7 +83,7 @@ def try_apply_portal_travel(
         return None
     candidate = deepcopy(runtime)
     fight = candidate.fight
-    actor = fight._current_owned(owner_id, actor_id)
+    actor = _gate_actor(fight, owner_id, actor_id, server_controlled=server_controlled)
     origin, destination = tuple(actor.position), tuple(path[0])
     if origin == destination:
         return None
@@ -113,7 +134,9 @@ def try_apply_portal_travel(
         if runtime_stats_serializer is not None
         else stats_serializer(actor)
     )
-    payment = _pay_gate_movement(fight, actor, owner_id, tackle_ap, cost)
+    payment = _pay_gate_movement(
+        fight, actor, owner_id, tackle_ap, cost, server_controlled=server_controlled
+    )
     from .combat_qi_fight import move_registered_actor
 
     move_registered_actor(fight, actor, destination)
@@ -195,9 +218,12 @@ def try_apply_portal_travel(
     return packets, event
 
 
-def _pay_gate_movement(fight, actor, owner_id, ap, mp):
+def _pay_gate_movement(fight, actor, owner_id, ap, mp, *, server_controlled=False):
     """Preserve Fight.spend setters, recording each actual own raw debit."""
-    if fight._current_owned(owner_id, actor.id) is not actor:
+    if (
+        _gate_actor(fight, owner_id, actor.id, server_controlled=server_controlled)
+        is not actor
+    ):
         raise ValueError("Gate payment actor differs from actual participant")
     if (
         type(ap) is not int

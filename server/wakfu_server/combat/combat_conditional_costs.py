@@ -44,7 +44,11 @@ def native_modifiers(spell_id, snapshot):
 
 @lru_cache(maxsize=1)
 def native_catalog():
-    return protocol_catalog.load(DATA_ROOT / "conditional-spell-costs.json")
+    from .combat_common_spell_catalog import merge_conditional_catalog
+
+    return merge_conditional_catalog(
+        protocol_catalog.load(DATA_ROOT / "conditional-spell-costs.json")
+    )
 
 
 def catalog():

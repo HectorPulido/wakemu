@@ -23,6 +23,9 @@ def plan(fight, monsters, snapshot, rooms, states):
     selected = sorted(
         {i for selection in snapshot["selections"] for i in selection["state_ids"]}
     )
+    weights = [selection["weight"] for selection in snapshot["selections"]]
+    if any(type(weight) is not int or weight < 0 for weight in weights):
+        raise ValueError("Invalid frozen stele difficulty weight")
     boss_refs = {m["ref_id"] for m in rooms[-1]["monsters"] if m["role"] == "boss"}
     carriers = sorted(i for i, m in monsters.items() if m["ref"] in boss_refs)
     if selected and len(carriers) != 1:
@@ -57,6 +60,7 @@ def plan(fight, monsters, snapshot, rooms, states):
         state_ids=selected,
         actor_ids=carriers,
         native_sha256=_digest(closure),
+        difficulty_weight=sum(weights),
     )
 
 
@@ -84,7 +88,15 @@ def initialize(db, fight, monsters, *, runtime_factory):
     prior = getattr(fight, "native_dungeon_stele_receipt", None)
     if prior is not None:
         if prior != receipt:
-            raise ValueError("Stele initialization replay changed frozen authority")
+            legacy = dict(receipt)
+            del legacy["difficulty_weight"]
+            if prior != legacy:
+                raise ValueError("Stele initialization replay changed frozen authority")
+            # An old checkpoint has the same frozen selection hash. Upgrade
+            # only metadata in a private preview; never reapply its states.
+            preview = deepcopy(fight)
+            preview.native_dungeon_stele_receipt = receipt
+            return preview, receipt, []
         return fight, receipt, []
     if (
         fight.turn_id != 1

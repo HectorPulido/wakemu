@@ -101,7 +101,7 @@ def bootstrap(character, *, direction=None, dungeon_context=None, protector_reco
         character["x"],
         character["y"],
         character["z"],
-        character["map_id"],
+        _world_identity(character),
         direction,
         1,
         0,
@@ -137,11 +137,14 @@ def bootstrap(character, *, direction=None, dungeon_context=None, protector_reco
         struct.pack(">H", len(block)) + block
         for block in (entity, protectors, b"\0\0", context)
     )
-    return [
-        (13256, b""),
-        (13974, body),
-        (12318, struct.pack(">ii", character["x"], character["y"])),
-    ]
+    from wakfu_server.guild_haven_world import bootstrap_packet
+
+    native_world = bootstrap_packet(character)
+    return (
+        [(13256, b"")]
+        + ([native_world] if native_world is not None else [])
+        + [(13974, body), (12318, struct.pack(">ii", character["x"], character["y"]))]
+    )
 
 
 def static_objects(map_id):
@@ -160,3 +163,9 @@ def static_objects(map_id):
         data = bytes.fromhex(row["payload_hex"])
         records.append(struct.pack(">qH", row["id"], len(data)) + data)
     return 13984, struct.pack(">H", len(records)) + b"".join(records)
+
+
+def _world_identity(character):
+    from wakfu_server.guild_haven_world import world_identity
+
+    return world_identity(character)

@@ -182,6 +182,21 @@ def admit_owned_heroes(
 
         for character, position in zip(heroes, cells):
             identity = character["id"]
+            context = dict(character)
+            context.update(
+                {
+                    key: roster["leader"][key]
+                    for key in ("map_id", "instance_id", "x", "y", "z")
+                }
+            )
+            territory_bonuses.reconcile_owned(
+                store,
+                session.account_id,
+                session.generation,
+                context,
+                db=db,
+                selected_character_id=session.character_id,
+            )
             baseline = _health_baseline(db, session.account_id, identity)
             character = store.character(session.account_id, identity, db)
             if baseline[0] <= 0 or baseline[3] or identity in candidate.actors:
@@ -204,14 +219,15 @@ def admit_owned_heroes(
 
             initialize_decks(db, character)
             character = store.character(session.account_id, identity, db)
-            if private_scene is not None:
-                character = {
-                    **character,
-                    **{
-                        key: roster["leader"][key]
-                        for key in ("map_id", "instance_id", "x", "y", "z")
-                    },
-                }
+            # Heroes follow their owner's live exterior position. Their
+            # durable coordinates can lag behind a walk within the same map.
+            character = {
+                **character,
+                **{
+                    key: roster["leader"][key]
+                    for key in ("map_id", "instance_id", "x", "y", "z")
+                },
+            }
             character = territory_bonuses.attach_character(db, character)
             actor = player_actor(character, team)
             register_joined_fighter(candidate, actor, position)
@@ -229,6 +245,11 @@ def admit_owned_heroes(
                     session.generation,
                     *baseline,
                 ),
+            )
+            from .combat_consumable_lifecycle import enter_participant
+
+            enter_participant(
+                store, db, identity, fight.id, generation=session.generation
             )
             from wakfu_server.health_store import timestamp
 

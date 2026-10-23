@@ -493,6 +493,14 @@ class NativeStateHandler:
         entry = change.applied
         if entry is None:
             return False
+        if entry.reference == 6874:
+            from .combat_consumable_handoff import install
+
+            entry = install(self.fight, invocation, entry)
+        if entry.reference == 981:
+            from .combat_external_retained_state import install
+
+            entry = install(self.fight, invocation, entry)
         if entry.retained:
             payload = state_carrier_payload(
                 uid=uid,

@@ -1,4 +1,4 @@
-"""Stable compatibility entry; implementation lives in wakfu_ai.http.server."""
+"""Stable compatibility entry for the separate TCP-only AI service."""
 import importlib.util
 from pathlib import Path
 import sys
@@ -14,7 +14,7 @@ if "wakfu_ai" not in sys.modules:
     sys.modules["wakfu_ai"] = package
     spec.loader.exec_module(package)
 
-from wakfu_ai.http.server import main
+from wakfu_ai.transport.framed_server import main
 
 
 def __getattr__(name):

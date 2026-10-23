@@ -16,13 +16,17 @@ def refresh_equipment_after_mutation(store, db, account_id, character_id, uid):
     yield
     if not references_target:
         return
+    after = store.character(account_id, character_id, db)
+    from wakfu_server.equipment_hp_lifecycle import reconcile_selected_build
+
+    reconcile_selected_build(db, after)
+    after = store.character(account_id, character_id, db)
     from wakfu_server.equipment_stats import effective_character
     from wakfu_server.health_policy import reconfigure
 
-    after = store.character(account_id, character_id, db)
     maximum = effective_character(after)["max_hp"]
-    if maximum != before["max_hp"]:
-        hp = reconfigure(db, before, maximum)
+    hp = reconfigure(db, after, maximum)
+    if hp != before["hp"] or maximum != before["max_hp"]:
         now = store.now()
         db.execute(
             "UPDATE character_regeneration SET initial_hp=%s,started_at=%s,last_at=%s "

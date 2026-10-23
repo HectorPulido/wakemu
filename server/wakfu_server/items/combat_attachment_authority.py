@@ -72,3 +72,20 @@ class CombatAttachmentAuthority:
             ):
                 return True
         return False
+
+
+def for_characters(store, characters):
+    """Capture enabled SQL rules once per Ready preview, only when needed.
+
+    Item custody and active-sheet contents still come from each owner's Store
+    snapshot. This immutable rule snapshot is not retained on the live fight;
+    accepted sources and their complete execution graphs are pinned instead.
+    """
+    from wakfu_server.combat_owned_equipment_pin import has_equipped_attachments
+
+    if not any(
+        has_equipped_attachments(character) for character in characters.values()
+    ):
+        return None
+    with store.connection() as db:
+        return CombatAttachmentAuthority.from_database(db)

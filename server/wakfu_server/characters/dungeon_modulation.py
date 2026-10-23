@@ -147,10 +147,14 @@ def projected_deck(character, source, level):
 
     source_level = character.get("effective_level", character["level"])
     decoded = validate_deck(
-        source or default_deck(character), character["breed"], source_level
+        source or default_deck(character),
+        character["breed"],
+        source_level,
+        character=character,
     )
     available = {
-        spell["id"]: spell for spell in available_spells(character["breed"], level)
+        spell["id"]: spell
+        for spell in available_spells(character["breed"], level, character=character)
     }
     slots = {}
     for key, thresholds in (
@@ -166,7 +170,7 @@ def projected_deck(character, source, level):
             for index, spell in enumerate(decoded[key])
         ]
     result = encode_deck(slots["active"], slots["passive"], level)
-    validate_deck(result, character["breed"], level)
+    validate_deck(result, character["breed"], level, character=character)
     return result
 
 
@@ -242,7 +246,12 @@ def hydrate(db, character):
 
     maximum = effective_health_max(result)
     result["max_hp"] = maximum
-    result["hp"] = visible(maximum, result["hp_damage"], result["health_dead"])
+    result["hp"] = visible(
+        maximum,
+        result["hp_damage"],
+        result["health_dead"],
+        result.get("hp_zero_valid", False),
+    )
     return result
 
 

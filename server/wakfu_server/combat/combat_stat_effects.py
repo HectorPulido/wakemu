@@ -7,6 +7,7 @@ outer value4 stores actual applied delta, which is needed for exact removal.
 """
 import math
 from .combat_parameters import parameter_value
+from .combat_current_stat_parameters import stat_parameters
 from wakfu_server.equipment_damage import _float
 from .combat_effects import _integer, _varint
 from .combat_effect_removal import running_effect_removal
@@ -23,39 +24,6 @@ def null_execution_status(parameters, *, current_status=-1):
         raise ValueError("Invalid native current execution status")
     value = parameter_value(parameters, 0, 0) if parameters else current_status
     return ((value + 128) % 256) - 128
-
-
-def stat_parameters(
-    parameters, level, *, registered_stat_id, percent_default, trigger_value
-):
-    """eWW.C for1..3 parameter variants; dynamic stat from parameter2.
-
-    Four parameters are dice (UK.d), five can include application chance.
-    A value-1 copies the authoritative triggering value; resource-loss eWf
-    specialization must already have been resolved by the caller.
-    """
-    if len(parameters) not in (2, 4, 6) or type(percent_default) is not bool:
-        raise ValueError("Unsupported native current-stat parameter variant")
-    values = [
-        parameter_value(parameters, i, level) for i in range(len(parameters) // 2)
-    ]
-    value = values[0]
-    if value == -1:
-        if type(trigger_value) is not int:
-            raise ValueError("Missing native triggering effect value")
-        value = trigger_value
-    stat = registered_stat_id
-    if stat is None:
-        if len(values) < 3:
-            raise ValueError("Missing dynamic native characteristic")
-        stat = values[2] & 255
-    if type(stat) is not int or not 0 <= stat <= 255:
-        raise ValueError("Invalid native characteristic registry ID")
-    return dict(
-        stat_id=stat,
-        requested=value,
-        percent=(values[1] == 1) if len(values) > 1 else percent_default,
-    )
 
 
 def current_stat_initial_eligible(requested, *, zero_initial_amount_rejected):

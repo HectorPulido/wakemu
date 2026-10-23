@@ -1,0 +1,140 @@
+{
+  "event_id": 20322,
+  "input_property_ids": [
+    1,
+    5,
+    24
+  ],
+  "input_references": [
+    15368,
+    15369,
+    15370,
+    15371,
+    15372,
+    15373,
+    15374,
+    15375,
+    15376,
+    15377,
+    15378,
+    15379,
+    15380,
+    15381,
+    15382,
+    15383
+  ],
+  "items": [
+    {
+      "action_id": 3090,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15368,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3091,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15369,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3092,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15370,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3093,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15371,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3094,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15372,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3095,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15373,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3096,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15374,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3097,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15375,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3098,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15376,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3099,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15377,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3100,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15378,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3101,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15379,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3102,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15380,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3103,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15381,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3104,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15382,
+      "native_consumes_source": false
+    },
+    {
+      "action_id": 3105,
+      "criterion": "GetItemQuantity(15368) >=1 && GetItemQuantity(15369) >=1  && GetItemQuantity(15370) >=1  && GetItemQuantity(15371) >=1  && GetItemQuantity(15372) >=1  && GetItemQuantity(15373) >=1 && GetItemQuantity(15374) >=1 && GetItemQuantity(15375) >=1  && GetItemQuantity(15376) >=1 && GetItemQuantity(15377) >=1 && GetItemQuantity(15378) >=1 && GetItemQuantity(15379) >=1 && GetItemQuantity(15380) >=1 && GetItemQuantity(15381) >=1 && GetItemQuantity(15382) >=1 && GetItemQuantity(15383) >=1",
+      "item_ref": 15383,
+      "native_consumes_source": false
+    }
+  ],
+  "native_class": "bIn",
+  "output_action_id": 10916,
+  "output_binding": "BOUND_ON_PICKUP_TO_ACCOUNT",
+  "output_native_class": "bHU",
+  "output_property_ids": [
+    1,
+    5,
+    24
+  ],
+  "output_stack_maximum": 1,
+  "policy": "supported_inference_wakemu_one_encyclopedia_per_set",
+  "products": {
+    "26729": 1
+  },
+  "scenario_id": 2372,
+  "script_sha256": "feab1fa2733d453b8854011dac4b4b00b2fcfb9ab7f9010bda0810a809f2a545"
+}

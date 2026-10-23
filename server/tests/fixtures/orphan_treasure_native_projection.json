@@ -1,0 +1,30 @@
+{
+  "authority": "Original cwJ13984 envelope decoder, bCI/bEH field1 refresh, flw353 lookup and dSw native menu;128MB readonly probe, no client modifications",
+  "client_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+  "probe_java_sha256": "b76f121e12d051c0aceefdbab6d9bd5c44660fffdaeabce4387c3650b0251d59",
+  "probe_result_sha256": "96d80dbf59b442a999fbd29ecd26bfe2864acf9b2cb4028733179222494d1680",
+  "rows": [
+    {
+      "definition": 353,
+      "combined_hex": "0300000000100100000012020000003400000101290000001bffffffd40000000101010300010000000333353300ffffffff010102000101010001010000000000",
+      "original_parameter": "179",
+      "map_id": 297,
+      "action": 22,
+      "state": 1,
+      "native_parameter": "353",
+      "object_id": 13819,
+      "menu_count": 1
+    },
+    {
+      "definition": 353,
+      "combined_hex": "03000000001001000000120200000034000001012b0000001bffffffd40000000101010300010000000333353300ffffffff010102000101010001010000000000",
+      "original_parameter": "181",
+      "map_id": 299,
+      "action": 22,
+      "state": 1,
+      "native_parameter": "353",
+      "object_id": 13821,
+      "menu_count": 1
+    }
+  ]
+}

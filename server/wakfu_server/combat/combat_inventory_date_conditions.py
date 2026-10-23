@@ -50,3 +50,27 @@ def owned_item_quantity(items, references):
         narrowed = ((reference + 2**31) % 2**32) - 2**31
         total = ((total + counts.get(narrowed, 0) + 2**31) % 2**32) - 2**31
     return total
+
+
+def complete_owned_item_quantity(character, references):
+    """Original eKE also reads personal QUEST and account flX inventory."""
+    references = tuple(references)
+    total = owned_item_quantity(character.get("inventory_items"), references)
+    from wakfu_server.quest_inventory import quantity as quest_quantity
+    from wakfu_server.account_quest_inventory import validate as validate_account
+
+    total = (
+        (total + quest_quantity(character, references) + 2**31) % 2**32
+    ) - 2**31
+    counts = {}
+    for row in character.get("account_quest_items", ()):
+        if row.get("account_id") != character.get("account_id"):
+            raise ValueError("Foreign account quest quantity authority")
+        validate_account(row["account_id"], row["reference"], row["quantity"])
+        if row["reference"] in counts:
+            raise ValueError("Duplicate account quest quantity authority")
+        counts[row["reference"]] = row["quantity"]
+    for reference in references:
+        narrowed = ((reference + 2**31) % 2**32) - 2**31
+        total = ((total + counts.get(narrowed, 0) + 2**31) % 2**32) - 2**31
+    return total

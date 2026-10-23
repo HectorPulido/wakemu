@@ -41,9 +41,19 @@ def reconcile(store, db, character_ids):
             from wakfu_server.mount_state import load as load_mount_state
 
             character["mount_state"] = load_mount_state(db, row["id"])
+        # Dungeon entry/exit and authorized item XP can change the ordinary
+        # build baseline. Reconcile retained eWO receipts before deriving the
+        # world maximum so its raw PA never remains pinned to a stale level.
+        from wakfu_server.equipment_hp_lifecycle import reconcile_selected_build
+
+        reconcile_selected_build(db, character)
+        character = store.character(row["account_id"], row["id"], db)
         maximum = effective_health_max(character)
         hp = health_policy.visible(
-            maximum, character["hp_damage"], character["health_dead"]
+            maximum,
+            character["hp_damage"],
+            character["health_dead"],
+            character.get("hp_zero_valid", False),
         )
         if (row["hp"], row["max_hp"]) != (hp, maximum):
             health_policy.reconfigure(db, character, maximum)

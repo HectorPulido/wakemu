@@ -159,6 +159,58 @@ class ProfessionTests(PostgresCase):
             ).fetchone()
         self.assertEqual(receipt["applied_xp"], 26)
 
+    def test_native_dissatisfied_region_reduces_real_action_awards_once(self):
+        from wakfu_server.territory_bonuses import state_effects, profession_xp_percent
+
+        account, character, generation = self.actor(
+            username="profession-dissatisfied", name="Dissatisfied XP"
+        )
+        ensure_learned(self.store, account, generation, character["id"], [72])
+        native = dict(state_id=1917, effects=state_effects(0, 1)["effects"])
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='profession_xp'",
+                (Jsonb({"multiplier_basis_points": 10000}),),
+            )
+            for category, expected in (("planting", 9), ("harvest", 45)):
+                with self.subTest(category=category):
+                    percent = profession_xp_percent(native, category)
+                    self.assertEqual(percent, -10)
+                    args = dict(
+                        base_xp=base_xp(db, category),
+                        operation="native-1917-" + category,
+                        territory_percent=percent,
+                        action_category=category,
+                        native_map_id=1134,
+                    )
+                    credited = award(
+                        self.store,
+                        db,
+                        account,
+                        generation,
+                        character["id"],
+                        72,
+                        **args,
+                    )
+                    self.assertEqual(credited["xp"], expected)
+                    replay = award(
+                        self.store,
+                        db,
+                        account,
+                        generation,
+                        character["id"],
+                        72,
+                        **args,
+                    )
+                    self.assertFalse(replay["applied"])
+                    self.assertEqual(replay["packets"], [])
+            total = db.execute(
+                "SELECT xp FROM account_professions WHERE account_id=%s "
+                "AND profession_id=72",
+                (account,),
+            ).fetchone()["xp"]
+            self.assertEqual(total, 54)
+
     def test_fresh_unlearned_and_account_level_shared_between_characters(self):
         account, one, generation = self.actor()
         two = self.store.create_character(account, "Profession Second")

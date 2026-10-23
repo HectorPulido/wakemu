@@ -10,6 +10,7 @@ from .combat_stat_effects import (
     owned_effect_application,
 )
 from .combat_effects import _integer
+from .combat_summon_initialization import registered_or_detached_actor
 
 
 def _i32(value):
@@ -126,8 +127,10 @@ class NativeArmorHandler:
         )
 
     def _calculate(self, effect, invocation, *, additional_final=0):
-        source = self.fight.actors[invocation.caster_id]
-        target = self.fight.actors[invocation.target_id]
+        source = registered_or_detached_actor(self.fight, invocation.caster_id)
+        target = registered_or_detached_actor(self.fight, invocation.target_id)
+        if source is None or target is None:
+            raise ValueError("Missing actual native armor source/target")
         if self.fight.phase != "active" or self.fight.current is None:
             raise ValueError("Invalid native armor fight/target")
         from .combat_runner_target_life import verify_runner_target_life
@@ -221,8 +224,10 @@ class NativeArmorHandler:
                 final_modifier=modifier,
                 runner_modifier=runner,
             )
-        source = self.fight.actors[invocation.caster_id]
-        target = self.fight.actors[invocation.target_id]
+        source = registered_or_detached_actor(self.fight, invocation.caster_id)
+        target = registered_or_detached_actor(self.fight, invocation.target_id)
+        if source is None or target is None:
+            raise ValueError("Missing actual native armor source/target")
         minimum, maximum = _bounds(target, 97)
         result = apply_current_stat(
             family="eWQ",

@@ -46,6 +46,12 @@ AREA_EVENT_PRODUCERS = MappingProxyType(
             "actual Qe definition mask6, channel1",
             "after the actual recipient Qf delivery",
         ),
+        "artifact_contact": AreaEventProducer(
+            "artifact_contact",
+            (2243,),
+            "Wakemu reconstruction from original text67.1077/1089/1093/1189 and faM masks",
+            "actual movement entry, after native Qs movement deliveries",
+        ),
     }
 )
 

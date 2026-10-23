@@ -62,7 +62,20 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
     def test_arch_bouftou_native_paid_exchange_normal_victory_and_owned_return(self):
         self._case(4086, 23)
 
-    def _case(self, reference, level):
+    def _case(
+        self,
+        reference,
+        level,
+        *,
+        expected_revision=EXPECTED_REVISION,
+        observe=None,
+        stop_when=None,
+        maximum_boundaries=40,
+        scripted_actions=None,
+        player_position=(-9, -7, -1),
+        player_aptitudes=b"",
+        rollback_on_first_controlled_cast=False,
+    ):
         # Keep mutable Store schemas in PostgresCase's dedicated test database.
         # Runtime/catalog reads remain on a separate explicitly readonly DSN.
         import psycopg
@@ -87,12 +100,12 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
                 db.execute(
                     "SELECT revision FROM native_catalog_active WHERE id=1"
                 ).fetchone()[0],
-                EXPECTED_REVISION,
+                expected_revision,
             )
         evidence = {
             "reference": reference,
             "level": level,
-            "catalog_revision": EXPECTED_REVISION,
+            "catalog_revision": expected_revision,
             "status": "pending",
             "actions": [],
             "boundaries": [],
@@ -115,19 +128,31 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
         account = self.store.register(
             "representative-" + str(reference), "local-test-password"
         )["id"]
-        char = self.store.create_character(account, "Native Representative", breed=8)
+        char = self.store.create_character(
+            account,
+            {
+                1: "Native Jalato",
+                5: "Native Tofona",
+                44: "Native Royal",
+                95: "Native Rose",
+                4086: "Native Arch",
+                4329: "Native Uhu",
+            }[reference],
+            breed=8,
+        )
         generation = self.store.begin_session(account)
         self.store.select_character(account, generation, char["id"])
         with self.store.connection() as db:
             db.execute(
-                "UPDATE characters SET level=200,map_id=1134,instance_id=0,x=-9,y=-7,z=-1 WHERE id=%s",
-                (char["id"],),
+                "UPDATE characters SET level=200,map_id=1134,instance_id=0,x=%s,y=%s,z=%s WHERE id=%s",
+                (*player_position, char["id"]),
             )
             db.execute(
                 "UPDATE character_progression SET xp=%s WHERE character_id=%s",
                 (level_xp(200), char["id"]),
             )
-        char = health_store.initialize(self.store, account, generation, char["id"])
+        if not player_aptitudes:
+            char = health_store.initialize(self.store, account, generation, char["id"])
         self.assertIn(4780, {s["id"] for s in available_spells(8, 200)})
         deck = encode_deck([4780])
         sheet = b"".join(
@@ -139,8 +164,10 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
             generation,
             char["id"],
             0,
-            dict(sheet=sheet, equipment=b"", deck=deck, aptitudes=b""),
+            dict(sheet=sheet, equipment=b"", deck=deck, aptitudes=player_aptitudes),
         )
+        if player_aptitudes:
+            char = health_store.initialize(self.store, account, generation, char["id"])
         char = self.store.character(account, char["id"])
         self.assertEqual((char["breed"], char["level"]), (8, 200))
         self.assertEqual(char["hp"], char["max_hp"])
@@ -148,14 +175,14 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
         terrain = local_arena(
             1134,
             0,
-            (-9, -7, -1),
+            player_position,
             (-8, -7, -1),
             relocate_monsters=False,
             compact=True,
             variation_seed=1,
             minimum_dimensions=(9, 9),
         )
-        for cell in ((-9, -7, -1), (-8, -7, -1)):
+        for cell in (player_position, (-8, -7, -1)):
             self.assertIn(cell, terrain["validated_cells"])
         monster = owned_instance(reference, level, -200, map_id=1134, x=-8, y=-7, z=-1)
         expected_book = {
@@ -181,9 +208,14 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
         # Original bje.cle is empty for Jalato and nonempty for these two
         # selected relatives. Check the actual activation-derived constructor
         # plan; absence of a receipt is legitimate only for the empty plan.
-        native_triples = {1: (), 44: (4404, 30, 0, 5597, 1, 1), 4086: (4404, 30, 0)}[
-            reference
-        ]
+        native_triples = {
+            1: (),
+            5: (),
+            95: (),
+            44: (4404, 30, 0, 5597, 1, 1),
+            4086: (4404, 30, 0),
+            4329: (4786, 1, 0),
+        }[reference]
         expected_initialization = initial_plans(fight, {-200: monster})
         self.assertEqual(
             set(expected_initialization), {-200} if native_triples else set()
@@ -222,6 +254,10 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
 
         def stats(actor, preview):
             self.assertIs(preview.actors[actor.id], actor)
+            if getattr(actor, "native_summon_source", None) is not None:
+                from wakfu_server.combat_summon_stats import registered_summon_stats
+
+                return registered_summon_stats(actor, preview, char["map_id"])
             values = dict(
                 wp_current=actor.effect_stats[4],
                 wp_maximum=actor.effect_maxima[4],
@@ -268,7 +304,7 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
                     rng=rng,
                     native_events=True,
                     area_callbacks=True,
-                    **b
+                    **b,
                 ),
                 expiration_runtime_factory=lambda *, action_id: server_runtime(
                     char,
@@ -313,6 +349,8 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
         evidence["initialization"] = deepcopy(initialization_receipts)
         evidence["native_constructor_required"] = bool(expected_initialization)
         evidence["native_initial_state_triples"] = list(native_triples)
+        if observe is not None:
+            observe("ready", shared.fight, evidence)
         received = []
 
         def drain():
@@ -377,6 +415,9 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
                 }
             )
 
+            if observe is not None:
+                observe("boundary", shared.fight, evidence)
+
         def los(origin, destination, current):
             return authoritative_visible(
                 1134,
@@ -391,20 +432,50 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
             )
 
         npc_hits = player_hits = 0
-        for boundary in range(40):
+        for boundary in range(maximum_boundaries):
+            if stop_when is not None and stop_when(shared.fight, evidence):
+                evidence["status"] = "focused_native_producer_observed"
+                return evidence
             if shared.fight.phase == "finished":
                 break
             self.assertEqual(shared.fight.phase, "active")
             current = shared.fight.current
-            target_id = -200 if current.controlled else char["id"]
-            # First player turn deliberately yields, so the native NPC must
-            # make a real paid damaging hit before this high-level PC attacks.
-            if current.controlled and npc_hits == 0:
+            scripted = (
+                scripted_actions(shared.fight, char, monster)
+                if scripted_actions is not None
+                else None
+            )
+            if scripted_actions is not None and scripted is None:
                 end_ack()
                 continue
-            before_hp = shared.fight.actors[target_id].hp
+            target_id = (
+                scripted["target_id"]
+                if scripted is not None
+                else -200
+                if current.controlled
+                else char["id"]
+            )
+            target_cell = (
+                tuple(scripted["target_cell"])
+                if scripted is not None
+                else shared.fight.actors[target_id].position
+            )
+            # First player turn deliberately yields, so the native NPC must
+            # make a real paid damaging hit before this high-level PC attacks.
+            if scripted_actions is None and current.controlled and npc_hits == 0:
+                end_ack()
+                continue
+            before_hp = (
+                shared.fight.actors[target_id].hp
+                if target_id in shared.fight.actors
+                else None
+            )
             before = snapshot(shared.fight, runtime=shared.runtime)
-            if current.controlled:
+            if scripted is not None:
+                chosen = scripted["spell_id"]
+                if not current.controlled:
+                    self.assertIn(chosen, owned_spells(shared.fight, {-200: monster}))
+            elif current.controlled:
                 chosen = 4780
             else:
                 self.assertEqual(
@@ -459,15 +530,12 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
 
             def cast(candidate, runtime):
                 actor = candidate.current
-                target = candidate.actors[target_id]
+                target = candidate.actors.get(target_id)
                 resource_before = {str(k): actor.effect_stats[k] for k in (2, 3, 4)}
                 if actor.controlled:
                     transaction = prepare_server_spell(
                         struct.pack(
-                            ">qqiih",
-                            actor.id,
-                            (actor.id << 32) | chosen,
-                            *target.position
+                            ">qqiih", actor.id, (actor.id << 32) | chosen, *target_cell
                         ),
                         char,
                         {-200: monster},
@@ -484,7 +552,7 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
                         type="cast",
                         spellId=chosen,
                         level=expected_book[chosen],
-                        target=list(target.position),
+                        target=list(target_cell),
                         targetId=target_id,
                     )
                     transaction = prepare_npc_spell(
@@ -497,10 +565,16 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
                         rng=rng,
                     )
                 costs = transaction.plan["costs"]
-                self.assertGreater(costs["ap"], 0)
+                self.assertGreater(sum(costs[key] for key in ("ap", "mp", "wp")), 0)
                 stable = snapshot(candidate, runtime=runtime)
                 pending_before = deepcopy(runtime.pending)
-                if not evidence["actions"]:
+                if not evidence["actions"] or (
+                    rollback_on_first_controlled_cast
+                    and actor.controlled
+                    and not any(
+                        action["actor_id"] > 0 for action in evidence["actions"]
+                    )
+                ):
 
                     def failed(*_):
                         raise ValueError("Representative native serializer rollback")
@@ -513,6 +587,9 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
                         )
                     self.assertEqual(snapshot(candidate, runtime=runtime), stable)
                     self.assertEqual(runtime.pending, pending_before)
+                    evidence.setdefault("serializer_rollback_actors", []).append(
+                        actor.id
+                    )
                 packets = commit_spell_transaction(
                     runtime, transaction, stats_serializer=stats
                 )
@@ -530,23 +607,39 @@ class MonsterRepresentativeFullCombatTests(PostgresCase):
                     resources_after={str(k): live.effect_stats[k] for k in (2, 3, 4)},
                     target_id=target_id,
                     target_hp_before=before_hp,
-                    target_hp_after=runtime.fight.actors[target_id].hp,
+                    target_hp_after=runtime.fight.actors[target_id].hp
+                    if target_id in runtime.fight.actors
+                    else None,
                     packets=[
                         {"opcode": op, "sha256": sha256(body).hexdigest()}
                         for op, body in packets
+                    ],
+                    area_retirements=[
+                        struct.unpack(">iiiq", body)[3]
+                        for op, body in packets
+                        if op == 13726
                     ],
                 )
                 return Transition(runtime.fight, runtime, tuple(packets))
 
             submit(cast)
-            self.assertLess(shared.fight.actors[target_id].hp, before_hp)
+            if scripted_actions is None:
+                self.assertLess(shared.fight.actors[target_id].hp, before_hp)
             evidence["actions"].append(cast_record)
+            if observe is not None:
+                observe("cast", shared.fight, evidence)
+            if stop_when is not None and stop_when(shared.fight, evidence):
+                evidence["status"] = "focused_native_producer_observed"
+                return evidence
             if current.controlled:
                 player_hits += 1
             else:
                 npc_hits += 1
             if shared.fight.phase != "finished":
                 end_ack()
+        if stop_when is not None and stop_when(shared.fight, evidence):
+            evidence["status"] = "focused_native_producer_observed"
+            return evidence
         self.assertGreaterEqual(npc_hits, 1)
         self.assertGreaterEqual(player_hits, 1)
         self.assertEqual(
