@@ -1,4 +1,5 @@
 """Stage immutable native JSON documents and atomically activate their release."""
+
 import argparse
 from collections import Counter
 import hashlib
@@ -7,11 +8,6 @@ import os
 import sys
 from pathlib import Path, PurePosixPath
 import re
-
-from psycopg.types.json import Jsonb
-
-from wakfu_server.postgres import Database
-
 
 # Spatial grids are retained verbatim without duplicating millions of grid cells.
 SPATIAL_DIRECTORIES = frozenset(
@@ -266,6 +262,8 @@ def import_catalogs(
     expected_revision=None,
     identity_scheme=None,
 ):
+    from psycopg.types.json import Jsonb
+
     manifest = source_manifest(directory)
     if expected_release is not None:
         identity = validate_release_inventory(manifest, expected_release)
@@ -462,6 +460,8 @@ def main():
         if len(matches) != 1:
             parser.error("--release-manifest requires one exact --expected-revision")
         expected_release = matches[0]
+    from wakfu_server.postgres import Database
+
     database = Database(
         os.environ["WAKFU_DATABASE_URL"],
         password_file=os.environ.get("WAKFU_DATABASE_PASSWORD_FILE"),
