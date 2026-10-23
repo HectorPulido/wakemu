@@ -1,15 +1,15 @@
-"""Declared zone-wide resource placement on reachable original native terrain.
+"""Declared map-wide resource placement on reachable original native terrain.
 
 Player positions choose reachable components only. They never rank spawn
 locations. Event-seeded spatial buckets spread resources through the original
-region; reserved native approach paths and spacing prevent a dense wall of
+map; reserved native approach paths and spacing prevent a dense wall of
 plants. Capacity shortfalls cap the population instead of filling adjacent tiles.
 """
 from collections import defaultdict, deque
 from hashlib import sha256
 from math import isqrt
 
-POLICY = "wakemu.environmental-resource-reachable-zone-spread.v2"
+POLICY = "wakemu.environmental-resource-reachable-map-spread.v3"
 
 
 def _point(value):
@@ -58,10 +58,11 @@ def plan(
 ):
     """Plan native points plus approach proofs; do not mutate a DB or World.
 
-    ``native_surfaces`` has the planting_cells.cells mapping shape. Reachability
-    uses the complete map so a path may pass through another territory, while
-    every resource remains strictly inside the original declared region. All
-    selected XYZs and each approach edge exist in both directions natively.
+    ``native_surfaces`` has the planting_cells.cells mapping shape. The event's
+    original region remains its admission/credit identity, not a placement
+    boundary: resources use the entire map as explicitly declared server policy.
+    Selected XYZs and each approach edge exist in both directions natively.
+    There is no height cutoff; reachable original upper surfaces remain valid.
     """
     if (
         type(region_id) is not int
@@ -99,10 +100,7 @@ def plan(
                 depth[neighbor] = depth[point] + 1
                 queue.append(neighbor)
     original = {
-        (x, y, row["z"])
-        for (x, y), rows in native_surfaces.items()
-        for row in rows
-        if row["region_id"] == region_id
+        (x, y, row["z"]) for (x, y), rows in native_surfaces.items() for row in rows
     }
     original = {_point(point) for point in original}
     ordinals = {point: ordinal for ordinal, point in enumerate(sorted(original))}
