@@ -68,8 +68,8 @@ def world_frames(entities, account_id, character_id, name):
         or not name
     ):
         raise ValueError("Invalid explicit synthetic world identities")
-    entity5, entity10, entity11, entity22, entity28 = (
-        _entity(entities, key) for key in (5, 10, 11, 22, 28)
+    entity4, entity5, entity10, entity11, entity22, entity28 = (
+        _entity(entities, key) for key in (4, 5, 10, 11, 22, 28)
     )
     for entity in (entity5, entity10, entity11, entity28):
         if len(entity) < 9 or struct.unpack_from(">q", entity, 1)[0] != character_id:
@@ -98,7 +98,7 @@ def world_frames(entities, account_id, character_id, name):
             12666,
             struct.pack(">HI", 0, len(entity10)) + entity10 + struct.pack(">II", 0, 0),
         ),
-        63: (13713, qchar + struct.pack(">BH", 4, 0)),
+        63: (13713, qchar + entity4),
         64: (13974, map_context(entity28)),
         65: (13778, struct.pack(">bb", 0, 0)),
         66: (12318, entity28[18:26]),

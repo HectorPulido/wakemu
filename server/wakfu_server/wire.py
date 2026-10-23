@@ -86,7 +86,7 @@ def register_synthetic_bootstrap(metadata):
         if not isinstance(layout, dict) or type(layout.get("format")) is not int:
             raise ValueError("Invalid synthetic entity format")
         kind = layout["format"]
-        if kind not in (5, 10, 11, 22, 28) or kind in checked:
+        if kind not in (4, 5, 10, 11, 22, 28) or kind in checked:
             raise ValueError("Unexpected synthetic entity format")
         sections = layout.get("sections")
         if not isinstance(sections, list) or not sections:
@@ -123,7 +123,7 @@ def register_synthetic_bootstrap(metadata):
         ):
             raise ValueError("Invalid synthetic entity body authority")
         checked[kind] = json.loads(json.dumps(layout))
-    if set(checked) != {5, 10, 11, 22, 28}:
+    if set(checked) != {4, 5, 10, 11, 22, 28}:
         raise ValueError("Incomplete synthetic entity format set")
     ENTITY_LAYOUTS.update(checked)
     TEMPLATE_ACCOUNT, TEMPLATE_CHARACTER, TEMPLATE_NAME = account, character, name
