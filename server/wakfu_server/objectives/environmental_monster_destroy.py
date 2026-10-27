@@ -170,12 +170,14 @@ def _source(db, event, profile, rule):
         or profile["family"] != "monster_destroy"
         or not profile["sealed"]
         or profile["native_scenario_id"] != row["scenario_id"]
-        or row["catalog_revision"] != native_catalog.release()
         or profile["catalog_revision"] != row["catalog_revision"]
         or row["descriptor_sha256"] != _digest(row["action_descriptor"])
         or row["action_descriptor"] != rule["native"]
     ):
         raise ValueError("Missing exact native environmental destruction source policy")
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(row["catalog_revision"], ("monster-encyclopedia.json",))
     configuration = {
         item["normalized_key"]: item["native_value"]
         for item in db.execute(
@@ -314,6 +316,13 @@ def commit(
         or not event["started_at_ms"] <= now_ms < event["deadline_ms"]
     ):
         raise ValueError("Native destruction event is not active in this scene")
+    from .environmental_gameplay import _native_region
+
+    if (
+        event["region_id"] is None
+        or _native_region(scope[0], actual) != event["region_id"]
+    ):
+        raise ValueError("Native destruction owner belongs to another region")
     participant = db.execute(
         "SELECT * FROM environmental_participants WHERE instance_id=%s AND character_id=%s FOR UPDATE",
         (owned["instance_id"], actual["id"]),
@@ -361,6 +370,8 @@ def commit(
         raise ValueError("Native destruction target changed before commit")
     _living_member(selected[0])
     target = dict(selected[0], map_id=scope[0], instance_id=scope[1], group_key=key)
+    if _native_region(scope[0], target) != event["region_id"]:
+        raise ValueError("Native destruction target belongs to another region")
     if reachable(admission["character"], target) is not True:
         raise ValueError("Native destruction durable target is no longer reachable")
     db.execute(

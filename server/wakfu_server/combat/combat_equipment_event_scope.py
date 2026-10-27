@@ -4,6 +4,7 @@ This module neither publishes an event nor grants a trigger-Qe value context.
 Native mask indices remain distinct from Qf delivery channels. Unsupported
 source channels and source-scoped outcome events remain explicit unknowns.
 """
+
 from collections.abc import Mapping
 
 
@@ -134,7 +135,16 @@ def displacement_events(factory, routes=None):
         or not ordinary_roster_authority(authority)
     ):
         return frozenset()
-    return frozenset(event for events in BASE_EVENT_IDS.values() for event in events)
+    from .combat_displacement import NativeDisplacementHandler
+
+    return frozenset(
+        event
+        for family, events in BASE_EVENT_IDS.items()
+        if (route := routes.routes.get(family)) is not None
+        and route.factory is runtime
+        and route.handler_type is NativeDisplacementHandler
+        for event in events
+    )
 
 
 def characteristic_events(factory, routes):
@@ -225,14 +235,15 @@ def assess(factory, effect, retained_container, *, routes=None):
     ):
         return False
     # Index6 is native aZO output metadata, not a subscription channel.
-    if masks[6]:
-        return None
+    # Its exact family must have an installed producer; it cannot borrow an
+    # unrelated source's output identifiers or an external Qf publisher.
 
     # Preserve the existing established damage/turn scope boundary. Newly
     # exposed producers below require the exact retained constructor proof.
     legacy = not any(masks[index] for index in (0, 1, 2, 4))
     legacy = legacy and not (set(masks[3] or ()) - {2})
     legacy = legacy and not (set(masks[5] or ()) - {1001, 1002, 1003, 1037})
+    legacy = legacy and not masks[6]
     if legacy:
         if masks[3] and not callable(getattr(factory.contexts, "damage", None)):
             return None
@@ -244,6 +255,16 @@ def assess(factory, effect, retained_container, *, routes=None):
     # real lifecycle/clone authorities; no callback runs during this preflight.
     if not preflight(factory, retained_container):
         return None
+    if masks[6]:
+        from .combat_original_producer_events import available_original_events
+
+        family = effect.get("effect_class")
+        if type(family) is not int or any(
+            set(masks[6])
+            - available_original_events(factory, routes, phase=phase, family=family)
+            for phase in (1, 2, 3, 4)
+        ):
+            return None
 
     from wakfu_server.combat_cost_payment_events import payment_event_ids
 
@@ -263,7 +284,7 @@ def assess(factory, effect, retained_container, *, routes=None):
         4: frozenset(),
         5: frozenset((1001, 1002, 1003, 1024, 1025, 1028, 1037)),
     }
-    if 1005 in (masks[5] or ()):
+    if 1005 in (masks[5] or ()) or 1005 in (masks[2] or ()):
         from .combat_voluntary_movement_events import deliver_voluntary_movement
 
         # The ordinary movement transaction calls this existing producer after
@@ -274,7 +295,11 @@ def assess(factory, effect, retained_container, *, routes=None):
         if not callable(deliver_voluntary_movement):
             return None
         allowed[5] = allowed[5] | {1005}
-    if 1016 in (masks[5] or ()):
+        # The same committed-step producer already emits4/40/41. Applied
+        # scalar removal masks use the real immutable definition, not a fake
+        # deferred activation listener.
+        allowed[2] = allowed[2] | {1005}
+    if 1016 in (masks[5] or ()) or 1016 in (masks[2] or ()):
         from .combat_critical_hit_events import preflight as critical_hit_preflight
 
         # Explicit Wakemu policy reconstructed from the installed description:
@@ -283,6 +308,48 @@ def assess(factory, effect, retained_container, *, routes=None):
         if not critical_hit_preflight(factory, retained_container, routes=routes):
             return None
         allowed[5] = allowed[5] | {1016}
+        allowed[2] = allowed[2] | {1016}
+    if set(masks[2] or ()) & {1001, 1037}:
+        from .combat_turn_boundary import execute_turn_delivery
+
+        if not callable(execute_turn_delivery):
+            return None
+        allowed[2] = allowed[2] | {1001, 1037}
+    if 1024 in (masks[2] or ()):
+        from .combat_cast_events import cast_event_scope
+
+        if not callable(cast_event_scope):
+            return None
+        allowed[2] = allowed[2] | {1024}
+    if 74 in (masks[2] or ()) or 74 in (masks[3] or ()):
+        from .combat_movement_payment_events import (
+            consume_step_payment,
+            replay_movement_payment,
+        )
+
+        # The real step receipt fixes mh=True and binds the actual payer,
+        # amount and path. Spell costs never borrow this conditional event.
+        if not callable(consume_step_payment) or not callable(replay_movement_payment):
+            return None
+        allowed[2] = allowed[2] | {74}
+        allowed[3] = allowed[3] | {74}
+    external_contracts = (
+        (1018, 5),
+        (1015, 2),
+        (1004, 2),
+        (1004, 5),
+        (1032, 5),
+        (1048, 5),
+    )
+    for event_id, index in external_contracts:
+        if event_id not in (masks[index] or ()):
+            continue
+        from .combat_equipment_external_contracts import preflight as external_preflight
+
+        if external_preflight(
+            factory, retained_container, event_id, index, routes=routes
+        ):
+            allowed[index] = allowed[index] | {event_id}
     if 1010 in (masks[5] or ()):
         from .combat_death_events import deliver_owned_death
 
@@ -307,19 +374,44 @@ def assess(factory, effect, retained_container, *, routes=None):
             | healing_events(factory, routes)
             | displacement_events(factory, routes)
         )
+        from .combat_maximum_reduction_events import available_reduction_events
+        from .combat_dynamic_current_loss_events import (
+            available_dynamic_current_loss_events,
+        )
+        from .combat_maximum_characteristic_events import (
+            available_maximum_characteristic_events,
+        )
+        from .combat_original_producer_events import (
+            available_original_events,
+            available_paid_breeze_events,
+        )
+
         for index, phase in ((0, 1), (1, 2), (2, 4), (3, 3)):
             allowed[index] = (
                 allowed[index]
                 | resource_events
                 | damage_events(factory, routes, phase=phase)
+                | available_reduction_events(factory, routes, phase=phase)
+                | available_dynamic_current_loss_events(factory, routes, phase=phase)
+                | available_maximum_characteristic_events(factory, routes, phase=phase)
+                | available_original_events(factory, routes, phase=phase)
+                | available_paid_breeze_events(
+                    factory, routes, retained_container, phase=phase
+                )
             )
-    if 500 in (masks[0] or ()):
-        from .combat_attack_preparation import deliver_attack_preparation
+    if 500 in (masks[0] or ()) or 500 in (masks[2] or ()):
+        from .combat_attack_preparation import (
+            completed_attack_preparation,
+            deliver_attack_preparation,
+        )
 
         # The established first-primary-damage policy publishes only L1.
-        # It neither supplies a removal event500 nor an external notification.
+        # Successful cast settlement closes its actual first-primary-attack
+        # marker, after all recipients rather than between area hits.
         if callable(deliver_attack_preparation) and 2 in damage_events(factory, routes):
             allowed[0] = allowed[0] | {500}
+            if callable(completed_attack_preparation):
+                allowed[2] = allowed[2] | {500}
     # 1026 currently reaches only consumable descendants through eligible_uids
     # in prepare_outcome; an equipment listener must NOT borrow that producer.
     # Other external events still require their actual installed producer.
@@ -328,4 +420,4 @@ def assess(factory, effect, retained_container, *, routes=None):
     if any(2 in (masks[index] or ()) for index in (0, 1, 2, 3)):
         if not callable(getattr(factory.contexts, "damage", None)):
             return None
-    return bool(any(masks[index] for index in range(6)))
+    return bool(any(masks[index] for index in range(7)))

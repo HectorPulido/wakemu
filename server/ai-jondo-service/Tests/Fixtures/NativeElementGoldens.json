@@ -1,0 +1,1528 @@
+{
+  "schema": "actual-world-native-element-goldens-v1",
+  "nativeSourceSha256": {
+    "/app/wakfu_server/items/equipment_damage.py": "c8bb1823115d2213d678fe91925d78210175dc7250f1df5ccbd6e70a68b8dac5",
+    "/app/wakfu_server/combat/combat_damage_healing.py": "5da5f90206104e970d0a6df0eff569d5dc381ba172755c75282c544f05053454",
+    "/app/wakfu_server/combat/combat_ordinary_authority.py": "ef0841696a9a6896f8fc4396377e3dbbbba0364394e8354151b508b6589c10fa"
+  },
+  "cases": [
+    {
+      "label": "native_element_1",
+      "family": 1,
+      "element": "physical",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 205,
+      "high": 206
+    },
+    {
+      "label": "native_element_2",
+      "family": 2,
+      "element": "fire",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 118,
+      "high": 119
+    },
+    {
+      "label": "native_element_3",
+      "family": 3,
+      "element": "earth",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 473,
+      "high": 474
+    },
+    {
+      "label": "native_element_4",
+      "family": 4,
+      "element": "water",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 185,
+      "high": 186
+    },
+    {
+      "label": "native_element_5",
+      "family": 5,
+      "element": "air",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 245,
+      "high": 246
+    },
+    {
+      "label": "native_element_917",
+      "family": 917,
+      "element": "stasis",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 1009,
+      "high": 1010
+    },
+    {
+      "label": "native_element_1083",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 118,
+      "high": 119
+    },
+    {
+      "label": "facing_2_1",
+      "family": 2,
+      "element": "fire",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 1,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "BACK",
+      "arithmeticLocation": "BACK",
+      "low": 138,
+      "high": 139
+    },
+    {
+      "label": "facing_2_3",
+      "family": 2,
+      "element": "fire",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 3,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "SIDE",
+      "arithmeticLocation": "SIDE",
+      "low": 129,
+      "high": 130
+    },
+    {
+      "label": "facing_2_5",
+      "family": 2,
+      "element": "fire",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 118,
+      "high": 119
+    },
+    {
+      "label": "facing_917_1",
+      "family": 917,
+      "element": "stasis",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 1,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "BACK",
+      "arithmeticLocation": "BACK",
+      "low": 1097,
+      "high": 1098
+    },
+    {
+      "label": "facing_917_3",
+      "family": 917,
+      "element": "stasis",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 3,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "SIDE",
+      "arithmeticLocation": "SIDE",
+      "low": 1109,
+      "high": 1110
+    },
+    {
+      "label": "facing_917_5",
+      "family": 917,
+      "element": "stasis",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 1009,
+      "high": 1010
+    },
+    {
+      "label": "facing_1083_1",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 1,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "BACK",
+      "arithmeticLocation": "BACK",
+      "low": 138,
+      "high": 139
+    },
+    {
+      "label": "facing_1083_3",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 3,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "SIDE",
+      "arithmeticLocation": "SIDE",
+      "low": 129,
+      "high": 130
+    },
+    {
+      "label": "facing_1083_5",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 118,
+      "high": 119
+    },
+    {
+      "label": "coefficient_0",
+      "family": 917,
+      "element": "stasis",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 1,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 0,
+      "flags": [],
+      "localized": true,
+      "facing": "BACK",
+      "arithmeticLocation": "BACK",
+      "low": 125,
+      "high": 125
+    },
+    {
+      "label": "coefficient_1",
+      "family": 917,
+      "element": "stasis",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 1,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 1,
+      "flags": [],
+      "localized": true,
+      "facing": "BACK",
+      "arithmeticLocation": "BACK",
+      "low": 1535,
+      "high": 1536
+    },
+    {
+      "label": "coefficient_2",
+      "family": 917,
+      "element": "stasis",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 1,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 2,
+      "flags": [],
+      "localized": true,
+      "facing": "BACK",
+      "arithmeticLocation": "BACK",
+      "low": 88,
+      "high": 89
+    },
+    {
+      "label": "coefficient_3",
+      "family": 917,
+      "element": "stasis",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 1,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "BACK",
+      "arithmeticLocation": "BACK",
+      "low": 1097,
+      "high": 1098
+    },
+    {
+      "label": "flags_4",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [
+        4
+      ],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 125,
+      "high": 126
+    },
+    {
+      "label": "flags_22",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [
+        22
+      ],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 123,
+      "high": 124
+    },
+    {
+      "label": "flags_23",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [
+        23
+      ],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 118,
+      "high": 119
+    },
+    {
+      "label": "flags_24",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [
+        24
+      ],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 117,
+      "high": 118
+    },
+    {
+      "label": "flags_23_24",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [
+        23,
+        24
+      ],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 120,
+      "high": 121
+    },
+    {
+      "label": "berserk",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 40,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 127,
+      "high": 128
+    },
+    {
+      "label": "localization_disabled",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 1,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": false,
+      "facing": "BACK",
+      "arithmeticLocation": "FRONT",
+      "low": 118,
+      "high": 119
+    },
+    {
+      "label": "physical_ignores_back",
+      "family": 1,
+      "element": "physical",
+      "base": 100,
+      "sourceStats": {
+        "20": 100,
+        "21": 900,
+        "22": 400,
+        "23": 300,
+        "24": 200,
+        "16": 40,
+        "102": 0,
+        "103": 30,
+        "104": 20,
+        "105": 50,
+        "106": 70,
+        "107": 90,
+        "48": 5,
+        "92": 0
+      },
+      "targetStats": {
+        "27": 30,
+        "28": 1000,
+        "29": 500,
+        "30": 0,
+        "31": 200,
+        "17": 80,
+        "49": 10
+      },
+      "direction": 1,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "BACK",
+      "arithmeticLocation": "BACK",
+      "low": 205,
+      "high": 206
+    },
+    {
+      "label": "all_ties_light",
+      "family": 1083,
+      "element": "light",
+      "base": 100,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500
+      },
+      "targetStats": {
+        "28": 0,
+        "29": 0,
+        "30": 0,
+        "31": 0
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 600,
+      "high": 600
+    },
+    {
+      "label": "all_ties_stasis",
+      "family": 917,
+      "element": "stasis",
+      "base": 100,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500
+      },
+      "targetStats": {
+        "28": 0,
+        "29": 0,
+        "30": 0,
+        "31": 0
+      },
+      "direction": 5,
+      "sourceCell": [
+        0,
+        0,
+        0
+      ],
+      "targetCell": [
+        1,
+        0,
+        0
+      ],
+      "sourceHp": 100,
+      "sourceMaxHp": 100,
+      "coefficientMask": 3,
+      "flags": [],
+      "localized": true,
+      "facing": "FRONT",
+      "arithmeticLocation": "FRONT",
+      "low": 600,
+      "high": 600
+    }
+  ],
+  "tieSource": 2,
+  "tieDefense": 2,
+  "scope": "Pure calls to actual World native damage/facing functions, no fight or DB mutations"
+}

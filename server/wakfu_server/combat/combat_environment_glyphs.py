@@ -1,9 +1,11 @@
-"""Native faY environmental snapshots with an explicit local placement policy."""
+"""Native environmental area snapshots with explicit placement authority."""
 from .combat_encounter_glyph_bootstrap import (
-    point_glyph_row,
-    point_glyph_section,
+    glyph_cells,
+    glyph_row,
+    environment_section,
     prepare_declared_glyphs,
-    validate_point_prototype,
+    validate_environment_prototype,
+    TRAP_SOURCE,
 )
 
 POLICY = "wakemu.compact-interior-range-v1"
@@ -13,6 +15,19 @@ REFERENCE = 910
 
 def prepare_environment_glyphs(fight, arena, terrain_identity):
     """Choose one free interior point; this is local policy, not official layout."""
+    if arena.get("native_emiw_border") is not None:
+        from .combat_emiw_scene_policy import validate_emiw_border
+
+        validate_emiw_border(
+            arena["native_emiw_border"],
+            map_id=arena["map_id"],
+            role_record=arena.get("native_encounter_roles"),
+            cells=arena.get("native_border_cells", ()),
+        )
+        # The source-backed Emiw reconstruction owns553. The generic local
+        # range glyph has no authoring in this encounter and must not be added.
+        fight.native_environment_glyph_constructors = []
+        return
     if arena.get("native_initial_glyphs") is not None:
         from .combat_effect_area import native_effect_areas
 
@@ -68,30 +83,50 @@ def prepare_environment_glyphs(fight, arena, terrain_identity):
 
 
 def verify_environment_glyph(fight, row):
+    from .combat_effect_area import native_effect_areas
+
     constructors = getattr(fight, "native_environment_glyph_constructors", ())
     original = next(
         (source for source in constructors if source.get("uid") == row.get("uid")), None
     )
     declared = original is not None and bool(original.get("authority"))
+    definition = (
+        native_effect_areas().get(str(original["reference"]), {})
+        if original is not None
+        else {}
+    )
+    trap = definition.get("type") == "TRAP"
+    expected_source = TRAP_SOURCE if trap else SOURCE
+    expected_cells = (
+        glyph_cells(original, definition)
+        if declared
+        else (tuple(row.get("cell", ())[:2]),)
+    )
     if (
         original is None
         or (not declared and original.get("policy") != POLICY)
-        or original.get("source") != SOURCE
+        or original.get("source") != expected_source
         or tuple(original.get("cell", ())) != tuple(row.get("cell", ()))
         or (not declared and original.get("reference") != REFERENCE)
-        or row.get("native_environment_source") != SOURCE
+        or row.get("native_environment_source") != expected_source
         or row.get("native_environment_policy") != original.get("policy")
         or row.get("reference") != original.get("reference")
-        or row.get("native_area_contract") != "faY"
+        or row.get("native_area_contract") != ("fbc" if trap else "faY")
         or row.get("owner_id") is not None
         or row.get("level") != original.get("level", 0)
         or row.get("direction") != -1
+        or tuple(row.get("native_geometry_reference", ())) != (0, 0, 0)
+        or row.get("native_geometry_reference_source") != "Qq.bcT.bcU_bcV_bcW"
         or tuple(row.get("cell", ())) not in fight.walkable
         or tuple(row.get("cell", ())) in getattr(fight, "native_border_cells", ())
         or tuple(tuple(cell) for cell in row.get("native_cells_xy", ()))
-        != (tuple(row["cell"][:2]),)
+        != expected_cells
     ):
-        raise ValueError("Missing environmental faY constructor authority")
+        raise ValueError("Missing environmental area constructor authority")
+    if trap:
+        from .combat_trap_area import verified_trap_characteristics
+
+        verified_trap_characteristics(row, definition)
 
 
 def ensure_environment_glyphs(fight):
@@ -110,10 +145,11 @@ def ensure_environment_glyphs(fight):
         definition = native_effect_areas().get(str(source["reference"]), {})
         declared = bool(source.get("authority"))
         if declared:
-            validate_point_prototype(definition, level=source.get("level", 0))
+            validate_environment_prototype(definition, level=source.get("level", 0))
             if not source.get("policy", "").startswith("wakemu."):
                 raise ValueError("Missing declared native glyph placement policy")
-        if source.get("source") != SOURCE or (
+        expected_source = TRAP_SOURCE if definition.get("type") == "TRAP" else SOURCE
+        if source.get("source") != expected_source or (
             not declared
             and (
                 source.get("policy") != POLICY
@@ -128,7 +164,7 @@ def ensure_environment_glyphs(fight):
             )
         ):
             raise ValueError("Missing native environmental glyph prototype")
-        row = point_glyph_row(source, definition)
+        row = glyph_row(source, definition)
         verify_environment_glyph(fight, row)
         fight.native_effect_areas[identity] = row
         register_global_area(fight, identity)
@@ -159,7 +195,7 @@ def environment_sections(fight, *, viewer_id=None):
         # faY910 aQc initializes rMq=false. Explicit faY.fTl appearance keeps
         # the aBn reference (0,0,0); the point shape ignores that reference.
         sections.append(
-            point_glyph_section(
+            environment_section(
                 source,
                 cell=cell,
                 visual_owner=0 if source.get("authority") else visual_owner,

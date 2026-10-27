@@ -544,6 +544,52 @@ class MountPublicationTests(PostgresCase):
                 (map_id, *position, self.character["id"]),
             )
 
+    def test_mounted_astrub_reconnect_and_dismount_preserve_actual_mount_unit(self):
+        from wakfu_server.test_console import execute
+        from wakfu_server.mount_publication import snapshot
+
+        item = self._equip_for_location_tests()
+        self._set_position(1134, (0, 116, 21))
+        mounted = self._ride()
+        before_mount = copy.deepcopy(item["mount"])
+        outcome = execute(
+            self.store, None, self.account, self.generation, mounted, "!astrub"
+        )
+        arrived = outcome["character"]
+        self.assertEqual(
+            (arrived["map_id"], arrived["x"], arrived["y"], arrived["z"]),
+            (527, 0, 32, 0),
+        )
+        self.assertTrue(arrived["mount_state"]["mounted"])
+        self.assertEqual(mount_inventory.equipped(arrived)["uid"], item["uid"])
+        self.assertEqual(mount_inventory.equipped(arrived)["mount"], before_mount)
+        self.assertEqual(
+            [opcode for opcode, body in snapshot(arrived, reset_riding=True)],
+            [13928, 12634],
+        )
+        # A real lease replacement hydrates the same owned mount, then the
+        # ordinary native dismount request commits its state without unequipping.
+        generation = self.store.begin_session(self.account)
+        selected = self.store.select_character(self.account, generation, arrived["id"])
+        self.assertTrue(selected["mount_state"]["mounted"])
+        self.assertEqual(mount_inventory.equipped(selected)["uid"], item["uid"])
+        code, unmounted = mount_state.toggle(
+            self.store,
+            self.account,
+            generation,
+            arrived["id"],
+            mounted=False,
+            in_fight=False,
+            location_allowed=True,
+            occupation_cancelable=True,
+        )
+        self.assertEqual(code, 0)
+        self.assertFalse(unmounted["mount_state"]["mounted"])
+        self.assertEqual(mount_inventory.equipped(unmounted)["uid"], item["uid"])
+        self.assertEqual(mount_inventory.equipped(unmounted)["mount"], before_mount)
+        self.assertEqual(snapshot(unmounted, reset_riding=True), [])
+        self.assertEqual(unmounted["hp_damage"], arrived["hp_damage"])
+
     def test_native_water_cell_rejects_mount_without_state_mutation(self):
         self._equip_for_location_tests()
         # Verified swimming cell in map 1134; toggle reads this position from PG.

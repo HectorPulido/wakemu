@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
-from wakfu_server.characters import hero_wire
+from wakfu_server import hero_wire
 
 
 def dispatcher_branches():
@@ -39,6 +39,7 @@ class HeroSwitchDispatchTests(unittest.TestCase):
         pending=None,
         session_valid=True,
         requested_id=42,
+        flush_error=None,
     ):
         events = []
         character = {
@@ -84,6 +85,11 @@ class HeroSwitchDispatchTests(unittest.TestCase):
             ),
         )
 
+        def flush_positions(**kwargs):
+            events.append(("flush", kwargs))
+            if flush_error is not None:
+                raise flush_error
+
         namespace = {
             "opcode": opcode,
             "loaded": True,
@@ -99,6 +105,7 @@ class HeroSwitchDispatchTests(unittest.TestCase):
             "ranch_session": None,
             "bag_session": None,
             "chest_opening": None,
+            "npc_dialogue_session": None,
             "active_private_session": lambda: None,
             "PLANTINGS": types.SimpleNamespace(cancel=lambda *_args: None),
             "HARVESTS": types.SimpleNamespace(cancel=lambda *_args, **_kwargs: None),
@@ -111,7 +118,7 @@ class HeroSwitchDispatchTests(unittest.TestCase):
             "wire": wire_module,
             "fixture": wire_module.fixture,
             "cancel_crafting": lambda: events.append(("cancel_crafting",)),
-            "flush_positions": lambda **kwargs: events.append(("flush", kwargs)),
+            "flush_positions": flush_positions,
             "send": lambda _connection, service, *packet: events.append(
                 ("send", service, packet)
             ),
@@ -145,9 +152,9 @@ class HeroSwitchDispatchTests(unittest.TestCase):
         )
         with patches, patch.object(
             hero_wire, "refresh", return_value=(13046, b"refresh")
-        ):
+        ), patch.object(hero_wire, "statistics", return_value=(13046, b"stats")):
             if opcode == 12006:
-                from wakfu_server.characters import heroes
+                from wakfu_server import heroes
 
                 namespace["STORE"] = object()
                 switched_leader = {
@@ -166,19 +173,18 @@ class HeroSwitchDispatchTests(unittest.TestCase):
                     heroes,
                     "switch_main",
                     return_value={"leader": switched_leader},
-                ):
+                ) as switch_main:
                     exec(compile(module, "local_game_server.py", "exec"), namespace)
+                    namespace["_switch_main"] = switch_main
             else:
                 exec(compile(module, "local_game_server.py", "exec"), namespace)
         return namespace, events
 
-    def test_request_emits_refresh_and_success_ack_then_waits_for_completion(self):
+    def test_request_hands_off_master_before_refreshing_private_components(self):
         namespace, events = self.run_branch(12006, requested_id=84)
         packets = [event[2] for event in events if event[0] == "send"]
         self.assertEqual(
             [
-                (13046, b"refresh"),
-                hero_wire.statistics(namespace["_switched_leader"]),
                 (13440, struct.pack(">Bq", 0, 84)),
             ],
             packets,
@@ -194,7 +200,20 @@ class HeroSwitchDispatchTests(unittest.TestCase):
         join = next(event for event in events if event[0] == "join_world")
         self.assertEqual({"hydrate_heroes": False}, join[2])
         sent = [event[2][0] for event in events if event[0] == "send"]
-        self.assertEqual([15548, 13220, 13221], sent)
+        self.assertEqual([13046, 13046, 15548, 13220, 13221], sent)
+        self.assertEqual(
+            [event[2] for event in events if event[0] == "send"][:2],
+            [(13046, b"refresh"), (13046, b"stats")],
+        )
+        first_refresh_index = next(
+            index
+            for index, event in enumerate(events)
+            if event[0] == "send" and event[2][0] == 13046
+        )
+        lease_index = next(
+            index for index, event in enumerate(events) if event[0] == "session"
+        )
+        self.assertLess(lease_index, first_refresh_index)
         guild_refresh_index = next(
             index
             for index, event in enumerate(events)
@@ -218,10 +237,41 @@ class HeroSwitchDispatchTests(unittest.TestCase):
                 self.assertFalse(any(event[0] == "join_world" for event in events))
                 self.assertFalse(
                     any(
-                        event[0] == "send" and event[2][0] in (15548, 13220, 13221)
+                        event[0] == "send"
+                        and event[2][0] in (13046, 15548, 13220, 13221)
                         for event in events
                     )
                 )
+
+    def test_duplicate_completion_does_not_replace_owned_components(self):
+        namespace, events = self.run_branch(
+            12054, character_id=84, pending=None, requested_id=84
+        )
+        self.assertIsNone(namespace["hero_switch_pending"])
+        self.assertFalse(any(event[0] in ("send", "join_world") for event in events))
+
+    def test_position_contention_rejects_before_switching_without_losing_main(self):
+        from wakfu_server.position_buffer import PositionOwnerBusy
+
+        namespace, events = self.run_branch(
+            12006,
+            requested_id=84,
+            flush_error=PositionOwnerBusy("Position owner is busy; retry checkpoint"),
+        )
+        namespace["_switch_main"].assert_not_called()
+        self.assertEqual(namespace["character"]["id"], 42)
+        self.assertIsNone(namespace["hero_switch_pending"])
+        self.assertFalse(
+            any(event[0] in ("leave", "join_world", "attach") for event in events)
+        )
+        packets = [event[2] for event in events if event[0] == "send"]
+        self.assertEqual(packets, [(13440, struct.pack(">Bq", 6, 84)), (674, b"info")])
+        self.assertTrue(
+            any(
+                event[0] == "record" and event[1]["event"] == "hero_switch_rejected"
+                for event in events
+            )
+        )
 
 
 if __name__ == "__main__":

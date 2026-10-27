@@ -3,6 +3,14 @@
 The native event, selectors, criteria and retained caster remain authoritative.
 An admitted controller supplies a fresh population only for its exact groups.
 """
+
+from .combat_encounter_source_revision import source_revision_matches
+
+SOURCE_DEPENDENCIES = (
+    "combat-state-definitions.json",
+    "native-retained-effect-metadata.json",
+    "native-direct-target-policies.json",
+)
 from copy import deepcopy
 from functools import lru_cache
 
@@ -156,7 +164,7 @@ def freeze_event_population_policy(fight, *, roles):
     if frozen is not None and (
         frozen["map_id"] != roles.map_id
         or frozen["monster_references"] != list(roles.monster_references)
-        or frozen["catalog_revision"] != native_catalog.release()
+        or not source_revision_matches(frozen["catalog_revision"], SOURCE_DEPENDENCIES)
     ):
         raise ValueError("Event population policy differs from admission or catalog")
     fight.native_encounter_event_population = frozen
@@ -168,7 +176,7 @@ def permits_event_group_population(fight, effect, invocation):
     if record is None:
         return False
     frozen = event_population_from_record(record)
-    from .combat_encounter_roles import frozen_roles
+    from wakfu_server.combat_encounter_roles import frozen_roles
 
     roles = frozen_roles(fight)
     if (

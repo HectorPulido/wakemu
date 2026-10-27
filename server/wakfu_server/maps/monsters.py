@@ -73,7 +73,7 @@ def owned_instance(ref, level, actor_id, *, map_id, x, y, z, team=1, instance_id
         raise ValueError("Invalid local monster position")
     if stats["HP"] <= 0 or any(stats[name] < 0 for name in ("AP", "MP", "WP")):
         raise ValueError("Reference cannot initialize a living local fighter")
-    from wakfu_server.combat.combat_actor_snapshot import native_npc_creation_values
+    from wakfu_server.combat_actor_snapshot import native_npc_creation_values
 
     # Native ffC curves feed ffx characteristic bounds before entering combat.
     # Keep statistics() as raw source data, but never publish an unbounded WP
@@ -108,12 +108,15 @@ def native_abilities(ref, level):
     from wakfu_server.combat_native_spell_casting import catalog
 
     casting = catalog()
+    from wakfu_server.combat_published_catalogs import static_row_scalar
 
     def spell_level(ability):
-        definition = casting.get(str(ability["spell_id"]))
-        if definition is None:
+        missing = object()
+        maximum = static_row_scalar(
+            casting, str(ability["spell_id"]), "maximum_level", default=missing
+        )
+        if maximum is missing:
             raise ValueError("Missing native NPC spell definition")
-        maximum = definition.get("maximum_level")
         if type(maximum) is not int or not 1 <= maximum <= 32767:
             raise ValueError("Missing native NPC spell maximum level")
         requested = (

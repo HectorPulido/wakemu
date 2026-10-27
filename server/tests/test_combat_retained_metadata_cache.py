@@ -34,6 +34,24 @@ class RetainedMetadataCacheTests(unittest.TestCase):
         row["uid"] = True
         self.assertIs(type(_retained_record(row).uid), bool)
 
+    def test_typed_keyword_cache_keeps_aliases_distinct_without_reusing_live_rows(self):
+        row = asdict(RetainedEffect(1, 1, 310, 42, manager_id=1))
+        first = _retained_record(row)
+        for field in ("uid", "target_id", "manager_id"):
+            changed = dict(row, **{field: True})
+            result = _retained_record(changed)
+            self.assertEqual(result, RetainedEffect(**changed))
+            self.assertIs(type(getattr(result, field)), bool)
+            self.assertIs(type(getattr(first, field)), int)
+        for value in (False, 0):
+            changed = dict(row, definition_dispellable=value)
+            self.assertIs(
+                type(_retained_record(changed).definition_dispellable), type(value)
+            )
+        row["generic_effect"] = 43
+        self.assertEqual(_retained_record(row).generic_effect, 43)
+        self.assertEqual(first.generic_effect, 42)
+
     def test_unhashable_and_oversize_values_preserve_constructor_behavior(self):
         for value in ([], "x" * 129, 1 << 65):
             row = asdict(RetainedEffect(1, 7, 310, 42))
@@ -101,7 +119,7 @@ class RetainedMetadataCacheTests(unittest.TestCase):
         row["payload"] = payload.hex()
         self.assertEqual(native_retained_condition_effects(fight, 7), expected)
 
-    def test_retained_view_resolves_shared_target_manager_once_per_view(self):
+    def test_retained_view_enumerates_shared_target_manager_once_per_view(self):
         import wakfu_server.combat_retained_effects as combat_retained_effects
 
         fight, _ = cell_groups.RetainedCellGroupTests().fixture()
@@ -117,15 +135,20 @@ class RetainedMetadataCacheTests(unittest.TestCase):
             RetainedEffect(9902, 7, 949, 350552),
             *(_retained_record(row) for row in fight.native_retained_records.values()),
         ]
-        with patch.object(combat_retained_effects, "state_manager", counted):
+        with patch.object(
+            combat_retained_effects,
+            "state_managers",
+            wraps=combat_retained_effects.state_managers,
+        ) as managers, patch.object(combat_retained_effects, "state_manager", counted):
             NativeRetainedEffectView(fight, entries, population_verified_complete=True)
-        self.assertEqual([(target_id) for _, target_id in calls], [7])
+        managers.assert_called_once_with(fight)
+        self.assertEqual(calls, [])  # The verified enumeration already contains 7.
 
     def test_retained_view_rejects_missing_target_and_new_view_sees_mutation(self):
         import wakfu_server.combat_retained_effects as combat_retained_effects
 
         fight, _ = cell_groups.RetainedCellGroupTests().fixture()
-        entry = RetainedEffect(9901, 7, 949, 350552)
+        entry = RetainedEffect(9901, 999, 949, 350552)
         with patch.object(combat_retained_effects, "state_manager", return_value=None):
             with self.assertRaisesRegex(
                 ValueError, "Invalid native retained effect owner/family"
@@ -142,6 +165,7 @@ class RetainedMetadataCacheTests(unittest.TestCase):
                     population_verified_complete=True,
                 )
 
+        entry = RetainedEffect(9901, 7, 949, 350552)
         NativeRetainedEffectView(
             fight,
             [
@@ -174,6 +198,7 @@ class RetainedMetadataCacheTests(unittest.TestCase):
 
     def test_shared_area_target_is_resolved_once_with_live_geometry(self):
         import wakfu_server.combat_retained_effects as combat_retained_effects
+        import wakfu_server.combat_state_managers as combat_state_managers
         from test_combat_state_managers import StateManagerTests
 
         fight = StateManagerTests().fixture()
@@ -185,14 +210,16 @@ class RetainedMetadataCacheTests(unittest.TestCase):
         fight.native_owned_spatial_effects = {}
         fight.native_retained_records = {}
         entries = [RetainedEffect(uid, 901, 949, 350552) for uid in (9901, 9902, 9903)]
-        original = combat_retained_effects.state_manager
+        # Enumeration resolves area managers through their defining module;
+        # the view's selected-manager resolver is only used for missing IDs.
+        original = combat_state_managers.state_manager
         calls = []
 
         def counted(current_fight, target_id):
             calls.append((current_fight, target_id))
             return original(current_fight, target_id)
 
-        with patch.object(combat_retained_effects, "state_manager", counted):
+        with patch.object(combat_state_managers, "state_manager", counted):
             NativeRetainedEffectView(fight, entries, population_verified_complete=True)
         self.assertEqual([(target_id) for _, target_id in calls], [901])
         self.assertEqual(tuple(fight.native_effect_areas[901]["cell"]), (2, 3, 4))

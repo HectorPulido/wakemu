@@ -10,6 +10,8 @@ class _DurableSettlement:
     transaction_id: str
     fight_id: int
     recipients: frozenset
+    earned_rift_recipients: frozenset = frozenset()
+    fight_identity: object = None
 
 
 _SETTLEMENT = ContextVar("combat_reward_durable_settlement", default=None)
@@ -23,6 +25,8 @@ def _durable_settlement_scope(db, fight, participants):
     and heroes. This capability never authorizes ordinary inventory requests.
     """
     from psycopg.pq import TransactionStatus
+
+    participants = tuple(participants)
 
     if (
         db.info.transaction_status != TransactionStatus.INTRANS
@@ -65,14 +69,47 @@ def _durable_settlement_scope(db, fight, participants):
     transaction = db.execute(
         "SELECT pg_current_xact_id()::text AS transaction_id"
     ).fetchone()
+    from wakfu_server.rift_earned_rewards import earned_recipients
+
     authority = _DurableSettlement(
-        db, transaction["transaction_id"], fight.id, frozenset(recipients)
+        db,
+        transaction["transaction_id"],
+        fight.id,
+        frozenset(recipients),
+        earned_recipients(db, fight, participants),
+        fight,
     )
     token = _SETTLEMENT.set(authority)
     try:
         yield
     finally:
         _SETTLEMENT.reset(token)
+
+
+def is_earned_rift_recipient(db, fight, account_id, generation, character_id):
+    """Query only the actual transaction-bound earned Rift settlement capability."""
+    from psycopg.pq import TransactionStatus
+
+    scope = _SETTLEMENT.get()
+    if (
+        scope is None
+        or scope.database is not db
+        or db.info.transaction_status != TransactionStatus.INTRANS
+        or scope.fight_identity is not fight
+        or type(account_id) is not int
+        or type(character_id) is not int
+        or type(generation) is not str
+        or not generation
+        or scope.fight_id != fight.id
+        or (account_id, generation, character_id) not in scope.earned_rift_recipients
+    ):
+        return False
+    row = db.execute(
+        "SELECT pg_current_xact_id_if_assigned()::text AS transaction_id"
+    ).fetchone()
+    if row["transaction_id"] != scope.transaction_id:
+        raise ValueError("Earned Rift settlement transaction changed")
+    return True
 
 
 def lock_recipient(store, db, account_id, generation, character_id, fight_id):
@@ -94,7 +131,8 @@ def lock_recipient(store, db, account_id, generation, character_id, fight_id):
             or type(fight_id) is not int
             or not isinstance(generation, str)
             or settlement.fight_id != fight_id
-            or (account_id, generation, character_id) not in settlement.recipients
+            or (account_id, generation, character_id)
+            not in (settlement.recipients | settlement.earned_rift_recipients)
         ):
             raise ValueError("Loot recipient differs from the locked settlement roster")
         transaction = db.execute(

@@ -1,0 +1,35 @@
+{
+  "activated": false,
+  "actual_new_chunk_bytes": 431886,
+  "added_casting_roots": 50,
+  "candidate_manifest": "catalogs/manifest-rift-complete-metadata-v1.json",
+  "candidate_manifest_sha256": "d5536bc145927d451601d10c5013be4ae7612c738871b8be019ba8ee905f3902",
+  "candidate_revision": "3e4526040347907ce699a264e6736af1aec81bfacca09cfd5f1290747a055177",
+  "casting_proof_sha256": "8aab4ad57deb1cf9d9970afd72e5a28c347b441e778ea100d5c0e894a2b8ea4e",
+  "changed_documents": [
+    {
+      "path": "native-class-casting-roots.json",
+      "record_count": 11470,
+      "sha256": "2f787bc1e640bbf3a4374df8e6a7070f8ec0834b4171c427f7647026588f7b17",
+      "source_bytes": 1592862
+    },
+    {
+      "path": "native-source-revision-manifests.json",
+      "record_count": 1,
+      "sha256": "fa3de8a48887d1593c37846f380225ebd6d5c7cfcfa1e5474089ee825607c4b6",
+      "source_bytes": 1125322
+    }
+  ],
+  "database_staged": false,
+  "document_count": 7491,
+  "existing_casting_rows_preserved": true,
+  "installation_manifest_sha256": "d5449f4352c171f38befe462d3d99fc3039c01ee3e9bf868def1fd98b3e605f7",
+  "live_environment_changed": false,
+  "original_casting_roots": 11405,
+  "original_revision": "b3963fc05f1d8ec1eb9afc268fab0350f4de120144d67f7eee470747750b2450",
+  "original_source_manifest_documents": 7490,
+  "original_source_manifest_reproduces_revision": true,
+  "parent_349_revision": "d99f268afe805407e9a4565565ab488ae9580b7164e286396fc338bbf9b3c154",
+  "schema": "wakemu-rift-complete-metadata-release-v1",
+  "source_manifest_sha256": "2e8aa4194648b98a3db1384dedaf93a2c927070f6b529082c28e62471600121e"
+}

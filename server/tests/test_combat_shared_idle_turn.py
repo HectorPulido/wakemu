@@ -46,6 +46,9 @@ class SharedIdleTurnTests(unittest.TestCase):
                 calls = []
                 env = dict(
                     effective_server_controlled=effective_server_controlled,
+                    # The toy fights have no attested ordinary-root manifest;
+                    # production correctly grants them no automatic NPC turn.
+                    requires_automatic_npc_turn_end=lambda _fight, _actor: False,
                     fight=SimpleNamespace(
                         phase=phase, current=SimpleNamespace(controlled=controlled)
                     ),

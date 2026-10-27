@@ -88,13 +88,58 @@ def _digest(rule):
     ).hexdigest()
 
 
-@lru_cache(maxsize=128)
 def _source(
     revision, map_id, object_id, family, payload, state_payload, geometry_sha, x, y, z
 ):
     from wakfu_server import native_catalog
+
+    return _source_cached(
+        native_catalog.release(),
+        revision,
+        map_id,
+        object_id,
+        family,
+        payload,
+        state_payload,
+        geometry_sha,
+        x,
+        y,
+        z,
+    )
+
+
+@lru_cache(maxsize=128)
+def _source_cached(
+    publication,
+    revision,
+    map_id,
+    object_id,
+    family,
+    payload,
+    state_payload,
+    geometry_sha,
+    x,
+    y,
+    z,
+):
+    from wakfu_server import native_catalog
     from wakfu_server.paths import DATA_ROOT
 
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(
+        revision,
+        (
+            "native-map-objects.json",
+            "native-interactive-states.json",
+            f"combat-maps/{map_id}.json",
+        ),
+    )
+    current_revision = native_catalog.release()
+    if current_revision != publication:
+        raise ValueError(
+            "Declared treasure publication changed during source validation"
+        )
     original = native_catalog.record(
         DATA_ROOT / "native-map-objects.json", "$", str(object_id)
     )
@@ -104,10 +149,10 @@ def _source(
     with native_catalog._database().connection() as db:
         terrain = db.execute(
             "SELECT sha256 FROM native_catalog_documents WHERE revision=%s AND path=%s",
-            (revision, f"combat-maps/{map_id}.json"),
+            (current_revision, f"combat-maps/{map_id}.json"),
         ).fetchone()
     if (
-        revision != native_catalog.release()
+        current_revision != native_catalog.release()
         or original is None
         or original.get("type") != family
         or original.get("map_id") != map_id
@@ -121,6 +166,9 @@ def _source(
     ):
         raise ValueError("Declared treasure native source changed")
     return True
+
+
+_source.cache_clear = _source_cached.cache_clear
 
 
 def _admit(
@@ -157,10 +205,6 @@ def _admit(
         (actual["id"],),
     ).fetchone():
         raise ValueError("Another environment occupation is active")
-    from wakfu_server import native_catalog
-
-    if native_catalog.release() != rule["catalog_revision"]:
-        raise ValueError("Declared treasure active catalog changed")
     _source(
         rule["catalog_revision"],
         rule["map_id"],

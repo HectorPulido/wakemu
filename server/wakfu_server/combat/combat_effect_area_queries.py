@@ -12,7 +12,23 @@ from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
 from .combat_area_affiliation import area_affiliation
 
 
+_AREA_SELECTION_CACHE_OWNER = object()
+
+
 def _rows(fight):
+    from .combat_condition_selection_scope import current_condition_actor_cache
+
+    cache = current_condition_actor_cache(_AREA_SELECTION_CACHE_OWNER, fight)
+    if cache is None:
+        return _fresh_rows(fight)
+    if "validated_rows" not in cache:
+        # Complete validation and anchored geometry refresh must succeed before
+        # publishing a snapshot. Scope ends before RNG or native effects run.
+        cache["validated_rows"] = _fresh_rows(fight)
+    return cache["validated_rows"]
+
+
+def _fresh_rows(fight):
     rows = getattr(fight, "native_effect_areas", {})
     if not isinstance(rows, dict):
         raise ValueError("Missing native area manager")

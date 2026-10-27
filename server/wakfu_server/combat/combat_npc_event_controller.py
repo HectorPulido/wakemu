@@ -11,8 +11,10 @@ SCHEMA = "native-event-only-npc-v1"
 
 def event_controller_record(policy, reference, level):
     """Return a reviewed empty-book admission after checking its native sources."""
+    from wakfu_server.native_catalog_document import is_native_json_mapping
+
     if (
-        not isinstance(policy, dict)
+        not is_native_json_mapping(policy)
         or policy.get("schema") != "native-npc-activation-v1"
     ):
         raise ValueError("Invalid native NPC activation policy")

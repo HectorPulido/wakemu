@@ -64,6 +64,8 @@ def world_actor(
     summon_identity=False,
     companion_source=None,
     world_context=None,
+    fighter=None,
+    fight=None,
 ):
     """Encode eHj format-11 appearance for an owned world actor.
 
@@ -73,6 +75,24 @@ def world_actor(
     """
     if type(dead) is not bool:
         raise ValueError("Native death state must be explicit")
+    if (fighter is None) != (fight is None):
+        raise ValueError("NPC fight appearance requires its actual fighter and fight")
+    fight_id, obstacle_id = -1, -1
+    if fighter is not None:
+        fight_id = getattr(fight, "id", None)
+        obstacle_id = getattr(fighter, "native_obstacle_id", None)
+        if (
+            type(fight_id) is not int
+            or not 0 < fight_id < 2**31
+            or getattr(fighter, "id", None) != monster["id"]
+            or getattr(fight, "actors", {}).get(monster["id"]) is not fighter
+            or type(obstacle_id) is not int
+            or not 0 <= obstacle_id <= 126
+            or dead
+            or summon_identity
+            or not fight._in_play(fighter)
+        ):
+            raise ValueError("NPC fight appearance lacks an admitted physical fighter")
     verified = owned_instance(
         monster["ref"],
         monster["level"],
@@ -137,9 +157,13 @@ def world_actor(
     out += b"\x01" + struct.pack(
         ">hH", monster["level"], 0
     )  # sN visible; sP public characteristics.
+    # aVH admits an existing world NPC BEFORE applying its format2 snapshot.
+    # Supply the owned byte here so client buH.x can call QI.i while admitting
+    # it. Otherwise big.doV rejects a slot still held by an AnimMort corpse.
+    # QI.i replaces the pointer; the old corpse's later QI.g cannot remove it.
     out += b"\x00" + struct.pack(
-        ">iBBBBbB", -1, 0, int(dead), 0, 0, -1, 0
-    )  # fight props empty; no fight yet.
+        ">iBBBBbB", fight_id, 0, int(dead), 0, 0, obstacle_id, 0
+    )
     # Outside combat eGZ.gg is a no-op. bje.dsA and native interaction menus
     # read eHQ.DEAD (19) from rK/rN/wU world properties instead. cgN then
     # calls bje.dsq, selecting the native AnimStatiqueCadavre presentation.
@@ -202,6 +226,8 @@ def spawn_monster(
     direction=3,
     summon_identity=False,
     world_context=None,
+    fighter=None,
+    fight=None,
 ):
     blob = world_actor(
         monster,
@@ -210,6 +236,8 @@ def spawn_monster(
         direction=direction,
         summon_identity=summon_identity,
         world_context=world_context,
+        fighter=fighter,
+        fight=fight,
     )
     if len(blob) > 65535:
         raise ValueError("NPC appearance too large")

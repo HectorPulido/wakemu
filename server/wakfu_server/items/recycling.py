@@ -17,7 +17,18 @@ from .paths import DATA_ROOT
 from . import recycling_wire
 
 
-_CATALOG_DOCUMENT = protocol_catalog.load(DATA_ROOT / "item-recycling-metadata.json")
+def _catalog_document():
+    from wakfu_server.combat_published_catalogs import compilation_mode
+
+    path = DATA_ROOT / "item-recycling-metadata.json"
+    if compilation_mode():
+        return protocol_catalog.load(path)
+    from wakfu_server.native_catalog_document import load_published_document
+
+    return load_published_document(path)
+
+
+_CATALOG_DOCUMENT = _catalog_document()
 if (
     _CATALOG_DOCUMENT.get("record_count") != 20230
     or _CATALOG_DOCUMENT.get("error_count") != 0

@@ -1,10 +1,11 @@
 """The real selector branch reports a frozen company without disconnecting."""
 import ast
+import struct
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from psycopg import OperationalError
-from wakfu_server.characters.heroes import CompanySelectionRejected
+from wakfu_server.heroes import CompanySelectionRejected
 
 
 class SelectionRejectionDispatchTests(unittest.TestCase):
@@ -59,7 +60,14 @@ class SelectionRejectionDispatchTests(unittest.TestCase):
         )
         exec(self.branch(), state)
         self.assertIsNone(state["character"])
-        self.assertEqual(sent, [("socket", "world", 23082, b"\x01")])
+        self.assertEqual(sent[0], ("socket", "world", 23082, b"\x01"))
+        self.assertEqual(len(sent), 2)
+        self.assertEqual(sent[1][:3], ("socket", "world", 349))
+        subtype, size = struct.unpack(">hh", sent[1][3][:4])
+        self.assertEqual((subtype, size), (4, len(sent[1][3][4:])))
+        text = sent[1][3][4:].decode("utf-8")
+        self.assertIn("mazmorra", text.lower())
+        self.assertNotIn("Hero roster", text)
         self.assertEqual(records[0]["event"], "character_selection_rejected")
 
     def test_database_and_unknown_failures_remain_errors(self):

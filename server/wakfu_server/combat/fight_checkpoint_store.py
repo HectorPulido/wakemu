@@ -374,7 +374,7 @@ class Checkpoints:
 
                 persist(db, fight)
             if getattr(fight, "rift_wave_state", None) is not None:
-                from .rift_runtime import persist_progress
+                from wakfu_server.rift_runtime import persist_progress
 
                 # Accepted wave receipts and this immutable fight snapshot
                 # commit together; a rejected checkpoint rolls both back.
@@ -658,7 +658,7 @@ class Checkpoints:
                     "UPDATE combat_fights SET status='aborted' WHERE id=%s AND status IN ('placement','active')",
                     (fight_id,),
                 )
-                from .rift_runtime import abort_bound_fight
+                from wakfu_server.rift_runtime import abort_bound_fight
 
                 abort_bound_fight(db, fight_id)
             revision = expected_revision + 1

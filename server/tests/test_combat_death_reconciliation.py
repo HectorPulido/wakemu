@@ -24,6 +24,7 @@ class DeathReconciliationOccurrenceTests(unittest.TestCase):
             phase="active",
             winner=None,
             native_base_turn_order=list(dict.fromkeys(order)),
+            native_timeline_round=1,
             begins=0,
         )
         fight._in_play = lambda actor: actor.id not in retired

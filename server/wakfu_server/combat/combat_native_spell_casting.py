@@ -3,6 +3,9 @@ from wakfu_server import native_catalog as protocol_catalog
 import os
 import json
 from functools import lru_cache
+from collections import OrderedDict, namedtuple
+from threading import RLock
+from sys import getsizeof
 from wakfu_server.paths import DATA_ROOT
 from .combat_conditions import UnknownCondition, evaluate_condition
 from .combat_casting_range import int32
@@ -10,6 +13,12 @@ from .combat_casting_range import int32
 
 @lru_cache(maxsize=1)
 def catalog():
+    from wakfu_server.combat_published_catalogs import compilation_mode
+    from wakfu_server.native_catalog_document import load_published_document
+
+    if not compilation_mode():
+        return load_published_document("native-spell-casting.json")["spells"]
+
     return protocol_catalog.load(DATA_ROOT / "native-spell-casting.json")["spells"]
 
 
@@ -42,26 +51,177 @@ def native_casting_table(reference, level, *, casting=None, zero_casting=None):
     return record, index
 
 
-def definition(reference, level, context, modifiers, *, calculate_costs=True):
-    """Select the entire native fyP, preserving ambiguous branches as errors."""
-    record, index = native_casting_table(reference, level)
+_SelectedCastingProjection = namedtuple(
+    "SelectedCastingProjection",
+    "index baseline rules categories roots forbid_QI_P cast_criterion_raw "
+    "cast_criterion_native_present cost_categories",
+    defaults=(None,),
+)
+_SELECTED_PROJECTIONS = OrderedDict()
+_SELECTED_LOCK = RLock()
+_SELECTED_BYTES = 0
+_SELECTED_MAX_ENTRIES = 512
+_SELECTED_MAX_BYTES = 4 * 1024 * 1024
+_CASTING_FLAGS = (
+    "line_of_sight",
+    "linear",
+    "free_cell",
+    "range_modifiable",
+    "path_option",
+    "diagonal",
+    "linear_path",
+    "allow_self",
+)
+
+
+def _projection(record, index):
     baseline = (
         tuple(record["costs"][index])
         + tuple(record["levels"][index][:2])
-        + tuple(
-            record[field]
-            for field in (
-                "line_of_sight",
-                "linear",
-                "free_cell",
-                "range_modifiable",
-                "path_option",
-                "diagonal",
-                "linear_path",
-                "allow_self",
+        + tuple(record[field] for field in _CASTING_FLAGS)
+    )
+    rules = tuple(
+        (
+            rule["criteria"],
+            tuple(rule["levels"][index])
+            + tuple(rule["ranges"][index])
+            + tuple(rule[field] for field in _CASTING_FLAGS),
+        )
+        for rule in record["conditional"]
+    )
+    return _SelectedCastingProjection(
+        index,
+        baseline,
+        rules,
+        frozenset(record["categories"]),
+        tuple(record["levels"][index][2]),
+        record["forbid_QI_P"],
+        record.get("cast_criterion_raw"),
+        record["cast_criterion_native_present"],
+        tuple(record["categories"]),
+    )
+
+
+def _immutable_size(value, seen):
+    """Charge retained objects; malformed mutable values never enter the cache."""
+    identity = id(value)
+    if identity in seen:
+        return 0
+    seen.add(identity)
+    if type(value) in (str, bytes, int, float, bool, type(None)):
+        return getsizeof(value)
+    if isinstance(value, tuple) or type(value) is frozenset:
+        return getsizeof(value) + sum(_immutable_size(item, seen) for item in value)
+    raise TypeError("Mutable native casting projection")
+
+
+def _selected_casting_input(reference, level, *, casting=None):
+    """Retain only one selected level under its verified publication identity.
+
+    Plain/zero tables remain uncached. The budget charges retained key/projection
+    objects plus a conservative serialized source-row charge; the row itself is
+    released after construction, and this bound is not a process RSS estimate.
+    """
+    global _SELECTED_BYTES
+    from .combat_published_catalogs import static_catalog_descriptor
+
+    if type(level) is not int or level < 0:
+        # Keep the public table's original validation/error contract.
+        native_casting_table(reference, level)
+    source = None if level == 0 else (catalog() if casting is None else casting)
+    descriptor = None if source is None else static_catalog_descriptor(source)
+    if (
+        descriptor is None
+        or descriptor["revision"] == "0" * 64
+        or source.representation != "native_json"
+    ):
+        record, index = native_casting_table(reference, level, casting=source)
+        return record, index
+    key = (descriptor["revision"], descriptor["collection"], str(reference), level)
+    with _SELECTED_LOCK:
+        found = _SELECTED_PROJECTIONS.get(key)
+        if found is not None:
+            _SELECTED_PROJECTIONS.move_to_end(key)
+            return found[0]
+    record, index = native_casting_table(reference, level, casting=source)
+    try:
+        projection = _projection(record, index)
+    except (KeyError, IndexError, TypeError, ValueError):
+        # Preserve legacy error/evaluation order for malformed source metadata.
+        # The real record is used only in this call and is never cached.
+        return record, index
+    try:
+        charge = _immutable_size((key, projection), set()) + len(
+            json.dumps(record, separators=(",", ":"), ensure_ascii=False).encode(
+                "utf-8"
             )
         )
+    except (TypeError, ValueError, OverflowError):
+        return projection
+    if charge > _SELECTED_MAX_BYTES:
+        return projection
+    with _SELECTED_LOCK:
+        found = _SELECTED_PROJECTIONS.get(key)
+        if found is not None:
+            _SELECTED_PROJECTIONS.move_to_end(key)
+            return found[0]
+        _SELECTED_PROJECTIONS[key] = (projection, charge)
+        _SELECTED_BYTES += charge
+        while (
+            len(_SELECTED_PROJECTIONS) > _SELECTED_MAX_ENTRIES
+            or _SELECTED_BYTES > _SELECTED_MAX_BYTES
+        ):
+            _, (_, removed) = _SELECTED_PROJECTIONS.popitem(last=False)
+            _SELECTED_BYTES -= removed
+    return projection
+
+
+def selected_casting_projection(reference, level, *, casting=None):
+    """Return the static selected level, without caching plain/zero tables."""
+    selected = _selected_casting_input(reference, level, casting=casting)
+    if isinstance(selected, _SelectedCastingProjection):
+        return selected
+    return _projection(*selected)
+
+
+def _clear_selected_projections():
+    global _SELECTED_BYTES
+    with _SELECTED_LOCK:
+        _SELECTED_PROJECTIONS.clear()
+        _SELECTED_BYTES = 0
+
+
+def _selected_projection_info():
+    with _SELECTED_LOCK:
+        return dict(
+            entries=len(_SELECTED_PROJECTIONS),
+            charged_bytes=_SELECTED_BYTES,
+            max_entries=_SELECTED_MAX_ENTRIES,
+            max_bytes=_SELECTED_MAX_BYTES,
+        )
+
+
+selected_casting_projection.cache_clear = _clear_selected_projections
+selected_casting_projection.cache_info = _selected_projection_info
+
+
+def definition(reference, level, context, modifiers, *, calculate_costs=True):
+    """Select the entire native fyP, preserving ambiguous branches as errors."""
+    selected_input = _selected_casting_input(reference, level)
+    projection = (
+        selected_input
+        if isinstance(selected_input, _SelectedCastingProjection)
+        else None
     )
+    if projection is None:
+        record, index = selected_input
+        baseline = (
+            tuple(record["costs"][index])
+            + tuple(record["levels"][index][:2])
+            + tuple(record[field] for field in _CASTING_FLAGS)
+        )
+    else:
+        index, baseline = projection.index, projection.baseline
     matches = set()
     matched_rules = []
     unknown_equivalent_rules = []
@@ -87,30 +247,23 @@ def definition(reference, level, context, modifiers, *, calculate_costs=True):
             and not unknown_equivalent_rules,
         )
 
-    for rule_index, rule in enumerate(record["conditional"]):
-        selected = (
-            tuple(rule["levels"][index])
-            + tuple(rule["ranges"][index])
-            + tuple(
-                rule[field]
-                for field in (
-                    "line_of_sight",
-                    "linear",
-                    "free_cell",
-                    "range_modifiable",
-                    "path_option",
-                    "diagonal",
-                    "linear_path",
-                    "allow_self",
-                )
+    rules = projection.rules if projection is not None else record["conditional"]
+    for rule_index, rule in enumerate(rules):
+        if projection is not None:
+            criterion, selected = rule
+        else:
+            selected = (
+                tuple(rule["levels"][index])
+                + tuple(rule["ranges"][index])
+                + tuple(rule[field] for field in _CASTING_FLAGS)
             )
-        )
+            criterion = rule["criteria"]
         try:
-            matched = evaluate_condition(rule["criteria"], context)
+            matched = evaluate_condition(criterion, context)
         except UnknownCondition as error:
             if selected != baseline:
                 evaluated_rules.append(
-                    dict(index=rule_index, criterion=rule["criteria"], result="unknown")
+                    dict(index=rule_index, criterion=criterion, result="unknown")
                 )
                 error.native_casting_selection = selection_metadata()
                 raise
@@ -119,7 +272,7 @@ def definition(reference, level, context, modifiers, *, calculate_costs=True):
             evaluated_rules.append(
                 dict(
                     index=rule_index,
-                    criterion=rule["criteria"],
+                    criterion=criterion,
                     result="unknown_equivalent",
                 )
             )
@@ -127,19 +280,21 @@ def definition(reference, level, context, modifiers, *, calculate_costs=True):
         evaluated_rules.append(
             dict(
                 index=rule_index,
-                criterion=rule["criteria"],
+                criterion=criterion,
                 result="matched" if matched else "not_matched",
             )
         )
         if matched:
             matches.add(selected)
-            matched_rules.append(dict(index=rule_index, criteria=rule["criteria"]))
+            matched_rules.append(dict(index=rule_index, criteria=criterion))
     if len(matches) > 1 or unknown and any(value != baseline for value in matches):
         error = UnknownCondition("Ambiguous native temporary spell table")
         error.native_casting_selection = selection_metadata()
         raise error
     selected = next(iter(matches)) if matches else baseline
-    categories = set(record["categories"])
+    categories = set(
+        projection.categories if projection is not None else record["categories"]
+    )
     if (
         calculate_costs
         and categories
@@ -190,11 +345,25 @@ def definition(reference, level, context, modifiers, *, calculate_costs=True):
         diagonal=selected[10],
         linear_path=selected[11],
         allow_self=selected[12],
-        forbid_QI_P=record["forbid_QI_P"],
-        cast_criterion_raw=record.get("cast_criterion_raw"),
-        cast_criterion_native_present=record["cast_criterion_native_present"],
+        forbid_QI_P=(
+            projection.forbid_QI_P if projection is not None else record["forbid_QI_P"]
+        ),
+        cast_criterion_raw=(
+            projection.cast_criterion_raw
+            if projection is not None
+            else record.get("cast_criterion_raw")
+        ),
+        cast_criterion_native_present=(
+            projection.cast_criterion_native_present
+            if projection is not None
+            else record["cast_criterion_native_present"]
+        ),
         categories=tuple(sorted(categories)),
-        roots=tuple(record["levels"][index][2]),
+        roots=(
+            projection.roots
+            if projection is not None
+            else tuple(record["levels"][index][2])
+        ),
     )
 
 

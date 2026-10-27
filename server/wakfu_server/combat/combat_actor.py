@@ -57,6 +57,7 @@ def actor_stats(
     max_mp=None,
     max_wp=None,
     characteristics_payload=None,
+    fight_property_counts=None,
     native_controlled_by_ai=False,
     include_consumable_buffs=False,
 ):
@@ -126,14 +127,22 @@ def actor_stats(
     ):
         raise ValueError("Invalid native obstacle byte")
     fight = struct.pack(">iBBBBbB", fight_id, 0, 0, 0, 0, obstacle, 0)
+    from .combat_property_wire import fight_property_payload
+
+    properties = (
+        b"\x00"
+        if fight_property_counts is None
+        else fight_property_payload(fight_property_counts)
+    )
     return (
         b"\x03"
         + struct.pack(">q", character_xp(character))
         + position
         + fight
         + stats
+        + properties
+        + struct.pack(">h", character["breed"])
         + _ai_control_byte(native_controlled_by_ai)
-        + struct.pack(">hB", character["breed"], 0)
         + stats
         + struct.pack(
             ">qBqBh", character["id"], 0, character["account_id"], 0, character["level"]
@@ -298,6 +307,16 @@ def actual_actor_stats(
         if getattr(actor, "effect_stats", None) is not None
         else None
     )
+    counts = getattr(actor, "native_fight_property_counts", None)
+    if counts is None:
+        if getattr(actor, "native_fight_properties", None) is not None:
+            raise ValueError("Live player fight properties lack complete counters")
+        from .combat_ordinary_authority import native_property_catalog
+        from .combat_property_stack import add_property
+
+        counts = {}
+        for identity in native_property_catalog()["player"]["fight_properties"]:
+            add_property(counts, identity)
     return actor_stats(
         current,
         fight_id,
@@ -305,6 +324,7 @@ def actual_actor_stats(
         obstacle_id=actor.native_obstacle_id,
         native_qi_retired=_forced_qi_retired(fight, actor, fight_id),
         characteristics_payload=snapshot,
+        fight_property_counts=counts,
         ap=actor.ap,
         mp=actor.mp,
         max_ap=actor.max_ap,

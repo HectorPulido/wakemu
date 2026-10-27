@@ -365,11 +365,19 @@ class NativeFactoryEquipmentCapability:
                     # PA selectors remain unproved, rather than guessed zero.
                     return True if parsed.get("inherited_stat") in (1, 92) else None
                 if family == 913:
+                    if (
+                        parsed.get("stat_id") in (None, 1, 92)
+                        or parsed.get("owned_caster_pa") is True
+                    ):
+                        return True
+                    from .combat_equipment_selected_level_domain import (
+                        characteristic_context_preflight,
+                    )
+
                     return (
                         True
-                        if (
-                            parsed.get("stat_id") in (None, 1, 92)
-                            or parsed.get("owned_caster_pa") is True
+                        if characteristic_context_preflight(
+                            self.factory, container, parsed
                         )
                         else None
                     )
@@ -451,6 +459,15 @@ class NativeFactoryEquipmentCapability:
                     and route.handler_type is EffectDispatcher
                     and family in (999, 913)
                 )
+            if requirement == "native_cost_group_level":
+                from .combat_equipment_cost_level_domain import preflight
+
+                container = (
+                    detail.get("retained_container")
+                    if isinstance(detail, Mapping)
+                    else None
+                )
+                return True if preflight(self.factory, self.routes, container) else None
             if requirement == "native_trigger_group_level":
                 from .combat_effect_dispatch import EffectDispatcher
                 from .combat_equipment_retained_lifecycle import preflight
@@ -503,9 +520,12 @@ class NativeFactoryEquipmentCapability:
                     # alone. Keep this graph unknown until that identity is
                     # carried by the capability input.
                     return None
-                return not (
-                    set(flags) - {2, 3, 4, 5, 6, 15, 17, 22, 23, 24, 28, 33, 34}
-                )
+                allowed = {2, 3, 4, 5, 6, 15, 17, 22, 23, 24, 28, 33, 34}
+                if effect.get("effect_class") == 24:
+                    allowed.add(
+                        29
+                    )  # Native LIFE_STEAL_HEAL_EFFECT, not ordinary healing.
+                return not (set(flags) - allowed)
             if requirement == "native_trigger_value_lifecycle":
                 from .combat_event_replay import NativeEventReplay, NativeEventSource
                 from .combat_final_modifier import (
@@ -613,12 +633,32 @@ class NativeFactoryEquipmentCapability:
                     # transaction context.
                     return None
                 return None
+            if requirement == "native_group_actor_rebinding":
+                from .combat_equipment_selected_level_domain import (
+                    group_rebinding_preflight,
+                )
+
+                container = (
+                    detail.get("retained_container")
+                    if isinstance(detail, Mapping)
+                    else None
+                )
+                parsed = detail.get("parsed") if isinstance(detail, Mapping) else None
+                return (
+                    True
+                    if group_rebinding_preflight(
+                        self.factory,
+                        container,
+                        parsed,
+                        route=self.routes.routes.get(effect.get("effect_class")),
+                    )
+                    else None
+                )
             # These contexts need live triggering/event/stack authorities that
             # are not exposed as a typed static capability by this factory.
             if requirement in {
                 "native_trigger_context",
                 "same-action_owned_effect_stack",
-                "native_group_actor_rebinding",
             }:
                 return None
             if requirement == "native_explicit_self_state_root":
@@ -663,7 +703,7 @@ class NativeFactoryEquipmentCapability:
                 from .combat_effect_dispatch import EffectDispatcher
 
                 return (
-                    route.family in (330, 844, 913, 999, 1020, 1047)
+                    route.family in (330, 844, 912, 913, 999, 1020, 1047)
                     and route.handler_type is EffectDispatcher
                 )
             return True
@@ -816,7 +856,7 @@ def _parse_operation(
         from .combat_state_parameters import interpret_state_parameters
 
         try:
-            parsed = interpret_state_parameters(values)
+            parsed = interpret_state_parameters(values, allow_signed_calculation=True)
         except (TypeError, ValueError) as error:
             return None, (), (), "invalid native state-apply parameters: " + str(error)
         if len(values) in (4, 5):
@@ -827,6 +867,20 @@ def _parse_operation(
             requirements.update(("live_state_resistance", "native_state_chance_rng"))
         dependencies.append(("state", parsed["reference"], parsed["level"]))
         return parsed, tuple(requirements), tuple(dependencies), None
+
+    if family == 912:
+        from .combat_equipment_cost_level_domain import parse
+
+        parsed = parse(effect, profile, effect_level(effect))
+        requirements.update(("native_cost_group_level", "native_runner_lifecycle"))
+        mode = parsed["group_mode"]
+        if mode.actor_rebind:
+            requirements.add("native_group_actor_rebinding")
+        if mode.relative_probability:
+            requirements.update(("relative_group_candidates", "native_group_rng"))
+        if not mode.on_target:
+            requirements.add("native_group_cell_targets")
+        return parsed, tuple(requirements), (), None
 
     if family == 999:
         from .combat_equipment_dynamic_levels import group_child_levels
@@ -1237,7 +1291,7 @@ def validate_effect(
         "state.apply"
         if family == 304
         else "effect.group"
-        if family in (330, 844, 913, 999, 1020, 1047)
+        if family in (330, 844, 912, 913, 999, 1020, 1047)
         else (
             "world.property"
             if family == 449
@@ -1307,6 +1361,7 @@ def validate_effect(
             447,
             449,
             844,
+            912,
             913,
             933,
             999,
@@ -1438,6 +1493,7 @@ def validate_effect(
                     "native_runner_lifecycle",
                     "native_event_scope",
                     "native_trigger_group_level",
+                    "native_cost_group_level",
                     "native_existing_primitive_execution",
                     "native_world_property_context",
                     "native_triggering_final_modifier",
@@ -1445,6 +1501,7 @@ def validate_effect(
                     "native_hp_group_pa",
                     "native_selected_characteristic_pa",
                     "native_characteristic_child_level_domain",
+                    "native_group_actor_rebinding",
                     "native_morph_execution",
                     "native_morph_profile_dependencies",
                     "native_morph_value_context",
@@ -1611,7 +1668,7 @@ def validate_graph(
             if validated.parameters[0].mode.actor_rebind:
                 child_caster_is_owner = False
         elif (
-            family in (913, 1047, 1020)
+            family in (912, 913, 1047, 1020)
             and validated.parameters[0]["group_mode"].actor_rebind
         ):
             child_caster_is_owner = False
@@ -1660,12 +1717,32 @@ def validate_graph(
                 )
             for child, child_level in witnesses:
                 queue.append((child, child_level, False, child_caster_is_owner))
+        elif family == 912:
+            from .combat_equipment_cost_level_domain import child_domain_witnesses
+            from .combat_equipment_dynamic_levels import UnknownDynamicLevel
+
+            try:
+                witnesses = child_domain_witnesses(
+                    effect, effects, source_states, registry=registry, level=level
+                )
+            except (UnknownDynamicLevel, TypeError, ValueError) as missing:
+                return _result(
+                    "unknown",
+                    family,
+                    level,
+                    operation_id=validated.operation_id,
+                    reasons=(str(missing),),
+                )
+            for child, child_level in witnesses:
+                queue.append((child, child_level, False, child_caster_is_owner))
         elif family == 1020:
             from .combat_equipment_dynamic_levels import UnknownDynamicLevel
             from .combat_equipment_trigger_level_domain import child_domain_witnesses
 
             try:
-                witnesses = child_domain_witnesses(effect, effects, registry=registry)
+                witnesses = child_domain_witnesses(
+                    effect, effects, registry=registry, states=source_states
+                )
             except (UnknownDynamicLevel, TypeError, ValueError) as missing:
                 return _result(
                     "unknown",
@@ -1695,6 +1772,23 @@ def validate_graph(
                     operation_id=validated.operation_id,
                     reasons=("referenced native state definition is missing",),
                 )
+            if type(state_level) is int and state_level < 0:
+                children = definition.get("effect_ids")
+                if not isinstance(children, (tuple, list)) or any(
+                    not isinstance(effects.get(str(child)), Mapping)
+                    or type(effects[str(child)].get("minimum_level")) is not int
+                    or effects[str(child)]["minimum_level"] < 0
+                    for child in children
+                ):
+                    return _result(
+                        "unknown",
+                        family,
+                        level,
+                        operation_id=validated.operation_id,
+                        reasons=(
+                            "Negative state descendants need a complete domain proof",
+                        ),
+                    )
             maximum = definition.get("maximum_level")
             if type(maximum) is not int or not 0 <= maximum <= 32767:
                 return _result(

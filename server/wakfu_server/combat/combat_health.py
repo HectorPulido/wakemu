@@ -385,6 +385,7 @@ def persist_aborted_shared_fight(
     reconnecting_session=None,
     requesting_session=None,
     db=None,
+    administrative_cancellation=None,
 ):
     """Atomically persist all owners' final HP and abort a disconnected PvE fight.
 
@@ -437,6 +438,9 @@ def persist_aborted_shared_fight(
         )
     ):
         raise ValueError("Shared fight controlled actors do not match its roster")
+    from .combat_command_recovery import CommandCancellation
+
+    command_cancel = type(administrative_cancellation) is CommandCancellation
     if requesting_session is not None:
         from .combat_pve_withdraw import live_owner_accounts
 
@@ -444,21 +448,36 @@ def persist_aborted_shared_fight(
             reconnecting_session is not None
             or shared.participants.get(requesting_session.account_id)
             != requesting_session
-            or requesting_session.account_id not in shared.connected
-            or live_owner_accounts(fight) - {requesting_session.account_id}
+            or (
+                not command_cancel
+                and requesting_session.account_id not in shared.connected
+            )
+            or (
+                not command_cancel
+                and live_owner_accounts(fight) - {requesting_session.account_id}
+            )
         ):
             raise ValueError(
                 "Explicit shared abort requires the final live owned session"
             )
     results = {}
     with store.connection() if db is None else nullcontext(db) as db:
+        admin_cancel = administrative_cancellation is not None
+        if admin_cancel:
+            from .combat_admin_recovery import AdminHealthCancellation
+
+            if type(administrative_cancellation) not in (
+                AdminHealthCancellation,
+                CommandCancellation,
+            ):
+                raise ValueError("Missing typed administrative cancellation authority")
+            administrative_cancellation.require(shared, db)
         fight_row = db.execute(
             "SELECT status FROM combat_fights WHERE id=%s FOR UPDATE", (fight.id,)
         ).fetchone()
-        if fight_row is None or fight_row["status"] not in (
-            "placement",
-            "active",
-            "aborted",
+        if fight_row is None or (
+            fight_row["status"] not in ("placement", "active", "aborted")
+            and not (admin_cancel and fight_row["status"] == "finished")
         ):
             raise ValueError("Shared fight is not available for abort")
         durable_rows = list(
@@ -630,7 +649,7 @@ def persist_aborted_shared_fight(
                 return {
                     identity: dict(applied=False) for _, identity in controlled_roster
                 }
-            if reconnecting_session is None or exits:
+            if (reconnecting_session is None and not admin_cancel) or exits:
                 raise ValueError("Aborted shared fight has incomplete health receipts")
 
         for owner, identity in sorted(controlled_roster):
@@ -676,7 +695,21 @@ def persist_aborted_shared_fight(
         for owner in sorted(sessions_by_account):
             settle_owner_exit(db, store, fight, owner)
         anchor = requesting_session if requesting_session is not None else sessions[0]
-        if fight_row["status"] != "aborted" and not abort(
+        if admin_cancel and fight_row["status"] == "finished":
+            if (
+                db.execute(
+                    "UPDATE combat_fights SET status='aborted' WHERE id=%s AND status='finished'",
+                    (fight.id,),
+                ).rowcount
+                != 1
+            ):
+                raise ValueError(
+                    "Administrative cancellation lost its finished fight fence"
+                )
+            from wakfu_server.rift_runtime import abort_bound_fight
+
+            abort_bound_fight(db, fight.id)
+        elif fight_row["status"] != "aborted" and not abort(
             store,
             anchor.account_id,
             anchor.character_id,

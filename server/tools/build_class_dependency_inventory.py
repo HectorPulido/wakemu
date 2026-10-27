@@ -63,7 +63,7 @@ def dispatch_routes(path):
     return routes
 
 
-def build(graph, ledger, innate, routes, profiles=None):
+def build(graph, ledger, innate, routes, profiles=None, morph_profiles=None):
     effects = graph["effects"]
     rows = []
     for spell in ledger["spells"]:
@@ -81,8 +81,9 @@ def build(graph, ledger, innate, routes, profiles=None):
             if identity in seen[kind]:
                 continue
             seen[kind].add(identity)
-            if kind == "summon":
-                profile = (profiles or {}).get(str(identity))
+            if kind in ("summon", "morph"):
+                domain = morph_profiles if kind == "morph" else profiles
+                profile = (domain or {}).get(str(identity))
                 if profile is None:
                     unresolved[kind].add(identity)
                 else:

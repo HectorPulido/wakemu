@@ -145,6 +145,49 @@ class DefinitionOverlay(Mapping):
 
 
 class CompiledEffects:
+    @classmethod
+    def from_published(cls, variant="player"):
+        """Use exact offline compiler outputs; never rebuild them in World."""
+        from wakfu_server.native_compiled_catalog import (
+            resolve_publication,
+            descriptor_for,
+        )
+        from .combat_published_catalogs import (
+            resolve_static_catalog_descriptor,
+            static_catalog_descriptor,
+        )
+
+        publication = resolve_publication(source_revision=protocol_catalog.release())
+        manifest = publication
+        if variant not in ("player", "npc_imported", "npc_baseline", "weapon"):
+            raise ValueError("Unknown published native combat variant")
+        if manifest.get("policy") != "wakemu.compiled-combat-catalog.v1":
+            raise ValueError("Invalid published native combat compiler contract")
+
+        def collection(name):
+            if type(name) is not str:
+                raise ValueError("Invalid published combat collection name")
+            return resolve_static_catalog_descriptor(descriptor_for(publication, name))
+
+        rows = manifest["variants"][variant]
+        compiled = object.__new__(cls)
+        compiled.source_effects = collection(rows["source_effects"])
+        from wakfu_server.spell_audit import states_catalog
+
+        # Timing/dispatch use this same cached source object. Preserve the
+        # existing factory identity guard across player/NPC/weapon variants.
+        compiled.source_states = states_catalog()
+        for field, name in (
+            ("states", manifest["states"]),
+            ("effects", manifest["state_effects"]),
+        ):
+            if static_catalog_descriptor(
+                compiled.source_states.get(field)
+            ) != descriptor_for(publication, name):
+                raise ValueError("Published combat state source identity mismatch")
+        compiled.effects = collection(rows["effects"])
+        return compiled
+
     def __init__(self, effects, state_catalog):
         from .combat_effect_runtime import _merge_effects
         from .combat_native_area_metadata import merge_native_point_areas
@@ -154,6 +197,35 @@ class CompiledEffects:
         self.effects = ImmutableCatalog(
             merge_native_point_areas(_merge_effects(effects, state_catalog))
         )
+
+    def with_effect_sources(self, effects):
+        """Validate source additions while sharing the qualified immutable base.
+
+        Ordinary source merges preserve an existing source row when its native
+        identity agrees. A new source that also exists only in the state graph
+        takes precedence, after the same spell/state collision validation.
+        """
+        from .combat_effect_runtime import _merge_effects
+
+        missing = object()
+        delta = {}
+        for reference, effect in effects.items():
+            existing = self.source_effects.get(reference, missing)
+            if existing is effect:
+                continue
+            if existing is not missing:
+                _merge_effects({reference: existing}, {"effects": {reference: effect}})
+            else:
+                delta[reference] = effect
+        state_effects = self.source_states["effects"]
+        overlapping_states = {
+            reference: state_effects[reference]
+            for reference in delta
+            if reference in state_effects
+        }
+        if overlapping_states:
+            _merge_effects(delta, {"effects": overlapping_states})
+        return self.with_effect_delta(delta)
 
     def with_effect_delta(self, effects):
         """Compile only additional sources; the base was qualified at construction.

@@ -7,6 +7,7 @@ import secrets
 import struct
 
 from wakfu_server import player_parties, rift_runtime
+from wakfu_server.rift_entry_feedback import RiftEntryError
 
 
 def decode_action(body):
@@ -34,7 +35,17 @@ def resolve_portal(catalog, map_id, body):
     return found[0] if found else None
 
 
-def _roster(db, store, account_id, generation, character_id):
+def _roster(
+    db,
+    store,
+    account_id,
+    generation,
+    character_id,
+    *,
+    recovery=None,
+    require_leader=True,
+    expand=True,
+):
     party = db.execute(
         "SELECT p.id,p.leader_id,p.revision FROM player_parties p "
         "JOIN player_party_members m ON m.party_id=p.id WHERE m.character_id=%s",
@@ -52,10 +63,52 @@ def _roster(db, store, account_id, generation, character_id):
         ]
     )
     player_parties._lock_members(db, ids)
+    candidates = db.execute(
+        "SELECT id,account_id FROM characters WHERE id=ANY(%s) "
+        "AND deleted_at IS NULL ORDER BY id",
+        (ids,),
+    ).fetchall()
+    if [row["id"] for row in candidates] != ids:
+        raise ValueError("Rift party contains an unavailable character")
+    accounts = sorted({row["account_id"] for row in candidates})
+    # Freeze the complete owner prefix before taking any session/character
+    # lock. Environmental and hero mutations already use account first.
+    locked_accounts = db.execute(
+        "SELECT id FROM accounts WHERE id=ANY(%s) ORDER BY id FOR UPDATE",
+        (accounts,),
+    ).fetchall()
+    if [row["id"] for row in locked_accounts] != accounts:
+        raise ValueError("Rift party contains an unavailable account")
+    db.execute(
+        "SELECT account_id FROM sessions WHERE account_id=ANY(%s) "
+        "ORDER BY account_id FOR UPDATE",
+        (accounts,),
+    ).fetchall()
+    # Hero roster writers hold these same owner/session locks. Include their
+    # characters now so expansion never introduces a later unsorted lock.
+    hero_slots = db.execute(
+        "SELECT character_id,account_id FROM account_hero_slots "
+        "WHERE account_id=ANY(%s) ORDER BY character_id",
+        (accounts,),
+    ).fetchall()
+    expected = {row["id"]: row["account_id"] for row in candidates}
+    for slot in hero_slots:
+        identity, owner = slot["character_id"], slot["account_id"]
+        if identity in expected and expected[identity] != owner:
+            raise ValueError("Rift hero ownership changed during admission")
+        expected[identity] = owner
+    locked_characters = db.execute(
+        "SELECT id,account_id FROM characters WHERE id=ANY(%s) "
+        "AND deleted_at IS NULL ORDER BY id FOR UPDATE",
+        (sorted(expected),),
+    ).fetchall()
+    if {row["id"]: row["account_id"] for row in locked_characters} != expected:
+        raise ValueError("Rift company ownership changed during admission")
+    # Keep the locked party census when a peer has no selected session.
     rows = db.execute(
         "SELECT c.*,s.generation,s.character_id AS selected_character_id,s.expires_at "
-        "FROM characters c JOIN sessions s ON s.account_id=c.account_id "
-        "WHERE c.id=ANY(%s) AND c.deleted_at IS NULL ORDER BY c.id FOR UPDATE OF s,c",
+        "FROM characters c LEFT JOIN sessions s ON s.account_id=c.account_id "
+        "WHERE c.id=ANY(%s) AND c.deleted_at IS NULL ORDER BY c.id",
         (ids,),
     ).fetchall()
     current = db.execute(
@@ -64,7 +117,7 @@ def _roster(db, store, account_id, generation, character_id):
         (character_id,),
     ).fetchone()
     if current != party:
-        raise ValueError("Party changed during rift entry")
+        raise RiftEntryError("party_changed", "Party changed during rift entry")
     if party is not None:
         locked = db.execute(
             "SELECT id,leader_id,revision FROM player_parties WHERE id=%s FOR UPDATE",
@@ -77,24 +130,43 @@ def _roster(db, store, account_id, generation, character_id):
                 (party["id"],),
             ).fetchall()
         ]
-        if locked != party or members != ids or party["leader_id"] != character_id:
-            raise ValueError("Only the current party leader may enter a rift")
+        if locked != party or members != ids:
+            raise RiftEntryError("party_changed", "Party changed during rift entry")
+        if require_leader and party["leader_id"] != character_id:
+            raise RiftEntryError(
+                "leader", "Only the current party leader may enter a rift"
+            )
     owner = next((r for r in rows if r["id"] == character_id), None)
     if (
         owner is None
         or owner["account_id"] != account_id
         or owner["generation"] != generation
-        or [r["id"] for r in rows] != ids
     ):
         raise ValueError("Invalid rift character session")
-    if any(
-        r["selected_character_id"] != r["id"] or r["expires_at"] <= store.now()
-        for r in rows
-    ):
-        raise ValueError("Every rift member must have a current selected session")
-    from wakfu_server.characters.heroes import expand_session_rows
+    if [r["id"] for r in rows] != ids:
+        raise RiftEntryError("party_changed", "Rift party character census changed")
+    unavailable = next(
+        (
+            r
+            for r in rows
+            if r["selected_character_id"] != r["id"]
+            or r["expires_at"] is None
+            or r["expires_at"] <= store.now()
+        ),
+        None,
+    )
+    if unavailable is not None:
+        raise RiftEntryError(
+            "session",
+            "Every rift member must have a current selected session",
+            member=unavailable,
+        )
+    if recovery is not None:
+        rows = recovery.external_mains(db, party, rows)
+    if expand:
+        from wakfu_server.characters.heroes import expand_session_rows
 
-    rows = expand_session_rows(db, store, rows)
+        rows = expand_session_rows(db, store, rows)
     ids = [row["id"] for row in rows]
     if db.execute(
         "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
@@ -117,6 +189,7 @@ def enter(
     resolve_destination,
     seed=None,
     allowed_accounts=None,
+    recovery=None,
 ):
     """Return run and moved session rows; map packet delivery remains caller-owned."""
     if not callable(source_allowed) or not callable(resolve_destination):
@@ -131,26 +204,44 @@ def enter(
         if resolved is None:
             return None
         selected, source = resolved
-        rows = _roster(db, store, account_id, generation, character_id)
+        if recovery is not None:
+            recovery.bind(selected, source)
+        rows = _roster(
+            db, store, account_id, generation, character_id, recovery=recovery
+        )
         if allowed_accounts is not None and any(
             r["account_id"] not in allowed_accounts for r in rows
         ):
-            raise ValueError("Party changed outside the position barrier scope")
+            raise RiftEntryError(
+                "party_changed", "Party changed outside the position barrier scope"
+            )
         owner = next(r for r in rows if r["id"] == character_id)
+        from wakfu_server.instance_entry_level import enforced, minimum_level_allowed
+
+        minimum_enforced = enforced(db)
         for row in rows:
             member = f"{row.get('name') or row['id']} (id {row['id']})"
             if row["map_id"] != map_id or row["instance_id"] != owner["instance_id"]:
-                raise ValueError(
-                    f"Rift member {member} is not eligible: different portal map or instance"
+                raise RiftEntryError(
+                    "location",
+                    f"Rift member {member} is not eligible: different portal map or instance",
+                    member=row,
                 )
-            if row["level"] < selected["level"]:
-                raise ValueError(
+            if not minimum_level_allowed(
+                row["level"], selected["level"], enforce_minimum=minimum_enforced
+            ):
+                raise RiftEntryError(
+                    "level",
                     f"Rift member {member} is not eligible: level {row['level']}; "
-                    f"requires level {selected['level']}"
+                    f"requires level {selected['level']}",
+                    member=row,
+                    required_level=selected["level"],
                 )
             if source_allowed(row, dict(source)) is not True:
-                raise ValueError(
-                    f"Rift member {member} is not eligible: move closer to the native portal"
+                raise RiftEntryError(
+                    "proximity",
+                    f"Rift member {member} is not eligible: move closer to the native portal",
+                    member=row,
                 )
         run = rift_runtime.enter(
             db,
@@ -185,6 +276,8 @@ def enter(
                     row["id"],
                 ),
             )
+        if recovery is not None:
+            recovery.before_commit(db)
         return {
             "run": run,
             "destination": {**destination, "instance_id": run["instance_id"]},

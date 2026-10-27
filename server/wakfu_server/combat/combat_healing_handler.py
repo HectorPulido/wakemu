@@ -49,6 +49,7 @@ class NativeHealingHandler:
         if emit_events is not None and not callable(emit_events):
             raise ValueError("Native healing event emitter must be callable")
         self.emit_events = emit_events
+        self.undead_damage = None
         self.retention = None
         self.event_lifecycle = None
         self.prepared = {}
@@ -310,7 +311,17 @@ class NativeHealingHandler:
         context = self.context(effect, invocation)
         if not context.executable:
             return False
-        result = plan_healing_consumption(amount, target, target_stats, context)
+        converted = context.undead and not context.bypass_undead
+        if converted:
+            if not callable(self.undead_damage):
+                raise ValueError("Missing native undead conversion damage branch")
+            amount = max(0, amount)  # eXs.c clamps aSg before child construction.
+            runner.set_calculated(amount)
+            self.undead_damage(effect, invocation, amount, runner)
+            # eXs retains its calculated aSg while its child owns HP loss.
+            result = {"value": runner.value}
+        else:
+            result = plan_healing_consumption(amount, target, target_stats, context)
         pending_retained = None
         from .combat_native_timing_context import native_definition_timing
 
@@ -339,7 +350,8 @@ class NativeHealingHandler:
             restored=result["value"],
             base_uid=invocation.base_uid,
         )
-        apply_healing_consumption(self.fight, source, target, result, target_stats)
+        if not converted:
+            apply_healing_consumption(self.fight, source, target, result, target_stats)
         runner.set_applied(result["value"])
         if not runner.notification_suppressed:
             self.packets.append((12613, packet))

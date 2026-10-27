@@ -99,7 +99,11 @@ class ActorRoleTests(unittest.TestCase):
         from wakfu_ai.bridge.actor_repertoires import allied_healing_scope
 
         allied_healing_scope.cache_clear()
-        with patch.dict(sys.modules, modules):
+        with patch.dict(sys.modules, modules), patch(
+            "wakfu_server.combat_native_spell_casting",
+            modules["wakfu_server.combat_native_spell_casting"],
+            create=True,
+        ):
             records = actor_repertoires(
                 Oracle(),
                 fight,
@@ -241,7 +245,11 @@ class ActorRoleTests(unittest.TestCase):
         from wakfu_ai.bridge.actor_repertoires import allied_healing_scope
 
         allied_healing_scope.cache_clear()
-        with patch.dict(sys.modules, modules):
+        with patch.dict(sys.modules, modules), patch(
+            "wakfu_server.combat_native_spell_casting",
+            modules["wakfu_server.combat_native_spell_casting"],
+            create=True,
+        ):
             records = actor_repertoires(
                 Oracle(),
                 fight,

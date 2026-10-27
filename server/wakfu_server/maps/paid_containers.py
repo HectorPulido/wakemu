@@ -84,11 +84,8 @@ def definition(store, map_id, object_id):
 
 
 def _source(rule):
-    from wakfu_server import native_catalog
     from wakfu_server.treasure_chests import _native_authority
 
-    if native_catalog.release() != rule["catalog_revision"]:
-        raise ValueError("Paid container catalog changed")
     _native_authority(
         rule["catalog_revision"],
         rule["map_id"],

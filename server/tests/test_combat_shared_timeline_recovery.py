@@ -259,11 +259,10 @@ class SharedTimelineRecoveryTests(unittest.TestCase):
             self.assertLess(opcodes.index(13726), opcodes.index(12053))
             self.assertEqual(opcodes.count(12053), 1)
             self.assertEqual(opcodes.count(13482), 1)
-            self.assertEqual(opcodes.count(12514), 1)
+            self.assertNotIn(12514, opcodes)
             self.assertNotIn(13337, opcodes)
             self.assertNotIn(13477, opcodes)
-            self.assertLess(opcodes.index(12053), opcodes.index(12514))
-            self.assertLess(opcodes.index(12514), opcodes.index(13482))
+            self.assertLess(opcodes.index(12053), opcodes.index(13482))
             retired = next(body for opcode, body in packets if opcode == 13726)
             self.assertEqual(struct.unpack_from(">q", retired, 12)[0], 911)
             timeline = decoded_timeline(

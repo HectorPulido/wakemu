@@ -5,12 +5,122 @@ an actual source running effect. This module never invents an event ID.
 """
 from dataclasses import dataclass, asdict, replace
 from contextvars import ContextVar
+from concurrent.futures import CancelledError
 from .combat_effect_dispatch import EffectInvocation
 from .combat_native_events import (
     subscription_selection,
     subscription_actor_ids,
     activation_order_key,
 )
+
+
+# Only a source discriminator survives an event. No retained row, owner, Qf view
+# or condition result is kept. Charge includes key strings and container overhead;
+# this is a conservative retention budget, not a process-RSS measurement.
+from collections import OrderedDict
+from threading import RLock
+from types import MappingProxyType
+from sys import getsizeof
+
+_SUBSCRIPTION_MAX_ENTRIES = 2048
+_SUBSCRIPTION_MAX_BYTES = 1024 * 1024
+_SUBSCRIPTION_CACHE = OrderedDict()
+_SUBSCRIPTION_BYTES = 0
+_SUBSCRIPTION_LOCK = RLock()
+_SUBSCRIPTION_MISS = object()
+_SUBSCRIPTION_FALSE = MappingProxyType({"subscription": False})
+_SUBSCRIPTION_TRUE = MappingProxyType({"subscription": True})
+
+
+def _subscription_key(descriptor, reference):
+    return (
+        descriptor["revision"],
+        descriptor["manifest_sha256"],
+        descriptor["collection"],
+        "native_json",
+        reference,
+    )
+
+
+def _subscription_get(key):
+    with _SUBSCRIPTION_LOCK:
+        cached = _SUBSCRIPTION_CACHE.get(key)
+        if cached is None:
+            return _SUBSCRIPTION_MISS
+        _SUBSCRIPTION_CACHE.move_to_end(key)
+        value = cached[0]
+    return (
+        None
+        if value is None
+        else (_SUBSCRIPTION_TRUE if value else _SUBSCRIPTION_FALSE)
+    )
+
+
+def _subscription_put(key, row):
+    global _SUBSCRIPTION_BYTES
+    if row is None:
+        value = None
+    elif type(row) is dict and type(row.get("subscription")) is bool:
+        value = row["subscription"]
+    else:
+        # Preserve legacy malformed-row errors/truthiness at its consumption
+        # position; never retain a mutable value as a static boolean.
+        return
+    size = getsizeof(key) + sum(map(getsizeof, key)) + getsizeof(value) + 256
+    if size > _SUBSCRIPTION_MAX_BYTES:
+        return
+    with _SUBSCRIPTION_LOCK:
+        previous = _SUBSCRIPTION_CACHE.pop(key, None)
+        if previous is not None:
+            _SUBSCRIPTION_BYTES -= previous[1]
+        _SUBSCRIPTION_CACHE[key] = (value, size)
+        _SUBSCRIPTION_BYTES += size
+        while (
+            len(_SUBSCRIPTION_CACHE) > _SUBSCRIPTION_MAX_ENTRIES
+            or _SUBSCRIPTION_BYTES > _SUBSCRIPTION_MAX_BYTES
+        ):
+            _, (_, charge) = _SUBSCRIPTION_CACHE.popitem(last=False)
+            _SUBSCRIPTION_BYTES -= charge
+
+
+def _prefetch_replay_bytes(catalog, keys):
+    """Coalesce sealed source reads without retaining decoded listener state."""
+    from wakfu_server.combat_published_catalogs import static_catalog_descriptor
+    from wakfu_server.native_compiled_catalog import CompiledBatchLimit
+
+    if static_catalog_descriptor(catalog) is None:
+        return
+    reader = catalog._reader
+    limit = min(128, reader.backend.batch_size)
+
+    def warm(batch):
+        try:
+            reader.get_many_bytes(batch)
+        except CompiledBatchLimit:
+            if len(batch) <= 1:
+                raise
+            middle = len(batch) // 2
+            warm(batch[:middle])
+            warm(batch[middle:])
+
+    try:
+        batch, seen = [], set()
+        for key in keys:
+            if key in seen:
+                continue
+            seen.add(key)
+            batch.append(key)
+            if len(batch) == limit:
+                warm(batch)
+                batch.clear()
+        if batch:
+            warm(batch)
+    except (TimeoutError, CancelledError, InterruptedError):
+        raise
+    except Exception:
+        # Keep malformed/missing source and invocation failures at the original
+        # sequential consumption boundary. Byte-cache hits still verify SHA.
+        return
 
 
 @dataclass(frozen=True)
@@ -300,24 +410,170 @@ class NativeEventReplay:
         ):
             raise ValueError("Native clone callbacks required")
         view = self.retention.view()
+        _prefetch_replay_bytes(
+            self.retention.metadata["effects"],
+            (
+                str(row["invocation"]["reference"])
+                for entry in view.entries
+                if (eligible_uids is None or entry.uid in eligible_uids)
+                and entry.manager_id == source.manager_actor_id
+                and (
+                    row := self.retention.fight.native_owned_group_effects.get(
+                        entry.uid
+                    )
+                )
+                is not None
+            ),
+        )
+        if source.channel in (4, 40, 41):
+            _prefetch_replay_bytes(
+                self.dispatcher.effects,
+                (
+                    str(entry.generic_effect)
+                    for entry in view.entries
+                    if (eligible_uids is None or entry.uid in eligible_uids)
+                    and entry.manager_id == source.manager_actor_id
+                    and self.retention.fight.native_owned_group_effects.get(entry.uid)
+                    is None
+                    and entry.uid
+                    in getattr(self.retention.fight, "owned_stat_effects", {})
+                ),
+            )
         queued = []
         remove = []
-        for entry in view.entries:
+        applied_scalar_removal = False
+        metadata_window = {}
+        metadata_window_end = 0
+        metadata_window_source = None
+        sequential_metadata = False
+
+        def non_group_definition(index, entry):
+            nonlocal metadata_window, metadata_window_end
+            nonlocal metadata_window_source, sequential_metadata
+            effects = self.retention.metadata["effects"]
+            key = str(entry.generic_effect)
+            if not sequential_metadata:
+                from wakfu_server.combat_published_catalogs import (
+                    static_catalog_descriptor,
+                )
+
+                descriptor = static_catalog_descriptor(effects)
+                if descriptor is None or effects.representation != "native_json":
+                    return effects.get(key)
+                cached = _subscription_get(_subscription_key(descriptor, key))
+                if cached is not _SUBSCRIPTION_MISS:
+                    return cached
+                if (
+                    index >= metadata_window_end
+                    or metadata_window_source is not effects
+                ):
+                    metadata_window = {}
+                    metadata_window_source = None
+                    # A pure current-view window only: no listener activation,
+                    # fight/owner result or cross-operation metadata is cached.
+                    reader = effects._reader
+                    limit = min(128, reader.backend.batch_size)
+                    keys, positions, seen = [], [], set()
+                    metadata_window_end = index
+                    for following in range(index, len(view.entries)):
+                        candidate = view.entries[following]
+                        metadata_window_end = following + 1
+                        if (
+                            eligible_uids is not None
+                            and candidate.uid not in eligible_uids
+                            or candidate.manager_id != source.manager_actor_id
+                            or self.retention.fight.native_owned_group_effects.get(
+                                candidate.uid
+                            )
+                            is not None
+                        ):
+                            continue
+                        candidate_key = str(candidate.generic_effect)
+                        if candidate_key not in seen:
+                            seen.add(candidate_key)
+                            keys.append(candidate_key)
+                            positions.append(following)
+                        if len(keys) == limit:
+                            break
+
+                    try:
+                        from wakfu_server.native_compiled_catalog import (
+                            CompiledBatchLimit,
+                        )
+
+                        while True:
+                            try:
+                                metadata_window = reader.get_many(keys)
+                                # A successful sealed batch authenticates both
+                                # returned records and absent original keys.
+                                for reference in keys:
+                                    _subscription_put(
+                                        _subscription_key(descriptor, reference),
+                                        metadata_window.get(reference),
+                                    )
+                                break
+                            except CompiledBatchLimit:
+                                if len(keys) <= 1:
+                                    raise
+                                # Shrink this window rather than retaining both
+                                # halves beyond the reader's aggregate byte cap.
+                                keys = keys[: len(keys) // 2]
+                                metadata_window_end = positions[len(keys) - 1] + 1
+                        metadata_window_source = effects
+                    except (TimeoutError, CancelledError, InterruptedError):
+                        raise
+                    except Exception:
+                        # A later corrupt/malformed record must not precede
+                        # the original first entry's guard or error. Re-read
+                        # sequentially; its unchanged reader still fails closed.
+                        metadata_window = {}
+                        metadata_window_source = None
+                        sequential_metadata = True
+                if not sequential_metadata:
+                    return metadata_window.get(key)
+            return effects.get(key)
+
+        for index, entry in enumerate(view.entries):
             if eligible_uids is not None and entry.uid not in eligible_uids:
                 continue
             if entry.manager_id != source.manager_actor_id:
                 continue
             row = self.retention.fight.native_owned_group_effects.get(entry.uid)
             if row is None:
-                definition = self.retention.metadata["effects"].get(
-                    str(entry.generic_effect)
-                )
+                definition = non_group_definition(index, entry)
                 if definition is not None and definition["subscription"]:
                     raise ValueError(
                         "Subscribed retained family has no native replay runner "
                         f"(uid={entry.uid}, reference={entry.generic_effect}, "
                         f"family={entry.effect_class}, manager={entry.manager_id})"
                     )
+                if source.channel in (4, 40, 41):
+                    from .combat_external_event_removal import applied_removal_contract
+
+                    contract = applied_removal_contract(
+                        self.dispatcher, self.retention, entry
+                    )
+                    if contract is not None:
+                        masks, flags, definition = contract
+                        action = subscription_selection(
+                            masks=masks,
+                            event_ids=source.event_ids,
+                            channel=source.channel,
+                            global_subscription=definition["event_global_subscription"],
+                            reversed_subscription=definition[
+                                "event_reverse_subscription"
+                            ],
+                            flags=flags,
+                            source_present=isinstance(source, NativeEventSource),
+                            source_suppresses_level_one=source.suppresses_level_one,
+                            source_suppresses_all=source.suppresses_all,
+                            source_suppressed=source.suppressed,
+                            source_is_self=source.uid == entry.uid,
+                            source_parent_is_self=source.source_parent_uid == entry.uid,
+                        )
+                        if action == "remove":
+                            remove.append(entry.uid)
+                            applied_scalar_removal = True
                 continue
             definition = self.retention.metadata["effects"][
                 str(row["invocation"]["reference"])
@@ -343,12 +599,22 @@ class NativeEventReplay:
         # Native eZX.a removes queued listeners before sorting/activating survivors.
         if remove:
             self.retention.removal(view).remove(remove)
+            if applied_scalar_removal:
+                # Concrete scalar handlers reverse and publish their owned
+                # effect; their central records normally prune lazily on the
+                # next view. This event can execute queued criteria first, so
+                # reconcile the actual removal at this mutation boundary.
+                self.retention.synchronize()
         queued.sort(
             key=lambda item: activation_order_key(
                 priority=item[2]["event_priority"],
                 generic_effect=item[0].generic_effect,
                 uid=item[0].uid,
             )
+        )
+        _prefetch_replay_bytes(
+            self.dispatcher.effects,
+            (str(row["invocation"]["reference"]) for _, row, _ in queued),
         )
         outcomes = []
         for entry, row, definition in queued:
@@ -555,7 +821,17 @@ class NativeEventReplay:
                 owner_scope = nullcontext()
                 if original.state_uid is not None:
                     owner_scope = self.retention.container_scope(original)
-                with final_modifier_source(source), owner_scope:
+                from .rift_ko_cleanup import cleanup_scope
+
+                with final_modifier_source(source), owner_scope, cleanup_scope(
+                    self.retention,
+                    self.dispatcher,
+                    source,
+                    entry=entry,
+                    original=original,
+                    effect=self.dispatcher.effects[str(original.reference)],
+                    definition=definition,
+                ):
                     outcomes.append(
                         self.dispatcher.execute_activation(
                             invocation,

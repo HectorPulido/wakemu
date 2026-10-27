@@ -12,13 +12,20 @@ class World:
         deliver_batch=None,
         delivery_failure=None,
         state_packets=None,
+        own_state_packets=None,
         refresh_state_packets=None,
     ):
         self.lock = threading.RLock()
         self.players = {}
         self._ecology_inactive = set()
+        # SQL-owned environmental operations read presence without acquiring
+        # the membership lock held by World movement commits waiting on SQL.
+        # Writers take membership -> presence; presence never encloses callbacks.
+        self._presence_lock = threading.Lock()
         self._presence_generation = {}
         self._presence_sequence = 0
+        self._empty_scopes = {}
+        self._empty_scope_sequence = 0
         self._ranch_scene_refresh_sequence = 0
         self.spawn = spawn
         self.remove = remove
@@ -26,6 +33,7 @@ class World:
         self.deliver_batch = deliver_batch
         self.delivery_failure = delivery_failure
         self.state_packets = state_packets or (lambda character: ())
+        self.own_state_packets = own_state_packets or self.state_packets
         self.refresh_state_packets = refresh_state_packets
 
     @staticmethod
@@ -101,8 +109,20 @@ class World:
 
     def scope_presence(self, map_id, instance_id):
         """Constant-time live occupancy episode, absent after the last departure."""
-        with self.lock:
+        with self._presence_lock:
             return self._presence_generation.get((map_id, instance_id))
+
+    def empty_scope_generation(self, map_id, instance_id):
+        """Read the last actual departure episode without taking SQL-owned locks."""
+        with self._presence_lock:
+            return self._empty_scopes.get((map_id, instance_id))
+
+    def empty_scope_snapshot(self):
+        with self._presence_lock:
+            return [
+                dict(map_id=scope[0], instance_id=scope[1], empty_generation=generation)
+                for scope, generation in sorted(self._empty_scopes.items())
+            ]
 
     def deactivate_ecology(self, character_id, generation):
         """Stop simulation authority immediately without disrupting combat cleanup."""
@@ -117,7 +137,8 @@ class World:
                 and (other["id"], lease) not in self._ecology_inactive
                 for lease, _, other in self.players.values()
             ):
-                self._presence_generation.pop(location, None)
+                with self._presence_lock:
+                    self._presence_generation.pop(location, None)
             return True
 
     def _send(self, peer, opcode, body):
@@ -350,9 +371,6 @@ class World:
                 self.leave(character["id"], existing[0])
             location = self.location(character)
             self._ecology_inactive.discard((character["id"], generation))
-            if location not in self._presence_generation:
-                self._presence_sequence += 1
-                self._presence_generation[location] = self._presence_sequence
             entry = (generation, peer, dict(character))
             for _, other_peer, other in self.players.values():
                 if self.location(other) == self.location(character):
@@ -363,7 +381,12 @@ class World:
                     for opcode, body in self.state_packets(character):
                         self._send(other_peer, opcode, body)
             self.players[character["id"]] = entry
-            for opcode, body in self.state_packets(character):
+            with self._presence_lock:
+                self._empty_scopes.pop(location, None)
+                if location not in self._presence_generation:
+                    self._presence_sequence += 1
+                    self._presence_generation[location] = self._presence_sequence
+            for opcode, body in self.own_state_packets(character):
                 self._send(peer, opcode, body)
 
     def resynchronize(self, generation, peer, character):
@@ -392,7 +415,7 @@ class World:
                 for _, other_peer, other in self.players.values()
                 if other["id"] != character["id"] and self.location(other) == location
             )
-            own_state = tuple(self.state_packets(character))
+            own_state = tuple(self.own_state_packets(character))
 
         for _, other in others:
             if not self._send(peer, 12608, self.spawn(other)):
@@ -413,6 +436,14 @@ class World:
             self.deactivate_ecology(character_id, generation)
             self.players.pop(character_id)
             self._ecology_inactive.discard((character_id, generation))
+            location = self.location(existing[2])
+            if location[1] == 0 and not any(
+                self.location(other) == location
+                for _, _, other in self.players.values()
+            ):
+                with self._presence_lock:
+                    self._empty_scope_sequence += 1
+                    self._empty_scopes[location] = self._empty_scope_sequence
             for _, peer, other in self.players.values():
                 if self.location(other) == self.location(existing[2]):
                     self._send(peer, 12304, self.remove(character_id))
@@ -571,11 +602,14 @@ class World:
         *,
         exclude_generation=None,
         exclude_sessions=(),
+        exclude_character_id=None,
         require_all=False,
     ):
         """Capture location peers, then deliver each ordered batch in one write.
 
         Identity/generation exclusions have the same meaning as emit_location.
+        A remote-only actor component can exclude that actor's selected local
+        renderer by character identity, including a replacement session lease.
         Captured sockets are never redirected to replacement leases. A failed
         peer cannot prevent delivery to the other captured recipients.
         Strict outbox callers raise after all sends if any recipient failed;
@@ -591,6 +625,7 @@ class World:
                 for generation, peer, character in self.players.values()
                 if generation != exclude_generation
                 and (character["id"], generation) not in exclude_sessions
+                and character["id"] != exclude_character_id
                 and self.location(character) == (map_id, instance_id)
             )
         delivered = sum(self._send_batch(peer, packets) for peer in peers)

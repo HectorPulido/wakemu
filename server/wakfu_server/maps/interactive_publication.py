@@ -30,7 +30,7 @@ def refresh_snapshots(body):
     return tuple(records)
 
 
-def resource_cell(opcode, body):
+def resource_cell(opcode, body, *, planting_only=False):
     """Recognize qualified native resource coordinates; unknown layouts pass."""
     if opcode == 12782:
         return struct.unpack_from(">ii", body) if len(body) == 24 else None
@@ -38,9 +38,11 @@ def resource_cell(opcode, body):
         return None
     cursor = 0
     coordinates = {}
+    fields = {}
+    planting_layout = True
 
     def varint():
-        nonlocal cursor
+        nonlocal cursor, planting_layout
         value = 0
         for index in range(10):
             if cursor == len(body):
@@ -51,6 +53,8 @@ def resource_cell(opcode, body):
                 raise ValueError("Overflowing resource varint")
             value |= (byte & 127) << (index * 7)
             if not byte & 128:
+                if index and byte == 0:
+                    planting_layout = False
                 return value
         raise ValueError("Unterminated resource varint")
 
@@ -62,12 +66,16 @@ def resource_cell(opcode, body):
                 return None
             if kind == 0:
                 value = varint()
+                if field not in range(1, 9) or field in fields:
+                    planting_layout = False
+                fields[field] = value
                 if field in (2, 3):
                     value = value - (1 << 64) if value >= 1 << 63 else value
                     if not -(1 << 31) <= value < (1 << 31):
                         return None
                     coordinates[field] = value
             elif kind in (1, 2, 5):
+                planting_layout = False
                 if field in (2, 3):
                     return None
                 length = varint() if kind == 2 else (8 if kind == 1 else 4)
@@ -78,6 +86,20 @@ def resource_cell(opcode, body):
                 return None
     except ValueError:
         return None
+    if planting_only:
+        # Qualify only planting.resource_packet's complete public zk layout.
+        # Other protobuf forms remain visible but are never deduplicated.
+        if (
+            not planting_layout
+            or tuple(fields) != tuple(range(1, 9))
+            or not 0 < fields[1] < 1 << 31
+            or not 0 <= fields[5] < 128
+            or any(fields[field] != 0 for field in (6, 7, 8))
+        ):
+            return None
+        altitude = fields[4] - (1 << 64) if fields[4] >= 1 << 63 else fields[4]
+        if not -(1 << 15) <= altitude < 1 << 15:
+            return None
     return (coordinates[2], coordinates[3]) if set(coordinates) == {2, 3} else None
 
 
@@ -113,6 +135,7 @@ class InteractivePublication:
         self.identity = None
         self.visible = None
         self.attached = set()
+        self.resource_appearances = {}
 
     def transform(self, data, scope):
         """Validate an entire framed write before committing publication state."""
@@ -140,6 +163,9 @@ class InteractivePublication:
         identity = tuple(scope.get(key) for key in _SCOPE_FIELDS)
         visible = self.visible if identity == self.identity else None
         attached = set(self.attached) if identity == self.identity else set()
+        resource_appearances = (
+            dict(self.resource_appearances) if identity == self.identity else {}
+        )
         map_id = scope.get("map_id")
         if map_id not in self._catalog_cache:
             self._catalog_cache[map_id] = {
@@ -165,6 +191,7 @@ class InteractivePublication:
             # map and instance are unchanged and no 13256 precedes it.
             if opcode in (13256, 13974):
                 attached.clear()
+                resource_appearances.clear()
                 visible = None
                 output.append(original)
             elif opcode == 12318:
@@ -182,14 +209,33 @@ class InteractivePublication:
                     else:
                         emit_event(object_id, 12318, None, "unload")
                 attached = retained
+                resource_appearances = {
+                    position: payload
+                    for position, payload in resource_appearances.items()
+                    if (math.floor(position[0] / 18), math.floor(position[1] / 18))
+                    in visible
+                }
                 output.append(original)
             elif opcode in (13135, 12782):
                 position = resource_cell(opcode, body)
                 if position is None:
+                    # Unknown resource traffic cannot certify that a previous
+                    # appearance still exists, including unknown12782 retirements.
+                    resource_appearances.clear()
                     output.append(original)
                 elif visible is not None:
                     cell = (math.floor(position[0] / 18), math.floor(position[1] / 18))
                     if cell in visible:
+                        if opcode == 12782:
+                            resource_appearances.pop(position, None)
+                        elif (
+                            resource_cell(opcode, body, planting_only=True) is not None
+                        ):
+                            if resource_appearances.get(position) == body:
+                                continue
+                            resource_appearances[position] = body
+                        else:
+                            resource_appearances.pop(position, None)
                         output.append(original)
             elif opcode == 13984:
                 additions = []
@@ -244,6 +290,7 @@ class InteractivePublication:
                         emit_event(object_id, opcode, opcode, "update")
         result = b"".join(output)
         self.identity, self.visible, self.attached = identity, visible, attached
+        self.resource_appearances = resource_appearances
         for event in events:
             if (
                 self.trace is None

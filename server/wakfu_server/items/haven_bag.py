@@ -161,6 +161,28 @@ def _interior_character(character):
     return inside
 
 
+def restore_return_scene(character, return_point):
+    """Restore only scene-owned fields; retain health and other live state."""
+    restored = dict(character)
+    for key in (
+        "map_id",
+        "instance_id",
+        "x",
+        "y",
+        "z",
+        "native_world_id",
+        "_native_haven_world_position",
+        "haven_bag",
+        "haven_bag_visitor",
+        "haven_ranch_session",
+    ):
+        if key in return_point:
+            restored[key] = return_point[key]
+        else:
+            restored.pop(key, None)
+    return restored
+
+
 class HavenBagSession:
     """Interior location stays in memory; PostgreSQL retains the exterior return point."""
 
@@ -249,7 +271,7 @@ class HavenBagSession:
     def leave(self, character):
         if not self.owns(character):
             raise ValueError("Character is outside its own haven bag")
-        return dict(self.outside)
+        return restore_return_scene(character, self.outside)
 
     def refresh(self, character, saved):
         """Apply a persisted build without moving the active interior session."""

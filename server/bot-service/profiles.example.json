@@ -1,0 +1,25 @@
+{
+  "bots": [
+    {
+      "bot_id": "astrub-buyer",
+      "character": {
+        "name": "AstrubBuyer",
+        "breed": 15,
+        "sex": 0,
+        "initial_kamas": 100000
+      },
+      "enabled": false,
+      "capabilities": ["shop"],
+      "behaviors": {"buyer": {"purchase_percent": 80}}
+    },
+    {
+      "bot_id": "town-crier",
+      "character": {"name": "TownCrier", "breed": 15, "sex": 0},
+      "enabled": false,
+      "capabilities": [],
+      "behaviors": {
+        "announcer": {"interval_seconds": 300, "text": "Welcome to Astrub!"}
+      }
+    }
+  ]
+}

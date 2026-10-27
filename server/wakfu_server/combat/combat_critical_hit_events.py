@@ -68,13 +68,15 @@ def deliver_completed_critical_hit(
     # No listener means no extra Qf iteration/global-recipient lookup. Native
     # state admission/timers still own whether a1016 listener is retained.
     groups = getattr(handler.fight, "native_owned_group_effects", {})
+    from .combat_external_event_removal import has_removal_subscription
+
     if not any(
         isinstance(row, Mapping)
         and isinstance(row.get("native_subscription_masks"), (list, tuple))
         and len(row["native_subscription_masks"]) == 7
         and 1016 in (row["native_subscription_masks"][5] or ())
         for row in groups.values()
-    ):
+    ) and not has_removal_subscription(replay.dispatcher, 1016):
         return ()
     # This external owner notification addresses an ordinary fighter's Qf.
     # Detached constructor sources and casters already retired by L4 do not
@@ -87,4 +89,8 @@ def deliver_completed_critical_hit(
     # 1016 is an external event, like the installed1024/1025 policy. Reuse its
     # exact local/reversed/global Qf delivery, without manufacturing a Qe or
     # borrowing this damage runner's mutable amount as a trigger context.
-    return _deliver(replay.dispatcher, {"actor_id": invocation.caster_id}, 1016)
+    plan = {"actor_id": invocation.caster_id}
+    outcomes = _deliver(replay.dispatcher, plan, 1016)
+    if has_removal_subscription(replay.dispatcher, 1016):
+        outcomes += _deliver(replay.dispatcher, plan, 1016, removal=True)
+    return outcomes

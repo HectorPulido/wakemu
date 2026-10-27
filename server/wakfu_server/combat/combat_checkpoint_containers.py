@@ -1,4 +1,5 @@
 """Recover legacy PL namespaces only from checkpointed owned fyW objects."""
+from .combat_state_parameters import pack_state_identity
 from copy import deepcopy
 from .combat_effects import _integer
 from .combat_effect_removal import _identity_fields, _proto_replace
@@ -53,12 +54,12 @@ def reconstruct_state_containers(saved):
             type(reference) is not int
             or not 0 < reference <= 32767
             or type(level) is not int
-            or not 0 <= level <= 32767
+            or not -32768 <= level <= 32767
             or str(state.get("caster_id")) not in actors
             or state.get("target_id") not in manager_ids
         ):
             raise ValueError("Checkpoint has invalid fyW identity")
-        identity = (reference << 16) | level
+        identity = pack_state_identity(reference, level)
         if record.get("container_id") not in (None, identity):
             raise ValueError("Checkpoint fyW identity disagrees with ownership")
         child = children[0]

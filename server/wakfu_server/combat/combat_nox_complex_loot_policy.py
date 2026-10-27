@@ -81,8 +81,21 @@ def permission(policy):
 
 
 def validate_native_rows(policy, catalog_revision, native_rows):
+    observed_revision = None
     if catalog_revision != policy.catalog_revision:
-        raise ValueError("Nox loot policy requires its reviewed native release")
+        if (
+            type(catalog_revision) is not str
+            or len(catalog_revision) != 64
+            or any(value not in "0123456789abcdef" for value in catalog_revision)
+        ):
+            raise ValueError("Invalid Nox loot source revision")
+        from wakfu_server import native_catalog
+        from wakfu_server.native_catalog_compatibility import require_source_revision
+
+        observed_revision = native_catalog.release()
+        if catalog_revision != observed_revision:
+            raise ValueError("Nox loot rows do not belong to the current native source")
+        require_source_revision(policy.catalog_revision, ("monster-encyclopedia.json",))
     selected = sorted(
         (
             row
@@ -108,6 +121,8 @@ def validate_native_rows(policy, catalog_revision, native_rows):
     ).hexdigest()
     if digest != policy.native_rows_sha256:
         raise ValueError("Nox loot cannot replace native probabilities or quantities")
+    if observed_revision is not None and native_catalog.release() != observed_revision:
+        raise ValueError("Native publication changed during Nox loot validation")
 
 
 def validate_context(context, score):

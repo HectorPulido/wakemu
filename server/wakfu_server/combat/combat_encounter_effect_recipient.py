@@ -3,6 +3,14 @@
 This changes only a qualified invocation. Native Qe, selectors, definitions,
 retained source rows and ordinary chosen-PV behavior remain untouched.
 """
+
+from .combat_encounter_source_revision import source_revision_matches
+
+SOURCE_DEPENDENCIES = (
+    "combat-state-definitions.json",
+    "native-retained-effect-metadata.json",
+    "native-direct-target-policies.json",
+)
 from copy import deepcopy
 from dataclasses import replace
 from functools import lru_cache
@@ -114,7 +122,7 @@ def freeze_effect_recipient_policy(fight, *, roles):
         if (
             row["map_id"] != roles.map_id
             or row["monster_references"] != list(roles.monster_references)
-            or row["catalog_revision"] != native_catalog.release()
+            or not source_revision_matches(row["catalog_revision"], SOURCE_DEPENDENCIES)
         ):
             raise ValueError("Encounter effect recipient differs from admission")
         carrier = native_catalog.record(
@@ -182,7 +190,7 @@ def rebind_original_boss_recipient(dispatcher, effect, invocation, ancestors):
         return invocation
     from .combat_event_replay import NativeExternalEvent
     from .combat_external_turn_recipient import qualified_boundary_actor
-    from .combat_encounter_roles import frozen_roles
+    from wakfu_server.combat_encounter_roles import frozen_roles
     from .combat_encounter_owned_start_binding import binding_from_record
 
     context = invocation.native_turn_boundary_context

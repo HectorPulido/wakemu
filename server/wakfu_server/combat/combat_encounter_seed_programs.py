@@ -1,4 +1,11 @@
 """Immutable DB manifests for reconstructed encounter initialization programs."""
+
+from .combat_encounter_source_revision import source_revision_matches
+
+SOURCE_DEPENDENCIES = (
+    "combat-state-definitions.json",
+    "native-effect-areas.json",
+)
 from copy import deepcopy
 from functools import lru_cache
 
@@ -122,7 +129,7 @@ def freeze_encounter_seed_program_policy(fight, *, roles):
     if frozen is not None and (
         frozen["map_id"] != roles.map_id
         or frozen["monster_references"] != list(roles.monster_references)
-        or frozen["catalog_revision"] != native_catalog.release()
+        or not source_revision_matches(frozen["catalog_revision"], SOURCE_DEPENDENCIES)
     ):
         raise ValueError(
             "Encounter seed program manifest differs from admission or catalog"
@@ -136,7 +143,7 @@ def encounter_seed_programs(fight, *, boss_reference):
     if record is None:
         return ()
     frozen = seed_program_policy_from_record(record)
-    from .combat_encounter_roles import frozen_roles
+    from wakfu_server.combat_encounter_roles import frozen_roles
 
     roles = frozen_roles(fight)
     if (

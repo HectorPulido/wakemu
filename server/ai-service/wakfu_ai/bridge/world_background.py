@@ -4,7 +4,7 @@ from copy import deepcopy
 from threading import Event
 import time
 
-from .world_sources import bind_private_sources
+from .world_sources import bind_private_sources, rift_admission_reason
 from .world_shared import run_shared_turn
 from ..native.native_control import effective_server_controlled
 
@@ -22,7 +22,17 @@ def admission(shared):
             raise
         return "server_capability_missing"
     if getattr(shared.fight, "rift_wave_state", None) is not None:
-        return "rift_providers_unqualified"
+        if not shared.lock.acquire(blocking=False):
+            return "defer_shared_native_work"
+        try:
+            if getattr(shared.runtime, "clock", time.monotonic) is not time.monotonic:
+                return "custom_clock_unqualified"
+            provider = getattr(shared.runtime, "expiration_runtime_factory", None)
+            if type(provider) is not OwnedExpirationFactory:
+                return "legacy_lifecycle_providers"
+            return rift_admission_reason(shared, provider)
+        finally:
+            shared.lock.release()
     if getattr(shared.runtime, "clock", time.monotonic) is not time.monotonic:
         return "custom_clock_unqualified"
     provider = getattr(shared.runtime, "expiration_runtime_factory", None)
@@ -145,7 +155,9 @@ class BackgroundTurn:
 def schedule(shared, adapter, session, runner, store, viewer, monsters, diagnostics):
     from wakfu_server.combat_background_work import NATIVE_WORK
 
-    with shared.lock:
+    if not shared.lock.acquire(blocking=False):
+        return "busy"
+    try:
         adapter.registry._member(shared, session)
         current = shared.fight.current
         if (
@@ -175,3 +187,5 @@ def schedule(shared, adapter, session, runner, store, viewer, monsters, diagnost
         # The shared identity fences recycled IDs and limits even stale work
         # from a previous actor/turn to one outstanding job for this encounter.
         return NATIVE_WORK.submit(key, job)
+    finally:
+        shared.lock.release()

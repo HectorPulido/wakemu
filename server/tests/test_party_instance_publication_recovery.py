@@ -82,6 +82,50 @@ class PartyPublicationRecoveryTests(unittest.TestCase):
         )
         require_current_publication(shared.fight)
 
+    def test_current_peer_real_republication_rebinds_without_own_generation_takeover(
+        self,
+    ):
+        for level in (2, 7):
+            with self.subTest(level=level):
+                fixture, bindings, replacement, publication = self.party()
+                shared = fixture.shared
+                source, scope = bindings[0]
+                source.after_write(
+                    frames(level, instance=fixture.one.instance_id), scope
+                )
+                before = shared.fight
+                recover = lambda fight, view, owner: rebind_recovered_owner(
+                    fight,
+                    view,
+                    owner,
+                    publication,
+                    session_live=fixture.registry._lease_live,
+                )
+                if level == 2:
+                    fixture.registry.takeover(
+                        99,
+                        replacement,
+                        lambda *args: ((12044, b"actual-recovery"),),
+                        persist_takeover=lambda previous: None,
+                        prepare_authority=recover,
+                    )
+                    self.assertEqual(shared.participants[1], fixture.one)
+                    self.assertIn(1, shared.connected)
+                    require_current_publication(shared.fight)
+                else:
+                    with self.assertRaises(ValueError):
+                        fixture.registry.takeover(
+                            99,
+                            replacement,
+                            lambda *args: ((12044, b"actual-recovery"),),
+                            persist_takeover=lambda previous: self.fail(
+                                "Must not persist"
+                            ),
+                            prepare_authority=recover,
+                        )
+                    self.assertIs(shared.fight, before)
+                    self.assertEqual(shared.participants[2], fixture.two)
+
     def test_pending_ack_runtime_recover_sees_rebound_authority_before_bootstrap(self):
         from test_combat_reconnect_reconciliation import ReconnectReconciliationTests
 

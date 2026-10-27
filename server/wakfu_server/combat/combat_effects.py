@@ -52,10 +52,13 @@ def direct_damage(
         raise ValueError("Invalid native damage base UID")
     if element not in DAMAGE_FAMILIES:
         raise ValueError("Unknown native damage element")
+    # Native eXs conversion binds original eVL synthetic PKs with signed IDs.
     if (
         type(damage) is not int
         or not 0 <= damage < (1 << 31)
-        or not 0 < generic_effect < (1 << 31)
+        or type(generic_effect) is not int
+        or not -(1 << 31) <= generic_effect < (1 << 31)
+        or generic_effect == 0
         or not 0 < uid < (1 << 63)
     ):
         raise ValueError("Invalid authoritative damage/effect identifier")
@@ -93,7 +96,7 @@ def direct_damage(
         expected = {
             1: uid,
             2: base_uid,
-            3: generic_effect,
+            3: generic_effect & ((1 << 64) - 1),
             4: damage,
             6: caster_id & ((1 << 64) - 1),
             7: target_id & ((1 << 64) - 1),

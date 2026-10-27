@@ -8,6 +8,22 @@ from wakfu_server.combat_conditions import (
 
 
 class CharacteristicPercentageTests(unittest.TestCase):
+    def test_moon_threshold_uses_native_integer_percentage(self):
+        for hp, expected in ((1000, True), (1014, True), (1049, True), (1050, False)):
+            with self.subTest(hp=hp):
+                context = ConditionContext(
+                    {
+                        "caster": ConditionActor(
+                            characteristics={"HP": hp},
+                            characteristic_maxima={"HP": 5000},
+                        )
+                    }
+                )
+                self.assertEqual(characteristic_percentage(hp, 5000) <= 20, expected)
+                self.assertEqual(
+                    evaluate_condition('GetCharacInPct("HP")<=20', context), expected
+                )
+
     def test_java_nonfinite_floor_and_saturating_then_wrapping_cast(self):
         for current, maximum, expected in (
             (0, 0, -1),

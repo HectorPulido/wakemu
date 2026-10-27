@@ -1,5 +1,5 @@
 """Native rift arrival and roster preparation, independent from the dispatcher."""
-from .rift_policy import select_wave
+from wakfu_server.rift_policy import select_wave
 from collections import deque
 
 
@@ -66,8 +66,8 @@ def resolve_destination(db, catalog, members, geometry):
 
 
 def _members(db, run, wave, positions):
-    from .npc_actor_identity import allocate_block
-    from .monsters import owned_instance, reference
+    from wakfu_server.npc_actor_identity import allocate_block
+    from wakfu_server.monsters import owned_instance, reference
 
     refs = select_wave(run["catalog"], run["policy"], run["seed"], wave)
     if len(positions) != len(refs):
@@ -91,7 +91,7 @@ def _members(db, run, wave, positions):
 
 def initial_members(db, run, geometry, anchor, *, occupied=()):
     """Prepare verified native base-grade enemies with separated placement."""
-    from .dungeon_encounters import enemy_formation
+    from wakfu_server.dungeon_encounters import enemy_formation
 
     if run["status"] != "entered":
         raise ValueError("Rift initial roster requires an entered run")
@@ -127,7 +127,7 @@ def disabled_rewards(db, run, result):
 
 def reserve_actor_ids(db, quantity):
     """Preallocate exact native IDs; unused sequence values are never recycled."""
-    from .npc_actor_identity import allocate_block, BLOCK_SIZE
+    from wakfu_server.npc_actor_identity import allocate_block, BLOCK_SIZE
 
     if type(quantity) is not int or not 1 <= quantity <= 16384:
         raise ValueError("Invalid rift actor reservation size")
@@ -139,6 +139,55 @@ def reserve_actor_ids(db, quantity):
     return tuple(ids)
 
 
+def actor_reservation_shortfall(fight):
+    """Return the next accepted wave's shortage without allocating identities."""
+    state = getattr(fight, "rift_wave_state", None)
+    if state is None or fight.phase != "active":
+        return 0
+    pending = state.get("pending_wave")
+    if pending is None:
+        return 0
+    if not isinstance(pending, dict) or pending.get("completed_wave") != state.get(
+        "wave"
+    ):
+        raise ValueError("Rift actor reservation requires its actual pending wave")
+    pool = state.get("actor_id_pool")
+    from wakfu_server.npc_actor_identity import lua_exact_identity
+
+    if (
+        not isinstance(pool, list)
+        or len(set(pool)) != len(pool)
+        or any(
+            not lua_exact_identity(uid) or uid >= 0 or uid in fight.actors
+            for uid in pool
+        )
+    ):
+        raise ValueError("Invalid pending Rift actor reservation")
+    references = select_wave(
+        state["catalog"], state["policy"], state["seed"], pending["completed_wave"] + 1
+    )
+    return max(0, len(references) - len(pool))
+
+
+def replenish_actor_ids(db, fight):
+    """Reserve another ordinary block onto the caller's private candidate only.
+
+    Sequence gaps after rejected previews are intentional: identities are never
+    recycled. The normal accepted checkpoint persists only the adopted pool.
+    """
+    shortage = actor_reservation_shortfall(fight)
+    if not shortage:
+        return ()
+    from wakfu_server.npc_actor_identity import BLOCK_SIZE
+
+    fresh = reserve_actor_ids(db, max(BLOCK_SIZE, shortage))
+    pool = fight.rift_wave_state["actor_id_pool"]
+    if len(set(fresh)) != len(fresh) or set(fresh) & (set(pool) | set(fight.actors)):
+        raise ValueError("Fresh Rift reservation conflicts with an existing actor")
+    fight.rift_wave_state["actor_id_pool"] = pool + list(fresh)
+    return fresh
+
+
 def next_roster(fight, pending):
     """Pure accepted-action provider using a caller-reserved actor-ID pool.
 
@@ -146,8 +195,8 @@ def next_roster(fight, pending):
     The caller may replenish the pool transactionally before it is exhausted;
     this provider never queries a database or publishes packets.
     """
-    from .monsters import owned_instance, reference
-    from .npc_actor_identity import lua_exact_identity
+    from wakfu_server.monsters import owned_instance, reference
+    from wakfu_server.npc_actor_identity import lua_exact_identity
 
     state = fight.rift_wave_state
     wave = pending["completed_wave"] + 1
@@ -161,17 +210,22 @@ def next_roster(fight, pending):
         for uid in identities
     ):
         raise ValueError("Invalid reserved rift actor identity")
+    from wakfu_server.combat_encounter_roles import assigned_roles
+
+    roles = assigned_roles(fight)
     players = sorted(
-        (a for a in fight.actors.values() if a.team == 0 and fight._in_play(a)),
+        (
+            a
+            for a in fight.actors.values()
+            if a.team == roles.player_team and fight._in_play(a)
+        ),
         key=lambda a: a.id,
     )
     if not players or fight.edges is None:
         raise ValueError("Missing live player or native rift arena edges")
-    geometry = dict(cells=tuple(fight.walkable), edges=tuple(fight.edges))
-    occupied = tuple(a.position for a in fight.actors.values() if fight._in_play(a))
-    positions = reachable_cells(
-        geometry, players[0].position, len(refs), occupied=occupied
-    )
+    from wakfu_server.rift_reinforcement_placement import select_positions
+
+    positions = select_positions(fight, references=refs, seed=state["seed"], wave=wave)
     members = tuple(
         owned_instance(
             ref,

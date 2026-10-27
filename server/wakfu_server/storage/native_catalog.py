@@ -10,17 +10,17 @@ import json
 import logging
 import os
 import time
-import threading
 from functools import lru_cache
 from pathlib import Path
 
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.combat_input_observation import observe_catalog
+from .native_source_singleflight import NativeSourceFlights
 
 LOG = logging.getLogger(__name__)
 CACHE_MAX_BYTES = 2 * 1024 * 1024
 CACHE_TTL = 3600
-_decode_lock = threading.RLock()
+_decode_flights = NativeSourceFlights("catalog.decode.singleflight_wait")
 
 
 def _key(path):
@@ -211,7 +211,15 @@ def read_text(path, encoding="utf8"):
 
 @lru_cache(maxsize=32)
 def _decoded(revision, name):
-    return json.loads(read_bytes(DATA_ROOT / name))
+    raw = read_bytes(DATA_ROOT / name)
+    if len(raw) > CACHE_MAX_BYTES:
+        LOG.info(
+            "Whole native document decoded path=%s bytes=%s revision=%s",
+            name,
+            len(raw),
+            revision,
+        )
+    return json.loads(raw)
 
 
 def load(path):
@@ -220,8 +228,8 @@ def load(path):
     # Share parsed documents across readers, including cold concurrent calls.
     # Domain indexes keep referencing this immutable source instead of each
     # reader decoding a second copy of large spell/state catalogs.
-    with _decode_lock:
-        return _decoded(release(), _key(path))
+    revision, name = release(), _key(path)
+    return _decode_flights.run((revision, name), lambda: _decoded(revision, name))
 
 
 def open(path, mode="rt", encoding=None):
@@ -279,4 +287,30 @@ def record(path, collection, record_key):
         revision=revision,
         collection=collection,
         record_key=str(record_key),
+    )
+
+
+@lru_cache(maxsize=1)
+def indexed_backend():
+    """Share bounded record caches; never materialize a whole source document."""
+    from .native_catalog_index import IndexedCatalog
+
+    return IndexedCatalog(_database(), _redis)
+
+
+def indexed_collection(path, collection, *, expected_count=None, allow_empty=False):
+    """Expose exact imported record keys, without claiming source JSON order.
+
+    Ordered combat definitions use the separately published compiled authority.
+    Arrays and unindexed source documents must not be reconstructed here.
+    """
+    name = _key(path)
+    if name is None:
+        raise ValueError("Indexed collections require a published native path")
+    return indexed_backend().collection(
+        release(),
+        name,
+        collection,
+        expected_count=expected_count,
+        allow_empty=allow_empty,
     )

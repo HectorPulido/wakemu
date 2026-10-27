@@ -472,12 +472,12 @@ def initialize_transaction(fight, actor_id, preparation, runtime_factory, *, own
                     from .combat_effect_dispatch import EffectDispatcher
 
                     if (
-                        family not in (330, 844, 913, 999, 1020, 1047)
+                        family not in (330, 844, 912, 913, 999, 1020, 1047)
                         or type(dispatcher) is not EffectDispatcher
                         or route.handler_type is not EffectDispatcher
                         or not callable(dispatcher.execute)
                         or dispatcher.group_retention is None
-                        or family in (844, 913, 999, 1020, 1047)
+                        or family in (844, 912, 913, 999, 1020, 1047)
                         and not callable(dispatcher.group_level)
                     ):
                         raise ValueError(

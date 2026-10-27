@@ -1,0 +1,23 @@
+{
+  "activated": false,
+  "added_references": [
+    315439,
+    315771,
+    315773,
+    315775
+  ],
+  "base_revision": "b3963fc05f1d8ec1eb9afc268fab0350f4de120144d67f7eee470747750b2450",
+  "candidate_document_sha256": "a85eb64261ee69e2f4b20058118355c31970ea1a5611f25580458e613c97bdbd",
+  "candidate_manifest": "catalogs/manifest-rift-cell-groups-v1.json",
+  "candidate_manifest_sha256": "b36db20b4073cefa967230da2d6baa81d2b91afed2bd17deee3737fe4e4f55e7",
+  "candidate_revision": "d99f268afe805407e9a4565565ab488ae9580b7164e286396fc338bbf9b3c154",
+  "candidate_rows": 1033,
+  "installation_manifest_sha256": "c45b2db3615c62371e08ee6cda143c670e6f6941fbfa1dec61b8b8be91c87772",
+  "new_chunk_compressed_bytes": 17871,
+  "original_document_sha256": "a53cf5717082ea4b4816a5326fb1fef230202787bbe46b4254eeaadfa05b48eb",
+  "original_rows": 1029,
+  "proof_sha256": "801ea5fcbf17dbc14ee376f6c404aefbda9d3872f36ce61c69cdefe276b52fda",
+  "reused_content_addressed_chunks": true,
+  "schema": "wakemu-rift-cell-groups-release-v1",
+  "source_document": "native-class-cell-group-metadata.json"
+}

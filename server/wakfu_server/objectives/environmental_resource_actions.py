@@ -118,6 +118,13 @@ def authorize_action(db, *, store, account_id, generation, character, resource, 
     ).fetchone()
     if row is None:
         raise ValueError("Resource is not an eligible owned environmental interaction")
+    from .environmental_gameplay import _native_region
+
+    if row["region_id"] is None or any(
+        _native_region(resource["map_id"], entity) != row["region_id"]
+        for entity in (character, resource)
+    ):
+        raise ValueError("Environmental interaction belongs to another native region")
     level = character.get("effective_level")
     if type(level) is not int or not row["level_min"] <= level <= row["level_max"]:
         raise ValueError("Environmental resource actor level is ineligible")

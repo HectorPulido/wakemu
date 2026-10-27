@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 from wakfu_server.combat_turn_guard import run_shared_npc_attempt
 
 
@@ -49,6 +50,57 @@ class SharedNpcGuardTests(unittest.TestCase):
         self.assertTrue(self.run_attempt(lambda: None))
         self.shared.runtime.awaiting_ack = 3
         self.assertFalse(self.run_attempt(lambda: self.fail("Pending real ACK")))
+
+    def test_queued_or_running_background_work_skips_sdk_loading_until_finished(self):
+        from wakfu_server.combat_background_work import BackgroundWork
+
+        work = BackgroundWork(max_jobs=2, max_workers=1)
+        occupied, release = threading.Event(), threading.Event()
+        calls = []
+        try:
+            work.submit("occupy", lambda: (occupied.set(), release.wait(2)))
+            self.assertTrue(occupied.wait(2))
+            key = ("native-ai", id(self.shared))
+            self.assertEqual(
+                work.submit(key, lambda: calls.append("worker")), "submitted"
+            )
+            with patch("wakfu_server.combat_turn_guard.NATIVE_WORK", work):
+                self.assertFalse(
+                    self.run_attempt(lambda: self.fail("SDK loaded for queued job"))
+                )
+                release.set()
+                work.executor.shutdown(wait=True)
+                self.assertEqual(calls, ["worker"])
+                self.assertTrue(self.run_attempt(lambda: calls.append("next-turn")))
+        finally:
+            release.set()
+            work.executor.shutdown(wait=True)
+            work.shutdown()
+
+    def test_active_claim_skips_loader_and_retries_after_claim_cleanup(self):
+        self.shared.native_ai_turn_claim = (-7, 3, "actual-worker")
+        self.assertFalse(self.run_attempt(lambda: self.fail("Duplicate SDK load")))
+        del self.shared.native_ai_turn_claim
+        self.assertTrue(self.run_attempt(lambda: None))
+
+    def test_busy_fight_does_not_block_reader_or_drop_next_attempt(self):
+        occupied, release = threading.Event(), threading.Event()
+
+        def hold_fight():
+            with self.shared.lock:
+                occupied.set()
+                release.wait(2)
+
+        worker = threading.Thread(target=hold_fight)
+        worker.start()
+        self.assertTrue(occupied.wait(2))
+        try:
+            self.assertFalse(self.run_attempt(lambda: self.fail("Fight is busy")))
+        finally:
+            release.set()
+            worker.join(2)
+        self.assertFalse(worker.is_alive())
+        self.assertTrue(self.run_attempt(lambda: None))
 
     def test_transport_failure_propagates_without_gameplay_retry(self):
         def disconnected():

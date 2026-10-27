@@ -67,6 +67,31 @@ def verified_trap_characteristics(row, definition):
     return values
 
 
+def trap_pa_pair(row, definition, characteristic):
+    """Return the actual trap PA current and native constructor maximum.
+
+    eRF creates each fbc.rMB PA through eRC.f. The published native probe reads
+    PA.aYU for its maximum separately from aYS current. Supported trap copying
+    mutates only current via nG; it does not replace the constructor maximum.
+    Missing PCs are the original eRF.b null, never a fabricated zero pair.
+    """
+    if type(characteristic) is not int or not 0 <= characteristic <= 255:
+        raise ValueError("Invalid native trap PA characteristic")
+    current = verified_trap_characteristics(row, definition)
+    if characteristic not in current:
+        return None
+    bounds = trap_characteristics()["characteristics"][str(characteristic)]
+    maximum = bounds.get("maximum")
+    if (
+        type(maximum) is not int
+        or not -(1 << 31) <= maximum < (1 << 31)
+        or maximum > bounds["hard_maximum"]
+        or maximum < bounds["minimum"]
+    ):
+        raise ValueError("Missing native trap PA constructor maximum")
+    return current[characteristic], maximum
+
+
 def trap_owner_movement_allowed(row, definition, *, target_id, current_id, event_ids):
     verified_trap_characteristics(row, definition)
     if (

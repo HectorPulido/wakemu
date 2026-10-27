@@ -2,6 +2,25 @@
 from dataclasses import dataclass
 
 
+class ImmutableQIMasks(tuple):
+    """Validated terrain values shared by private QI populations and previews."""
+
+    __slots__ = ()
+
+    def __new__(cls, values):
+        if type(values) is cls:
+            return values
+        if not isinstance(values, (list, tuple)) or any(
+            type(mask) is not int or not -32768 <= mask <= 32767 for mask in values
+        ):
+            raise ValueError("Missing serialized native QI signed-short masks")
+        return super().__new__(cls, values)
+
+    def __deepcopy__(self, memo):
+        memo[id(self)] = self
+        return self
+
+
 @dataclass(frozen=True)
 class RegisteredObstacle:
     obstacle_id: int
@@ -27,12 +46,9 @@ class NativeQISnapshot:
             or self.width * self.height > 32767
             or not isinstance(masks, (list, tuple))
             or len(masks) != self.width * self.height
-            or any(
-                type(mask) is not int or not -32768 <= mask <= 32767 for mask in masks
-            )
         ):
             raise ValueError("Missing serialized native QI signed-short masks")
-        self.masks = tuple(masks)
+        self.masks = ImmutableQIMasks(masks)
         self.occupancy = None
         if obstacles is not None:
             if not isinstance(obstacles, (list, tuple)):

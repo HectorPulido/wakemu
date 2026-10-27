@@ -1,0 +1,43 @@
+{
+  "activated": false,
+  "added_profile_ids": [
+    2887
+  ],
+  "candidate_manifest": "catalogs/manifest-abomination-morph2887-v1.json",
+  "candidate_manifest_sha256": "9f964dc5bb2d179ef6f3aea91d335fe4ba0c199efe61234cc1dea4ae2d0989ab",
+  "candidate_revision": "3d1f7bd3422b19df95b448dd0990e89535b95ad1f0b04a0dce416f87d6c74fbc",
+  "changed_documents": [
+    {
+      "path": "native-class-morph-profiles.json",
+      "record_count": 16,
+      "sha256": "d8dc208d4bc21b59554245c45f0474d418b0e4cdda44b2e5724171f01904c949",
+      "source_bytes": 8500
+    },
+    {
+      "path": "native-class-morph933-effect-closure.json",
+      "record_count": 1236,
+      "sha256": "515134b36691450c1b5cef3ddfa933e4834d15d2fd415e302ee97298655fc8fd",
+      "source_bytes": 2217342
+    },
+    {
+      "path": "native-class-morph933-level-zero.json",
+      "record_count": 307,
+      "sha256": "360cfcb56ee847ef38d5986c563e5d099ae0847c2e85a43f6f87e0e8c962bfe5",
+      "source_bytes": 42398
+    },
+    {
+      "path": "native-class-morph933-casting-roots.json",
+      "record_count": 118,
+      "sha256": "6ffc1ff202b702d3fd79a75e11a09a62512e632e6308b57a6585a71f20fc626f",
+      "source_bytes": 9301
+    }
+  ],
+  "database_staged": false,
+  "parent_manifest_sha256": "a6c941c100178c4c8db38ab963b17ec48202e2efe918f300afb019d6038c8472",
+  "parent_revision": "25c7188c63110ff8fa404c3b0ff7bd3d0c41076ddb5843866ede693b62ca7aba",
+  "preserved_old_chunk_files": true,
+  "public_selector_changed": false,
+  "reused_unchanged_chunks": true,
+  "schema": "wakemu-encounter-morph-catalog-release-v1",
+  "unchanged_documents": 7487
+}

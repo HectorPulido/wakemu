@@ -118,11 +118,13 @@ class EffectDispatcher:
         self.group_execution_scope = group_execution_scope
         self.resolved_population_scope = resolved_population_scope
         self.invocation_reconstruction = invocation_reconstruction
+        self.native_condition_cell_batch_factory = None
         self._active_pt = None
         self._active_ancestors = ()
         self._active_execution_keys = ()
         self._active_activation = None
         self._prepared_scopes = []
+        self._scene_observer_depth = 0
 
     def _operation_handler(self, family):
         """Resolve the actual route through its shared operation binding.
@@ -202,8 +204,14 @@ class EffectDispatcher:
         self._prepared_scopes.append(prepared)
         tracing = diagnostics_enabled()
         started = perf_counter() if tracing else None
+        observer_depth = self._scene_observer_depth
+        self._scene_observer_depth += 1
         try:
             result = self._execute(invocation, ancestors=ancestors)
+            if observer_depth == 0:
+                observer = getattr(self, "native_scene_root_observer", None)
+                if observer is not None and observer():
+                    result = True
             if tracing:
                 self._diagnose(
                     invocation,
@@ -236,6 +244,7 @@ class EffectDispatcher:
                 self._active_ancestors = previous
                 self._active_execution_keys = previous_keys
                 self._active_pt = previous_pt
+                self._scene_observer_depth = observer_depth
 
     def _recursive_identity(self, invocation, ancestors):
         # eWu may replace an additive carrier before executing its children.
@@ -592,6 +601,20 @@ class EffectDispatcher:
                     else self.group_retention.begin_group(effect, values, selected)
                 )
 
+                batch_factory = self.native_condition_cell_batch_factory
+                from .combat_condition_cell_batch import NativeCellBatchFactory
+
+                condition_batch = (
+                    batch_factory(
+                        effect,
+                        selected,
+                        activation=activation,
+                        evaluator=evaluate_condition,
+                    )
+                    if type(batch_factory) is NativeCellBatchFactory
+                    else None
+                )
+
                 def cell_condition(cell):
                     if not effect["criteria"].strip():
                         return True
@@ -603,11 +626,19 @@ class EffectDispatcher:
                         native_target_cell_argument=True,
                     )
                     context = (
-                        activation[2](effect, candidate, activation[1])
+                        condition_batch.condition(candidate)
+                        if condition_batch is not None
+                        else activation[2](effect, candidate, activation[1])
                         if activation is not None
                         else self.condition_context(candidate)
                     )
-                    return evaluate_condition(effect["criteria"], context)
+                    return (
+                        condition_batch.evaluate(
+                            effect["criteria"], context, evaluate_condition
+                        )
+                        if condition_batch is not None
+                        else evaluate_condition(effect["criteria"], context)
+                    )
 
                 selection = select_cell_group(
                     values,
@@ -617,6 +648,7 @@ class EffectDispatcher:
                     rng=self.group_random,
                     criterion_present=native_cell_criterion_presence(effect, selected),
                     reuse_condition_actors=True,
+                    condition_batch=condition_batch,
                 )
                 if selection.eligible_count:
                     child_level, context = self.group_retention.child_level_context(

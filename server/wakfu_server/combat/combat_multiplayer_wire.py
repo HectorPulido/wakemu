@@ -43,7 +43,9 @@ def added(fight_id, actor_id, *, actor_type, team, stats, effects, controller=No
         or actor_id == 0
     ):
         raise ValueError("Invalid joined actor identity")
-    if actor_type not in (0, 1) or team not in (0, 1):
+    # cvg.myR carries the original actor discriminator, including companion5.
+    # ckT resolves the already registered actor by UID; this is no NPC admission.
+    if actor_type not in (0, 1, 5) or team not in (0, 1):
         raise ValueError("Invalid native actor kind/team")
     out = (
         struct.pack(">iqbb", fight_id, actor_id, actor_type, team)

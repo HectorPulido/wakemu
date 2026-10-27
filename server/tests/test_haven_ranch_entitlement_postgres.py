@@ -1,12 +1,18 @@
-"""Isolated PostgreSQL ownership, revocation and private-scene entitlement."""
+"""Default native account entitlement, ownership and private-scene admission."""
+from pathlib import Path
+import struct
+from unittest.mock import patch
+
 from postgres_case import PostgresCase
 from wakfu_server.haven_ranch_authority import (
     require_owned_entitlement,
+    portal_target,
     validate_return,
 )
 from wakfu_server.inventory_items import grant
 from wakfu_server.haven_bag import HavenBagSession
 from wakfu_server.haven_ranch import RanchSession
+from wakfu_server.characters.exploration_secrets import account_quantity
 
 
 class RanchEntitlementPostgresTests(PostgresCase):
@@ -38,24 +44,99 @@ class RanchEntitlementPostgresTests(PostgresCase):
             allowed_references={32864},
         )
 
-    def test_real_owned_item_allows_private_source_and_is_not_consumed(self):
-        with self.assertRaises(ValueError):
-            self.check()
-        self.give(self.account, self.generation, self.character)
+    def remove_default(self, account):
+        with self.store.connection() as db:
+            db.execute(
+                "DELETE FROM account_quest_items WHERE account_id=%s AND reference=32864",
+                (account,),
+            )
+
+    def test_default_owned_item_allows_private_source_and_is_published_without_consumption(
+        self,
+    ):
         self.check()
+        bag = HavenBagSession(self.character)
+        actor = bag.move(bag.inside, dict(x=-8, y=5, z=4))
+        source = dict(id=36028, type="RanchEntrance", map_id=9, x=-9, y=5, z=4)
+        with patch(
+            "wakfu_server.haven_ranch_authority.world_static.objects",
+            return_value=[source],
+        ):
+            target = portal_target(
+                actor,
+                bag,
+                struct.pack(">qHH", 36028, 35, 0),
+                validate_lease=lambda: self.store.current_character_session(
+                    self.account, self.generation, actor["id"]
+                ),
+                validate_entitlement=lambda: require_owned_entitlement(
+                    self.store, self.account, self.generation, actor
+                ),
+                geometry=dict(map_id=9, cells=[(-8, 5, 4)]),
+            )
+        self.assertEqual(target, dict(biome_id=1, map_id=1440, x=28, y=6, z=4))
         saved = self.store.character(self.account, self.character["id"])
         self.assertEqual(saved["map_id"], self.character["map_id"])
-        self.assertEqual(
-            sum(
-                i["quantity"]
-                for i in saved["inventory_items"]
-                if i["reference"] == 32864
-            ),
-            1,
-        )
+        self.assertEqual(account_quantity(saved, (32864,)), 1)
+        with self.store.connection() as db:
+            owned = db.execute(
+                "SELECT quantity FROM account_quest_items "
+                "WHERE account_id=%s AND reference=32864",
+                (self.account,),
+            ).fetchone()
+        self.assertEqual(owned["quantity"], 1)
         self.assertEqual(self.actor["map_id"], 9)
+        from wakfu_server.characters.exploration_secrets import account_packet
+
+        with self.store.connection() as db:
+            opcode, body = account_packet(db, self.account)
+        self.assertEqual(opcode, 13873)
+        version, section, length = struct.unpack(">III", body[:12])
+        self.assertEqual((version, section, length), (1, 4, len(body) - 12))
+        # Native flY ACCOUNT_QUEST protobuf: reference32864, quantity1.
+        self.assertIn(b"\x0a\x06\x08\xe0\x80\x02\x10\x01", body[12:])
+
+    def test_migration_backfills_existing_accounts_preserves_quantity_and_grants_new_accounts(
+        self,
+    ):
+        other = self.store.register("existingranchowner", "test-password")["id"]
+        migration = (
+            Path(__file__).resolve().parents[1]
+            / "migrations/328_default_emerald_biome.sql"
+        ).read_text()
+        with self.store.connection() as db:
+            db.execute("DROP TRIGGER account_default_emerald_biome ON accounts")
+            db.execute("DROP FUNCTION grant_default_emerald_biome()")
+            db.execute(
+                "DELETE FROM account_quest_items WHERE account_id=%s AND reference=32864",
+                (self.account,),
+            )
+            db.execute(
+                "UPDATE account_quest_items SET quantity=3 WHERE account_id=%s AND reference=32864",
+                (other,),
+            )
+            db.execute(migration)
+            quantities = {
+                row["account_id"]: row["quantity"]
+                for row in db.execute(
+                    "SELECT account_id,quantity FROM account_quest_items WHERE reference=32864"
+                )
+            }
+        self.assertEqual(quantities[self.account], 1)
+        self.assertEqual(quantities[other], 3)
+        new = self.store.register("newranchowner", "test-password")["id"]
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT quantity FROM account_quest_items WHERE account_id=%s AND reference=32864",
+                    (new,),
+                ).fetchone()["quantity"],
+                1,
+            )
+        self.check()
 
     def test_other_account_item_and_removed_stale_item_do_not_authorize(self):
+        self.remove_default(self.account)
         other = self.store.register("otherranchowner", "test-password")["id"]
         character = self.store.create_character(other, "Other owner")
         generation = self.store.begin_session(other)
@@ -64,18 +145,19 @@ class RanchEntitlementPostgresTests(PostgresCase):
         with self.assertRaises(ValueError):
             self.check()
         self.give(self.account, self.generation, self.character)
-        self.actor["inventory_items"] = self.store.character(
+        self.actor["account_quest_items"] = self.store.character(
             self.account, self.character["id"]
-        )["inventory_items"]
+        )["account_quest_items"]
         with self.store.connection() as db:
             db.execute(
-                "DELETE FROM inventory_items WHERE character_id=%s",
-                (self.character["id"],),
+                "DELETE FROM account_quest_items WHERE account_id=%s AND reference=32864",
+                (self.account,),
             )
         with self.assertRaises(ValueError):
             self.check()
 
     def test_trusted_role_revocation_denies_new_admission_but_allows_exit(self):
+        self.remove_default(self.account)
         with self.store.connection() as db:
             db.execute("UPDATE accounts SET is_admin=TRUE WHERE id=%s", (self.account,))
         self.check()

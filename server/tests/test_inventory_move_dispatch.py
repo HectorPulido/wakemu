@@ -1,16 +1,19 @@
 """Execute the production 12804 rejection branch with isolated boundaries."""
 
 import ast
+import struct
 import unittest
 from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import Mock
 
 from wakfu_server.inventory_move import EquippedTransferError
+from wakfu_server.ecology_feedback import information
+from wakfu_server.player_action_feedback import failure_message
 
 
 class InventoryMoveDispatchTests(unittest.TestCase):
-    def test_equipped_transfer_sends_english_notice_and_keeps_selected_main(self):
+    def test_equipped_transfer_sends_spanish_notice_and_keeps_selected_main(self):
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"
         tree = ast.parse(source.read_text())
         branch = next(
@@ -45,7 +48,11 @@ class InventoryMoveDispatchTests(unittest.TestCase):
         )
         store = Mock()
         store.connection.return_value = nullcontext(Mock())
-        transfer = Mock(side_effect=EquippedTransferError("equipped"))
+        transfer = Mock(
+            side_effect=EquippedTransferError(
+                "Desequip the selected unit before transferring ownership"
+            )
+        )
         reload_inventory = Mock(return_value=main)
         send = Mock()
         record = Mock()
@@ -66,7 +73,8 @@ class InventoryMoveDispatchTests(unittest.TestCase):
             service="world",
             send=send,
             record=record,
-            information=lambda text: (12366, text.encode("utf-8")),
+            information=information,
+            failure_message=failure_message,
             heroes=heroes,
             hero_private_scene=hero_private_scene,
             hero_wire=hero_wire,
@@ -80,13 +88,15 @@ class InventoryMoveDispatchTests(unittest.TestCase):
         self.assertIs(namespace["character"], main)
         self.assertEqual(main["inventory_items"], [{"uid": 101, "quantity": 1}])
         sent = [call.args[2:] for call in send.call_args_list]
-        self.assertIn(
-            (
-                12366,
-                b"You cannot transfer an equipped item. Unequip it first.",
-            ),
-            sent,
-        )
+        notices = [body for opcode, body in sent if opcode == 349]
+        self.assertEqual(len(notices), 1)
+        subtype, size = struct.unpack(">hh", notices[0][:4])
+        self.assertEqual((subtype, size), (4, len(notices[0][4:])))
+        text = notices[0][4:].decode("utf-8")
+        self.assertIn("equipado", text)
+        self.assertIn("guarda", text)
+        self.assertIn("bolsas", text)
+        self.assertNotIn("Desequip the selected", text)
         self.assertIn((13301, b"main-bags"), sent)
         self.assertEqual(record.call_args.kwargs["event"], "inventory_move_rejected")
         self.assertEqual(record.call_args.kwargs["actor_id"], 7)

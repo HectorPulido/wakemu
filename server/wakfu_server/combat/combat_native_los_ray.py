@@ -7,8 +7,48 @@ Static results are cached; live actor blockers are evaluated by the caller.
 from wakfu_server import native_catalog as protocol_catalog
 from functools import lru_cache
 import json
+import hashlib
 from wakfu_server.paths import DATA_ROOT
 from .combat_parameters import _float32
+from .combat_los_runtime_seal import (
+    _publish_owned_columns,
+    _publish_owned_program,
+    _generation,
+)
+from wakfu_server.prepared_los import published_columns as _ORIGINAL_PREPARED_COLUMNS
+
+_ORIGINAL_CATALOG_LOAD = protocol_catalog.load
+_ORIGINAL_CATALOG_READ_BYTES = protocol_catalog.read_published_bytes
+
+
+def _verified_source(name):
+    """Decode a privately owned source once; never certify shared JSON aliases."""
+    if protocol_catalog.load is not _ORIGINAL_CATALOG_LOAD:
+        return None
+    release = protocol_catalog.release()
+    raw = protocol_catalog.read_published_bytes(name)
+    if protocol_catalog.release() != release:
+        raise ValueError("Native LOS publication release changed during read")
+    return json.loads(raw), release, hashlib.sha256(raw).hexdigest()
+
+
+def sealed_generation(map_id):
+    """Opaque static-advisory proof, or None for custom/captured inputs.
+
+    Hot admission checks identities and pinned release only. Complete topology
+    and program validation belongs to their once-per-publication loaders.
+    """
+    from . import combat_input_observation as observation
+
+    if (
+        observation._active.get() is not None
+        or observation._replaying.get() is not None
+    ):
+        return None
+    if type(map_id) is not int or map_id <= 0:
+        return None
+    columns, program = topology_columns(map_id), ray_program()
+    return _generation(map_id, protocol_catalog.release(), columns, program)
 
 
 def _i32(value):
@@ -21,24 +61,73 @@ def _short(value):
 
 @lru_cache(maxsize=1)
 def ray_program():
-    data = protocol_catalog.load(DATA_ROOT / "native-los-ray-program.json")
+    source = _verified_source("native-los-ray-program.json")
+    data = (
+        protocol_catalog.load(DATA_ROOT / "native-los-ray-program.json")
+        if source is None
+        else source[0]
+    )
     if data.get("schema") != "native-Sf-bfZ-int-v1":
         raise ValueError("Unsupported native LOS raster program")
-    return tuple(tuple(row) for row in data["instructions"])
+    program = tuple(tuple(row) for row in data["instructions"])
+    if source is not None:
+        _publish_owned_program(program, release=source[1], source_sha=source[2])
+    return program
 
 
 @lru_cache(maxsize=4)
 def topology_columns(map_id):
     from wakfu_server.prepared_los import published_columns
 
+    from . import combat_input_observation as observation
+
+    if (
+        protocol_catalog.load is _ORIGINAL_CATALOG_LOAD
+        and protocol_catalog.read_published_bytes is _ORIGINAL_CATALOG_READ_BYTES
+        and published_columns is _ORIGINAL_PREPARED_COLUMNS
+        and observation._active.get() is None
+        and observation._replaying.get() is None
+    ):
+        from wakfu_server.prepared_los_compiled import (
+            published_columns as compiled_columns,
+        )
+
+        derivative = compiled_columns(map_id)
+        if derivative is not None:
+            columns, release, digest = derivative
+            projection = _publish_owned_columns(
+                columns, map_id=map_id, release=release, source_sha=digest
+            )
+            if projection is not None:
+                return projection
     prepared = published_columns(map_id)
     if prepared is not None:
+        # The trusted artifact loader owns its unmarshalled dictionary. Copy
+        # its mapping once so no foreign backing-store alias can be exposed.
+        if published_columns is _ORIGINAL_PREPARED_COLUMNS:
+            from wakfu_server.prepared_los import _inventory
+
+            release = protocol_catalog.release()
+            digest = _inventory(release).get(f"native-los-topology/{map_id}.json")
+            projection = _publish_owned_columns(
+                dict(prepared), map_id=map_id, release=release, source_sha=digest
+            )
+            if projection is not None:
+                return projection
         return prepared
     path = DATA_ROOT / "native-los-topology" / f"{map_id}.json"
     if not protocol_catalog.exists(path):
         raise ValueError("Missing native LOS topology columns for this map")
-    data = protocol_catalog.load(path)
-    return prepare_columns(data, map_id)
+    source = _verified_source(f"native-los-topology/{map_id}.json")
+    data = protocol_catalog.load(path) if source is None else source[0]
+    columns = prepare_columns(data, map_id)
+    if source is not None:
+        projection = _publish_owned_columns(
+            columns, map_id=map_id, release=source[1], source_sha=source[2]
+        )
+        if projection is not None:
+            return projection
+    return columns
 
 
 def prepare_columns(data, map_id):

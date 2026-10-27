@@ -290,6 +290,33 @@ class NativeRetainedEffectView:
                     )
         self.known = known
 
+    def owned_children(self, uid):
+        """Index ownership only within this already validated immutable view."""
+        entries = self.entries
+        if type(entries) is not tuple:
+            return tuple(entry for entry in entries if entry.owner_uid == uid)
+        if getattr(self, "_children_entries", None) is not entries:
+            children = {}
+            for entry in entries:
+                owner = entry.owner_uid
+                if owner is None:
+                    continue
+                if type(owner) is not int:
+                    # Preserve equality-based behavior for unusual legacy
+                    # ownership values rather than changing it by hashing.
+                    children = None
+                    break
+                children.setdefault(owner, []).append(entry)
+            self._children_by_owner = (
+                None
+                if children is None
+                else {owner: tuple(rows) for owner, rows in children.items()}
+            )
+            self._children_entries = entries
+        if self._children_by_owner is None:
+            return tuple(entry for entry in entries if entry.owner_uid == uid)
+        return self._children_by_owner.get(uid, ())
+
 
 class NativeRetainedRemoval:
     def __init__(self, view):
@@ -336,9 +363,8 @@ class NativeRetainedRemoval:
                     # removal again; ownership cycles below still reject.
                     if dependent not in active:
                         visit(dependent)
-            for child in self.view.entries:
-                if child.owner_uid == uid:
-                    visit(child.uid)
+            for child in NativeRetainedEffectView.owned_children(self.view, uid):
+                visit(child.uid)
             callbacks = self.families.get(entry.effect_class)
             if callbacks is None:
                 raise ValueError("Unregistered native retained removal family")

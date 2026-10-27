@@ -19,9 +19,11 @@ def at_entrance(actor, source):
     return callback(Stationary(), map_id=actor["map_id"], instance_id=0)(actor, source)
 
 
-def route_target(route, source, revision):
+def route_target(route, source, revision, *, minimum_level_offer=False):
     """Bind the exact reviewed source, native destination and entry criterion."""
-    if route["start_map_id"] not in REVIEWED_MAPS:
+    if type(minimum_level_offer) is not bool:
+        raise ValueError("Invalid owned dungeon entrance offer")
+    if route["start_map_id"] not in REVIEWED_MAPS and not minimum_level_offer:
         return None
     if (source["map_id"], source["id"]) != (
         route["entry_map_id"],
@@ -79,7 +81,7 @@ def actions(db, identity):
     from . import player_travel
 
     actor = db.execute(
-        "SELECT level,map_id,instance_id,x,y,z FROM characters WHERE id=%s AND account_id=%s AND deleted_at IS NULL",
+        "SELECT id,account_id,level,map_id,instance_id,x,y,z FROM characters WHERE id=%s AND account_id=%s AND deleted_at IS NULL",
         (identity["character_id"], identity["account_id"]),
     ).fetchone()
     if actor is None or actor["instance_id"] != 0:
@@ -153,14 +155,27 @@ def actions(db, identity):
         rule = rules.get(f"content-v1.dungeon.{route['definition_id']}")
         if source is None or rule is None or not at_entrance(actor, source):
             continue
-        target = route_target(route, source, revision)
+        minimum_offer = False
+        if route["start_map_id"] not in REVIEWED_MAPS:
+            from wakfu_server.maps.dungeon_entry_access import minimum_offer_allowed
+
+            minimum_offer = minimum_offer_allowed(
+                db,
+                route["criterion"],
+                character=actor,
+                destination_map_id=route["start_map_id"],
+            )
+        target = route_target(
+            route, source, revision, minimum_level_offer=minimum_offer
+        )
         if target is not None:
             result.append(
                 dict(
-                    key="seasonal.enter." + route["key"],
+                    key=("dungeon.enter." if minimum_offer else "seasonal.enter.")
+                    + route["key"],
                     label="Enter: " + rule["title"],
                     kind="seasonal_entry",
-                    description="Native entrance items and level requirements still apply.",
+                    description="Native entrance items, party and travel requirements still apply.",
                     enabled=True,
                     definition_key=rule["key"],
                     target=target,

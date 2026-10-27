@@ -86,9 +86,12 @@ def native_prospection_bonus(actor):
     Missing stat33 is an incomplete authoritative snapshot, not a zero bonus.
     """
     from wakfu_server.combat_actor_snapshot import native_actor_catalog
+    from wakfu_server.native_catalog_document import is_native_json_mapping
 
     catalog = native_actor_catalog().get("characteristics")
-    row = catalog.get(str(PROSPECTION_STAT_ID)) if isinstance(catalog, dict) else None
+    if not is_native_json_mapping(catalog):
+        raise ValueError("Missing native Wakfu characteristic catalog authority")
+    row = catalog.get(str(PROSPECTION_STAT_ID))
     if (
         not isinstance(row, dict)
         or row.get("name") != "PROSPECTION"
@@ -524,6 +527,7 @@ def resolve(
     shop_consumable_factor=100,
     rng=None,
     companion_rolls=(),
+    rift_fight=None,
 ):
     """Persist one winner's drop outcomes inside an existing victory TX.
 
@@ -541,6 +545,17 @@ def resolve(
     from wakfu_server.combat_reward_ownership import lock_recipient
 
     lock_recipient(store, db, account_id, generation, character_id, fight_id)
+    earned_rift = False
+    if rift_fight is not None:
+        from wakfu_server.combat_reward_ownership import is_earned_rift_recipient
+
+        earned_rift = rift_fight.id == fight_id and is_earned_rift_recipient(
+            db, rift_fight, account_id, generation, character_id
+        )
+        if not earned_rift:
+            raise ValueError(
+                "Rift drops require the actual earned settlement capability"
+            )
     reward = db.execute(
         "SELECT r.generation,p.team,f.status,f.fight_kind FROM fight_rewards r "
         "JOIN combat_fight_participants p ON p.fight_id=r.fight_id AND p.character_id=r.character_id "
@@ -548,7 +563,7 @@ def resolve(
         "WHERE r.fight_id=%s AND r.character_id=%s AND r.account_id=%s FOR UPDATE OF f",
         (fight_id, character_id, account_id),
     ).fetchone()
-    if (
+    if not earned_rift and (
         reward is None
         or reward["status"] != "finished"
         or reward["fight_kind"] != "pve"
@@ -560,7 +575,7 @@ def resolve(
         if current.snapshot.get("account_id") != account_id:
             raise ValueError("Drop award belongs to another account")
         return current
-    if reward["generation"] != generation:
+    if reward is not None and reward["generation"] != generation:
         raise ValueError("New drop award must share the victory reward session")
     if isinstance(fight_context, dict) and "nox_complex_loot" in fight_context:
         from wakfu_server.combat_nox_complex_loot_policy import (
@@ -579,6 +594,29 @@ def resolve(
 
     catalog = native_drop_catalog()
     normalized_monsters = _validate_monsters(monsters, catalog)
+    rift_factor = None
+    if earned_rift:
+        from wakfu_server.rift_runtime import _run
+        from wakfu_server.rift_earned_rewards import frozen_factor, defeated_sources
+        from wakfu_server.combat_encounter_roles import assigned_roles
+
+        run = _run(db, rift_fight.rift_wave_state["instance_id"])
+        killed = defeated_sources(db, rift_fight, run)
+        expected = sorted((row["id"], row["ref"]) for row in killed)
+        if (
+            sorted((row["actor_id"], row["reference"]) for row in normalized_monsters)
+            != expected
+        ):
+            raise ValueError(
+                "Rift common drops differ from actual admitted native kills"
+            )
+        result = dict(
+            reached_wave=run["wave"],
+            outcome="won"
+            if rift_fight.winner == assigned_roles(rift_fight).player_team
+            else "lost",
+        )
+        rift_factor = frozen_factor(db, run, result)
     profiles = []
     for profile in companion_rolls:
         if not isinstance(profile, dict) or set(profile) != {
@@ -646,6 +684,16 @@ def resolve(
     from .drop_allocation import allocate
 
     decisions, allocation = allocate(db, fight_id, character_id, decisions)
+    rift_quantity = None
+    if earned_rift:
+        from wakfu_server.rift_loot_quantities import scale_ordinary
+
+        decisions, ledger = scale_ordinary(decisions, rift_factor["multiplier"])
+        rift_quantity = dict(
+            factor=rift_factor,
+            original_successes=ledger,
+            probability_draws_multiplied=False,
+        )
     if profiles:
         decisions = tuple(
             sorted(
@@ -690,6 +738,8 @@ def resolve(
             dict(row, attempt_offset=(index + 1) * _MAX_SAFE_ATTEMPTS)
             for index, row in enumerate(profiles)
         ]
+    if rift_quantity is not None:
+        snapshot["rift_common_quantity"] = rift_quantity
     encoded = _canonical_json(snapshot).encode("utf8")
     digest = sha256(encoded).hexdigest()
     inserted = db.execute(

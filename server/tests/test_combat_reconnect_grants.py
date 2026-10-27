@@ -61,6 +61,14 @@ class ReconnectGrantTests(unittest.TestCase):
         )
         projection.verify_complete()
         self.assertEqual(projection.other_carriers, [])
+        self.assertEqual(projection.grant_carriers, [packet])
+        self.assertEqual(
+            decode_remote_effects(projection.effects(200, encoded, final=True)),
+            (other,),
+        )
+        projection.verify_complete(final=True)
+        with self.assertRaises(ValueError):
+            projection.effects(200, encoded, final=True)
         self.assertEqual(decode_remote_effects(encoded)[1], record)
 
     def test_projection_rejects_missing_mismatched_foreign_and_duplicate_carriers(self):
@@ -84,6 +92,34 @@ class ReconnectGrantTests(unittest.TestCase):
                 200, encode_remote_effects((changed,))
             )
 
+    def test_changed_final_snapshot_still_resets_nonbirth_actor(self):
+        fight, summon, shared = fixture(False)
+        changed = encode_remote_effects(
+            (RemoteRunningEffect(310, b"changed-effect", 77),)
+        )
+        original = ReconnectGrantProjection.effects
+
+        def projection(projector, actor_id, effects, *, final=False):
+            result = original(projector, actor_id, effects, final=final)
+            return changed if final and actor_id == 100 else result
+
+        with patch.object(ReconnectGrantProjection, "effects", projection):
+            packets = owned_snapshot(
+                fight,
+                shared,
+                SimpleNamespace(account_id=1, character_id=100),
+                actor_payload=lambda *args: (b"owned-stats", bytes(2)),
+            )
+        continuation = packets.presentation.resume_packets
+        resets = {
+            decode_actor_state(op, body)["actor_id"]: decode_actor_state(op, body)[
+                "state"
+            ]
+            for op, body in continuation
+            if op == 13912
+        }
+        self.assertEqual(resets, {100: changed, summon.id: bytes(2)})
+
     def test_complete_owned_reconnect_publishes_full_grant_only_after_action(self):
         for current_summon in (False, True):
             with self.subTest(current_summon=current_summon):
@@ -105,6 +141,12 @@ class ReconnectGrantTests(unittest.TestCase):
                             effects if actor.id == 200 else bytes(2),
                         ),
                     )
+                # Birth creation must complete on this recipient before any
+                # effect-manager reset or temporary class grant is published.
+                self.assertTrue(hasattr(packets, "presentation"))
+                self.assertNotIn(13912, [opcode for opcode, _ in packets])
+                self.assertNotIn(packet, packets)
+                packets = tuple(packets) + packets.presentation.resume_packets
                 boot = decode_bootstrap(packets[0][1])
                 self.assertTrue(
                     all(row["myF"] == bytes(2) for row in boot["participants"])
@@ -112,19 +154,29 @@ class ReconnectGrantTests(unittest.TestCase):
                 opcodes = [opcode for opcode, _ in packets]
                 self.assertEqual(opcodes.count(12514), 1)
                 action = opcodes.index(12514)
-                hero_snapshot = next(
-                    (index, decode_actor_state(13912, body))
+                self.assertFalse(
+                    any(
+                        opcode == 13912
+                        and decode_actor_state(opcode, body)["actor_id"] == 200
+                        for opcode, body in packets
+                    )
+                )
+                hero_stats = next(
+                    index
                     for index, (opcode, body) in enumerate(packets)
-                    if opcode == 13912
-                    and decode_actor_state(13912, body)["actor_id"] == 200
+                    if opcode == 12873
+                    and decode_actor_state(opcode, body)["actor_id"] == 200
                 )
-                self.assertGreater(hero_snapshot[0], action)
-                self.assertEqual(hero_snapshot[1]["state"], effects)
-                self.assertEqual(
-                    decode_remote_effects(hero_snapshot[1]["state"]), (record,)
+                self.assertGreater(hero_stats, action)
+                self.assertEqual(packets.count(packet), 1)
+                self.assertGreater(
+                    packets.index(packet),
+                    max(
+                        index
+                        for index, (opcode, _) in enumerate(packets)
+                        if opcode == 13912
+                    ),
                 )
-                self.assertEqual(packets[hero_snapshot[0] + 1][0], 12873)
-                self.assertNotIn(packet, packets)
                 self.assertNotIn(13560, opcodes)
                 self.assertNotIn(13482, opcodes)
                 self.assertEqual(source_snapshot(fight), before)

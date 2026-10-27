@@ -6,6 +6,7 @@ Events, cell routing, facing/block, state clocks and healing-resistance guards
 remain explicit policies. Unknown fcE/effect flags still fail in the resolver
 or handlers. This adapter never sends packets or mutates the original fight.
 """
+
 from dataclasses import dataclass
 from .combat_effect_runtime import NativeRuntimeContexts
 import time
@@ -95,6 +96,7 @@ class NativeCastAuthority:
     random_fraction: object
     damage_block: object = None
     random_number: object = None
+    condition_cell_query: object = None  # Optional source-bound ordinary QI producer.
 
 
 class NativeServerRuntimeAdapter:
@@ -114,10 +116,14 @@ class NativeServerRuntimeAdapter:
         if any(
             not callable(value)
             for name, value in vars(cast).items()
-            if name not in ("damage_block", "random_number")
+            if name not in ("damage_block", "random_number", "condition_cell_query")
         ) or any(
             value is not None and not callable(value)
-            for value in (cast.damage_block, cast.random_number)
+            for value in (
+                cast.damage_block,
+                cast.random_number,
+                cast.condition_cell_query,
+            )
         ):
             raise ValueError("Every native cast policy must be explicit")
         if viewer_id is not None and (type(viewer_id) is not int or viewer_id == 0):
@@ -225,6 +231,7 @@ class NativeServerRuntimeAdapter:
         *,
         native_original_target_id=CURRENT_TARGET,
         native_original_caster_id=CURRENT_TARGET,
+        condition_cell_batch=None,
     ):
         aliases = {}
         null_aliases = set()
@@ -282,15 +289,26 @@ class NativeServerRuntimeAdapter:
         # once, then discard this lazy reader before another condition/effect.
         alias_retained_effects = native_retained_condition_reader(preview)
         native_cell_argument = getattr(invocation, "native_target_cell_argument", False)
+        combined_cell_facts = False
+        combined_cell_obstacle = None
         if native_cell_argument:
             from dataclasses import is_dataclass
 
             if is_dataclass(invocation):
                 from .combat_casting_context import resolve_criterion_cell_invocation
 
-                invocation = resolve_criterion_cell_invocation(
-                    self, preview, invocation
+                from .combat_condition_cell_batch import read_condition_cell_batch
+
+                supplied = read_condition_cell_batch(
+                    self, preview, plan, effect, invocation, condition_cell_batch
                 )
+                if supplied is not None:
+                    invocation, combined_cell_obstacle = supplied
+                    combined_cell_facts = True
+                else:
+                    invocation = resolve_criterion_cell_invocation(
+                        self, preview, invocation
+                    )
         caster_actor = native_actor(preview, invocation.caster_id)
         controller_id = (
             authority_for(caster_actor).native_controller_id
@@ -404,9 +422,9 @@ class NativeServerRuntimeAdapter:
                 is_native_fighter=authority.targeting.get("is_eGj"),
                 # eGj.a(eHh) explicitly identifies CHARACTER. Other native
                 # actor implementations need their own kind attestation.
-                is_character=True
-                if authority.targeting.get("is_eGj") is True
-                else None,
+                is_character=(
+                    True if authority.targeting.get("is_eGj") is True else None
+                ),
                 is_abandonning=native_departure_flag(actor, "abandonning"),
                 is_fleeing=native_departure_flag(actor, "fleeing"),
                 is_off_play=authority.targeting.get("baG"),
@@ -441,11 +459,13 @@ class NativeServerRuntimeAdapter:
                 world_properties=(
                     condition_actor_by_identity[("properties", actor.id)][0]
                     if ("properties", actor.id) in condition_actor_by_identity
-                    else frozenset(
-                        self.actor_authority.world_properties(preview, actor)
+                    else (
+                        frozenset(self.actor_authority.world_properties(preview, actor))
+                        if callable(
+                            getattr(self.actor_authority, "world_properties", None)
+                        )
+                        else getattr(actor, "native_world_properties", None)
                     )
-                    if callable(getattr(self.actor_authority, "world_properties", None))
-                    else getattr(actor, "native_world_properties", None)
                 ),
                 world_property_since_ms=getattr(
                     actor, "native_world_property_since_ms", None
@@ -453,9 +473,11 @@ class NativeServerRuntimeAdapter:
                 fight_properties=(
                     condition_actor_by_identity[("properties", actor.id)][1]
                     if ("properties", actor.id) in condition_actor_by_identity
-                    else frozenset(self.actor_authority.properties(preview, actor))
-                    if callable(getattr(self.actor_authority, "properties", None))
-                    else getattr(actor, "native_fight_properties", None)
+                    else (
+                        frozenset(self.actor_authority.properties(preview, actor))
+                        if callable(getattr(self.actor_authority, "properties", None))
+                        else getattr(actor, "native_fight_properties", None)
+                    )
                 ),
                 summon_count=authority.summon_count,
                 summon_counts_by_breed=authority.summon_counts_by_breed,
@@ -492,9 +514,11 @@ class NativeServerRuntimeAdapter:
 
         distance = native_caster_target_distance(
             DistanceActor(*source.position[:2], source.physical_radius),
-            DistanceActor(*target.position[:2], target.physical_radius)
-            if target is not None and not native_cell_argument
-            else invocation.cell,
+            (
+                DistanceActor(*target.position[:2], target.physical_radius)
+                if target is not None and not native_cell_argument
+                else invocation.cell
+            ),
         )
         from .combat_condition_diagonal import native_diagonal
         from .combat_condition_alignment import native_alignment
@@ -526,6 +550,8 @@ class NativeServerRuntimeAdapter:
         obstacle = (
             None
             if constructor_without_qi
+            else combined_cell_obstacle
+            if combined_cell_facts
             else self.cast.cell_obstacle(preview, plan, effect, invocation)
         )
         if obstacle is not None and type(obstacle) is not bool:
@@ -765,54 +791,135 @@ class NativeServerRuntimeAdapter:
                     )
                     for position, states in area_state_rows
                 )
-            rows = []
-            for candidate in preview.actors.values():
-                if getattr(candidate, "pve_withdrawn", False):
-                    continue
-                metadata = self._actor(preview, candidate)
-                if human_only:
-                    from .combat_team_count_conditions import human_actor_type
+            from .combat_ordinary_authority import OrdinaryActorAuthority
+            from .combat_summon import RegisteredSummonAuthority
 
-                    if type(metadata.native_in_play) is not bool:
-                        raise ValueError("Missing native human-range membership")
-                    if not metadata.native_in_play:
-                        continue
-                    if not human_actor_type(metadata.native_actor_type):
-                        continue
-                properties = self.actor_authority.properties(preview, candidate)
-                if relation == "world_property":
-                    world = self.actor_authority.world_properties(preview, candidate)
-                    if world_property_reference not in world:
-                        continue
-                states = (
-                    registered_state_carriers(
-                        preview, candidate, retained_reader=retained_reader
-                    )
-                    if relation == "state"
-                    else ()
-                )
-                if own_team_states:
-                    states = own_team_state_carriers(
-                        states, affiliation, state_affiliations
-                    )
-                rows.append(
-                    RangeFighter(
-                        candidate.position,
-                        candidate.physical_radius,
-                        getattr(candidate, "native_fight_affiliation", candidate.team),
-                        metadata.native_in_play,
-                        42 in properties,
-                        metadata.breed_id == 3794 and metadata.is_carried,
-                        114 in properties,
-                        states,
-                        metadata.breed_id,
+            # Only trusted read-only cell filters can reuse actor projections.
+            # Recheck the active scope: an arbitrary nested callback suspends it.
+            active_cache = current_condition_actor_cache(self, preview)
+            reuse_range_facts = (
+                active_cache is not None
+                and active_cache is condition_actor_by_identity
+                and (
+                    type(self.actor_authority) is OrdinaryActorAuthority
+                    or (
+                        type(self.actor_authority) is RegisteredSummonAuthority
+                        and type(self.actor_authority.ordinary)
+                        is OrdinaryActorAuthority
                     )
                 )
+            )
+            # One complete relation-neutral population is an owned bulk input.
+            # Build it only at the first reached range operand, never at entry;
+            # each query retains its own center, filters, map and validation.
+            range_input = (
+                condition_cell_batch
+                if combined_cell_facts
+                and reuse_range_facts
+                and condition_cell_batch.active
+                and relation in ("enemy", "ally")
+                and not human_only
+                and not own_team_states
+                and state_reference is None
+                and world_property_reference is None
+                and breed_reference is None
+                else None
+            )
+            if (
+                combined_cell_facts
+                and condition_cell_batch.active
+                and not reuse_range_facts
+            ):
+                condition_cell_batch.range_population = None
+                condition_cell_batch.range_population_anchor = None
+            if range_input is not None and range_input.range_population is not None:
+                anchor = range_input.range_population_anchor
+                if (
+                    anchor is None
+                    or anchor[0] is not condition_actor_by_identity
+                    or condition_actor_by_identity.get(anchor[1]) is not anchor[2]
+                ):
+                    # An arbitrary opt-out clears the existing projection memo
+                    # in place. A newly projected object is a new capability.
+                    range_input.range_population = None
+                    range_input.range_population_anchor = None
+            rows = None if range_input is None else range_input.range_population
+            if rows is None:
+                rows = []
+                for candidate in preview.actors.values():
+                    if getattr(candidate, "pve_withdrawn", False):
+                        continue
+                    metadata = (
+                        authority_for(candidate)
+                        if reuse_range_facts
+                        else self._actor(preview, candidate)
+                    )
+                    if human_only:
+                        from .combat_team_count_conditions import human_actor_type
+
+                        if type(metadata.native_in_play) is not bool:
+                            raise ValueError("Missing native human-range membership")
+                        if not metadata.native_in_play:
+                            continue
+                        if not human_actor_type(metadata.native_actor_type):
+                            continue
+                    if reuse_range_facts:
+                        world, properties = condition_actor_by_identity[
+                            ("properties", candidate.id)
+                        ]
+                    else:
+                        properties = self.actor_authority.properties(preview, candidate)
+                    if relation == "world_property":
+                        if not reuse_range_facts:
+                            world = self.actor_authority.world_properties(
+                                preview, candidate
+                            )
+                        if world_property_reference not in world:
+                            continue
+                    states = (
+                        registered_state_carriers(
+                            preview, candidate, retained_reader=retained_reader
+                        )
+                        if relation == "state"
+                        else ()
+                    )
+                    if own_team_states:
+                        states = own_team_state_carriers(
+                            states, affiliation, state_affiliations
+                        )
+                    rows.append(
+                        RangeFighter(
+                            candidate.position,
+                            candidate.physical_radius,
+                            getattr(
+                                candidate, "native_fight_affiliation", candidate.team
+                            ),
+                            metadata.native_in_play,
+                            42 in properties,
+                            metadata.breed_id == 3794 and metadata.is_carried,
+                            114 in properties,
+                            states,
+                            metadata.breed_id,
+                        )
+                    )
             if relation == "breed":
                 return fighters_breed_count(
                     tuple(rows), center=center, maximum=maximum, breed=breed_reference
                 )
-            map_id = self._actor(preview, source).native_instance_id
+            map_id = (
+                authority_for(source)
+                if reuse_range_facts
+                else self._actor(preview, source)
+            ).native_instance_id
+            if range_input is not None and range_input.range_population is None:
+                range_input.range_population = tuple(rows)
+                source_key = ("properties", source.id)
+                range_input.range_population_anchor = (
+                    condition_actor_by_identity,
+                    source_key,
+                    condition_actor_by_identity[source_key],
+                )
+                rows = range_input.range_population
             result = range_count(
                 tuple(rows),
                 relation=relation,
@@ -1204,9 +1311,11 @@ class NativeServerRuntimeAdapter:
             return nearest_ally_beacon_distance(
                 preview,
                 caster_affiliation=caster.fight_affiliation,
-                target_position=invocation.cell
-                if native_cell_argument or target is None
-                else target.position,
+                target_position=(
+                    invocation.cell
+                    if native_cell_argument or target is None
+                    else target.position
+                ),
             )
 
         def closest_specific_area_query(selector, reference, use_path, owner_selector):
@@ -1307,6 +1416,29 @@ class NativeServerRuntimeAdapter:
             return query_owned_fight(
                 preview, selected, lambda actor: self._actor(preview, actor)
             )
+
+        def dungeon_query():
+            from wakfu_server.native_world_dungeon_facts import is_dungeon
+
+            # eII.n chooses the first actual eHg (caster, then target). A
+            # selected faV/eHg is not eGj and makes eNL false; it must not be
+            # replaced by another fighter or a guessed combat category.
+            for role in ("caster", "target"):
+                selected = aliases.get(role)
+                if selected is None:
+                    if role in null_aliases:
+                        continue
+                    raise ValueError("Missing actual IsDungeon selected PV")
+                if selected.is_native_fighter is True:
+                    return is_dungeon(selected.native_instance_id)
+                if selected.is_native_ehg is True:
+                    if selected.is_native_fighter is False:
+                        return False
+                    raise ValueError("Missing actual IsDungeon eHg fighter kind")
+                if selected.is_native_ehg is False:
+                    continue
+                raise ValueError("Missing actual IsDungeon selected eHg kind")
+            return False  # Actual Qe has no ePy fallback or selected eHg.
 
         def battleground_query():
             from wakfu_server.native_world_context import is_battleground
@@ -1563,9 +1695,9 @@ class NativeServerRuntimeAdapter:
             return areas_with_base_id(
                 preview,
                 reference=reference,
-                owner_id=None
-                if selector is None
-                else selected_relationship_id(selector),
+                owner_id=(
+                    None if selector is None else selected_relationship_id(selector)
+                ),
                 all_owners=selector is None,
             )
 
@@ -2211,9 +2343,11 @@ class NativeServerRuntimeAdapter:
                 (
                     lambda references, target, inventory: self.actor_authority.has_equipment_type(
                         preview,
-                        preview.actors.get(invocation.target_id, source)
-                        if target
-                        else source,
+                        (
+                            preview.actors.get(invocation.target_id, source)
+                            if target
+                            else source
+                        ),
                         references,
                         inventory,
                     )
@@ -2306,6 +2440,7 @@ class NativeServerRuntimeAdapter:
             pvp_query=pvp_query,
             is_protector_in_fight_query=is_protector_in_fight_query,
             battleground_query=battleground_query,
+            dungeon_query=dungeon_query,
             daytime_query=lambda: world_clock.daytime(world_clock.current_time_ms()),
             boolean_system_configuration_query=boolean_system_configuration_query,
             active_cosmetic_id_query=active_cosmetic_id_query,
@@ -2315,28 +2450,36 @@ class NativeServerRuntimeAdapter:
             effect_caster_original_controller_query=lambda: original_target_controller(
                 preview,
                 self.actor_authority,
-                invocation.caster_id
-                if native_original_caster_id is CURRENT_TARGET
-                else native_original_caster_id,
+                (
+                    invocation.caster_id
+                    if native_original_caster_id is CURRENT_TARGET
+                    else native_original_caster_id
+                ),
             ),
             effect_target_original_controller_query=lambda: original_target_controller(
                 preview,
                 self.actor_authority,
-                invocation.target_id
-                if native_original_target_id is CURRENT_TARGET
-                else native_original_target_id,
+                (
+                    invocation.target_id
+                    if native_original_target_id is CURRENT_TARGET
+                    else native_original_target_id
+                ),
             ),
             fight_current_table_turn=getattr(preview, "native_table_turn", None),
             enemy_target_kind=(
                 ("null" if invocation.cell is None else "cell")
                 if native_cell_argument
-                else "actor"
-                if target is not None
-                else "other"
-                if invocation.target_id is not None
-                else "null"
-                if invocation.cell is None
-                else "cell"
+                else (
+                    "actor"
+                    if target is not None
+                    else (
+                        "other"
+                        if invocation.target_id is not None
+                        else "null"
+                        if invocation.cell is None
+                        else "cell"
+                    )
+                )
             ),
             enemy_cell_affiliations_query=enemy_cell_affiliations_query,
             effect_target_absent=invocation.target_id is None,

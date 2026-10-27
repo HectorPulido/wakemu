@@ -199,14 +199,14 @@ class ShopHttpTests(unittest.TestCase):
         self.assertEqual({"7", "8"}, {row["id"] for row in all_articles["values"]})
         with self.assertRaises(LookupError):
             self.adapter.dispatch("GET", self.base + "categories/30", {}, "")
-        with self.assertRaises(LookupError):
-            self.adapter.dispatch(
-                "POST", self.base + "catalog-pages:get", {"category_id": "999"}, ""
+        for category_id in ("999", "30", "450"):
+            absent = self.adapter.dispatch(
+                "POST",
+                self.base + "catalog-pages:get",
+                {"category_id": category_id},
+                "",
             )
-        with self.assertRaises(LookupError):
-            self.adapter.dispatch(
-                "POST", self.base + "catalog-pages:get", {"category_id": "30"}, ""
-            )
+            self.assertEqual(absent["articles"], {"count": 0, "values": []})
 
     def test_cart_order_and_payment_purchase_once_at_catalog_price(self):
         cart = self.adapter.dispatch(

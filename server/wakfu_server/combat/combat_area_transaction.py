@@ -8,6 +8,7 @@ path, not by a second synthetic event here.
 import os
 from copy import deepcopy
 from .combat_random_transaction import rollback_external_rng
+from .combat_equipment_tackle_events import tackle_departure_preview
 
 
 @rollback_external_rng
@@ -120,7 +121,7 @@ def prepare_area_movement(
         preview, {"native_retained_container": {"present": False}}
     )
     previous = tuple(origin)
-    with preview.effect_resolution():
+    with tackle_departure_preview(fight, preview, payment), preview.effect_resolution():
         from .combat_movement_payment_events import replay_movement_payment
 
         for index, cell in enumerate(path):

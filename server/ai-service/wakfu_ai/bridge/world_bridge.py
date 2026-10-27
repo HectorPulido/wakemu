@@ -57,6 +57,23 @@ def _advisory_spell_capabilities(spell, level):
         return None
 
 
+def _prepare_advisory_spell_capabilities(pairs):
+    from wakfu_server import combat_ai_capabilities
+
+    prepare = getattr(combat_ai_capabilities, "prepare_spell_capabilities", None)
+    if callable(prepare):
+        try:
+            return prepare(pairs)
+        except (KeyError, IndexError, TypeError, ValueError, AttributeError):
+            # Mandatory ordinary lookups still validate every owned spell;
+            # missing advisory/batch metadata cannot remove its book entry.
+            return False
+    return False
+
+
+_advisory_spell_capabilities.prepare = _prepare_advisory_spell_capabilities
+
+
 def _file_hash(path):
     checksum = hashlib.sha256()
     with path.open("rb") as source:
@@ -219,11 +236,27 @@ class CompleteContextExporter:
                         snapshotIdentity=list(expected),
                     )
                 )
+        payload = _json_bytes(records)
+        # Validate the snapshots above even when the index is unchanged. An
+        # identical index needs no atomic replacement, but timestamps alone
+        # are not evidence that its actual bytes still match this scan.
+        try:
+            before = self._file_identity(self._cache_index.stat())
+            if before[2] == len(payload):
+                with self._cache_index.open("rb") as existing:
+                    identical = existing.read(len(payload) + 1) == payload
+                check()
+                after = self._file_identity(self._cache_index.stat())
+                if identical and before == after:
+                    self._cache_index_identity = after
+                    return
+        except OSError:
+            pass
         with tempfile.NamedTemporaryFile(
             dir=self._snapshots.name, delete=False
         ) as target:
             temporary = Path(target.name)
-            target.write(_json_bytes(records))
+            target.write(payload)
         try:
             check()
             os.replace(temporary, self._cache_index)
@@ -375,10 +408,36 @@ class CompleteContextExporter:
         # created files remain visible on the next inventory call.
         verified_sources = {}
         enumerated_roots = {}
+        resolved_roots = {root: root.resolve() for root in self.roots.values()}
 
         def files(root):
-            if root in enumerated_roots:
-                return enumerated_roots[root]
+            resolved = resolved_roots[root]
+            # Logical roots may overlap (engine and server, for example).
+            # Enumerate their containing physical root once in THIS scan;
+            # retain every logical alias and its original component ordering.
+            outer = min(
+                (
+                    candidate
+                    for candidate in resolved_roots.values()
+                    if resolved.is_relative_to(candidate)
+                ),
+                key=lambda candidate: len(candidate.parts),
+            )
+            if outer not in enumerated_roots:
+                enumerated_roots[outer] = walk(outer)
+            if root == outer:
+                return enumerated_roots[outer]
+            result = []
+            prefix = resolved.relative_to(outer).as_posix()
+            prefix = "" if prefix == "." else prefix + "/"
+            for relative, path, status in enumerated_roots[outer]:
+                check()
+                if relative.startswith(prefix):
+                    suffix = relative[len(prefix) :]
+                    result.append((suffix, root / suffix, status))
+            return result
+
+        def walk(root):
             # DirEntry classifies ordinary files from directory metadata;
             # avoid repeated Path.is_file/stat calls while still enumerating
             # every entry. register performs the full source identity checks.
@@ -410,9 +469,9 @@ class CompleteContextExporter:
                 check()
                 return tuple(pair[0].split("/"))
 
-            enumerated_roots[root] = sorted(result, key=ordering_key)
+            result.sort(key=ordering_key)
             check()
-            return enumerated_roots[root]
+            return result
 
         def register(name, path, status=None):
             check()
@@ -548,7 +607,8 @@ class CompleteContextExporter:
             for relative, path, status in files(root):
                 if (
                     protocol_root is not None
-                    and path.suffix == ".json"
+                    and relative.endswith(".json")
+                    and relative.rsplit("/", 1)[-1] != ".json"
                     and path.resolve().is_relative_to(protocol_root)
                 ):
                     continue
@@ -574,6 +634,8 @@ class CompleteContextExporter:
                 raise ValueError("Missing complete context source file: " + name)
             register(name, path)
         manifest = dict(format="wakfu-complete-context-1", entries=entries)
+        if any(root.resolve() != resolved for root, resolved in resolved_roots.items()):
+            raise ValueError("Complete context source root changed while scanning")
         self._save_cache_index()
         return manifest, sources
 

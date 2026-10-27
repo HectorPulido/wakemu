@@ -295,7 +295,7 @@ def resolve_noops(store, proposals):
             ).fetchall()
             if kind == "maturation":
                 columns = "group_id,from_reference,to_reference,draw,policy"
-                values = "x.group_id,x.reference,NULL,x.draw,x.policy || '{\"composition_model\":1}'::jsonb"
+                values = "x.group_id,x.reference,NULL,x.draw,x.policy || '{\"composition_model\":2}'::jsonb"
             else:
                 columns = "parent_group_id,parent_reference,child_id,child_group_id,child,draw,probability,policy"
                 values = "x.group_id,x.reference,NULL,NULL,NULL,x.draw,x.probability,x.policy"

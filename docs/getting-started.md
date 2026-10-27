@@ -8,7 +8,7 @@ If you already have a working server with characters you want to keep, go to [Ex
 
 ## 1. Prepare the machine
 
-The verified server installation used **Debian 12, 4 CPUs, 16 GiB of RAM and an 80 GiB disk**. Use that as the tested baseline. A separate 4 GiB machine ran out of memory while importing game data, before World started.
+The verified server installation used **Debian 12, 4 CPUs, 16 GiB of RAM and an 80 GiB disk**. Use that as the tested baseline. With the bounded importer, a separate 4 GiB machine completed the game-data imports and environmental mission setup, but ran out of memory when World started. Use the 16 GiB baseline for the complete server.
 
 You need Git, Python 3, Docker Engine with Buildx, Docker Compose v2 or newer, and internet access to download packages and images. Python packages for the server run inside Docker; you do not need to install them on the host.
 
@@ -50,7 +50,7 @@ The installer creates its own configuration and credentials. You do not need to 
 
 It builds and starts five services: PostgreSQL, Redis, World, AI and the shop. It also applies migrations and loads the versioned game data, fresh bootstrap templates, environmental missions, dungeon configuration, shop content and treasure rules.
 
-Keep the terminal open while it works. Large catalog imports can spend time on a single document. The verified cold installation took about 11 minutes; downloads and machine speed affect the duration.
+Keep the terminal open while it works. Large catalog imports can spend time on a single document. The latest verified cold installation took about 14 minutes; downloads and machine speed affect the duration.
 
 At the end, expect:
 

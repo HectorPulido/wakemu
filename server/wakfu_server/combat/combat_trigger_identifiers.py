@@ -12,7 +12,14 @@ from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
 
 @lru_cache(maxsize=1)
 def zone_trigger_policies():
-    data = protocol_catalog.load(DATA_ROOT / "native-zone-trigger-policies.json")
+    from wakfu_server.combat_published_catalogs import compilation_mode
+    from wakfu_server.native_catalog_document import load_published_document
+
+    data = (
+        protocol_catalog.load(DATA_ROOT / "native-zone-trigger-policies.json")
+        if compilation_mode()
+        else load_published_document("native-zone-trigger-policies.json")
+    )
     if data.get("schema") != 1 or data.get("source_count") != len(
         data.get("effects", {})
     ):

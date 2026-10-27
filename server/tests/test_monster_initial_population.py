@@ -123,6 +123,157 @@ class MonsterInitialPopulationTests(PostgresCase):
         self.assertEqual(1, len(self._groups()))
         self.assertEqual("defeated", self._groups()[0]["status"])
 
+    def test_map_cap_defers_both_bootstraps_until_real_defeat_with_reserved_birth(self):
+        from wakfu_server import monster_population_capacity as capacity
+
+        original_load = native_catalog.load
+        original_snapshot = monster_initial_population.snapshot
+        for route in ("direct", "prepared"):
+            with self.subTest(route=route):
+                self.instance_id += 1
+                with self.store.connection() as db:
+                    policy = db.execute(
+                        "SELECT value FROM settings WHERE name='monster_reproduction'"
+                    ).fetchone()["value"]
+                    policy["max_zone_members"] = 1500
+                    db.execute(
+                        "UPDATE settings SET value=%s WHERE name='monster_reproduction'",
+                        (Jsonb(policy),),
+                    )
+                    db.execute(
+                        "UPDATE settings SET value=jsonb_set(value,'{members_per_zone}','1') "
+                        "WHERE name='monster_initial_population'"
+                    )
+                self._populate_region(1498, region_id=self.region_id + 1)
+                member = owned_instance(
+                    5008,
+                    REFERENCES[5008]["min_level"],
+                    -990001,
+                    map_id=self.map_id,
+                    instance_id=self.instance_id,
+                    x=2,
+                    y=2000,
+                    z=0,
+                )
+                key = self.groups.register(
+                    self.map_id, self.instance_id, 88000, [member]
+                )
+                reservation = dict(
+                    key=[self.map_id, self.instance_id, 88001],
+                    members=[dict(member, id=-990002, y=2001)],
+                )
+                with self.store.connection() as db:
+                    for suffix in (1, 2):
+                        db.execute(
+                            "INSERT INTO planting_growth_outbox(resource_uid,resource,group_payload) "
+                            "VALUES(%s,%s,%s)",
+                            (
+                                self.instance_id * 10 + suffix,
+                                Jsonb(
+                                    dict(
+                                        map_id=self.map_id, instance_id=self.instance_id
+                                    )
+                                ),
+                                Jsonb(reservation),
+                            ),
+                        )
+                    self.assertEqual(
+                        capacity.snapshot(db, self.map_id, self.instance_id)["members"],
+                        1500,
+                    )
+                    before_sequence = dict(
+                        db.execute(
+                            "SELECT last_value,is_called FROM monster_entity_uid"
+                        ).fetchone()
+                    )
+                plan = dict(
+                    map_id=self.map_id,
+                    instance_id=self.instance_id,
+                    region_id=self.region_id,
+                    members=self.plan[:1],
+                )
+
+                def load(path):
+                    if Path(path).name == "initial-monster-population.json":
+                        return dict(plans=[plan])
+                    return original_load(path)
+
+                def snapshot(db, map_id, instance_id, **kwargs):
+                    kwargs.setdefault("locate", self.locate)
+                    return original_snapshot(db, map_id, instance_id, **kwargs)
+
+                def attempt():
+                    if route == "direct":
+                        return self._seed(plan=self.plan[:1])
+                    proposal = monster_initial_population.prepare_zone(self.store, plan)
+                    return monster_initial_population.apply_prepared(
+                        self.store, self.groups, proposal
+                    )
+
+                with patch.object(
+                    native_catalog, "load", side_effect=load
+                ), patch.object(
+                    monster_initial_population, "snapshot", side_effect=snapshot
+                ):
+                    if route == "direct":
+                        with self.assertRaisesRegex(ValueError, "no map capacity"):
+                            attempt()
+                    else:
+                        self.assertEqual(attempt(), "stale")
+                    with self.store.connection() as db:
+                        self.assertEqual(
+                            before_sequence,
+                            dict(
+                                db.execute(
+                                    "SELECT last_value,is_called FROM monster_entity_uid"
+                                ).fetchone()
+                            ),
+                        )
+                        self.assertIsNone(
+                            db.execute(
+                                "SELECT 1 FROM monster_initial_population WHERE map_id=%s AND instance_id=%s",
+                                (self.map_id, self.instance_id),
+                            ).fetchone()
+                        )
+                        self.assertIsNone(
+                            db.execute(
+                                "SELECT 1 FROM monster_initial_population_publication WHERE map_id=%s AND instance_id=%s",
+                                (self.map_id, self.instance_id),
+                            ).fetchone()
+                        )
+                    with self.store.connection() as db:
+                        fight_id = db.execute(
+                            "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
+                        ).fetchone()["id"]
+                    lease, _ = self.groups.claim(key, "capacity-defeat", fight_id)
+                    self.assertTrue(self.groups.finish(lease, defeated=True))
+                    with self.store.connection() as db:
+                        self.assertEqual(
+                            capacity.snapshot(db, self.map_id, self.instance_id)[
+                                "members"
+                            ],
+                            1499,
+                        )
+                    applied = attempt()
+                    if route == "direct":
+                        self.assertFalse(applied["duplicate"])
+                    else:
+                        self.assertEqual(applied, "applied")
+                    with self.store.connection() as db:
+                        self.assertEqual(
+                            capacity.snapshot(db, self.map_id, self.instance_id)[
+                                "members"
+                            ],
+                            1500,
+                        )
+                        self.assertEqual(
+                            db.execute(
+                                "SELECT count(*) AS n FROM monster_initial_population WHERE map_id=%s AND instance_id=%s",
+                                (self.map_id, self.instance_id),
+                            ).fetchone()["n"],
+                            1,
+                        )
+
     def test_parallel_startup_for_same_region_commits_one_seed(self):
         other_registry = PersistentGroups(self.store)
         barrier = Barrier(2)

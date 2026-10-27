@@ -192,7 +192,11 @@ def create_placement(
     members = list(monster) if isinstance(monster, (list, tuple)) else [monster]
     if not members:
         raise ValueError("Monster group must not be empty")
-    from .combat_encounter_roles import assigned_roles, roles_from_record, bind_roles
+    from wakfu_server.combat_encounter_roles import (
+        assigned_roles,
+        roles_from_record,
+        bind_roles,
+    )
 
     role_record = arena.get("native_encounter_roles")
     roles = (
@@ -207,6 +211,8 @@ def create_placement(
     owned_instance_id = character.get("instance_id", 0)
     if type(owned_instance_id) is not int or not 0 <= owned_instance_id < 2**63:
         raise ValueError("Invalid authoritative character instance")
+    from .combat_encounter_scene_helpers import helper_member_team
+
     for member in members:
         verified = owned_instance(
             member["ref"],
@@ -216,7 +222,7 @@ def create_placement(
             x=member["x"],
             y=member["y"],
             z=member["z"],
-            team=1,
+            team=helper_member_team(arena, member),
             instance_id=member["instance_id"],
         )
         if member != verified:
@@ -265,6 +271,9 @@ def create_placement(
     npc_direction = 3 if scene is None else scene.get("boss_direction", 3)
     if type(npc_direction) is not int or not 0 <= npc_direction <= 7:
         raise ValueError("Invalid declared encounter boss facing")
+    from .combat_spawn_facing import toward_nearest
+    from .rift_encounter_roles import RiftEncounterRoles
+
     npcs = [
         Actor(
             member["id"],
@@ -276,7 +285,11 @@ def create_placement(
             member["initiative"],
             member["level"],
             max_hp=member["max_hp"],
-            direction=npc_direction,
+            direction=(
+                toward_nearest(position, ((pc.id, pc.position),))
+                if isinstance(roles, RiftEncounterRoles)
+                else npc_direction
+            ),
         )
         for member, position in zip(members, npc_positions)
     ]
@@ -291,14 +304,31 @@ def create_placement(
         placement_cells = roles.placement_cells(
             {pc.position}, {npc.position for npc in npcs}
         )
+    from .combat_encounter_scene_helpers import apply_helper_constructor_roles
+
+    helper_manifest = apply_helper_constructor_roles(
+        character,
+        members,
+        {actor.id: actor for actor in npcs},
+        arena,
+        fight_id=fight_id,
+        player_team=roles.player_team,
+        npc_team=roles.npc_team,
+    )
     from .combat_geometry_snapshot import freeze_terrain
 
     fight = Fight(
         fight_id, [pc, *npcs], cells, placement_cells, arena.get("valid_edges")
     )
+    if helper_manifest is not None:
+        fight.native_scene_helper_manifest = helper_manifest
     if role_record is not None:
         bind_roles(
-            fight, roles, player_ids=(pc.id,), npc_ids=tuple(npc.id for npc in npcs)
+            fight,
+            roles,
+            player_ids=(pc.id,)
+            + tuple(npc.id for npc in npcs if npc.team == roles.player_team),
+            npc_ids=tuple(npc.id for npc in npcs if npc.team == roles.npc_team),
         )
     if arena.get("native_encounter_scene_layout") is not None:
         import copy
@@ -312,6 +342,13 @@ def create_placement(
         fight,
         placement_context(character, members, fight_id=fight_id),
     )
+    if helper_manifest is not None:
+        context = getattr(fight, "native_haven_world_combat_context", None)
+        if context is not None:
+            for row in helper_manifest["source"]["helpers"]:
+                fight.actors[
+                    row["actor_id"]
+                ].native_haven_world_combat_context = context
     from .combat_cosmetic_conditions import initialize_fresh_player_cosmetics
 
     initialize_fresh_player_cosmetics(pc, character)

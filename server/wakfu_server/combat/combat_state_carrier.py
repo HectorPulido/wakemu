@@ -4,6 +4,7 @@ Wire proof: ProbeStateCarrier.java native eZk.a/bca; cvX12613/cjK/aVo retains th
 executing its children again; cvY13497/aTR cannot retain eZk.aZN()==false. Scheduling values remain explicit native
 inputs rather than inferred turns; server clock policy belongs to the ledger.
 """
+from .combat_state_parameters import pack_state_identity
 import struct
 from .combat_effects import _integer, _varint
 from .combat_effect_removal import running_effect_removal, STATE_CARRIER_EFFECT_CLASS
@@ -55,7 +56,7 @@ def state_carrier_payload(
         type(state_id) is not int
         or not 0 < state_id <= 32767
         or type(level) is not int
-        or not 0 <= level <= 32767
+        or not -32768 <= level <= 32767
     ):
         raise ValueError("State identity/level outside native signed shorts")
     if type(generic_effect) is not int or not (
@@ -74,7 +75,7 @@ def state_carrier_payload(
         raise ValueError("Invalid native carrier flags")
     if timing_payload is not None and not isinstance(timing_payload, bytes):
         raise ValueError("Native TimeDatas must be bytes")
-    packed = (state_id << 16) | level
+    packed = pack_state_identity(state_id, level)
     payload = b"".join(
         _integer(k, v)
         for k, v in [

@@ -10,6 +10,77 @@ from psycopg.pq import TransactionStatus
 POLICY = "wakemu-boss-validated-damage-v1"
 
 
+def validate_scene_helper_score_proof(snapshot, fight_id, source_id, owner_id, proof):
+    """A declared ordinary scene helper is distinct from a native summon."""
+    fields = {
+        "schema",
+        "source",
+        "owner_actor_id",
+        "current_controller_id",
+        "account_id",
+        "native_birth_digest",
+        "actor_id",
+        "reference",
+        "descriptor_level",
+        "source_policy",
+        "source_digest",
+        "fight_id",
+        "map_id",
+        "catalog_revision",
+        "ready_digest",
+    }
+    scope = snapshot.get("scene_helper_score_scope")
+    if (
+        not isinstance(proof, dict)
+        or set(proof) != fields
+        or not isinstance(scope, dict)
+    ):
+        raise ValueError("Scene helper score lacks its frozen source scope")
+    from wakfu_server.combat_encounter_scene_helpers import (
+        validated_manifest,
+        SPIRIT_POLICY,
+    )
+
+    source = validated_manifest(scope["manifest"])
+    matches = [row for row in source["helpers"] if row["actor_id"] == source_id]
+    if (
+        len(matches) != 1
+        or source["policy"] != SPIRIT_POLICY
+        or proof["schema"] != "wakemu.scene-helper-score-owner.v1"
+        or proof["source"] != "declared_initial_scene_npc.current_human_controller.v1"
+        or any(
+            type(proof[key]) is not int
+            for key in (
+                "actor_id",
+                "owner_actor_id",
+                "current_controller_id",
+                "account_id",
+                "reference",
+                "descriptor_level",
+                "fight_id",
+                "map_id",
+            )
+        )
+        or proof["actor_id"] != source_id
+        or proof["owner_actor_id"] != owner_id
+        or proof["current_controller_id"] != owner_id
+        or owner_id not in snapshot["player_ids"]
+        or proof["account_id"] != scope["ready_owners"].get(str(owner_id))
+        or proof["fight_id"] != fight_id
+        or proof["fight_id"] != scope["fight_id"]
+        or proof["source_policy"] != source["policy"]
+        or proof["source_digest"] != scope["manifest"]["source_digest"]
+        or proof["map_id"] != source["map_id"]
+        or proof["reference"] != matches[0]["reference"]
+        or proof["descriptor_level"] != matches[0]["level"]
+        or proof["native_birth_digest"] != scope["births"].get(str(source_id))
+        or proof["ready_digest"] != scope["ready_digest"]
+        or proof["catalog_revision"] != scope["catalog_revision"]
+    ):
+        raise ValueError("Scene helper score proof differs from its actual admission")
+    return True
+
+
 def _integer(value, name, minimum=0):
     if type(value) is not int or value < minimum:
         raise ValueError("Invalid boss score " + name)
@@ -137,7 +208,8 @@ def record_damage(
     post_mitigation_damage,
     armor_absorbed,
     round_number,
-    source_is_registered_summon=False
+    source_is_registered_summon=False,
+    source_scene_helper=None,
 ):
     """Executor-only hook, after successful execution inside its commit TX.
 
@@ -171,7 +243,13 @@ def record_damage(
         or owner_actor_id not in snapshot["player_ids"]
     ):
         return False
-    if source_id != owner_actor_id and source_is_registered_summon is not True:
+    if source_scene_helper is not None:
+        if source_is_registered_summon:
+            raise ValueError("Scene helpers cannot impersonate registered summons")
+        validate_scene_helper_score_proof(
+            snapshot, fight_id, source_id, owner_actor_id, source_scene_helper
+        )
+    elif source_id != owner_actor_id and source_is_registered_summon is not True:
         return False
     damage = _integer(post_mitigation_damage, "damage")
     armor = _integer(armor_absorbed, "armor")
@@ -184,6 +262,8 @@ def record_damage(
         round_number=round_number,
         registered_summon=source_is_registered_summon,
     )
+    if source_scene_helper is not None:
+        payload["scene_helper"] = source_scene_helper
     previous = db.execute(
         "SELECT snapshot FROM boss_score_damage_receipts WHERE fight_id=%s AND event_id=%s",
         (fight_id, event_id),
@@ -217,7 +297,7 @@ def finalize(
     survived,
     winning_team,
     boss_defeated=False,
-    terminal_authority=None
+    terminal_authority=None,
 ):
     """Freeze a terminal result; never changes the fight winner or turn loop."""
     _transaction(db)

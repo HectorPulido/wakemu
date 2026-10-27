@@ -56,8 +56,10 @@ def _contact(a, b, radius_a, radius_b):
     return dx <= radius and dy <= radius and (dx != radius or dy != radius)
 
 
-def movement_tackle_cost(fight, actor, path):
+def movement_tackle_cost(fight, actor, path, *, capture=None):
     """fei evaluates departures, preserving positive-radius one-time use."""
+    if capture is not None and (not isinstance(capture, list) or capture):
+        raise ValueError("Native tackle capture requires an empty owned list")
     # Legacy pure FSM fixtures have no native characteristic domain. Real owned
     # snapshots must never silently lose their disengagement authority.
     if actor.effect_stats is None and not hasattr(
@@ -134,7 +136,7 @@ def movement_tackle_cost(fight, actor, path):
             raise ValueError("Missing actual native tackler radius/value")
         candidates.append(candidate)
     ap = mp = 0
-    for position in [actor.position, *path[:-1]]:
+    for index, position in enumerate([actor.position, *path[:-1]]):
         touching = [
             c
             for c in candidates
@@ -152,6 +154,17 @@ def movement_tackle_cost(fight, actor, path):
             actor.effective_level,
             facing,
         )
+        if capture is not None and index < len(path):
+            capture.append(
+                dict(
+                    actor_id=actor.id,
+                    from_cell=tuple(position),
+                    to_cell=tuple(path[index]),
+                    causer_ids=tuple(c.id for c in touching),
+                    ap=loss_ap,
+                    mp=loss_mp,
+                )
+            )
         ap, mp = _i(ap + loss_ap), _i(mp + loss_mp)
         used = {c.id for c in touching if c.physical_radius > 0}
         candidates = [c for c in candidates if c.id not in used]

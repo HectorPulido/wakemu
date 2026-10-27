@@ -40,7 +40,7 @@ def validate_policy(policy):
     _int(policy["minimum_defeated_monsters"], "minimum kills", 1, 100000)
     _int(policy["max_rolls_per_pool"], "roll limit", 1, 128)
     if (
-        policy["losses"] != "none"
+        policy["losses"] not in ("none", "earned_native_kills")
         or not isinstance(policy["pools"], list)
         or not 1 <= len(policy["pools"]) <= 16
     ):
@@ -92,13 +92,39 @@ def validate_policy(policy):
     return policy
 
 
+def configured_policy(db, run):
+    """Keep classic balance unchanged; select an explicit ultimate-only override."""
+    configured = db.execute(
+        "SELECT value FROM settings WHERE name='rift_reward_policy'"
+    ).fetchone()
+    if configured is None:
+        raise ValueError("Missing rift reward policy")
+    selected = configured["value"]
+    if run["catalog"]["type"] == "ULTIMATE_INFINITE_WAVE":
+        overrides = db.execute(
+            "SELECT value FROM settings WHERE name='rift_reward_type_overrides'"
+        ).fetchone()
+        if overrides is not None:
+            values = overrides["value"]
+            if not isinstance(values, dict) or set(values) - {"ULTIMATE_INFINITE_WAVE"}:
+                raise ValueError("Invalid scoped rift reward policy")
+            selected = values.get("ULTIMATE_INFINITE_WAVE", selected)
+    return validate_policy(selected)
+
+
 def plan(policy, result, *, rng=secrets.randbelow):
     """Pure per-character draws; only actual durable cleared waves qualify."""
     validate_policy(policy)
     waves = _int(result["completed_waves"], "completed waves", 0, 10000)
     kills = _int(result["defeated_monsters"], "defeated monsters", 0, 100000)
     if (
-        result["outcome"] != "won"
+        (
+            result["outcome"] != "won"
+            and not (
+                result["outcome"] == "lost"
+                and policy["losses"] == "earned_native_kills"
+            )
+        )
         or waves < policy["minimum_completed_waves"]
         or kills < policy["minimum_defeated_monsters"]
     ):
@@ -263,8 +289,10 @@ def _validate_native(db, policy):
                     raise ValueError("Unverified physical enchantment material")
 
 
-def apply(db, run, result, *, store, eligible_character_ids, rng=secrets.randbelow):
-    """Award a frozen winning subset in the caller's settlement transaction."""
+def apply(
+    db, run, result, *, store, eligible_character_ids, rng=secrets.randbelow, fight=None
+):
+    """Deliver ordinary earned loot and additional pools in one settlement batch."""
     if db.info.transaction_status != TransactionStatus.INTRANS:
         raise ValueError("Rift reward delivery requires an active transaction")
     from wakfu_server import combat_drops, combat_drop_delivery
@@ -278,8 +306,19 @@ def apply(db, run, result, *, store, eligible_character_ids, rng=secrets.randbel
         or canonical["members"] != run["members"]
     ):
         raise ValueError("Rift reward run identity changed")
+    from wakfu_server.rift_encounter_roles import roles_for_catalog
+    from wakfu_server.combat_encounter_roles import assigned_roles
+
+    roles = roles_for_catalog(canonical["catalog"], canonical["policy"])
+    if fight is not None:
+        actual_roles = assigned_roles(fight)
+        if fight.id != canonical["fight_id"] or (
+            actual_roles.player_team,
+            actual_roles.npc_team,
+        ) != (roles.player_team, roles.npc_team):
+            raise ValueError("Rift reward fight differs from its frozen roles")
     if (
-        canonical["status"] != "running"
+        canonical["status"] not in ("running", result["outcome"])
         or result["outcome"] == "won"
         and result["turn"] < canonical["policy"]["turn_budget"]
     ):
@@ -294,31 +333,38 @@ def apply(db, run, result, *, store, eligible_character_ids, rng=secrets.randbel
         type(cid) is not int or cid not in canonical["members"] for cid in ids
     ):
         raise ValueError("Rift reward recipient is outside frozen membership")
-    configured = db.execute(
-        "SELECT value FROM settings WHERE name='rift_reward_policy'"
-    ).fetchone()
-    if configured is None:
-        raise ValueError("Missing rift reward policy")
+    if result["outcome"] not in ("won", "lost"):
+        return ()
+    existing = db.execute(
+        "SELECT character_id,fight_id FROM rift_item_reward_receipts "
+        "WHERE instance_id=%s AND character_id=ANY(%s)",
+        (run["instance_id"], list(ids)),
+    ).fetchall()
+    if any(row["fight_id"] != canonical["fight_id"] for row in existing):
+        raise ValueError("Rift item receipt belongs to another bound fight")
+    already_awarded = {row["character_id"] for row in existing}
+    if already_awarded == set(ids):
+        return tuple(sorted(ids))  # Never resolve/reroll a changed live policy.
+    from wakfu_server.rift_earned_rewards import defeated_sources
+
+    if fight is None:
+        raise ValueError("Earned Rift loot requires its actual finished fight")
+    killed = defeated_sources(db, fight, canonical)
+    if not killed:
+        return ()
     policy = resolve_native_pools(
-        db, configured["value"], canonical["catalog"]["species_refs"]
+        db, configured_policy(db, canonical), canonical["catalog"]["species_refs"]
     )
     _validate_native(db, policy)
-    if result["outcome"] != "won":
-        return ()
-    roster = db.execute(
-        "SELECT actor_ids,species_refs FROM rift_wave_rosters WHERE instance_id=%s ORDER BY wave LIMIT 1",
-        (run["instance_id"],),
-    ).fetchone()
-    if roster is None:
+    from wakfu_server.rift_wave_bindings import rosters as bound_rosters
+
+    rosters = bound_rosters(db, canonical, fight=fight)
+    if not rosters:
         raise ValueError("Rift rewards lack an authoritative native enemy roster")
-    actor_id, species_ref = roster["actor_ids"][0], roster["species_refs"][0]
+    actor_id, species_ref = killed[0]["id"], killed[0]["ref"]
     awarded = []
     for cid in sorted(ids):
-        old = db.execute(
-            "SELECT * FROM rift_item_reward_receipts WHERE instance_id=%s AND character_id=%s",
-            (run["instance_id"], cid),
-        ).fetchone()
-        if old is not None:
+        if cid in already_awarded:
             awarded.append(cid)
             continue
         member = db.execute(
@@ -327,7 +373,7 @@ def apply(db, run, result, *, store, eligible_character_ids, rng=secrets.randbel
         ).fetchone()
         if (
             member is None
-            or member["team"] != 0
+            or member["team"] != roles.player_team
             or member["status"] != "finished"
             or not member["session_generation"]
         ):
@@ -342,8 +388,43 @@ def apply(db, run, result, *, store, eligible_character_ids, rng=secrets.randbel
             cid,
             run["fight_id"],
         )
+        from wakfu_server.rift_loot_quantities import ReceiptIdentities
+        from wakfu_server.combat_companions import loot_profiles
+
+        character = store.character(member["account_id"], cid, db)
+        actor = fight.actors[cid]
+        common = combat_drops.resolve(
+            store,
+            db,
+            account_id=member["account_id"],
+            generation=member["session_generation"],
+            character_id=cid,
+            fight_id=run["fight_id"],
+            monsters=[dict(actor_id=row["id"], reference=row["ref"]) for row in killed],
+            prospecting_bonus=combat_drops.native_prospection_bonus(actor),
+            shop_consumable_factor=combat_drops.native_shop_drop_factor(actor),
+            can_loot=True,
+            fight_context=dict(
+                downscaled=actor.effective_level < character["level"],
+                in_dungeon=False,
+                in_infinite_waves=True,
+            ),
+            companion_rolls=loot_profiles(fight, cid),
+            rng=rng,
+            rift_fight=fight,
+        )
+        if common.replayed:
+            raise ValueError(
+                "Rift ordinary loot lacks its atomic additional-item receipt"
+            )
+        identities = ReceiptIdentities(common.decisions)
         draws = plan(policy, result, rng=rng)
-        snapshot = dict(
+        for draw in draws:
+            row_index, attempt_index = identities.take(actor_id)
+            draw["receipt_identity"] = dict(
+                drop_row_index=row_index, attempt_index=attempt_index
+            )
+        additional = dict(
             algorithm=ALGORITHM,
             account_id=member["account_id"],
             generation=member["session_generation"],
@@ -353,26 +434,24 @@ def apply(db, run, result, *, store, eligible_character_ids, rng=secrets.randbel
             eligible_character_ids=sorted(ids),
             draws=draws,
         )
+        snapshot = dict(common.snapshot, rift_additional_items=additional)
         encoded = combat_drops._canonical_json(snapshot)
         digest = sha256(encoded.encode("utf8")).hexdigest()
-        version = db.execute(
-            "SELECT version FROM combat_drop_policy_active WHERE singleton=true"
-        ).fetchone()["version"]
         db.execute(
-            "INSERT INTO fight_drop_awards(fight_id,character_id,account_id,generation,policy_version,snapshot,snapshot_sha256) VALUES(%s,%s,%s,%s,%s,%s,%s)",
+            "UPDATE fight_drop_awards SET snapshot=%s,snapshot_sha256=%s "
+            "WHERE fight_id=%s AND character_id=%s",
             (
-                run["fight_id"],
-                cid,
-                member["account_id"],
-                member["session_generation"],
-                version,
                 Jsonb(snapshot),
                 digest,
+                run["fight_id"],
+                cid,
             ),
         )
         for draw in draws:
             pool = policy["pools"][draw["pool_index"]]
             probability = Decimal(pool["chance_bp"]) / 10000
+            row_index = draw["receipt_identity"]["drop_row_index"]
+            attempt_index = draw["receipt_identity"]["attempt_index"]
             db.execute(
                 "INSERT INTO fight_drop_attempt_receipts(fight_id,character_id,defeated_actor_id,monster_reference,drop_row_index,attempt_index,item_reference,success,quantity,quantity_min,quantity_max,base_probability,raw_probability,effective_probability,draw_numerator,quantity_draw_numerator,roll_count,native_roll_max,native_min_prospection) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1,1,0)",
                 (
@@ -380,8 +459,8 @@ def apply(db, run, result, *, store, eligible_character_ids, rng=secrets.randbel
                     cid,
                     actor_id,
                     species_ref,
-                    draw["pool_index"],
-                    draw["attempt"],
+                    row_index,
+                    attempt_index,
                     draw["reference"],
                     draw["success"],
                     draw["quantity"] if draw["success"] else None,

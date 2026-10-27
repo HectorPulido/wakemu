@@ -121,7 +121,7 @@ def configuration(body):
             raise ValueError("Duplicate native server configuration")
         values[key] = value
     reader.finish()
-    values.update({431: "true", 602: "true", 603: "true", 622: "2"})
+    values.update({431: "true", 602: "true", 603: "true", 622: "2", 2058: "false"})
     payload = struct.pack(">I", len(values))
     for key, value in values.items():
         encoded = value.encode("utf-8")

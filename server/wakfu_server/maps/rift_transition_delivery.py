@@ -35,11 +35,74 @@ def queue(members, destination):
             )
 
 
+def supersede_recovered_sessions(sessions):
+    """Discard obsolete transport wakeups only for the cancelled owner leases.
+
+    The administrator's durable recovery already committed their destinations.
+    This is supersession, never a fabricated map or combat acknowledgement.
+    """
+    keys = {(s.account_id, s.generation, s.character_id) for s in sessions}
+    with _LOCK:
+        for key in keys:
+            _PENDING.pop(key, None)
+
+
+def pending_snapshot(accounts):
+    with _LOCK:
+        return {
+            key: dict(value) for key, value in _PENDING.items() if key[0] in accounts
+        }
+
+
+def supersede_recovered_destinations(proof, instance_ids):
+    """Retire only obsolete destinations after complete exterior recovery commits."""
+    accounts = {owner.account_id for owner in proof.owners}
+    with _LOCK:
+        for key, destination in tuple(_PENDING.items()):
+            if (
+                key[0] in accounts
+                and key[2] in proof.character_ids
+                and destination.get("instance_id") in instance_ids
+            ):
+                _PENDING.pop(key, None)
+
+
 def enter(
-    store, positions, account_id, generation, character_id, map_id, body, **options
+    store,
+    positions,
+    account_id,
+    generation,
+    character_id,
+    map_id,
+    body,
+    *,
+    world=None,
+    combat_registry=None,
+    groups=None,
+    checkpoint_writer=None,
+    **options
 ):
     """Flush/fence each party position before the durable movement transaction."""
     from wakfu_server import rift_entry_adapter
+
+    if world is not None:
+        from wakfu_server.rift_entry_recovery import attempt
+
+        handled, result = attempt(
+            store,
+            positions,
+            account_id,
+            generation,
+            character_id,
+            body,
+            world=world,
+            combat_registry=combat_registry,
+            groups=groups,
+            checkpoint_writer=checkpoint_writer,
+            options=options,
+        )
+        if handled:
+            return result
 
     with store.connection() as db:
         members = db.execute(

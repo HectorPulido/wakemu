@@ -205,7 +205,17 @@ def _genesis(db, map_id, instance_id, region_id, *, players=(), prepared=None):
 
 
 def execute(
-    store, groups, character, command, *, players=(), coordination=None, publish=None
+    store,
+    groups,
+    character,
+    command,
+    *,
+    players=(),
+    coordination=None,
+    publish=None,
+    prepare_scope=None,
+    validate_actor=None,
+    job=None,
 ):
     """Commit/publicize each habitat independently; retries preserve scene events."""
     if command not in COMMANDS:
@@ -213,8 +223,15 @@ def execute(
     if store is None or groups is None:
         raise ValueError("Persistent ecology administration is unavailable")
     genesis = command == "!genesis-all-flora"
+    from wakfu_server.ecology_admin_jobs import EcologyAdminCancelled
+
     with store.connection() as db:
+        if validate_actor is not None:
+            db.execute("SET LOCAL lock_timeout='250ms'")
+            db.execute("SET LOCAL statement_timeout='3000ms'")
         ecology_admin._authorize(db, character)
+        if validate_actor is not None:
+            validate_actor(db, job)
     scopes = (
         [
             (map_id, 0, region_id)
@@ -229,10 +246,23 @@ def execute(
         try:
             from .ecology_flora_planner import prepare
 
-            prepared = prepare(scope[0], scope[2]) if genesis else None
+            prepared = (
+                (
+                    prepare(scope[0], scope[2])
+                    if prepare_scope is None
+                    else prepare_scope("flora", scope[0], scope[2])
+                )
+                if genesis
+                else None
+            )
             with coordination(scope) if coordination is not None else groups.lock:
                 with store.connection() as db, db.transaction():
+                    if validate_actor is not None:
+                        db.execute("SET LOCAL lock_timeout='250ms'")
+                        db.execute("SET LOCAL statement_timeout='3000ms'")
                     ecology_admin._authorize(db, character)
+                    if validate_actor is not None:
+                        validate_actor(db, job)
                     # Harvest locks resources before flora population. Keep that
                     # order even for standalone callers without world fences.
                     list(
@@ -305,6 +335,9 @@ def execute(
                                 )
                     except (OSError, ValueError) as error:
                         result["publication_failures"].append((*scope, str(error)))
+        except EcologyAdminCancelled:
+            result["interrupted"] = True
+            break
         except ValueError as error:
             result["failures"].append((*scope, str(error)))
     result[

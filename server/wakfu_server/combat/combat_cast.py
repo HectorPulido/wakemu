@@ -92,6 +92,24 @@ def _resolve_actor_spell_action(request, character, fight, actor, deck_blob, own
             return actor, spell_id, temporary["level"]
         reference, level = resolve_controller_action(fight, actor, owner_id, uid)
         return actor, reference, level
+    from .combat_encounter_scene_helpers import (
+        controlled_scene_helper,
+        resolve_scene_helper_action,
+    )
+
+    if actor_id != character["id"] and controlled_scene_helper(
+        fight, actor, character_id=character["id"], account_id=owner_id
+    ):
+        if granted:
+            return actor, spell_id, temporary["level"]
+        reference, level = resolve_scene_helper_action(
+            fight,
+            actor,
+            character_id=character["id"],
+            account_id=owner_id,
+            uid=uid,
+        )
+        return actor, reference, level
     if str(actor_id) in getattr(fight, "native_companion_sources", {}):
         from .combat_companions import resolve_action
 

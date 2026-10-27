@@ -31,6 +31,8 @@ class NativeAreaEventRuntime:
         self.microbot_network_changed = None
         self.microbot_rail_removed = None
         self.area_removed = None
+        self.artifact_collected = None
+        self.artifact_contact_eligible = None
         self._dying_area_uids = set()
         self._dead_wall_retirements = set()
         self._wall_retirement_depth = 0
@@ -211,8 +213,76 @@ class NativeAreaEventRuntime:
             raise ValueError("Missing native activation target bcM authority")
         return value
 
+    def _root_invocation(self, row, reference, target, *, trigger=None):
+        border = row.get("native_area_contract") == "faP"
+        environment = row.get("native_environment_source") is not None
+        return EffectInvocation(
+            reference,
+            row["level"],
+            # fbc roots select SELF (the trap) or its Qq owner.
+            # Starting with the owner fighter makes SELF push that
+            # fighter and prevents Qq-owner selectors from matching.
+            row["uid"]
+            if border
+            or environment
+            or row.get("native_area_contract") == "fbc"
+            or self._requires_area_source(reference)
+            else row["owner_id"],
+            None if target is None else target.id,
+            tuple(row["cell"])
+            if row.get("native_area_contract") == "fbc"
+            else tuple(target.position),
+            native_retained_container=dict(
+                present=True,
+                type=3,
+                id=row["uid"],
+                level=row["level"],
+                is_spell=False,
+                protected=None,
+                native_kind="effect_area",
+            ),
+            # The border callback owns an actual amP recipient;
+            # preserve it instead of selecting another PV at the
+            # same QI-minimum cell (including the border itself).
+            # faM.c(amP) supplies this actual recipient, not every PV
+            # sharing its cell (notably a carried actor and its carrier).
+            # Native aZX/cym still decide whether the root reselects.
+            native_explicit_target=(
+                border or environment or row.get("native_area_contract") == "faM"
+            ),
+            native_trigger_context=trigger,
+        )
+
+    def _artifact_criterion_probe(self, row, definition, target):
+        """Inspect original grant root criteria without executing or charging Qq."""
+        from .combat_effect_dispatch import evaluate_condition
+
+        grants = []
+        for reference in definition["effect_ids"]:
+            effect = self.dispatcher.effects.get(str(reference))
+            if effect is None:
+                raise ValueError("Missing original artifact root definition")
+            if effect["effect_class"] == 843:
+                continue
+            invocation = self._root_invocation(row, reference, target)
+            criteria = effect["criteria"]
+            context = (
+                None
+                if not criteria.strip()
+                else self.dispatcher.condition_context(invocation)
+            )
+            grants.append(evaluate_condition(criteria, context))
+        return bool(grants) and any(grants)
+
     def _activate(
-        self, row, definition, target, *, trigger=None, allow_ally_contact=False
+        self,
+        row,
+        definition,
+        target,
+        *,
+        trigger=None,
+        allow_ally_contact=False,
+        artifact_origin=None,
     ):
         from .combat_observation_scope import area_is_unobserved
 
@@ -220,6 +290,15 @@ class NativeAreaEventRuntime:
             return False
         if row.get("executing"):
             return False
+        if artifact_origin is not None:
+            from .combat_artifact_assignment import prior_activation
+            from .combat_artifact_area import verify_artifact_area
+
+            verify_artifact_area(row, definition)
+            if target is None or artifact_origin not in ("contact", "assignment"):
+                raise ValueError("Actual native artifact activation origin required")
+            if prior_activation(self.fight, row, target.id, artifact_origin):
+                return False
         if definition["type"] == "SIMPLE":
             from .combat_simple_area import verified_simple_area
 
@@ -306,40 +385,50 @@ class NativeAreaEventRuntime:
         try:
             self.dispatcher.native_retention.synchronize()
             before = set(self.fight.native_retained_records)
+            outcomes = []
+            artifact_applied = False
+            before_states = None
+            if artifact_origin is not None:
+                from .combat_artifact_assignment import state_observations
+
+                before_states = state_observations(self.fight)
             for reference in definition["effect_ids"]:
-                self.dispatcher.execute(
-                    EffectInvocation(
-                        reference,
-                        row["level"],
-                        # fbc roots select SELF (the trap) or its Qq owner.
-                        # Starting with the owner fighter makes SELF push that
-                        # fighter and prevents Qq-owner selectors from matching.
-                        row["uid"]
-                        if border
-                        or environment
-                        or row.get("native_area_contract") == "fbc"
-                        or self._requires_area_source(reference)
-                        else row["owner_id"],
-                        None if target is None else target.id,
-                        tuple(row["cell"])
-                        if row.get("native_area_contract") == "fbc"
-                        else tuple(target.position),
-                        native_retained_container=dict(
-                            present=True,
-                            type=3,
-                            id=row["uid"],
-                            level=row["level"],
-                            is_spell=False,
-                            protected=None,
-                            native_kind="effect_area",
-                        ),
-                        # The border callback owns an actual amP recipient;
-                        # preserve it instead of selecting another PV at the
-                        # same QI-minimum cell (including the border itself).
-                        native_explicit_target=border or environment,
-                        native_trigger_context=trigger,
-                    )
+                invocation = self._root_invocation(
+                    row, reference, target, trigger=trigger
                 )
+                if artifact_origin is not None:
+                    effect = self.dispatcher.effects.get(str(reference))
+                    if effect is None:
+                        raise ValueError("Missing original artifact activation root")
+                    if effect["effect_class"] == 843:
+                        from dataclasses import replace
+
+                        selector = effect.get("native_target_selector", {})
+                        if (
+                            selector.get("class") != "fcE"
+                            or type(selector.get("mask")) is not int
+                            or not selector["mask"] & (1 << 51)
+                        ):
+                            raise ValueError(
+                                "Artifact retirement lacks original Qq selector"
+                            )
+                        # Reconstructed faM2243 producer supplies its actual
+                        # parent Qq. eYc.c's explicit-Qq branch preserves
+                        # its reference/bcF guards and native Qs retirement;
+                        # collector/recipient coordinates do not establish Qq identity.
+                        invocation = replace(
+                            invocation,
+                            target_id=row["uid"],
+                            cell=tuple(row["cell"]),
+                            native_explicit_target=True,
+                        )
+                outcomes.append(self.dispatcher.execute(invocation))
+                if artifact_origin is not None and outcomes[-1]:
+                    effect = self.dispatcher.effects.get(str(reference))
+                    if effect is None:
+                        raise ValueError("Missing original artifact effect definition")
+                    # Native843 only retires Qq; its success is not a grant.
+                    artifact_applied |= effect["effect_class"] != 843
         finally:
             row["executing"] = previous_executing
             from .combat_state_managers import prune_retired_state_managers
@@ -364,7 +453,30 @@ class NativeAreaEventRuntime:
             retire_exhausted_trap(self.fight, row, callbacks=self)
         else:
             self._complete_q_if_exhausted(row)
+        if artifact_origin is not None:
+            from .combat_artifact_assignment import complete_activation
+
+            complete_activation(
+                self,
+                row,
+                definition,
+                target,
+                origin=artifact_origin,
+                successful=artifact_applied,
+                before_states=before_states,
+            )
         return True
+
+    def artifact_assignment_eligible(self, area_uid, recipient_id):
+        from .combat_artifact_assignment import artifact_assignment_eligible
+
+        return artifact_assignment_eligible(self, area_uid, recipient_id)
+
+    def assign_artifact(self, area_uid, recipient_id):
+        """Invoke the original faM consumer for a separately authorized assignment."""
+        from .combat_artifact_assignment import assign_artifact
+
+        return assign_artifact(self, area_uid, recipient_id)
 
     def _complete_q_if_exhausted(self, row):
         """Retire a successfully completed finite Qq from the server Qs set.
@@ -431,6 +543,21 @@ class NativeAreaEventRuntime:
 
     def remove_parent(self, row):
         """Unapply an owned area's actual runner, including its client removal."""
+        if "effect_uid" not in row:
+            from .combat_environment_glyphs import verify_environment_glyph
+            from .combat_effect_area import remove_owned_hour_area
+
+            # Initial scene Qq objects have a genuine fec/fbm constructor,
+            # not an eYQ parent. Retire that actual Qs member directly after
+            # validating its declared native constructor; never invent a runner.
+            if (
+                row.get("native_environment_source") is None
+                or self.fight.native_effect_areas.get(row.get("uid")) is not row
+            ):
+                raise ValueError("Missing initial native area removal authority")
+            verify_environment_glyph(self.fight, row)
+            remove_owned_hour_area(self.fight, row["uid"], callbacks=self)
+            return True
         uid = row["effect_uid"]
         owned = getattr(self.fight, "native_owned_area_effects", {})
         if uid in owned:
@@ -483,12 +610,33 @@ class NativeAreaEventRuntime:
         return tuple(result)
 
     def _deliver_event(
-        self, row, definition, target, event_id, *, movement_contact=False
+        self,
+        row,
+        definition,
+        target,
+        event_id,
+        *,
+        movement_contact=False,
+        artifact_origin=None,
     ):
         from .combat_observation_scope import area_is_unobserved
 
         if area_is_unobserved(row["uid"]):
             return ()
+        if artifact_origin == "contact" and self.artifact_contact_eligible is not None:
+            if not callable(self.artifact_contact_eligible) or target is None:
+                raise ValueError("Invalid artifact contact admission callback")
+            eligible = self.artifact_contact_eligible(
+                area_row=row,
+                actor_id=target.id,
+                criterion_probe=lambda: self._artifact_criterion_probe(
+                    row, definition, target
+                ),
+            )
+            if type(eligible) is not bool:
+                raise ValueError("Explicit artifact contact admission required")
+            if not eligible:
+                return ()
         if row.get("native_area_contract") == "fbc":
             from .combat_trap_area import trap_owner_movement_allowed
 
@@ -518,11 +666,20 @@ class NativeAreaEventRuntime:
                     row, definition, getattr(self.dispatcher, "effects", {})
                 )
             )
-            result.append(
-                self._activate(row, definition, target, allow_ally_contact=True)
-                if contact
-                else self._activate(row, definition, target)
-            )
+            if artifact_origin is not None:
+                if event_id != 2243:
+                    raise ValueError("Artifact origin requires its native2243 event")
+                result.append(
+                    self._activate(
+                        row, definition, target, artifact_origin=artifact_origin
+                    )
+                )
+            else:
+                result.append(
+                    self._activate(row, definition, target, allow_ally_contact=True)
+                    if contact
+                    else self._activate(row, definition, target)
+                )
         if event_id in definition["exit_masks"]:
             result.append(self._exit(row, target))
         if removal_mask_matches(definition, (event_id,)):
@@ -595,7 +752,9 @@ class NativeAreaEventRuntime:
             tuple(
                 outcome
                 for row, definition in artifact_entries
-                for outcome in self._deliver_event(row, definition, target, 2243)
+                for outcome in self._deliver_event(
+                    row, definition, target, 2243, artifact_origin="contact"
+                )
             ),
         )
 

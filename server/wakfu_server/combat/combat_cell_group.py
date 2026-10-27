@@ -151,6 +151,7 @@ def select_cell_group(
     rng,
     criterion_present=True,
     reuse_condition_actors=False,
+    condition_batch=None,
 ):
     mode = cell_group_mode(values)
     cells = list(cells)
@@ -162,7 +163,13 @@ def select_cell_group(
         # Native criterion callbacks only query state. End the scope before
         # RNG and child execution, either of which can change fight state.
         # Arbitrary callbacks suspend and invalidate any enclosing memo.
-        with condition_actor_selection_scope(enabled=reuse_condition_actors):
+        from contextlib import nullcontext
+
+        # The optional owned working input exists only during filtering. It
+        # must be gone before shuffle RNG, level selection or child effects.
+        with condition_actor_selection_scope(
+            enabled=reuse_condition_actors
+        ), condition_batch if cells and condition_batch is not None else nullcontext():
             cells = [cell for cell in cells if condition(cell)]
     if not cells:
         return CellGroupSelection((), 0)

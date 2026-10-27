@@ -55,6 +55,10 @@ def execute(runtime, world_context, runner):
         from .world_background import admission, schedule
 
         unsupported = admission(shared)
+        if unsupported == "defer_shared_native_work":
+            # Another accepted transition owns the fight. Keep this reader
+            # responsive and retry admission on its next ordinary idle pass.
+            return
         if unsupported is None:
             from wakfu_server.combat_background_work import BackgroundDiagnostics
 

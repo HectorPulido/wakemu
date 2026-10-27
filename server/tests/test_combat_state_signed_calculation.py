@@ -1,4 +1,4 @@
-"""eWu signed C calculation precedes criteria; application remains strict."""
+"""eWu signed C calculation precedes criteria; reference authority stays strict."""
 import unittest
 from types import SimpleNamespace
 from wakfu_server.combat_state_parameters import interpret_state_parameters
@@ -36,11 +36,11 @@ class SignedStateCalculationTests(unittest.TestCase):
         fight.ready(3)
         return fight
 
-    def factory(self, criterion):
+    def factory(self, criterion, *, reference=3624):
         def create(preview):
             effect = dict(
                 effect_class=304,
-                parameters=[3624, 0, -1, 0, -1, 0],
+                parameters=[reference, 0, -1, 0, -1, 0],
                 parameter_count=3,
                 probability_base=100,
                 probability_per_level=0,
@@ -81,11 +81,13 @@ class SignedStateCalculationTests(unittest.TestCase):
         self.assertEqual(fight.actors[7].state_ledger.entries, ())
         self.assertEqual(fight.state_wire_payloads, {})
 
-    def test_true_criterion_negative_application_still_rejects_atomically(self):
+    def test_true_criterion_invalid_state_reference_rejects_atomically(self):
         fight = self.fixture()
-        with self.assertRaisesRegex(UnsupportedEffectExecution, "state level"):
+        with self.assertRaisesRegex(ValueError, "state reference"):
             run_effect_transaction(
-                fight, [EffectInvocation(1, 0, 7, 7, (0, 0, 0))], self.factory("True")
+                fight,
+                [EffectInvocation(1, 0, 7, 7, (0, 0, 0))],
+                self.factory("True", reference=-1),
             )
         self.assertEqual(fight.actors[7].state_ledger.entries, ())
         self.assertEqual(fight.state_wire_payloads, {})

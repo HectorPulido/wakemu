@@ -15,6 +15,12 @@ from pathlib import Path
 
 @lru_cache(maxsize=1)
 def catalog():
+    from wakfu_server.combat_published_catalogs import compilation_mode
+    from wakfu_server.native_catalog_document import load_published_document
+
+    if not compilation_mode():
+        return load_published_document("spell_audit.catalog")
+
     from wakfu_server.combat_common_spell_catalog import merge_effect_catalog
 
     return merge_effect_catalog(
@@ -24,6 +30,12 @@ def catalog():
 
 @lru_cache(maxsize=1)
 def costs_catalog():
+    from wakfu_server.combat_published_catalogs import compilation_mode
+    from wakfu_server.native_catalog_document import load_published_document
+
+    if not compilation_mode():
+        return load_published_document("spell_audit.costs_catalog")
+
     from wakfu_server.combat_common_spell_catalog import merge_cost_records
 
     return merge_cost_records(
@@ -33,6 +45,12 @@ def costs_catalog():
 
 @lru_cache(maxsize=1)
 def states_catalog():
+    from wakfu_server.combat_published_catalogs import compilation_mode
+    from wakfu_server.native_catalog_document import load_published_document
+
+    if not compilation_mode():
+        return load_published_document("combat-state-definitions.json")
+
     return protocol_catalog.load(DATA_ROOT / "combat-state-definitions.json")
 
 

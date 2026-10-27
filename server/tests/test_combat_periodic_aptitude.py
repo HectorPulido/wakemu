@@ -116,3 +116,59 @@ class PeriodicAptitudeTests(unittest.TestCase):
         self.fight.turn_id = 2
         self.assertEqual(renew_periodic_aptitudes(self.dispatcher, actor_id=7), (True,))
         self.assertEqual(len(self.executed), 2)
+
+    def test_explicit_native_container_removal_cancels_only_its_renewal_recipe(self):
+        from wakfu_server.combat_periodic_aptitude import (
+            removed_container_recipes,
+            cancel_removed_container_recipes,
+        )
+        from wakfu_server.combat_state_cleanup import NativeContainerKey
+
+        self.remember()
+        original_allocations = deepcopy(self.state["aptitudes"])
+        other = deepcopy(self.state)
+        self.fight.native_class_initializations[8] = other
+        plan = removed_container_recipes(
+            self.fight, 7, (NativeContainerKey(36, self.container["id"]),)
+        )
+        self.assertEqual(len(plan), 1)
+        cancel_removed_container_recipes(self.fight, 7, plan)
+        self.assertEqual(self.state["aptitudes"], original_allocations)
+        self.assertTrue(other["aptitude_periodic_recipes"])
+        self.fight.turn_id = 2
+        self.assertEqual(renew_periodic_aptitudes(self.dispatcher, actor_id=7), ())
+        self.assertFalse(self.executed)
+
+    def test_other_container_and_foreign_recipe_cannot_cancel_native_renewal(self):
+        from wakfu_server.combat_periodic_aptitude import removed_container_recipes
+        from wakfu_server.combat_state_cleanup import NativeContainerKey
+
+        self.remember()
+        self.assertEqual(
+            removed_container_recipes(
+                self.fight, 7, (NativeContainerKey(12, self.container["id"]),)
+            ),
+            (),
+        )
+        self.assertTrue(self.state["aptitude_periodic_recipes"])
+        self.state["aptitude_periodic_recipes"]["136452"]["invocation"]["caster_id"] = 8
+        with self.assertRaisesRegex(ValueError, "another actor"):
+            removed_container_recipes(
+                self.fight, 7, (NativeContainerKey(36, self.container["id"]),)
+            )
+
+    def test_changed_preflight_recipe_is_not_silently_deleted(self):
+        from wakfu_server.combat_periodic_aptitude import (
+            removed_container_recipes,
+            cancel_removed_container_recipes,
+        )
+        from wakfu_server.combat_state_cleanup import NativeContainerKey
+
+        self.remember()
+        plan = removed_container_recipes(
+            self.fight, 7, (NativeContainerKey(36, self.container["id"]),)
+        )
+        self.state["aptitude_periodic_recipes"]["136452"]["invocation"]["level"] += 1
+        with self.assertRaisesRegex(ValueError, "changed during unapplication"):
+            cancel_removed_container_recipes(self.fight, 7, plan)
+        self.assertTrue(self.state["aptitude_periodic_recipes"])

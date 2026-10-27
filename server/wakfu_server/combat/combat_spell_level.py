@@ -46,10 +46,11 @@ class NativeSpellBook:
 
 def decoded_spell_levels(records, definitions):
     """fyR.b(yC) -> fyG.e(yy) -> cr(short): clamp to native fyF.Fq."""
+    from .combat_published_catalogs import static_row_scalar
+
     levels = {}
     for _, reference, level in records:
-        definition = definitions.get(str(reference))
-        maximum = None if definition is None else definition.get("maximum_level")
+        maximum = static_row_scalar(definitions, str(reference), "maximum_level")
         if type(maximum) is not int or not 0 <= maximum <= 32767:
             raise ValueError("Missing native owned spell maximum level")
         if reference in levels:

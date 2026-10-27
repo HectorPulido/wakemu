@@ -104,7 +104,13 @@ def run_npc_turn(
 
     bridge_started = time.monotonic()
     try:
-        yield from _run_npc_turn(
+        from .backend_selection import pin_backend
+
+        backend = pin_backend(runtime)
+        runner = _run_npc_turn
+        if backend["backend"] == "jondo":
+            from .jondo_entry import run_npc_turn as runner
+        yield from runner(
             runtime,
             store=store,
             viewer_character=viewer_character,

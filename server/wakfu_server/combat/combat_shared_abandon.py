@@ -53,6 +53,9 @@ def prepare(store, registry, session, character, body, *, groups=None, shared=No
         original = shared.fight
         root = original.actors.get(session.character_id)
         summons = registered_summon_actor_ids(original)
+        from .combat_companions import registered_companion_ids
+
+        companions = registered_companion_ids(original)
         if (
             root is None
             or root.id in summons
@@ -157,7 +160,10 @@ def prepare(store, registry, session, character, body, *, groups=None, shared=No
                 owned = [
                     a.id
                     for a in original.actors.values()
-                    if a.controlled and a.owner_id == owner and a.id not in summons
+                    if a.controlled
+                    and a.owner_id == owner
+                    and a.id not in summons
+                    and a.id not in companions
                 ]
                 for identity in owned:
                     db.execute(
@@ -176,7 +182,10 @@ def prepare(store, registry, session, character, body, *, groups=None, shared=No
             departing_ids = {
                 a.id
                 for a in original.actors.values()
-                if a.controlled and a.owner_id in new_receipts and a.id not in summons
+                if a.controlled
+                and a.owner_id in new_receipts
+                and a.id not in summons
+                and a.id not in companions
             }
             persist_captured_roster_updates(
                 db, candidate, owner_ids=departing_ids, departure=True

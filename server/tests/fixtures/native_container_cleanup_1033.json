@@ -1,0 +1,53 @@
+{
+  "source": ".runtime/jondo-spirit-book-20261025/player-scene-graph.json",
+  "source_sha256": "27e280e2b6e135a9544672dbbe932b8f5b873c39ba5067148bc480f5bf4c1b5d",
+  "effect411311": {
+    "variant": 0,
+    "children": [],
+    "criteria": "IsPlayer()",
+    "parameters": [],
+    "effect_class": 1033,
+    "removal_flag": "NONE",
+    "target_masks": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "maximum_level": 32767,
+    "minimum_level": 0,
+    "application_flag": "NONE",
+    "probability_base": 100.0,
+    "native_hmi_actions": {
+      "rzc": [],
+      "rzd": [],
+      "rze": [],
+      "rzf": [],
+      "rzg": [],
+      "rzh": []
+    },
+    "native_effect_flags": [],
+    "native_execution_mode": 2,
+    "probability_per_level": 0.0,
+    "native_target_selector": {
+      "mask": 1,
+      "class": "fcE"
+    },
+    "native_definition_class": "eVy",
+    "native_timing_definition": {
+      "esr": false,
+      "ryE": -1,
+      "ryF": 0.0,
+      "ryG": false,
+      "ryH": 0,
+      "ryI": 0.0,
+      "clock_on_caster": false,
+      "clock_on_target": true
+    }
+  },
+  "native_runner": "eXY",
+  "native_container_type": 36
+}

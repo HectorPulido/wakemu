@@ -139,6 +139,11 @@ def role_assignment(map_id, monster_references):
     references = _scope(map_id, monster_references)
     policy = _active_policy(map_id, references)
     if policy is None:
+        from .combat_emiw_scene_policy import emiw_roles
+
+        reconstructed = emiw_roles(map_id, references)
+        if reconstructed is not None:
+            return reconstructed
         return _ordinary(map_id, references)
     roles = _version(policy)
     if (roles.map_id, roles.monster_references) != (map_id, references):
@@ -148,6 +153,13 @@ def role_assignment(map_id, monster_references):
 
 def roles_from_record(record, *, map_id=None, monster_references=None):
     """Reject drifted or forged role data before reconstructing a live actor."""
+    if (
+        isinstance(record, dict)
+        and record.get("schema") == "wakemu-rift-encounter-roles-v1"
+    ):
+        from wakfu_server.rift_encounter_roles import roles_from_record as rift_roles
+
+        return rift_roles(record, map_id=map_id, monster_references=monster_references)
     if (
         not isinstance(record, dict)
         or set(record) != _RECORD_FIELDS
@@ -160,11 +172,18 @@ def roles_from_record(record, *, map_id=None, monster_references=None):
     references = _scope(record["map_id"], record["monster_references"])
     if not isinstance(record["policy"], str) or not record["policy"]:
         raise ValueError("Invalid frozen encounter role policy")
-    expected = (
-        _ordinary(record["map_id"], references)
-        if record["policy"] == ORDINARY_POLICY
-        else _version(record["policy"])
-    )
+    from .combat_emiw_scene_policy import ROLE_POLICY, emiw_roles
+
+    if record["policy"] == ROLE_POLICY:
+        expected = emiw_roles(record["map_id"], references)
+        if expected is None:
+            raise ValueError("Frozen Emiw roles have another native roster")
+    else:
+        expected = (
+            _ordinary(record["map_id"], references)
+            if record["policy"] == ORDINARY_POLICY
+            else _version(record["policy"])
+        )
     if record != expected.record():
         raise ValueError("Frozen encounter roles differ from the reviewed native scope")
     if map_id is not None and map_id != expected.map_id:
@@ -198,6 +217,12 @@ def validate_participant_role(fight, actor, *, player):
     if roles is None:
         return  # Legacy fights and consented duels retain their existing teams.
     expected = roles.player_team if player else roles.npc_team
+    if not player:
+        from .combat_encounter_scene_helpers import helper_initial_team
+
+        helper_team = helper_initial_team(fight, actor.id)
+        if helper_team is not None:
+            expected = helper_team
     if actor.team != expected:
         raise ValueError("Participant team differs from the frozen encounter role")
 
@@ -235,6 +260,12 @@ def bind_roles(fight, roles, *, player_ids, npc_ids):
         ):
             raise ValueError("Actor placement differs from its encoded encounter side")
     fight.native_encounter_roles = roles.record()
+    from wakfu_server.rift_encounter_roles import RiftEncounterRoles
+
+    if type(roles) is RiftEncounterRoles:
+        # Rift initialization owns its scoped native producers. Do not consult
+        # unrelated encounter-program tables or initialize a boss scene here.
+        return roles
     from .combat_encounter_area_activation import freeze_encounter_area_policy
 
     freeze_encounter_area_policy(fight, roles=roles)

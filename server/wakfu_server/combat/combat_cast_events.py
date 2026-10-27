@@ -71,9 +71,9 @@ def _deliver(dispatcher, plan, event_id, context=None, *, removal=False):
     outcomes = []
     # Native Qf mask2 is removal, selected only by4/40/41. External cast
     # activation6/60/61 cannot expire a one-cast listener. Deliver removal
-    # after successful1025 reactions as an explicit Wakemu server policy.
-    if removal and event_id != 1025:
-        raise ValueError("Cast removal boundary requires successful1025")
+    # at separately established owner boundaries as explicit Wakemu policy.
+    if removal and event_id not in (500, 1016, 1024, 1025):
+        raise ValueError("Unknown owned cast/critical removal boundary")
     global_channel = 41 if removal else 61
     for channel in (4, 40) if removal else (6, 60):
         outcomes.extend(
@@ -174,8 +174,20 @@ def cast_event_scope(dispatcher, plan, *, origin="normal"):
 
     with attack_preparation_scope(fight, caster_id):
         _deliver(dispatcher, plan, 1024, context)
+        from .combat_external_event_removal import has_removal_subscription
+
+        if has_removal_subscription(dispatcher, 1024):
+            _deliver(dispatcher, plan, 1024, context, removal=True)
         yield
         # An exception in any root exits before the successful-after boundary.
         settle_attack_preparation(dispatcher)
+        from .combat_attack_preparation import completed_attack_preparation
+
+        if completed_attack_preparation(fight, caster_id) and has_removal_subscription(
+            dispatcher, 500
+        ):
+            # Consume the first-primary-attack marker only after all actual
+            # roots, never before damage or between recipients of one area.
+            _deliver(dispatcher, plan, 500, removal=True)
         _deliver(dispatcher, plan, 1025, context)
         _deliver(dispatcher, plan, 1025, context, removal=True)

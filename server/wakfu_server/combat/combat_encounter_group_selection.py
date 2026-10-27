@@ -137,7 +137,7 @@ def permits_fresh_group_population(fight, effect, invocation):
     policy = _version(record["policy"])
     if record != policy.record():
         raise ValueError("Frozen group population contract drifted")
-    from .combat_encounter_roles import frozen_roles
+    from wakfu_server.combat_encounter_roles import frozen_roles
 
     roles = frozen_roles(fight)
     if roles is None or (roles.map_id, roles.monster_references) != (

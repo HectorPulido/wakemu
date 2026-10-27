@@ -110,8 +110,10 @@ class RanchSession:
     def leave(self, character):
         if not self.owns(character):
             raise ValueError("Character is outside its ranch")
+        from wakfu_server.haven_bag import restore_return_scene
+
         self.closed = True
-        return dict(self.return_point)
+        return restore_return_scene(character, self.return_point)
 
     def context(self):
         if self.closed:

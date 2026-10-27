@@ -81,12 +81,16 @@ def ordinary_player_appearances(
 
     hidden = hidden_snapshot_actor_ids(fight)
     registrations = getattr(fight, "native_summon_registrations", {})
+    from .combat_companions import registered_companion_ids
+
+    companions = registered_companion_ids(fight)
     actors = [
         actor
         for actor in fight.actors.values()
         if actor.controlled
         and actor.id != session.character_id
         and actor.id not in registrations
+        and actor.id not in companions
         and actor.id not in hidden
         and not getattr(actor, "pve_withdrawn", False)
     ]
@@ -106,4 +110,33 @@ def ordinary_player_appearances(
         ):
             raise ValueError("Reconnect player appearance source is foreign")
         packets.append(serializer(character))
+    return tuple(packets)
+
+
+def companion_appearances(fight):
+    """Restore admitted native type5 identities without human character reads."""
+    from .combat_companions import registered_companion_ids, world_spawn
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    identities = registered_companion_ids(fight)
+    hidden = hidden_snapshot_actor_ids(fight)
+    packets = []
+    for identity in sorted(identities):
+        actor = fight.actors[identity]
+        if identity in hidden or getattr(actor, "pve_withdrawn", False):
+            continue
+        source = fight.native_companion_sources[str(identity)]
+        packets.append(
+            (
+                12608,
+                world_spawn(
+                    dict(
+                        source,
+                        x=actor.position[0],
+                        y=actor.position[1],
+                        z=actor.position[2],
+                    )
+                ),
+            )
+        )
     return tuple(packets)

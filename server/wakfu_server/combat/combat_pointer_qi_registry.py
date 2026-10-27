@@ -10,6 +10,26 @@ def registered_slot(registry, byte):
     return registry.slots[byte]
 
 
+def registered_obstacle(registry, byte):
+    """Current QK geometry/properties, without a whole-QL membership verdict.
+
+    Consumers requiring ``indexed`` must use registered_slot instead. This
+    projection is deliberately fresh: movement, carrying, area refresh and
+    temporary exclusions may change the canonical object between queries.
+    """
+    if isinstance(registry, PointerRegistryCompatibility):
+        obj = registry.qi.slots[byte]
+        if obj is None:
+            return None
+        return dict(
+            identity=[obj.kind, obj.identity],
+            position=[obj.x, obj.y],
+            radius=obj.radius,
+            movement_blocking=registry.qi.movement_blocking[id(obj)],
+        )
+    return registry.slots[byte]
+
+
 def registered_terrain(registry):
     """Read current masks without allocating the complete obstacle population."""
     if isinstance(registry, PointerRegistryCompatibility):

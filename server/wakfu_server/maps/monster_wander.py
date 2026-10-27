@@ -31,7 +31,10 @@ def visible_groups(groups, players, *, radius, tick, batch_size):
     ]
     if not nearby:
         return []
-    start = (tick * batch_size) % len(nearby)
+    # Every group gets the first position even when the time budget only allows
+    # one attempt. A batch-size stride can permanently skip positions when the
+    # population shares a common divisor with that stride.
+    start = tick % len(nearby)
     return nearby[start:] + nearby[:start]
 
 

@@ -100,11 +100,16 @@ def _level_invariant_metadata(effect):
     if (
         not isinstance(masks, (tuple, list))
         or len(masks) != 7
-        or any(mask for mask in masks)
-    ):
-        raise UnknownDynamicLevel(
-            "Dynamic child subscriptions need a level-domain proof"
+        or any(
+            mask is not None
+            and (
+                not isinstance(mask, (tuple, list))
+                or any(type(event) is not int or event < 0 for event in mask)
+            )
+            for mask in masks
         )
+    ):
+        raise UnknownDynamicLevel("Malformed dynamic child subscription masks")
     timing = effect.get("native_timing_definition")
     if not isinstance(timing, Mapping):
         raise UnknownDynamicLevel("Missing dynamic child timing authority")
@@ -126,7 +131,8 @@ def child_domain_witnesses(effect, effects, states, *, registry=None):
     its requested level: native float32 evaluation is monotone on this finite
     interval, and state_profile clamps it to the definition maximum. Binary
     searches retain each reachable normalized state level and both endpoints.
-    Native signed-short wrap is not guessed: an interval crossing it defers.
+    Signed state-level wrapping uses exact native branch-boundary witnesses.
+    Static subscription masks retain the ordinary event-provider requirement.
     Remaining amount-only leaf shapes reuse the existing shared interval proof.
     Every witness still requires the real typed parser and capability provider.
     """
@@ -169,61 +175,12 @@ def child_domain_witnesses(effect, effects, states, *, registry=None):
             raise ValueError("Malformed dynamic HP child parameter pairs")
         low, high = levels.start, levels.stop - 1
         varying = {index for index in range(count) if raw[2 * index + 1] != 0}
-        if not varying:
+        if definition.get("effect_class") == 304 and varying <= {1} and count == 3:
+            from .combat_equipment_state_level_domain import state_level_witnesses
+
+            witnesses = state_level_witnesses(definition, levels, state_rows, effects)
+        elif not varying:
             witnesses = (low,)
-        elif definition.get("effect_class") == 304 and varying == {1} and count == 3:
-            from wakfu_server.combat_parameters import _float32
-
-            # A finite Python float may overflow when converted to the native
-            # float32 type. Opposite infinities can produce interior NaN -> 0,
-            # invalidating an endpoint/binary-search monotonicity argument.
-            base, growth = _float32(raw[2]), _float32(raw[3])
-            if not math.isfinite(base) or not math.isfinite(growth):
-                raise UnknownDynamicLevel(
-                    "Dynamic state level has non-finite native float32 parameters"
-                )
-            for endpoint in (low, high):
-                increment = _float32(growth * endpoint)
-                if not math.isfinite(increment) or not math.isfinite(
-                    _float32(base + increment)
-                ):
-                    raise UnknownDynamicLevel(
-                        "Dynamic state level overflows its native float32 interval"
-                    )
-            state_id = parameter_value(raw, 0, low)
-            state_id = ((state_id + 32768) % 65536) - 32768
-            state = state_rows.get(str(state_id))
-            maximum = state.get("maximum_level") if isinstance(state, Mapping) else None
-            if type(maximum) is not int or not 0 <= maximum <= 32767:
-                raise UnknownDynamicLevel("Missing native applied-state level clamp")
-            first, last = parameter_value(raw, 1, low), parameter_value(raw, 1, high)
-            if min(first, last) < 0 or max(first, last) > 32767:
-                raise UnknownDynamicLevel(
-                    "Dynamic state level crosses its native signed-short domain"
-                )
-            ascending = raw[3] > 0
-            start = low if ascending else high
-
-            def value_at(index):
-                actual = start + index if ascending else start - index
-                return min(maximum, parameter_value(raw, 1, actual))
-
-            seen = {low, high}
-            # The normalized output interval is at most the actual state's
-            # declared maximum, independent of the equipment input domain.
-            for target in range(
-                min(maximum, min(first, last)), min(maximum, max(first, last)) + 1
-            ):
-                left, right = 0, high - low
-                while left < right:
-                    middle = (left + right) // 2
-                    if value_at(middle) < target:
-                        left = middle + 1
-                    else:
-                        right = middle
-                actual = start + left if ascending else start - left
-                seen.add(actual)
-            witnesses = tuple(sorted(seen))
         else:
             from wakfu_server.combat_equipment_trigger_level_domain import (
                 leaf_domain_witnesses,

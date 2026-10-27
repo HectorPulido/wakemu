@@ -1,7 +1,7 @@
 import unittest
 from types import SimpleNamespace
 
-from wakfu_server.combat.combat_test_commands import finish
+from wakfu_server.combat_test_commands import finish
 
 
 class Fight(SimpleNamespace):
@@ -54,11 +54,13 @@ class CombatTestCommandsTests(unittest.TestCase):
             finish(self.fight, self.runtime, account_id=99, character_id=1, win=True)
         self.assertEqual(self.fight.events, [])
 
-    def test_only_active_fights_can_be_finished(self):
+    def test_placement_and_unsettled_finished_fights_can_be_finished(self):
         for phase in ("placement", "finished"):
-            self.fight.phase = phase
-            with self.assertRaises(ValueError):
-                self.outcome(True)
+            with self.subTest(phase=phase):
+                self.fight.phase = phase
+                result = self.outcome(True)
+                self.assertEqual(result.fight.phase, "finished")
+                self.assertEqual(result.fight.winner, 0)
 
     def test_withdrawn_character_cannot_finish_remaining_fight(self):
         self.fight.actors[1].pve_withdrawn = True
@@ -68,3 +70,27 @@ class CombatTestCommandsTests(unittest.TestCase):
     def test_no_fight_rejected(self):
         with self.assertRaises(ValueError):
             finish(None, None, account_id=10, character_id=1, win=True)
+
+    def test_rift_forced_win_closes_administratively_without_invented_turns(self):
+        self.fight.rift_wave_state = dict(
+            instance_id=99, turn_budget=40, wave=3, pending_wave=None
+        )
+        self.fight.native_timeline_round = 7
+        result = self.outcome(True)
+        self.assertEqual(result.fight.winner, 0)
+        self.assertEqual(result.fight.phase, "finished")
+        self.assertEqual(
+            result.fight.rift_wave_state["outcome"], "administrative_victory"
+        )
+        self.assertEqual(result.fight.native_timeline_round, 7)
+        self.assertNotIn("outcome", self.fight.rift_wave_state)
+        lost = self.outcome(False)
+        self.assertEqual(lost.fight.winner, 1)
+        self.assertEqual(lost.fight.rift_wave_state, self.fight.rift_wave_state)
+
+    def test_repeating_same_finished_outcome_does_not_duplicate_terminal_event(self):
+        terminal = self.outcome(True)
+        again = finish(
+            terminal.fight, terminal.runtime, account_id=10, character_id=1, win=True
+        )
+        self.assertEqual(again.fight.events, terminal.fight.events)

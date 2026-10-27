@@ -17,6 +17,7 @@ from .combat_damage_parameters import (
 )
 from .combat_damage_healing import damage_amount, consume_damage, DAMAGE_FAMILIES
 from .combat_effects import direct_damage
+from .combat_damage_source import native_damage_source, plain_area_source
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,8 @@ class DamageExecutionContext:
 
 
 def _snapshot(actor):
+    if plain_area_source(actor):
+        return {}  # faV.a(PC) is false; no source PA is read or written.
     if (
         not isinstance(actor.effect_stats, dict)
         or not isinstance(actor.effect_maxima, dict)
@@ -128,8 +131,9 @@ class NativeDamageHandler:
             effect["parameters"],
             invocation.level,
             hp_context=dict(
-                source_hp=source.hp,
-                source_max_hp=source.max_hp,
+                {}
+                if plain_area_source(source)
+                else dict(source_hp=source.hp, source_max_hp=source.max_hp),
                 target_hp=target_hp,
                 target_max_hp=target_max_hp,
             ),
@@ -149,7 +153,7 @@ class NativeDamageHandler:
     def _calculate(self, effect, invocation, *, additional_final=0, runner=None):
         from .combat_native_actor_lookup import native_actor
 
-        source = native_actor(self.fight, invocation.caster_id)
+        source = native_damage_source(self.fight, invocation.caster_id)
         target = native_actor(self.fight, invocation.target_id)
         if source is not None and target is None:
             from .combat_area_damage_guard import (
@@ -286,10 +290,15 @@ class NativeDamageHandler:
             flags,
             source_xy=source.position[:2],
             target_xy=target_position[:2],
-            source_radius=source.physical_radius,
+            source_radius=0 if plain_area_source(source) else source.physical_radius,
             target_radius=target_radius,
-            source_total_hp=source.hp + source_stats[92],
-            source_total_max_hp=source.max_hp + source.effect_maxima[92],
+            source_total_hp=None
+            if plain_area_source(source)
+            else source.hp + source_stats[92],
+            source_total_max_hp=None
+            if plain_area_source(source)
+            else source.max_hp + source.effect_maxima[92],
+            source_has_berserk=not plain_area_source(source),
         )
         from .combat_boss_outgoing_policy import (
             outgoing_score_final,
@@ -497,7 +506,7 @@ class NativeDamageHandler:
             return True
         from .combat_native_actor_lookup import native_actor
 
-        source = native_actor(self.fight, invocation.caster_id)
+        source = native_damage_source(self.fight, invocation.caster_id)
         target = native_actor(self.fight, invocation.target_id)
         wall = (
             None

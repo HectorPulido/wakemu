@@ -179,7 +179,7 @@ class NativeEffectTimingProvider:
             parameter_value(effect["parameters"], i, invocation.level)
             for i in range(count)
         ]
-        params = interpret_state_parameters(values)
+        params = interpret_state_parameters(values, allow_signed_calculation=True)
         return self.state_reference(
             preview, plan, effect, invocation, params["reference"], params["level"]
         )

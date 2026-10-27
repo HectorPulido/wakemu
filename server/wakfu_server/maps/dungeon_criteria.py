@@ -34,6 +34,7 @@ def evaluate(
     now_ms=None,
     bypass_mission_prerequisites=False,
     bypass_state_prerequisites=False,
+    bypass_minimum_level=False,
 ):
     """Evaluate restricted native predicates against explicit server authority.
 
@@ -61,6 +62,7 @@ def evaluate(
         for value in (
             bypass_mission_prerequisites,
             bypass_state_prerequisites,
+            bypass_minimum_level,
         )
     ):
         raise ValueError("Invalid dungeon prerequisite bypass flags")
@@ -118,11 +120,30 @@ def evaluate(
             raise ValueError("Dungeon predicate lacks boolean authority")
         return value
 
-    def visit(node):
+    def is_real_level(node):
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "GetRealLevel"
+            and not node.args
+            and not node.keywords
+        )
+
+    def is_minimum(left, op, right, negated):
+        literal = (
+            lambda item: isinstance(item, ast.Constant) and type(item.value) is int
+        )
+        if is_real_level(left) and literal(right):
+            return isinstance(op, (ast.Lt, ast.LtE) if negated else (ast.Gt, ast.GtE))
+        if literal(left) and is_real_level(right):
+            return isinstance(op, (ast.Gt, ast.GtE) if negated else (ast.Lt, ast.LtE))
+        return False
+
+    def visit(node, negated=False):
         if isinstance(node, ast.Constant) and type(node.value) in (int, str, bool):
             return node.value
         if isinstance(node, ast.BoolOp):
-            values = [boolean(visit(value)) for value in node.values]
+            values = [boolean(visit(value, negated)) for value in node.values]
             if isinstance(node.op, ast.And):
                 return (
                     False if False in values else waived if waived in values else True
@@ -130,22 +151,31 @@ def evaluate(
             if isinstance(node.op, ast.Or):
                 return True if True in values else waived if waived in values else False
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
-            value = boolean(visit(node.operand))
+            value = boolean(visit(node.operand, not negated))
             return waived if value is waived else not value
         if isinstance(node, ast.Compare):
-            left = visit(node.left)
-            result = True
+            left_node = node.left
+            left = visit(left_node, negated)
+            results = []
             for op, right_node in zip(node.ops, node.comparators):
-                right = visit(right_node)
+                right = visit(right_node, negated)
                 if (
                     type(left) is not int
                     or type(right) is not int
                     or type(op) not in comparisons
                 ):
                     raise ValueError("Unsupported dungeon comparison")
-                result = comparisons[type(op)](left, right) and result
-                left = right
-            return result
+                # Waive only a literal lower-bound predicate in its actual
+                # boolean polarity. Upper bounds/equality retain real values.
+                # Chained comparisons still check every non-level relation.
+                results.append(
+                    waived
+                    if bypass_minimum_level
+                    and is_minimum(left_node, op, right_node, negated)
+                    else comparisons[type(op)](left, right)
+                )
+                left_node, left = right_node, right
+            return False if False in results else waived if waived in results else True
         if isinstance(node, ast.Call):
             name, args = node.func.id, tuple(visit(arg) for arg in node.args)
             if name == "IsNeoServer" and not args:

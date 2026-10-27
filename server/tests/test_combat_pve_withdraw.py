@@ -76,6 +76,52 @@ class WithdrawalPlanTests(unittest.TestCase):
         self.fight.ready(2)
         self.runtime = RuntimeMessages(self.fight)
 
+    def test_earned_scene_book_is_cleaned_before_private_actor_retirement(self):
+        self.fight.native_abomination_quest_grant = dict(
+            status="granted",
+            source=dict(participant_id=10),
+            carrier_uid=41,
+        )
+        calls = []
+
+        def factory(*, action_id):
+            calls.append(action_id)
+            return "native-runtime"
+
+        self.runtime.expiration_runtime_factory = factory
+
+        def cleanup(candidate, runtime_factory, packets):
+            self.assertEqual(runtime_factory, "native-runtime")
+            self.assertEqual(candidate.actors[10].hp, 45)
+            self.assertFalse(getattr(candidate.actors[10], "pve_withdrawn", False))
+            candidate.native_abomination_quest_grant["status"] = "cleaned"
+
+        with patch(
+            "wakfu_server.combat_abomination_scene.cleanup", side_effect=cleanup
+        ):
+            result = plan(self.session, self.fight, self.runtime)
+        self.assertEqual(calls, [1])
+        self.assertEqual(
+            result.fight.native_abomination_quest_grant["status"], "cleaned"
+        )
+        self.assertEqual(
+            result.private_runtime.fight.native_abomination_quest_grant["status"],
+            "cleaned",
+        )
+        self.assertEqual(self.fight.native_abomination_quest_grant["status"], "granted")
+        self.assertEqual(self.runtime.action_id, 0)
+
+    def test_earned_scene_withdrawal_without_native_cleanup_fails_before_mutation(self):
+        self.fight.native_abomination_quest_grant = dict(
+            status="granted",
+            source=dict(participant_id=10),
+            carrier_uid=41,
+        )
+        with self.assertRaisesRegex(ValueError, "native runtime"):
+            plan(self.session, self.fight, self.runtime)
+        self.assertEqual(self.fight.actors[10].hp, 45)
+        self.assertEqual(self.runtime.action_id, 0)
+
     def test_active_owner_leaves_without_finishing_other_players_fight(self):
         result = plan(self.session, self.fight, self.runtime)
         self.assertEqual(result.fight.phase, "active")

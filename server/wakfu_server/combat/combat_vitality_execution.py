@@ -22,15 +22,20 @@ def plan_damage_consumption(
     context,
     interpreted,
 ):
+    from .combat_damage_source import plain_area_source
+
     result = consume_damage(
         amount,
-        source_barrier=source_stats[100],
+        source_barrier=0 if plain_area_source(source) else source_stats[100],
         target_armor=target_stats.get(97, 0),
         target_virtual_hp=target_stats.get(92, 0),
         target_hp=target_hp,
         blocked=context.blocked,
         bypass_armor_and_barrier=interpreted["bypass_armor_and_barrier"],
-        frozen_stats=tuple(("source", k) for k in source.effect_frozen)
+        frozen_stats=tuple(
+            ("source", k)
+            for k in (() if plain_area_source(source) else source.effect_frozen)
+        )
         + (
             ()
             if wall is not None
@@ -157,11 +162,14 @@ def apply_damage_consumption(
                 )
             ),
         )
+    from .combat_damage_source import plain_area_source
+
     if getattr(source, "native_copy_pa_source", None) is not None:
         from .combat_copied_pa import set_copied_current
 
         set_copied_current(fight, source, 100, result["source_barrier"])
-    source_stats[100] = result["source_barrier"]
+    if not plain_area_source(source):
+        source_stats[100] = result["source_barrier"]
     if wall is None:
         writes = ((97, "target_armor"), (92, "target_virtual_hp"))
         if getattr(target, "native_copy_pa_source", None) is not None:

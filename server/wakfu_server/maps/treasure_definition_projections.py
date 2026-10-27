@@ -92,14 +92,13 @@ def project_snapshot_rows(store, map_id, rows):
         return rows
     from wakfu_server.declared_treasure_rewards import _source
     from wakfu_server.native_interactive_components import rebind_definition
-    from wakfu_server import native_catalog
 
     for row in rows:
         found = bindings.get(row["id"])
         if found is None:
             continue
         rule, override = found
-        if override is None or native_catalog.release() != rule["catalog_revision"]:
+        if override is None:
             raise ValueError("Missing active treasure projection authority")
         _source(
             rule["catalog_revision"],

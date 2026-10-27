@@ -14,10 +14,12 @@ def pet_packet(character):
     )
 
 
-def snapshot(character):
+def snapshot(character, *, reset_riding=False):
     """Restore riding only after the actor and its PET have been installed."""
     from .mount_inventory import equipped
 
+    if type(reset_riding) is not bool:
+        raise ValueError("Invalid native riding replay policy")
     mounted = character.get("mount_state", {}).get("mounted", False)
     if type(mounted) is not bool:
         raise ValueError("Invalid authoritative riding state")
@@ -25,7 +27,13 @@ def snapshot(character):
         return []
     if equipped(character) is None:
         raise ValueError("Mounted actor has no equipped mount")
-    return [ride_result(character["id"], 0)]
+    # The owned actor survives a scene reload while its visual attachment does
+    # not. Native bjo.gj(true) ignores a repeated true flag, so a directed scene
+    # replay must clear that flag before rebuilding the current attachment.
+    # New peer actors use their ordinary one-packet initialization.
+    return ([dismounted(character["id"])] if reset_riding else []) + [
+        ride_result(character["id"], 0)
+    ]
 
 
 def equipment_changes(template, previous, current):

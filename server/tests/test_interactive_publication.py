@@ -1,7 +1,13 @@
 import struct
 import unittest
+import ast
+from contextlib import nullcontext
+from copy import deepcopy
+from pathlib import Path
+import threading
+from types import SimpleNamespace
 
-from wakfu_server.maps.interactive_publication import (
+from wakfu_server.interactive_publication import (
     InteractivePublication,
     resource_cell,
 )
@@ -32,6 +38,127 @@ def decode(data):
 
 
 class InteractivePublicationTests(unittest.TestCase):
+    # Actual V16 native13135: reference630 at(-186,-32,0), stage1.
+    resource_body = bytes.fromhex(
+        "08f60410c6feffffffffffffff0118e0ffffffffffffffff0120002801300038004000"
+    )
+
+    def test_resource_create_lifetime_preserves_changes_unknowns_scopes_and_reentry(
+        self,
+    ):
+        loader = frame(12318, struct.pack(">ii", -195, -33))
+        resource = frame(13135, self.resource_body)
+        self.publisher.clear()
+        self.assertEqual(
+            self.publish(resource), b"", "pre-loader appearance must not poison memo"
+        )
+        self.assertEqual(self.publish(loader + resource), loader + resource)
+        combat = frame(12608, b"unchanged-combat")
+        self.assertEqual(self.publish(resource + combat + resource), combat)
+        overlap = frame(12318, struct.pack(">ii", -177, -33))
+        self.assertEqual(self.publish(overlap + resource), overlap)
+        changed = frame(13135, self.resource_body.replace(b"\x28\x01", b"\x28\x02"))
+        altitude = frame(13135, self.resource_body.replace(b"\x20\x00", b"\x20\x01"))
+        self.assertEqual(self.publish(changed + altitude), changed + altitude)
+        for update in (
+            frame(12782, struct.pack(">iihhqi", -186, -32, 0, 0, 0, 0)),
+            frame(12782, b"unknown-layout"),
+        ):
+            self.assertEqual(self.publish(update + resource), update + resource)
+            self.assertEqual(self.publish(resource), b"")
+        for body in (
+            self.resource_body + b"\x48\x01",
+            self.resource_body.replace(b"\x38\x00", b"\x38\x01"),
+            b"\x40\x00" + self.resource_body[:-2],
+            self.resource_body.replace(b"\x30\x00", b"\x30\x80\x00"),
+        ):
+            unknown = frame(13135, body)
+            self.assertEqual(self.publish(unknown + unknown), unknown + unknown)
+        away = frame(12318, struct.pack(">ii", 0, 0))
+        self.assertEqual(self.publish(away + resource), away)
+        self.assertEqual(self.publish(loader + resource), loader + resource)
+        for opcode in (13256, 13974):
+            reset = frame(opcode, b"scene")
+            self.assertEqual(
+                self.publish(reset + loader + resource), reset + loader + resource
+            )
+            self.assertEqual(self.publish(resource), b"")
+        for field, value in (
+            ("session_id", "replacement"),
+            ("generation", 9),
+            ("account_id", 77),
+            ("map_id", 527),
+            ("instance_id", 7),
+        ):
+            self.publisher.clear()
+            self.publish(loader + resource)
+            self.assertEqual(
+                self.publish(loader + resource, **{field: value}), loader + resource
+            )
+
+    def test_actual_connection_write_failure_clears_resource_memo_before_retry(self):
+        tree = ast.parse(
+            (Path(__file__).resolve().parents[1] / "local_game_server.py").read_text()
+        )
+        connection = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "Connection"
+        )
+        method = deepcopy(
+            next(
+                node
+                for node in connection.body
+                if isinstance(node, ast.FunctionDef) and node.name == "sendall"
+            )
+        )
+        cls = ast.ClassDef(
+            name="ResourceConnection",
+            bases=[],
+            keywords=[],
+            body=[method],
+            decorator_list=[],
+        )
+        namespace = dict(
+            PROFILER=SimpleNamespace(span=lambda _: nullcontext()),
+            record=lambda **event: None,
+        )
+        exec(
+            compile(
+                ast.fix_missing_locations(ast.Module(body=[cls], type_ignores=[])),
+                "<actual Connection.sendall>",
+                "exec",
+            ),
+            namespace,
+        )
+        peer = namespace["ResourceConnection"]()
+        peer.write_lock = threading.RLock()
+        peer.native_instance_scope = lambda: None
+        peer.interactive_scope = lambda: self.scope
+        peer.interactive_trace = []
+        peer.interactive_publication = self.publisher
+        peer.instance_publications = SimpleNamespace(
+            after_write=lambda *args: None, invalidate=lambda: None
+        )
+        peer.marker_publications = SimpleNamespace(
+            after_write=lambda *args: None, reset=lambda *args: None
+        )
+        writes = []
+
+        def fail(data):
+            raise OSError("actual socket-write boundary failed")
+
+        peer.socket = SimpleNamespace(sendall=fail)
+        loader = frame(12318, struct.pack(">ii", -195, -33))
+        resource = frame(13135, self.resource_body)
+        with self.assertRaises(OSError):
+            peer.sendall(loader + resource)
+        self.assertIsNone(self.publisher.visible)
+        peer.socket.sendall = writes.append
+        peer.sendall(loader + resource)
+        peer.sendall(resource)
+        self.assertEqual(writes, [loader + resource])
+
     def setUp(self):
         self.rows = [
             dict(id=1, x=0, y=0, auto=False),

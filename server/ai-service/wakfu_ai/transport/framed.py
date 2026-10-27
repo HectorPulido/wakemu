@@ -29,6 +29,20 @@ def encode_frame(value, *, maximum=MAX_FRAME):
     return struct.pack("!I", len(body)) + body
 
 
+def _request_frame(identity, endpoint, payload, *, maximum):
+    """Encode the payload once and retain its exact size for transport metrics."""
+    body = json.dumps(payload, separators=(",", ":"), allow_nan=False).encode()
+    header = json.dumps(
+        dict(id=identity, endpoint=endpoint), separators=(",", ":"), allow_nan=False
+    ).encode()
+    size = len(header) + len(b',"payload":') + len(body)
+    if not 0 < size <= maximum:
+        raise ValueError("Invalid AI frame size")
+    return struct.pack("!I", size) + header[:-1] + b',"payload":' + body + b"}", len(
+        body
+    )
+
+
 def _timeout(peer, deadline):
     timeout = deadline - time.monotonic()
     if timeout <= 0:
@@ -86,6 +100,7 @@ class FramedClient:
         self._sequence = 0
         self._lock = threading.Lock()
         self.tcp_opens = 0
+        self.sent_payload_bytes = 0
 
     def close(self):
         peer, self._peer = self._peer, None
@@ -116,12 +131,14 @@ class FramedClient:
                     self.tcp_opens += 1
                 self._sequence += 1
                 identity = self._sequence
-                write_frame(
-                    self._peer,
-                    dict(id=identity, endpoint=endpoint, payload=payload),
-                    deadline,
-                    maximum=self.maximum,
+                frame, payload_size = _request_frame(
+                    identity, endpoint, payload, maximum=self.maximum
                 )
+                self.sent_payload_bytes += payload_size
+                _timeout(self._peer, deadline)
+                self._peer.sendall(frame)
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("AI frame deadline reached")
                 reply = read_frame(self._peer, deadline, maximum=self.maximum)
                 if time.monotonic() >= deadline:
                     raise TimeoutError("AI channel deadline reached")

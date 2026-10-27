@@ -107,6 +107,48 @@ def remember_periodic_aptitude(fight, row, effect, definition):
         recipes[key] = recipe
 
 
+def removed_container_recipes(fight, actor_id, containers):
+    """Plan cancellation of renewal sources actually removed from this Qf.
+
+    Allocation data remains intact. This reconciles the explicit Wakemu renewal
+    policy with native forced PL36 removal rather than recreating removed Qe.
+    """
+    state = getattr(fight, "native_class_initializations", {}).get(actor_id)
+    if state is None:
+        return ()
+    identities = {
+        container.identity for container in containers if container.kind == 36
+    }
+    result = []
+    for key, recipe in state.get("aptitude_periodic_recipes", {}).items():
+        container = recipe.get("container", {})
+        if container.get("type") != 36 or container.get("id") not in identities:
+            continue
+        invocation = EffectInvocation(**recipe["invocation"])
+        if invocation.caster_id != actor_id or invocation.target_id != actor_id:
+            raise ValueError("Removed aptitude renewal source belongs to another actor")
+        _validate_recipe(state, invocation, container, recipe["root_reference"])
+        result.append((key, deepcopy(recipe)))
+    return tuple(result)
+
+
+def cancel_removed_container_recipes(fight, actor_id, planned):
+    """Forget only the preflight-validated renewal recipes, after unapplication."""
+    if not planned:
+        return
+    state = getattr(fight, "native_class_initializations", {}).get(actor_id)
+    recipes = None if state is None else state.get("aptitude_periodic_recipes")
+    if not isinstance(recipes, dict) or any(
+        recipes.get(key) != original for key, original in planned
+    ):
+        raise ValueError("Removed aptitude renewal source changed during unapplication")
+    state["aptitude_periodic_recipes"] = {
+        key: value
+        for key, value in recipes.items()
+        if key not in {identity for identity, _ in planned}
+    }
+
+
 def renew_periodic_aptitudes(dispatcher, *, actor_id):
     fight = dispatcher.native_retention.fight
     if fight.current is None or fight.current.id != actor_id or fight.phase != "active":

@@ -31,6 +31,9 @@ class Exchanges:
         # A failed send can have partially written before World closes the
         # peer. Never replay additive native packets on that captured lease.
         self._failed_leases = set()
+        # A bot adapter consumes the same durable publication as a native peer.
+        # It receives semantic state without decoding or inventing game packets.
+        self.bot_delivery = None
 
     @contextmanager
     def _guard(self, exchange_id):
@@ -250,6 +253,93 @@ class Exchanges:
             self._drain_exchange(exchange_id)
             return exchange
 
+    def bot_command(self, action, args, account_id, generation, character_id):
+        """Apply an externally decided action through the normal exchange rules.
+
+        The same per-exchange guard serializes human packets and bot commands.
+        A bot may only confirm or price the exact revision it has observed.
+        """
+        fields = {
+            "exchange.accept": {"exchange_id"},
+            "exchange.cancel": {"exchange_id"},
+            "exchange.offer_kamas": {"exchange_id", "amount", "revision"},
+            "exchange.ready": {"exchange_id", "revision"},
+        }
+        if (
+            action not in fields
+            or not isinstance(args, dict)
+            or set(args) != fields[action]
+        ):
+            raise ValueError("Invalid bot exchange action")
+        exchange_id = args["exchange_id"]
+        if type(exchange_id) is not int or not 0 < exchange_id < 2**63:
+            raise ValueError("Invalid bot exchange identity")
+        if "revision" in args and (
+            type(args["revision"]) is not int or args["revision"] <= 0
+        ):
+            raise ValueError("Invalid bot exchange revision")
+        if "amount" in args and (
+            type(args["amount"]) is not int or not 0 <= args["amount"] < 2**63
+        ):
+            raise ValueError("Invalid bot exchange amount")
+        self._authorize(account_id, generation, character_id)
+        with self._guard(exchange_id):
+            with self.store.connection() as db:
+                found = db.execute(
+                    "SELECT * FROM player_exchanges WHERE id=%s", (exchange_id,)
+                ).fetchone()
+            if found is None:
+                raise ValueError("Unknown bot exchange")
+            exchange = dict(found)
+            if (account_id, character_id, generation) not in player_exchanges._owners(
+                exchange
+            ):
+                raise PermissionError("Bot does not own this exchange")
+            if action != "exchange.cancel" and exchange["state"] not in (
+                "invitation",
+                "active",
+            ):
+                from wakfu_server.bots.bridge import BotConflict
+
+                raise BotConflict("exchange_closed")
+            if "revision" in args and exchange["revision"] != args["revision"]:
+                from wakfu_server.bots.bridge import BotConflict
+
+                raise BotConflict("exchange_revision_stale")
+            if action == "exchange.cancel":
+                exchange = player_exchanges.cancel(
+                    self.store, account_id, generation, character_id, exchange_id
+                )
+            else:
+                self._authorize_pair(exchange, character_id)
+                if action == "exchange.accept":
+                    if exchange["invitee_id"] != character_id:
+                        raise PermissionError("Only the invited bot can accept")
+                    if exchange["state"] != "active":
+                        exchange = player_exchanges.answer(
+                            self.store,
+                            account_id,
+                            generation,
+                            character_id,
+                            exchange_id,
+                            True,
+                        )
+                elif action == "exchange.offer_kamas":
+                    exchange = player_exchanges.offer_kamas(
+                        self.store,
+                        account_id,
+                        generation,
+                        character_id,
+                        exchange_id,
+                        args["amount"],
+                    )
+                elif action == "exchange.ready":
+                    exchange = player_exchanges.confirm(
+                        self.store, account_id, generation, character_id, exchange_id
+                    )
+            self._drain_exchange(exchange_id)
+            return exchange
+
     def _pending(self, exchange_id=None, limit=128):
         with self.store.connection() as db:
             if exchange_id is None:
@@ -395,6 +485,13 @@ class Exchanges:
             return "delivered"
         if failed_lease:
             return "deferred"
+        if self.bot_delivery is not None and self.bot_delivery(row):
+            with self._memory_lock:
+                self._sent_unacked[ack_key] = identity_key
+            if not self._ack(row):
+                return "deferred"
+            self._complete(row)
+            return "delivered"
         payload = row["payload"]
         event = row["event"]
         if event == "snapshot" and payload.get("state") == "invitation":

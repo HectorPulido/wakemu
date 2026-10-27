@@ -322,6 +322,74 @@ def _native_region(map_id, entity):
     return region if type(region) is int and region > 0 else None
 
 
+def admission_origin(character):
+    """Freeze authenticated world coordinates before combat placement moves actors."""
+    keys = ("map_id", "instance_id", "x", "y", "z")
+    if any(type(character.get(key)) is not int for key in keys):
+        raise ValueError("Missing original environmental admission coordinates")
+    origin = {key: character[key] for key in keys}
+    origin["region_id"] = _native_region(origin["map_id"], origin)
+    return origin
+
+
+def remember_admission(shared, account_id, character):
+    """Capture a genuine newly joined owner's origin, never overwrite on retry."""
+    origin = admission_origin(character)
+    if (origin["map_id"], origin["instance_id"]) != (shared.map_id, shared.instance_id):
+        raise ValueError("Environmental admission leaves the original fight scene")
+    with shared.lock:
+        context = dict(shared.join_context or {})
+        origins = dict(context.get("environmental_admission_origins", {}))
+        origins.setdefault(account_id, origin)
+        context["environmental_admission_origins"] = origins
+        shared.join_context = context
+
+
+def scene_from_admission(shared):
+    """Build settlement authority from frozen admission, including legacy fights.
+
+    The old native fight marker is trusted only for the original team leader's
+    matching owner. It never supplies the current location of a travelling
+    player, or the admission of a different account joining that fight.
+    """
+    context = shared.join_context or {}
+    origins = context.get("environmental_admission_origins", {})
+    if type(origins) is not dict:
+        raise ValueError("Invalid environmental admission origins")
+    regions = {}
+    for owner, origin in origins.items():
+        if (
+            type(owner) is not int
+            or owner <= 0
+            or type(origin) is not dict
+            or (origin.get("map_id"), origin.get("instance_id"))
+            != (shared.map_id, shared.instance_id)
+        ):
+            raise ValueError("Environmental admission origin changed its scene")
+        region = origin.get("region_id")
+        if region is not None and (type(region) is not int or region <= 0):
+            raise ValueError("Invalid original environmental admission region")
+        regions[owner] = region
+    marker = context.get("world_marker_origin")
+    leaders = context.get("leaders", {})
+    if (
+        isinstance(marker, (tuple, list))
+        and len(marker) == 3
+        and all(type(value) is int for value in marker)
+        and isinstance(leaders, dict)
+    ):
+        region = _native_region(shared.map_id, dict(zip(("x", "y", "z"), marker)))
+        for owner, session in shared.participants.items():
+            if session.character_id in leaders.values():
+                regions.setdefault(owner, region)
+    return dict(
+        map_id=shared.map_id,
+        instance_id=shared.instance_id,
+        group_lease=shared.group_lease,
+        admission_regions=regions,
+    )
+
+
 def settled_fight(
     db, *, account_id, character_id, fight_id, source_scene, deferred_facts=None
 ):
@@ -381,6 +449,12 @@ def settled_fight(
         account_id=account_id,
         character_id=character_id,
         occurred_at_ms=_milliseconds(row["created_at"]),
+    )
+    # Entity ownership cannot enroll a travelling participant into another
+    # region's event. Admission froze the actor's original native region;
+    # selection changes after combat must neither revoke nor invent credit.
+    facts = tuple(
+        fact for fact in facts if fact.region_id == source_scene.get("region_id")
     )
     if deferred_facts is not None:
         if type(deferred_facts) is not list:

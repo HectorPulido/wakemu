@@ -42,13 +42,12 @@ def _daily_source(
     from wakfu_server.paths import DATA_ROOT
     from wakfu_server.dungeon_runtime_config import canonical_hash
 
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(revision, (path,))
     monster = native_catalog.record(DATA_ROOT / path, "monsters", boss)
+    document_sha = native_catalog.document_hashes().get(path)
     with native_catalog._database().connection() as db:
-        document = db.execute(
-            "SELECT sha256 FROM native_catalog_documents "
-            "WHERE revision=%s AND path=%s",
-            (revision, path),
-        ).fetchone()
         configuration = db.execute(
             "SELECT configuration FROM dungeon_runtime_configurations "
             "WHERE route_key=%s AND policy_version=%s",
@@ -57,8 +56,7 @@ def _daily_source(
     if (
         monster is None
         or monster.get("ref") != boss
-        or document is None
-        or document["sha256"] != source_sha
+        or document_sha != source_sha
         or configuration is None
     ):
         raise ValueError("Daily hunter original target source is unavailable")
@@ -211,8 +209,11 @@ def _load(db, definition_id, version=None):
 
         # This mutable publication check must run even when the immutable
         # record/configuration attestation below is already cached.
-        if native_catalog.release() != authority["native_catalog_revision"]:
-            raise ValueError("Daily hunter source differs from the published catalog")
+        from wakfu_server.native_catalog_compatibility import require_source_revision
+
+        require_source_revision(
+            authority["native_catalog_revision"], (authority["monsters_path"],)
+        )
         if row["interpretation_policy"] not in (MODULOX_POLICY, DAILY_NATIVE_POLICY):
             _daily_source(
                 authority["native_catalog_revision"],

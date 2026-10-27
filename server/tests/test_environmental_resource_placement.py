@@ -6,6 +6,127 @@ from wakfu_server.objectives.environmental_resource_placement import plan
 
 
 class EnvironmentalResourcePlacementTests(unittest.TestCase):
+    def test_native_tainela_mission_zone_paths_spread_and_no_spill_capacity(self):
+        import csv
+        import hashlib
+        import io
+        import json
+        from pathlib import Path
+
+        geometry_raw = Path(
+            ".runtime/environmental-map527-native-geometry.json"
+        ).read_bytes()
+        self.assertEqual(
+            hashlib.sha256(geometry_raw).hexdigest(),
+            "0bfbbc314349dd929561c9a93dd65fed6c3d52a78a886cbabb28515893394cb0",
+        )
+        geometry = json.loads(geometry_raw)
+        raw = Path(
+            ".runtime/parallel-readiness-20261021/environmental-original-native-cells.csv"
+        ).read_bytes()
+        self.assertEqual(
+            hashlib.sha256(raw).hexdigest(),
+            "83832651b128780860ec32390bff8ea4c9e406b3560377da7d790829f074961e",
+        )
+        surfaces = defaultdict(list)
+        for source in csv.DictReader(io.StringIO(raw.decode())):
+            row = {key: int(value) for key, value in source.items()}
+            if row["map_id"] == 527:
+                surfaces[(row["x"], row["y"])].append(
+                    dict(z=row["z"], region_id=row["region_id"])
+                )
+        origin = (-238, -84, 0)
+        zone = {
+            (x, y, row["z"])
+            for (x, y), candidates in surfaces.items()
+            for row in candidates
+            if row["region_id"] == 76101
+        }
+        foreign = {
+            (x, y, row["z"])
+            for (x, y), candidates in surfaces.items()
+            for row in candidates
+            if row["region_id"] != 76101
+        }
+        self.assertTrue(zone)
+        self.assertTrue(foreign - zone)
+        kwargs = dict(
+            region_id=76101,
+            origins=[origin],
+            taken=set(),
+            quantity=100,
+            seed="tainela-original-mission-zone",
+            reserve=0,
+        )
+        rows = plan(surfaces, geometry, **kwargs)
+        self.assertEqual(len(rows), 100)
+        self.assertEqual(rows, plan(surfaces, geometry, **kwargs))
+        positions = {(row["x"], row["y"], row["z"]) for row in rows}
+        self.assertEqual(len(positions), 100)
+        self.assertTrue(positions <= zone)
+        self.assertFalse(positions & (foreign - zone))
+        edges = {(tuple(a), tuple(b)) for a, b in geometry["edges"]}
+        occupied = {p[:2] for p in positions}
+        for row in rows:
+            route = tuple(map(tuple, row["path"]))
+            approach = tuple(row["approach"])
+            point = (row["x"], row["y"], row["z"])
+            self.assertEqual(route[0], origin)
+            self.assertEqual(route[-1], approach)
+            self.assertFalse(any(p[:2] in occupied for p in route))
+            for a, b in zip(route, route[1:]):
+                self.assertIn((a, b), edges)
+                self.assertIn((b, a), edges)
+            self.assertIn((approach, point), edges)
+            self.assertIn((point, approach), edges)
+        for a in positions:
+            for b in positions:
+                if a != b:
+                    self.assertGreaterEqual(abs(a[0] - b[0]) + abs(a[1] - b[1]), 3)
+        for axis in (0, 1):
+            available = max(p[axis] for p in zone) - min(p[axis] for p in zone)
+            spread = max(p[axis] for p in positions) - min(p[axis] for p in positions)
+            self.assertGreaterEqual(spread, available * 0.7)
+
+        # Declared two-zone bridge control: native paths may cross another
+        # zone, but its resources cannot fill capacity in the small mission.
+        ground = [(x, 0, 0) for x in range(18)]
+        upper = [(x, 0, 9) for x in range(18)]
+        control_edges = []
+        for level in (ground, upper):
+            for a, b in zip(level, level[1:]):
+                control_edges.extend(((a, b), (b, a)))
+        control_edges.extend(((ground[0], upper[0]), (upper[0], ground[0])))
+        control_surfaces = {
+            (x, 0): [dict(z=9, region_id=1 if 4 <= x < 9 else 2)] for x in range(18)
+        }
+        control = plan(
+            control_surfaces,
+            dict(cells=ground + upper, edges=control_edges),
+            region_id=1,
+            origins=[ground[0]],
+            taken=set(),
+            quantity=100,
+            reserve=0,
+            seed="small-zone-upper-native-bridge",
+        )
+        self.assertGreater(len(control), 0)
+        self.assertLess(len(control), 100)
+        self.assertTrue(all(4 <= row["x"] < 9 and row["z"] == 9 for row in control))
+        for row in control:
+            self.assertTrue(any(point[0] < 4 for point in row["path"]))
+        disconnected = plan(
+            control_surfaces,
+            dict(cells=ground + upper, edges=control_edges[:-2]),
+            region_id=1,
+            origins=[ground[0]],
+            taken=set(),
+            quantity=100,
+            reserve=0,
+            seed="no-upper-access",
+        )
+        self.assertEqual(disconnected, ())
+
     def test_native_zone_spread_preserves_access_and_caps_disconnected_sparse_capacity(
         self,
     ):
@@ -99,7 +220,7 @@ class EnvironmentalResourcePlacementTests(unittest.TestCase):
             for a, b in zip(level, level[1:]):
                 control_edges.extend(((a, b), (b, a)))
         control_surfaces = {
-            (x, 0): [dict(z=z, region_id=1 if x == 0 else 2) for z in (0, 9)]
+            (x, 0): [dict(z=z, region_id=1 if x < 9 else 2) for z in (0, 9)]
             for x in range(18)
         }
         control = plan(
@@ -114,13 +235,13 @@ class EnvironmentalResourcePlacementTests(unittest.TestCase):
         )
         self.assertGreater(len(control), 0)
         self.assertTrue(
-            any(row["x"] > 0 for row in control),
-            "Declared mapwide control crosses the source region",
+            all(row["x"] < 9 for row in control),
+            "Sparse mission capacity must not spill into the other region",
         )
         self.assertLess(len(control), 200)
         self.assertTrue(all(row["z"] == 0 and row["x"] < 9 for row in control))
         linked = plan(
-            {(x, 0): [dict(z=9, region_id=2)] for x in range(18)},
+            {(x, 0): [dict(z=9, region_id=1)] for x in range(18)},
             dict(
                 cells=ground + upper,
                 edges=control_edges + [(ground[0], upper[0]), (upper[0], ground[0])],
@@ -176,7 +297,7 @@ class EnvironmentalResourcePlacementTests(unittest.TestCase):
             self.assertTrue(
                 all(
                     row["source_key"].endswith(
-                        ":wakemu.environmental-resource-reachable-map-spread.v3"
+                        ":wakemu.environmental-resource-reachable-zone-spread.v4"
                     )
                     for row in markers
                 )
@@ -204,26 +325,25 @@ class EnvironmentalResourcePlacementTests(unittest.TestCase):
                 now_ms=fixture.now_ms + 1,
             )
             self.assertEqual(location, before_location)
-            self.assertEqual(
-                [row["instance_id"] for row in crossed["instances"]], [event]
-            )
-            self.assertEqual(crossed["instances"][0]["region_id"], 56601)
+            self.assertEqual(len(crossed["instances"]), 1)
+            self.assertNotEqual(crossed["instances"][0]["instance_id"], event)
+            self.assertEqual(crossed["instances"][0]["region_id"], 56602)
             self.assertEqual(
                 db.execute(
                     "SELECT count(*) AS n FROM environmental_event_instances"
                 ).fetchone()["n"],
-                1,
+                2,
             )
             self.assertEqual(
                 db.execute(
                     "SELECT count(*) AS n FROM environmental_event_instances WHERE profile_key='other-reported-region'"
                 ).fetchone()["n"],
-                0,
+                1,
             )
 
-        # Protocol-only caller contexts: same admitted event across a reported
-        # region boundary must not replay a title/start banner; a new instance
-        # of the same scenario still needs a fresh context.
+        # Protocol-only caller contexts: another region selects its own event.
+        # Repeated same-region publication stays quiet, while a genuinely new
+        # instance of the same challenge still initializes its context.
         from types import SimpleNamespace
         from unittest.mock import Mock, patch
         from wakfu_server.objectives import environmental_service as service
@@ -276,6 +396,26 @@ class EnvironmentalResourcePlacementTests(unittest.TestCase):
             first_packets = publication_world.send_batch_to.call_args.args[-1]
             self.assertEqual([op for op, _ in first_packets].count(12549), 1)
             publication_world.send_batch_to.reset_mock()
+            other_view = dict(
+                view,
+                instance_id=event + 1000,
+                native_scenario_id=-1321,
+                native_publication=dict(view["native_publication"], challenge_id=-1321),
+            )
+            snapshot["instances"] = [other_view]
+            cursor.refresh(
+                publication_store,
+                publication_world,
+                1,
+                "same-lease",
+                2,
+                location=location,
+                ready=True,
+                checkpoint=lambda: None,
+            )
+            replacement = publication_world.send_batch_to.call_args.args[-1]
+            self.assertEqual([op for op, _ in replacement].count(12549), 1)
+            publication_world.send_batch_to.reset_mock()
             cursor.refresh(
                 publication_store,
                 publication_world,
@@ -287,7 +427,7 @@ class EnvironmentalResourcePlacementTests(unittest.TestCase):
                 checkpoint=lambda: None,
             )
             publication_world.send_batch_to.assert_not_called()
-            snapshot["instances"] = [dict(view, instance_id=event + 1)]
+            snapshot["instances"] = [dict(other_view, instance_id=event + 1001)]
             self.assertTrue(
                 cursor.refresh(
                     publication_store,

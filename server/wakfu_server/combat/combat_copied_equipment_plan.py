@@ -14,11 +14,18 @@ def copied_equipment_plan(reference, catalog):
         raise ValueError("Invalid actual PJ definition operand")
     if reference == 0:
         return dict(producer=SOURCE, reference=0, status="zero_return", roots=[])
+    from .combat_published_catalogs import static_catalog_descriptor
+
+    definitions = catalog.get("definitions") if isinstance(catalog, dict) else None
+    published_definitions = (
+        static_catalog_descriptor(definitions) is not None
+        and definitions.representation == "native_json"
+    )
     if (
         not isinstance(catalog, dict)
         or catalog.get("producer") != SOURCE
         or catalog.get("complete") is not True
-        or not isinstance(catalog.get("definitions"), dict)
+        or not (isinstance(definitions, dict) or published_definitions)
         or type(catalog.get("definition_count")) is not int
         or catalog["definition_count"] <= 0
         or catalog["definition_count"] != len(catalog["definitions"])

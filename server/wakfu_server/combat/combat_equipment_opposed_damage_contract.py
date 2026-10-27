@@ -229,11 +229,11 @@ def native_opposed_damage_root(reference, root_id):
 def copied_opposed_damage_root(root, container):
     from .combat_copied_equipment_execution import equipment_effect_definitions
     from .combat_server_spell import compiled_runtime_catalog
-    from .combat_static_catalogs import characteristic_registry
+    from .combat_static_catalogs import characteristic_registry, DefinitionOverlay
 
     compiled = compiled_runtime_catalog()
-    definitions = dict(
-        compiled.effects, **equipment_effect_definitions({"roots": [root]})
+    definitions = DefinitionOverlay(
+        compiled.effects, equipment_effect_definitions({"roots": [root]})
     )
     source = dict(
         attachment_field=None,

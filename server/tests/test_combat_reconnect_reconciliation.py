@@ -534,9 +534,13 @@ class ReconnectReconciliationTests(unittest.TestCase):
 
         self.assertEqual(
             [opcode for opcode, _ in packets],
-            [12847, 12233, 12514, 12053, 13912, 12873, 13912, 12873, 12613],
+            [12847, 12233, 12053, 12514, 12053, 12873, 12873, 12613, 13420],
         )
-        recovery = next(body for opcode, body in packets if opcode == 12053)
+        early = packets[2][1]
+        from wakfu_server.combat_wire import decode_bootstrap
+
+        self.assertEqual(early[15:], decode_bootstrap(packets[0][1])["myG"])
+        recovery = packets[4][1]
         restored_round, restored_turn, _, deadline_ms = struct.unpack_from(
             ">hiBq", recovery, 15
         )
@@ -553,7 +557,7 @@ class ReconnectReconciliationTests(unittest.TestCase):
         self.assertEqual(restored_order[recovery[cursor]], fight.current.id)
         action = next(body for opcode, body in packets if opcode == 12514)
         self.assertEqual(struct.unpack_from(">iB", action), (fight.id, 2))
-        carrier = packets[-1][1]
+        carrier = next(body for opcode, body in packets if opcode == 12613)
         self.assertEqual(
             struct.unpack_from(">iiiBi", carrier), (fight.id, 41, -1, 0, 310)
         )

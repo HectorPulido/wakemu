@@ -319,12 +319,51 @@ class WanderTests(PostgresCase):
         self.assertEqual(moved, [key])
         self.assertEqual(len(emitted), 1)
 
+    def test_requested_cadence_migration_preserves_custom_policies_and_is_idempotent(
+        self,
+    ):
+        from pathlib import Path
+
+        migration = (
+            Path(__file__).resolve().parents[1]
+            / "migrations"
+            / "327_monster_wander_requested_cadence.sql"
+        ).read_text()
+        previous = dict(
+            interval_seconds=2,
+            move_probability=0.6,
+            min_steps=1,
+            max_steps=3,
+            radius=20,
+        )
+        requested = dict(previous, interval_seconds=1, max_steps=8)
+        for before, expected in (
+            (previous, requested),
+            (requested, requested),
+            (dict(previous, interval_seconds=4), dict(previous, interval_seconds=4)),
+            (
+                dict(previous, move_probability=0.35),
+                dict(previous, move_probability=0.35),
+            ),
+        ):
+            with self.subTest(before=before):
+                with self.store.connection() as db:
+                    db.execute(
+                        "UPDATE settings SET value=%s WHERE name='monster_wander'",
+                        (Jsonb(before),),
+                    )
+                    db.execute(migration)
+                self.assertEqual(policy(self.store), expected)
+                with self.store.connection() as db:
+                    db.execute(migration)
+                self.assertEqual(policy(self.reopen()), expected)
+
     def test_durable_policy_reloads_from_postgres_and_rejects_invalid_shapes(self):
         expected = {
-            "interval_seconds": 2,
+            "interval_seconds": 1,
             "move_probability": 0.6,
             "min_steps": 1,
-            "max_steps": 3,
+            "max_steps": 8,
             "radius": 20,
         }
         self.assertEqual(policy(self.store), expected)

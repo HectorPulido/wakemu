@@ -9,6 +9,13 @@ from wakfu_server import rift_entry_adapter as adapter
 
 class RiftEntryAdapterTests(unittest.TestCase):
     def setUp(self):
+        # These admission units explicitly exercise minimum-level enforcement;
+        # the real setting reader is covered by its own policy tests.
+        enforcement = patch(
+            "wakfu_server.instance_entry_level.enforced", return_value=True
+        )
+        enforcement.start()
+        self.addCleanup(enforcement.stop)
         self.portal = {
             "wave_id": 3,
             "map_id": 1314,

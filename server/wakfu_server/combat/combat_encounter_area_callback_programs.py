@@ -1,4 +1,12 @@
 """Immutable manifests for original area drop/callback programs."""
+
+from .combat_encounter_source_revision import source_revision_matches
+
+SOURCE_DEPENDENCIES = (
+    "combat-state-definitions.json",
+    "native-retained-effect-metadata.json",
+    "native-effect-areas.json",
+)
 from copy import deepcopy
 from functools import lru_cache
 import math
@@ -170,7 +178,7 @@ def freeze_encounter_area_callback_programs(fight, *, roles):
     if frozen is not None and (
         frozen["map_id"] != roles.map_id
         or frozen["monster_references"] != list(roles.monster_references)
-        or frozen["catalog_revision"] != native_catalog.release()
+        or not source_revision_matches(frozen["catalog_revision"], SOURCE_DEPENDENCIES)
     ):
         raise ValueError("Callback manifest differs from admission or catalog")
     fight.native_encounter_area_callback_programs = frozen
@@ -182,7 +190,7 @@ def encounter_area_callback_programs(fight):
     if record is None:
         return ()
     frozen = callback_program_policy_from_record(record)
-    from .combat_encounter_roles import frozen_roles
+    from wakfu_server.combat_encounter_roles import frozen_roles
 
     roles = frozen_roles(fight)
     if (

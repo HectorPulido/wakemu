@@ -1,6 +1,6 @@
 """Durable single-fight rift sessions; caller owns native movement and combat."""
 import json
-from .rift_policy import select_wave, validate
+from wakfu_server.rift_policy import bind_company_size, select_wave, validate
 
 
 def _setting(db, name):
@@ -40,6 +40,7 @@ def enter(db, wave_id, owner_character_id, members, *, seed, authorize):
         or any(type(c) is not int or c <= 0 for c in members)
     ):
         raise ValueError("Invalid rift membership")
+    policy = bind_company_size(policy, len(members))
     known = db.execute(
         "SELECT id FROM characters WHERE id=ANY(%s)", (list(members),)
     ).fetchall()
@@ -103,9 +104,12 @@ def start(db, instance_id, character_id, fight_id):
         return run
     if run["status"] != "entered":
         raise ValueError("Rift already started or closed")
+    from wakfu_server.rift_encounter_roles import roles_for_catalog
+
+    player_team = roles_for_catalog(run["catalog"], run["policy"]).player_team
     participants = db.execute(
-        "SELECT character_id FROM combat_fight_participants WHERE fight_id=%s AND team=0",
-        (fight_id,),
+        "SELECT character_id FROM combat_fight_participants WHERE fight_id=%s AND team=%s",
+        (fight_id, player_team),
     ).fetchall()
     if {r["character_id"] for r in participants} != set(run["members"]):
         raise ValueError("Fight participants do not match frozen rift members")
@@ -168,11 +172,20 @@ def record_wave(db, instance_id, wave, actor_ids, *, turn):
     ).fetchone()
 
 
-def settle(db, instance_id, fight_id, *, outcome, turn, apply_rewards):
+def settle(
+    db,
+    instance_id,
+    fight_id,
+    *,
+    outcome,
+    turn,
+    apply_rewards,
+    reconcile_earned_rewards=False
+):
     """One terminal receipt and reward callback in the combat transaction.
 
     No probability or prize is invented here. callback(db, run, result) owns an
-    explicit local reward policy; losing/closed fights never call it.
+    explicit earned reward policy; administratively closed fights never pay.
     """
     run = _run(db, instance_id)
     if outcome not in ("won", "lost", "closed") or type(turn) is not int or turn < 0:
@@ -183,6 +196,10 @@ def settle(db, instance_id, fight_id, *, outcome, turn, apply_rewards):
     if old:
         if old["fight_id"] != fight_id or old["outcome"] != outcome:
             raise ValueError("Rift settlement replay changed result")
+        if reconcile_earned_rewards and outcome in ("won", "lost"):
+            if not callable(apply_rewards):
+                raise ValueError("Earned Rift reconciliation requires reward authority")
+            apply_rewards(db, run, old["result"])
         return old
     if (
         run["status"] != "running"
@@ -199,7 +216,7 @@ def settle(db, instance_id, fight_id, *, outcome, turn, apply_rewards):
         reached_wave=run["wave"],
         turn=turn,
     )
-    if outcome == "won":
+    if outcome in ("won", "lost"):
         if not callable(apply_rewards):
             raise ValueError("Rift survival requires an explicit reward authority")
         apply_rewards(db, run, result)
@@ -240,11 +257,18 @@ def bind_wave(db, instance_id, wave, actors):
     if old:
         if old["actor_ids"] != sorted_ids or old["species_refs"] != list(refs):
             raise ValueError("Rift wave identity replay changed roster")
+        from wakfu_server.rift_wave_bindings import verify_replay
+
+        verify_replay(db, run, old, actors)
         return old
-    return db.execute(
+    row = db.execute(
         "INSERT INTO rift_wave_rosters(instance_id,wave,actor_ids,species_refs) VALUES(%s,%s,%s::jsonb,%s::jsonb) RETURNING *",
         (instance_id, wave, json.dumps(sorted_ids), json.dumps(refs)),
     ).fetchone()
+    from wakfu_server.rift_wave_bindings import freeze_spawn
+
+    freeze_spawn(db, run, row, actors)
+    return row
 
 
 def persist_progress(db, fight):
@@ -280,7 +304,7 @@ def persist_progress(db, fight):
         ):
             raise ValueError("Staged next rift wave differs from frozen receipt")
         bound = db.execute(
-            "SELECT actor_ids,species_refs FROM rift_wave_rosters WHERE instance_id=%s AND wave=%s",
+            "SELECT wave,actor_ids,species_refs FROM rift_wave_rosters WHERE instance_id=%s AND wave=%s",
             (state["instance_id"], next_wave),
         ).fetchone()
         if bound is not None and (
@@ -288,6 +312,11 @@ def persist_progress(db, fight):
             or bound["species_refs"] != list(next_refs)
         ):
             raise ValueError("Staged next rift roster changed its identity")
+        if bound is not None:
+            from wakfu_server.rift_wave_bindings import load, verify_replay
+
+            load(db, run, bound, fight=fight)
+            verify_replay(db, run, bound, zip(next_ids, next_refs))
         current = _run(db, state["instance_id"])
         # An old replay may precede several later acknowledged waves. Its bound
         # roster is immutable and already verified by the existing receipt.

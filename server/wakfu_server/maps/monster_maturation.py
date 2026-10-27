@@ -67,11 +67,19 @@ def validate_policy(value):
     return value
 
 
-def choose_next(reference, configuration, *, draw, choose=secrets.choice, members=None):
-    """One reversible roster-aware draw; omitted rosters represent one member.
+def choose_next(
+    reference,
+    configuration,
+    *,
+    draw,
+    choose=secrets.choice,
+    members=None,
+    source_level=None,
+):
+    """One monotone roster-aware draw; omitted rosters represent one member.
 
-    Special bosses retain their independent rare probability. Historical
-    upward-only semantics survive exclusively in receipt reconciliation.
+    Special bosses retain their independent rare probability. Previously
+    committed reversible outcomes survive exclusively in receipt reconciliation.
     """
     if type(draw) not in (int, float) or not 0 <= draw < 1 or not math.isfinite(draw):
         raise ValueError("Invalid monster maturation draw")
@@ -86,6 +94,7 @@ def choose_next(reference, configuration, *, draw, choose=secrets.choice, member
         [{"ref": reference}] if members is None else members,
         draw,
         choose,
+        source_level=source_level,
     )
 
 
@@ -226,6 +235,7 @@ def attempt(
                 draw=sample,
                 choose=choose,
                 members=members,
+                source_level=members[index]["level"],
             )
             grown = None
             if candidate is not None:
@@ -249,6 +259,18 @@ def attempt(
             target_stage = STAGES.get(grown["ref"])
             from .monster_group_balance import valid_transition
 
+            if (
+                source_stage is not None
+                and target_stage is not None
+                and source_stage[0] is target_stage[0]
+                and (
+                    target_stage[1] < source_stage[1]
+                    or grown["level"] < members[index]["level"]
+                )
+            ):
+                # A queued pre-upgrade proposal may contain a downward choice.
+                # Leave its due cycle and seeded draw intact for fresh planning.
+                return None
             if not valid_transition(ticket["reference"], grown["ref"], STAGES):
                 raise ValueError("Invalid prepared maturation transition")
             candidate = next(
@@ -262,11 +284,20 @@ def attempt(
                 if source_stage[1] + 1 < len(source_stage[0]["tiers"])
                 else []
             )
+            source_minimum = next(
+                c["min_level"]
+                for c in source_stage[0]["tiers"][source_stage[1]]["candidates"]
+                if c["reference"] == ticket["reference"]
+            )
+            from .monster_family_stages import publication_viable
+
             boss_mass = (
                 configuration["boss_probability"]
                 if any(
                     c.get("boss_classification")
                     in ("boss", "ultimate_boss", "raid_boss")
+                    and c["min_level"] >= max(members[index]["level"], source_minimum)
+                    and publication_viable(c["reference"], c["min_level"])
                     for c in bosses
                 )
                 else 0.0
@@ -314,7 +345,7 @@ def attempt(
                 ticket["reference"],
                 to_reference,
                 sample,
-                Jsonb(dict(configuration, composition_model=1)),
+                Jsonb(dict(configuration, composition_model=2)),
             ),
         ).fetchone()
         if to_reference is not None:
@@ -438,19 +469,21 @@ def reconcile_seed(store, key, seeds, persisted):
             target = receipt["to_reference"]
             if target is None:
                 continue
-            source_stages = (
-                STAGES
-                if receipt["policy"].get("composition_model") == 1
-                else ORIGINAL_STAGES
-            )
+            composition_model = receipt["policy"].get("composition_model")
+            source_stages = STAGES if composition_model in (1, 2) else ORIGINAL_STAGES
             stage = source_stages.get(expected["ref"])
             target_stage = source_stages.get(target)
             if stage is None or target_stage is None or stage[0] is not target_stage[0]:
                 raise ValueError("Invalid monster maturation receipt transition")
-            if receipt["policy"].get("composition_model") == 1:
+            if composition_model in (1, 2):
                 from .monster_group_balance import valid_transition
 
-                legal = valid_transition(expected["ref"], target, STAGES)
+                legal = valid_transition(
+                    expected["ref"],
+                    target,
+                    STAGES,
+                    allow_regression=composition_model == 1,
+                )
             else:
                 legal = target_stage[1] == stage[1] + 1
             if not legal:

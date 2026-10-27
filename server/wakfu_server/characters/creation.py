@@ -4,7 +4,7 @@ from protocol_codec import decode_body
 
 def select_created(store, account_id, generation, character_id):
     """Prepare creation's automatic selection for the same world join as login."""
-    from wakfu_server.characters import heroes
+    from wakfu_server import heroes
 
     character = store.select_character(account_id, generation, character_id)
     heroes.select_main(store, account_id, generation, character_id)

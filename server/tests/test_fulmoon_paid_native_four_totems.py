@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from postgres_case import PostgresCase
+from wakfu_server.combat_characteristic_percentage import characteristic_percentage
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -142,7 +143,9 @@ class FulMoonPaidNativeFourTotemsTests(PostgresCase):
                     for identity in targets:
                         actor = current.actors[identity]
                         self.assertGreater(actor.hp, 0)
-                        self.assertLessEqual(actor.hp * 100, actor.max_hp * 20)
+                        self.assertLessEqual(
+                            characteristic_percentage(actor.hp, actor.max_hp), 20
+                        )
                     self.assertEqual(set(current.actors), initial_ids)
                     self.assertEqual(len(hammered), 4)
                     self.assertTrue(receipt["hits"])
@@ -194,7 +197,8 @@ class FulMoonPaidNativeFourTotemsTests(PostgresCase):
                         # Native critical/block rolls may already cross20%.
                         # Preserve that earned result, rather than force1330HP.
                         self.assertEqual(
-                            marked(target), row["after"]["hp"] * 100 <= 5000 * 20
+                            marked(target),
+                            characteristic_percentage(row["after"]["hp"], 5000) <= 20,
                         )
                         receipt["threshold_sources"].extend(
                             event
@@ -254,7 +258,10 @@ class FulMoonPaidNativeFourTotemsTests(PostgresCase):
                         self.assertGreater(
                             after, 0, "Small native hit killed/reset a totem"
                         )
-                        self.assertEqual(marked(selected), after * 100 <= 5000 * 20)
+                        self.assertEqual(
+                            marked(selected),
+                            characteristic_percentage(after, 5000) <= 20,
+                        )
                         receipt["threshold_sources"].extend(
                             event
                             for event in case.fight.events[event_start:]

@@ -72,7 +72,15 @@ def leaf_domain_witnesses(effect, *, registry=None):
     current = isinstance(row, Mapping) and row.get("runner") in ("eWQ", "eWR")
     if (
         family
-        not in (*DAMAGE_FAMILIES, *HEAL_ELEMENTS, *REDUCTION_FAMILIES, 400, 430, 1013)
+        not in (
+            *DAMAGE_FAMILIES,
+            *HEAL_ELEMENTS,
+            *REDUCTION_FAMILIES,
+            400,
+            430,
+            1013,
+            1093,
+        )
         and not current
     ):
         raise UnknownDynamicLevel(
@@ -103,6 +111,8 @@ def leaf_domain_witnesses(effect, *, registry=None):
         and count not in (1, 2, 3)
         or family == 430
         and count < 3
+        or family == 1093
+        and count != 1
     ):
         raise UnknownDynamicLevel("Unproved dynamic leaf parameter shape")
     amount_pair = 1 if family == 430 else 0
@@ -133,11 +143,16 @@ def leaf_domain_witnesses(effect, *, registry=None):
     if (
         not isinstance(masks, (tuple, list))
         or len(masks) != 7
-        or any(mask for mask in masks)
-    ):
-        raise UnknownDynamicLevel(
-            "Nested dynamic subscriptions need their own domain proof"
+        or any(
+            mask is not None
+            and (
+                not isinstance(mask, (tuple, list))
+                or any(type(event) is not int or event < 0 for event in mask)
+            )
+            for mask in masks
         )
+    ):
+        raise UnknownDynamicLevel("Malformed dynamic leaf subscription masks")
     mode, timing = effect.get("native_execution_mode"), effect.get(
         "native_timing_definition"
     )
@@ -153,10 +168,25 @@ def leaf_domain_witnesses(effect, *, registry=None):
         raise UnknownDynamicLevel(
             "Dynamic leaf timing needs an additional domain proof"
         )
+    # Native subscription masks are immutable descriptor data, independent of
+    # level. Witness validation still requires the actual event-scope producer
+    # and retained lifecycle; allowing a mask here never supplies either one.
     return tuple(dict.fromkeys((low, high)))
 
 
-def child_domain_witnesses(effect, effects, *, registry=None):
+def child_domain_witnesses(effect, effects, *, registry=None, states=None):
+    """Reuse the complete state-application proof when state source is supplied.
+
+    A304 descendant is not an amount-only leaf: its requested signed-short
+    level must retain state identity, native bounds, and every reachable state
+    profile. The existing HP-group proof supplies those checks and rejects
+    intervals crossing unsupported signed-negative carrier levels. Callers
+    without state definitions retain the original conservative leaf-only API.
+    """
+    if states is not None:
+        from .combat_equipment_hp_group_parser import child_domain_witnesses as prove
+
+        return prove(effect, effects, states, registry=registry)
     children = effect.get("children")
     if (
         not isinstance(children, (tuple, list))

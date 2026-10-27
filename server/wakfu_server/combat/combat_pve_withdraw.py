@@ -142,6 +142,34 @@ def plan(session, fight, runtime):
         member.id for member in candidate.actors.values() if member.id in removed_set
     )
     public = []
+    from .combat_scene_outcome import active_scene_grants, cleanup_scene_grants
+
+    if active_scene_grants(candidate, actor_ids=removed_set):
+        factory = getattr(candidate_runtime, "expiration_runtime_factory", None)
+        if not callable(factory):
+            raise ValueError("Earned scene withdrawal requires its native runtime")
+        with candidate.effect_resolution():
+            cleanup_scene_grants(
+                candidate,
+                factory(action_id=candidate_runtime.action_id + 1),
+                public,
+                actor_ids=removed_set,
+            )
+    from .combat_encounter_scene_helpers import (
+        helper_actor_ids_for_departing,
+        retire_departing_scene_helpers,
+    )
+
+    if helper_actor_ids_for_departing(candidate, removed_set):
+        factory = getattr(candidate_runtime, "expiration_runtime_factory", None)
+        if not callable(factory):
+            raise ValueError("Scene helper withdrawal requires its native runtime")
+        retire_departing_scene_helpers(
+            candidate,
+            removed_set,
+            factory(action_id=candidate_runtime.action_id + 1),
+            public,
+        )
     for identity in removed:
         target = candidate.actors[identity]
         from .combat_pve_departure import retire_pve_actor
@@ -215,9 +243,16 @@ def plan(session, fight, runtime):
     for member in private.fight.actors.values():
         if member.id != session.character_id and member.id not in summon_ids:
             member.pve_withdrawn = True
-    # This detached private continuation uses singleton abandon validation;
-    # the public encounter retains the durable withdrawal flag.
-    private.fight.actors[session.character_id].pve_withdrawn = False
+    from .combat_pve_departure import retired_pve_actor_ids
+
+    # Native retirement attests the withdrawn flag as well as QI/PV removal.
+    # The private cleanup must retain that authority instead of reviving its
+    # root solely to pass the ordinary singleton abandonment validator.
+    if session.character_id in retired_pve_actor_ids(private.fight):
+        private.pve_withdrawal_owner = (session.account_id, session.character_id)
+    else:
+        # Legacy domains without native topology retain their existing codec.
+        private.fight.actors[session.character_id].pve_withdrawn = False
     losers = [session.character_id]
     winners = [
         member.id for member in fight.actors.values() if member.team != actor.team

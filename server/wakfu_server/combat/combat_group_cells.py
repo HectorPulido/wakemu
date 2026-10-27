@@ -1,8 +1,8 @@
 """eYg cell mode: ordered native parent area and selected fight heights.
 
 anc/amX stores a LinkedHashSet in bEl insertion order. Isotropic families have
-bEj=true, so amZ uses translation rather than orientation. Only the existing
-proven point/empty/circle/ring/symmetric-cross geometry is accepted.
+bEj=true, so amZ uses translation rather than orientation. Cross arms retain
+their individual native lengths and the original insertion order.
 """
 import re
 from .combat_effect_targets import area_offsets, UnsupportedEffectArea
@@ -58,10 +58,22 @@ def ordered_offsets(effect, *, origin=None, reference=None, direction=None):
             for n in range(low, high + 1)
         ]
     elif kind == "anw":
-        radius = int(re.fullmatch(r"cross-h(\d+)b(\d+)-g(\d+)d(\d+)", description)[1])
+        top, bottom, left, right = map(
+            int,
+            re.fullmatch(
+                r"cross-h(-?\d+)b(-?\d+)-g(-?\d+)d(-?\d+)", description
+            ).groups(),
+        )
         ordered = [(0, 0)]
-        for dx, dy in ((0, -1), (0, 1), (1, 0), (-1, 0)):
-            ordered.extend((dx * n, dy * n) for n in range(1, radius + 1))
+        # Original anw.p appends center, g, d, h, b. Its positive-index
+        # loops leave nonpositive arms empty, with the center still present.
+        for length, (dx, dy) in (
+            (left, (0, -1)),
+            (right, (0, 1)),
+            (top, (1, 0)),
+            (bottom, (-1, 0)),
+        ):
+            ordered.extend((dx * n, dy * n) for n in range(1, length + 1))
     elif kind == "anx":
         top, bottom, left, right = map(
             int,

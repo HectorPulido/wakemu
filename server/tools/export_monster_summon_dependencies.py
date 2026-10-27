@@ -103,7 +103,8 @@ def compact(document):
 def dependency_closure(tables, monsters, seed_spell_ids, seed_state_ids=()):
     """Follow cycles, nested summons, initial states, areas and granted spells."""
     seen = {
-        kind: set() for kind in ("spells", "states", "areas", "effects", "profiles")
+        kind: set()
+        for kind in ("spells", "states", "areas", "effects", "profiles", "morphs")
     }
     pending = [("spells", str(ref)) for ref in seed_spell_ids]
     pending += [("states", str(ref)) for ref in seed_state_ids]
@@ -114,7 +115,7 @@ def dependency_closure(tables, monsters, seed_spell_ids, seed_state_ids=()):
         if key in seen[kind]:
             continue
         seen[kind].add(key)
-        row = (monsters if kind == "profiles" else tables[kind]).get(key)
+        row = (monsters if kind == "profiles" else tables.get(kind, {})).get(key)
         if row is None:
             missing.add(kind + ":" + key)
             continue
@@ -124,6 +125,9 @@ def dependency_closure(tables, monsters, seed_spell_ids, seed_state_ids=()):
             if len(triples) % 3:
                 raise ValueError("Invalid original profile initial states")
             pending += [("states", str(ref)) for ref in triples[::3]]
+        elif kind == "morphs":
+            # Separate source-attested transformation books from summon profiles.
+            pending += [("spells", str(a["reference"])) for a in row["abilities"]]
         elif kind != "effects":
             pending += [("effects", str(ref)) for ref in row]
         else:
@@ -133,9 +137,11 @@ def dependency_closure(tables, monsters, seed_spell_ids, seed_state_ids=()):
                 if not row["references"]:
                     missing.add("evaluated-references:" + key)
                 for ref in row["references"]:
-                    # eZl.C consumes a signed-short descriptor reference.
-                    if row["family"] == 307:
+                    spec = _reference_spec(row["family"])
+                    if spec is not None and spec.transform == "signed-short":
                         ref = ((ref + 32768) % 65536) - 32768
+                    # Only307 births a creature;933 selects a different book.
+                    if row["family"] == 307:
                         edges.add((int(key), ref))
                     if row["family"] == 994:
                         if (
@@ -276,7 +282,7 @@ def resolved_container_domains(tables, monsters, spell, contexts):
         if identity in seen:
             continue
         seen.add(identity)
-        row = (monsters if kind == "profiles" else tables[kind]).get(key)
+        row = (monsters if kind == "profiles" else tables.get(kind, {})).get(key)
         if row is None:
             continue
         if kind == "effects":
@@ -317,6 +323,12 @@ def resolved_container_domains(tables, monsters, spell, contexts):
             pending.extend(
                 ("states", str(ref), None, -1)
                 for ref in row["initial_state_triples"][::3]
+            )
+        elif kind == "morphs":
+            # Book identity is structural; this wrapper has not proved the
+            # native own-level/minimum-level transformation context.
+            pending.extend(
+                ("spells", str(a["reference"]), None, -1) for a in row["abilities"]
             )
         else:
             # State application, granted spells and areas introduce contexts
@@ -556,6 +568,11 @@ def build_documents(
         kind: {}
         for kind in ("spells", "states", "areas", "effects", "spell_level_roots")
     }
+    # Transformation profiles are an independent, already-published domain;
+    # never borrow an ordinary NPC/summon descriptor for a missing morph book.
+    tables["morphs"] = deepcopy(
+        base_documents.get("native-class-morph-profiles.json", {}).get("profiles", {})
+    )
     for name in ("trees", "states", "area-effects", "areas"):
         index = compact(read_bundle(bundle, name))
         for kind, records in index.items():

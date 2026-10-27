@@ -282,6 +282,39 @@ def state_managers(fight):
         yield state_manager(fight, identity)
 
 
+def _retained_manager_users(records):
+    """Index plain native references for this one callback-free prune pass.
+
+    Custom mappings and unusual identity values retain the equality-based
+    per-manager scan. This index never certifies ownership or survives a call.
+    """
+    if type(records) is not dict:
+        return None
+    users = set()
+    for record in records.values():
+        if type(record) is not dict:
+            return None
+        manager, caster = record.get("manager_id"), record.get("caster_id")
+        kind = record.get("container_kind")
+        if (
+            manager is not None
+            and type(manager) is not int
+            or caster is not None
+            and type(caster) is not int
+            or kind is not None
+            and type(kind) is not str
+        ):
+            return None
+        users.add(manager)
+        users.add(caster)
+        if kind == "effect_area":
+            container = record.get("container_id")
+            if container is not None and type(container) is not int:
+                return None
+            users.add(container)
+    return users
+
+
 def prune_retired_state_managers(fight):
     """Release removed Qq objects only after their actual Qf/PL users vanish."""
     retired = getattr(fight, "native_retired_area_managers", {})
@@ -311,6 +344,56 @@ def prune_retired_state_managers(fight):
         if not isinstance(ledger, StateLedger) or ledger.actor_id != identity:
             raise ValueError("Missing actual state carrier ledger authority")
         source_ids.update(entry.caster_id for entry in ledger.entries)
+    manager_users = (
+        _retained_manager_users(records)
+        if type(retired) is dict
+        and len(retired) > 1
+        and all(type(identity) is int for identity in retired)
+        else None
+    )
+    # faV.j(PV) owns the actual source pointer, independently of Qs spatial
+    # registration. A live child Qq therefore keeps its removed parent alive.
+    # Start only at externally owned objects; unreachable retired cycles must
+    # not keep themselves alive merely by naming each other.
+    areas = getattr(fight, "native_effect_areas", {})
+    pointer_roots = set(areas) | source_ids
+    for record in records.values():
+        for key in ("manager_id", "caster_id"):
+            if type(record.get(key)) is int:
+                pointer_roots.add(record[key])
+        if (
+            record.get("container_kind") == "effect_area"
+            and type(record.get("container_id")) is int
+        ):
+            pointer_roots.add(record["container_id"])
+    for identity, row in retired.items():
+        ledger = row.get("state_ledger")
+        if (
+            row.get("executing")
+            or row.get("removing")
+            or (ledger is not None and ledger.entries)
+        ):
+            pointer_roots.add(identity)
+    from .combat_native_container import owned_container_users
+
+    for state in facts.values():
+        if owned_container_users(fight, state.get("uid")):
+            pointer_roots.update(
+                value
+                for value in (state.get("target_id"), state.get("caster_id"))
+                if type(value) is int
+            )
+    pending = list(pointer_roots)
+    while pending:
+        identity = pending.pop()
+        row = areas.get(identity, retired.get(identity))
+        if row is None:
+            continue
+        owner = row.get("owner_id")
+        if type(owner) is int and owner not in pointer_roots:
+            pointer_roots.add(owner)
+            pending.append(owner)
+    source_ids.update(pointer_roots)
     for identity, row in tuple(retired.items()):
         if row.get("executing") or row.get("removing"):
             continue  # The actual Qq is still owned by a synchronous stack.
@@ -319,14 +402,18 @@ def prune_retired_state_managers(fight):
             continue
         if identity in source_ids:
             continue  # A live state carrier still holds this actual source PV.
-        if any(
-            record.get("manager_id") == identity
-            or record.get("caster_id") == identity
-            or (
-                record.get("container_kind") == "effect_area"
-                and record.get("container_id") == identity
+        if (
+            identity in manager_users
+            if manager_users is not None
+            else any(
+                record.get("manager_id") == identity
+                or record.get("caster_id") == identity
+                or (
+                    record.get("container_kind") == "effect_area"
+                    and record.get("container_id") == identity
+                )
+                for record in records.values()
             )
-            for record in records.values()
         ):
             continue
         from .combat_native_container import owned_container_users

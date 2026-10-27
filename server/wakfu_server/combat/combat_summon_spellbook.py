@@ -129,6 +129,12 @@ def validate_controlled_owner(fight, actor, character_id, owner_id):
             ):
                 raise ValueError("Missing actual transferred controller book")
             return
+        from .combat_encounter_scene_helpers import controlled_scene_helper
+
+        if controlled_scene_helper(
+            fight, actor, character_id=character_id, account_id=owner_id
+        ):
+            return
     registrations = getattr(fight, "native_summon_registrations", {})
     seen = set()
     current = actor

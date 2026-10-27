@@ -26,6 +26,7 @@ ffe.Ua resolves the enum and PV.a(ffe) reads fight properties (eGj.pGH).
 IsEnemy/IsEnnemy: eNM compares registered eHg.bcM affiliations.
 All context supplied here must describe the authoritative current cast.
 """
+
 from __future__ import annotations
 
 import ast
@@ -286,6 +287,7 @@ class ConditionContext:
         None  # eOK complete fcb roster + bLU actor joins.
     )
     battleground_query: object = None  # eNo current eGj.arM -> world info eyc.
+    dungeon_query: object = None  # eNL/eII.n current eGj.arM -> world info eyd.
     daytime_query: object = None  # Native IsDay uses the shared TX game clock.
     boolean_system_configuration_query: object = (
         None  # eJs eEL/eEI actual defaults/overrides.
@@ -421,8 +423,8 @@ def evaluate_condition(
         if name == "IsProtectorInFight":
             check(node)
             return
-        if name in ("IsPvp", "IsNeoServer", "IsBattleground"):
-            return  # Original eOL constructor ignores parsed arguments.
+        if name in ("IsPvp", "IsNeoServer", "IsBattleground", "IsDungeon"):
+            return  # These original constructors ignore parsed arguments.
         if name == "GetBooleanSystemConfiguration":
             if (
                 len(args) != 1
@@ -861,7 +863,7 @@ def evaluate_condition(
                 not 1 <= len(args) <= 2
                 or not isinstance(args[0], ast.Constant)
                 or type(args[0].value) is not int
-                or (len(args) == 2 and not is_selector(args[1]))
+                or (len(args) == 2 and not is_state_actor_selector(args[1]))
             ):
                 raise UnknownCondition("Unsupported GetStateLevel arguments")
             return
@@ -954,6 +956,7 @@ def evaluate_condition(
             "IsPvp",
             "IsNeoServer",
             "IsBattleground",
+            "IsDungeon",
             "GetBooleanSystemConfiguration",
         ):
             from .combat_system_conditions import evaluate_system_predicate
@@ -962,11 +965,15 @@ def evaluate_condition(
                 value = evaluate_system_predicate(
                     context,
                     "GetBooleanSystemConfiguration" if name == "IsNeoServer" else name,
-                    "server.group.isneo"
-                    if name == "IsNeoServer"
-                    else args[0].value
-                    if name == "GetBooleanSystemConfiguration"
-                    else None,
+                    (
+                        "server.group.isneo"
+                        if name == "IsNeoServer"
+                        else (
+                            args[0].value
+                            if name == "GetBooleanSystemConfiguration"
+                            else None
+                        )
+                    ),
                 )
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
@@ -1270,12 +1277,14 @@ def evaluate_condition(
             query = (
                 context.human_enemies_range_query
                 if name == "GetEnemiesHumanCountInRange"
-                else context.enemy_range_query
-                if name == "GetEnnemyCountInRange"
                 else (
-                    context.human_allies_range_query
-                    if name == "GetHumanAlliesCountInRange"
-                    else context.allies_range_query
+                    context.enemy_range_query
+                    if name == "GetEnnemyCountInRange"
+                    else (
+                        context.human_allies_range_query
+                        if name == "GetHumanAlliesCountInRange"
+                        else context.allies_range_query
+                    )
                 )
             )
             if not callable(query):
@@ -1582,9 +1591,11 @@ def evaluate_condition(
             query = (
                 context.fighters_max_level_query
                 if name == "GetFightersMaxLevel"
-                else context.fighters_min_level_query
-                if name == "GetFightersMinLevel"
-                else context.player_max_level_query
+                else (
+                    context.fighters_min_level_query
+                    if name == "GetFightersMinLevel"
+                    else context.player_max_level_query
+                )
             )
             if not callable(query):
                 raise UnknownCondition(
@@ -1651,6 +1662,24 @@ def evaluate_condition(
             else (args[1].value.lower() if len(args) == 2 else "caster")
         )
         actor = context.actors.get(selector)
+        if name == "GetStateLevel":
+            if callable(context.state_actor_query):
+                try:
+                    actor = context.state_actor_query(selector)
+                except ValueError as error:
+                    raise UnknownCondition(str(error)) from error
+                if actor is None:
+                    return -1  # eLs: actual eII.a resolved no eHg.
+            elif selector not in ("caster", "target"):
+                # A dictionary alias alone cannot authenticate a source Qe or
+                # controller relationship. Reuse the live eII.a state resolver.
+                raise UnknownCondition("Missing native selected state-actor authority")
+            elif actor is None and selector in context.null_actor_aliases:
+                if context.state_null_fallback_absent is True:
+                    return -1
+                raise UnknownCondition(
+                    "Missing native ePy state-null fallback authority"
+                )
         if actor is None:
             if (
                 name in ("GetCharacInPct", "GetCharacPct", "GetCharacteristicPct")
@@ -1782,6 +1811,7 @@ def evaluate_condition(
                 "IsPvp",
                 "IsNeoServer",
                 "IsBattleground",
+                "IsDungeon",
                 "GetBooleanSystemConfiguration",
             ):
                 check_number(node)
@@ -2437,6 +2467,7 @@ def evaluate_condition(
                 "IsPvp",
                 "IsNeoServer",
                 "IsBattleground",
+                "IsDungeon",
                 "GetBooleanSystemConfiguration",
             )
         ):
@@ -2542,9 +2573,11 @@ def evaluate_condition(
             query = (
                 context.use_gate_effect_query
                 if name == "UseGateEffect"
-                else context.use_gate_triggering_effect_query
-                if name == "UseGateTriggeringEffect"
-                else context.original_controller_predicate_query
+                else (
+                    context.use_gate_triggering_effect_query
+                    if name == "UseGateTriggeringEffect"
+                    else context.original_controller_predicate_query
+                )
             )
             if not callable(query):
                 raise UnknownCondition("Missing native " + name + " authority")
@@ -2596,9 +2629,11 @@ def evaluate_condition(
             query = (
                 context.backstabbed_query
                 if name == "IsBackstabbed"
-                else context.facestabbed_query
-                if name == "IsFacestabbed"
-                else context.sidestabbed_query
+                else (
+                    context.facestabbed_query
+                    if name == "IsFacestabbed"
+                    else context.sidestabbed_query
+                )
             )
             if not callable(query):
                 raise UnknownCondition("Missing native facing authority")
@@ -3464,3 +3499,299 @@ def evaluate_condition(
         number = None
         check = None
         run = None
+
+
+_CANONICAL_CONDITION_EVALUATOR = evaluate_condition
+
+
+_OPERATION_CONDITION_CALLS = frozenset(
+    (
+        "IsTargetCellFree",
+        "IsOnBorderCell",
+        "HasLineOfSight",
+        "GetEnnemyCountInRange",
+        "GetAlliesCountInRange",
+        "GetSpecificEffectAreaCountInRange",
+    )
+)
+
+
+class _OperationConditionProgram:
+    """Transient lexical program; the owning admitted batch must close it."""
+
+    __slots__ = ("_evaluate", "_release")
+
+    def __init__(self, evaluate, release):
+        self._evaluate, self._release = evaluate, release
+
+    def evaluate(self, context, *, validate_only=False):
+        if self._evaluate is None:
+            raise RuntimeError("Closed operation condition program")
+        return self._evaluate(context, validate_only=validate_only)
+
+    def close(self):
+        release = self._release
+        self._evaluate = self._release = None
+        if release is not None:
+            release()
+
+
+def prepare_operation_condition_program(criteria, first_context):
+    """Prepare only after the owning trusted batch built its first full context.
+
+    This lexical whitelist does not replace the ordinary batch's full source
+    admission. Unadmitted inputs return None for unchanged default evaluation.
+    No query, condition truth, actor fact or cell result is retained.
+    """
+    if evaluate_condition is not _CANONICAL_CONDITION_EVALUATOR:
+        return None
+    if (
+        type(criteria) is not str
+        or not criteria.strip()
+        or type(first_context) is not ConditionContext
+    ):
+        return None
+    from .combat_local_criteria import LocalCriterionSyntax
+
+    try:
+        root = _condition_root(criteria.strip())
+    except LocalCriterionSyntax:
+        return None  # Default evaluator formats its original syntax exception.
+    calls = [node for node in ast.walk(root) if isinstance(node, ast.Call)]
+    if (
+        not calls
+        or any(
+            not isinstance(node.func, ast.Name)
+            or node.func.id not in _OPERATION_CONDITION_CALLS
+            or node.keywords
+            for node in calls
+        )
+        or any(
+            node.id not in _OPERATION_CONDITION_CALLS
+            for node in ast.walk(root)
+            if isinstance(node, ast.Name)
+        )
+    ):
+        return None
+    # The full original validator still rejects every unsupported branch before
+    # any query. Its only context-dependent checks concern dungeon/random calls,
+    # both recursively excluded from this exact predicate set.
+    evaluate_condition(criteria, first_context, validate_only=True)
+    return _build_operation_condition_program(criteria, root)
+
+
+def _build_operation_condition_program(criteria, root):
+    context = None
+    busy = False
+
+    def integral(node):
+        if isinstance(node, ast.Constant):
+            return type(node.value) is int
+        if isinstance(node, ast.UnaryOp):
+            return integral(node.operand)
+        if isinstance(node, ast.BinOp):
+            return (
+                not isinstance(node.op, (ast.Div, ast.Mod))
+                and integral(node.left)
+                and integral(node.right)
+            )
+        if isinstance(node, ast.IfExp):
+            return integral(node.body) and integral(node.orelse)
+        return isinstance(node, ast.Call) and node.func.id not in (
+            "GetTotalHpInPercent",
+            "GetCharacInPct",
+            "GetCharacPct",
+            "GetCharacteristicPct",
+        )
+
+    def number(node):
+        if isinstance(node, ast.IfExp):
+            value = number(node.body if run(node.test) else node.orelse)
+            return value if integral(node) else float(value)
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.UnaryOp):
+            value = number(node.operand)
+            return -value if isinstance(node.op, ast.USub) else value
+        if isinstance(node, ast.BinOp):
+            left, right = (number(node.left), number(node.right))
+            if isinstance(node.op, ast.Add):
+                result = left + right
+            elif isinstance(node.op, ast.Sub):
+                result = left - right
+            elif isinstance(node.op, ast.Mult):
+                result = left * right
+            elif isinstance(node.op, ast.Mod):
+                if right == 0:
+                    raise UnknownCondition(
+                        "Native remainder by zero requires nonfinite semantics"
+                    )
+                return math.fmod(float(left), float(right))
+            else:
+                if right == 0:
+                    raise UnknownCondition(
+                        "Native division by zero requires nonfinite semantics"
+                    )
+                return left / right
+            return (
+                (result + 2**63) % 2**64 - 2**63
+                if type(result) is int
+                else result
+            )
+        name, args = (node.func.id, node.args)
+        if name in ("GetSpecificEffectAreaCountInRange", "GetEffectAreaCountInRange"):
+            query = (
+                context.specific_area_range_query
+                if name == "GetSpecificEffectAreaCountInRange"
+                else context.area_type_range_query
+            )
+            if not callable(query):
+                raise UnknownCondition("Missing complete native area range authority")
+            values = [number(arg) for arg in args[1:4]]
+            if any((type(value) is not int for value in values)):
+                raise UnknownCondition("Native area range requires long values")
+            try:
+                return query(
+                    args[0].value, *values, args[4].value if len(args) == 5 else False
+                )
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name in (
+            "GetEnnemyCountInRange",
+            "GetAlliesCountInRange",
+            "GetHumanAlliesCountInRange",
+            "GetEnemiesHumanCountInRange",
+        ):
+            query = (
+                context.human_enemies_range_query
+                if name == "GetEnemiesHumanCountInRange"
+                else context.enemy_range_query
+                if name == "GetEnnemyCountInRange"
+                else context.human_allies_range_query
+                if name == "GetHumanAlliesCountInRange"
+                else context.allies_range_query
+            )
+            if not callable(query):
+                raise UnknownCondition("Missing complete native enemy range authority")
+            minimum = 0 if len(args) < 3 else number(args[0])
+            maximum = number(args[0] if len(args) < 3 else args[1])
+            if type(minimum) is not int or type(maximum) is not int:
+                raise UnknownCondition(
+                    "Native enemy range bounds require integral values"
+                )
+            selector = (
+                "caster" if len(args) == 1 else args[1 if len(args) == 2 else 2].value
+            )
+            try:
+                return query(
+                    minimum,
+                    maximum,
+                    selector,
+                    run(args[3]) if len(args) > 3 else False,
+                    run(args[4]) if len(args) > 4 else False,
+                    *([run(args[5])] if len(args) > 5 else []),
+                )
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        raise UnknownCondition(
+            "Operation condition program escaped its admitted predicate set"
+        )
+
+    def run(node):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and (
+                node.func.id
+                in (
+                    "IsPvp",
+                    "IsNeoServer",
+                    "IsBattleground",
+                    "IsDungeon",
+                    "GetBooleanSystemConfiguration",
+                )
+            )
+        ):
+            return number(node) == 0
+        if isinstance(node, ast.IfExp):
+            return run(node.body if run(node.test) else node.orelse)
+        if isinstance(node, ast.Compare):
+            left, right = (number(node.left), number(node.comparators[0]))
+            op = node.ops[0]
+            if isinstance(op, ast.Eq):
+                return left == right
+            if isinstance(op, ast.NotEq):
+                return left != right
+            if isinstance(op, ast.GtE):
+                return left >= right
+            if isinstance(op, ast.Gt):
+                return left > right
+            if isinstance(op, ast.LtE):
+                return left <= right
+            return left < right
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.UnaryOp):
+            return not run(node.operand)
+        if isinstance(node, ast.BoolOp):
+            return (
+                all((run(v) for v in node.values))
+                if isinstance(node.op, ast.And)
+                else any((run(v) for v in node.values))
+            )
+        name = node.func.id
+        if name == "HasLineOfSight":
+            if not callable(context.line_of_sight_query):
+                raise UnknownCondition("Missing native condition LOS authority")
+            value = context.line_of_sight_query()
+            if type(value) is not bool:
+                raise UnknownCondition("Invalid native condition LOS result")
+            return value
+        if name == "IsOnBorderCell":
+            if not callable(context.border_cell_query):
+                raise UnknownCondition("Missing native QI border-cell authority")
+            selector = "target" if node.args[0].value.lower() == "target" else "caster"
+            try:
+                value = context.border_cell_query(selector)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(value) is not int or value not in (-1, 0):
+                raise UnknownCondition("Invalid native eOr border-cell result")
+            return value == 0
+        if name == "IsTargetCellFree":
+            cell = context.target_cell
+            if cell is None:
+                raise UnknownCondition("Missing authoritative target cell")
+            strict = bool(node.args and node.args[0].value)
+            return (
+                cell.terrain_valid
+                and (not cell.has_obstacle)
+                and (
+                    not (
+                        bool(cell.occupant_blocks)
+                        if strict
+                        else any(cell.occupant_blocks)
+                    )
+                )
+            )
+        raise UnknownCondition(
+            "Operation condition program escaped its admitted predicate set"
+        )
+
+    def evaluate(fresh_context, *, validate_only=False):
+        nonlocal context, busy
+        if busy or type(fresh_context) is not ConditionContext:
+            return evaluate_condition(
+                criteria, fresh_context, validate_only=validate_only
+            )
+        context, busy = fresh_context, True
+        try:
+            return True if validate_only else bool(run(root))
+        finally:
+            context, busy = None, False
+
+    def release():
+        nonlocal context, root, integral, number, run
+        context = root = integral = number = run = None
+
+    return _OperationConditionProgram(evaluate, release)

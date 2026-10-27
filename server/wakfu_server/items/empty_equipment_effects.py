@@ -7,7 +7,10 @@ from pathlib import Path
 from wakfu_server import native_catalog
 
 SOURCE_SHA256 = "e86f4aecb0532cbe3e443fa002deb8ad65554ada3bbcede0f011ef31b94792be"
-CATALOG_REVISION = "b3963fc05f1d8ec1eb9afc268fab0350f4de120144d67f7eee470747750b2450"
+# Proof is scoped to the exact rules document used by the original recovery.
+# Unrelated catalog documents may evolve without changing these 626 templates.
+RULES_DOCUMENT = "item-equipment-rules.json"
+RULES_SHA256 = "e39a4eb727b4eff75d888d0adc53452308be5b8429bbffbc5f320e6dfc2593e9"
 
 
 @lru_cache(maxsize=1)
@@ -15,8 +18,10 @@ def definitions():
     raw = Path(__file__).with_name("native_empty_equipment_effects.json").read_bytes()
     if sha256(raw).hexdigest() != SOURCE_SHA256:
         raise ValueError("Conflicting original empty equipment definitions")
-    if native_catalog.release() != CATALOG_REVISION:
-        raise ValueError("Empty equipment definitions belong to another native release")
+    if native_catalog.document_hashes().get(RULES_DOCUMENT) != RULES_SHA256:
+        raise ValueError(
+            "Empty equipment definitions conflict with published native rules"
+        )
     data = json.loads(raw)
     if (
         data["policy"] != "original-bIJ-equip-rule-match-gjg-empty-v1"

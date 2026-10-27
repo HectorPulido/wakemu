@@ -241,7 +241,16 @@ class NativeSummonBuilder:
         actor.native_obstacle_id = -1
         actor.native_fight_property_counts = {}
         actor.native_fight_properties = frozenset()
-        actor.native_world_properties = frozenset(profile["world_properties"])
+        from .combat_property_stack import add_property
+
+        actor.native_world_property_counts = {}
+        for property_id in profile["world_properties"]:
+            add_property(actor.native_world_property_counts, property_id)
+        actor.native_world_properties = frozenset(
+            identity
+            for identity, count in actor.native_world_property_counts.items()
+            if count != 0
+        )
         from .combat_native_death_status import initialize_fresh_bje_death_status
 
         initialize_fresh_bje_death_status(actor)
@@ -287,7 +296,12 @@ class NativeSummonBuilder:
             # actual source provider; no307 defaults are fabricated here.
             self.descriptor_initializer(preview, actor, specification, caster)
         if 47 in caster_world:
-            actor.native_world_properties = actor.native_world_properties | {47}
+            add_property(actor.native_world_property_counts, 47)
+            actor.native_world_properties = frozenset(
+                identity
+                for identity, count in actor.native_world_property_counts.items()
+                if count != 0
+            )
         world_properties = actor.native_world_properties
         if 81 in fight_properties:
             if caster.effect_stats is None or 20 not in caster.effect_stats:

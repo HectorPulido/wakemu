@@ -78,26 +78,57 @@ def _context(handler, effect, invocation):
     return target, context
 
 
-def _events(handler, effect):
+def _events(handler, effect, *, invocation=None, plan=None):
     row = _EVENTS.get(str(effect["effect_class"]))
     registry = handler.registry[str(effect["effect_class"])]
-    if row is None or row["runner"] != registry["runner"]:
+    if row is None or row["runner"] != registry.get(
+        "native_prototype_runner", registry["runner"]
+    ):
         raise ValueError("Missing original current-stat event prototype")
     masks = effect.get("target_masks")
     if not isinstance(masks, (list, tuple)) or len(masks) < 7:
         raise ValueError("Missing current-stat source event masks")
-    return tuple(sorted({*row["events"], *(masks[6] or ())}))
+    events = {*row["events"], *(masks[6] or ())}
+    if plan is not None and effect["effect_class"] == 40:
+        from .combat_dynamic_current_loss_events import resolved_current_loss_events
+
+        target = _target_pv(handler, invocation.target_id)
+        stat = plan["stat_id"]
+        present = (
+            target is not None
+            and not _absent_area_characteristic(handler, target, stat)
+            and all(
+                isinstance(getattr(target, name, None), dict)
+                and type(getattr(target, name).get(stat)) is int
+                for name in ("effect_stats", "effect_minima", "effect_maxima")
+            )
+        )
+        events.update(
+            resolved_current_loss_events(
+                effect,
+                registry,
+                level=invocation.level,
+                stat_id=stat,
+                target_has_characteristic=present,
+            )
+        )
+    return tuple(sorted(events))
 
 
 def _calculate(handler, effect, invocation):
     target, context = _context(handler, effect, invocation)
     row = handler.registry[str(effect["effect_class"])]
-    plan = stat_parameters(
-        effect["parameters"],
-        invocation.level,
-        registered_stat_id=row["fixed_stat_id"],
-        percent_default=row["percent_default"],
-        trigger_value=context.trigger_value,
+    planner = getattr(handler, "native_current_stat_plan", None)
+    plan = (
+        planner(effect, invocation, target, context)
+        if callable(planner)
+        else stat_parameters(
+            effect["parameters"],
+            invocation.level,
+            registered_stat_id=row["fixed_stat_id"],
+            percent_default=row["percent_default"],
+            trigger_value=context.trigger_value,
+        )
     )
     value = plan["requested"]
     if row["limit_policy"] == "RESISTANCE_CAP":
@@ -167,13 +198,16 @@ def apply_current_stat_runner(handler, effect, values, invocation):
             uid, effect["effect_class"], rng=handler.rng, value=value
         )
     if handler.event_lifecycle is not None:
+        # The reconstructed eWR(PC) source binds its actual PC once after C.
+        # Later listener callbacks cannot rewrite that running source's events.
+        event_ids = _events(handler, effect, invocation=invocation, plan=plan)
         handler.event_lifecycle.phase(
             effect,
             invocation,
             uid=uid,
             value=value,
             channel=2,
-            _event_ids=_events(handler, effect),
+            _event_ids=event_ids,
             runner_modifier=runner,
         )
     target = _target_pv(handler, invocation.target_id)
@@ -278,7 +312,7 @@ def apply_current_stat_runner(handler, effect, values, invocation):
             target_id=target.id,
             value=value,
             stat_id=stat,
-            requested=plan["requested"],
+            requested=plan.get("native_additional_requested", plan["requested"]),
             timing_payload=context.timing_payload,
             execution_status=status,
         )
@@ -343,7 +377,7 @@ def apply_current_stat_runner(handler, effect, values, invocation):
                 uid=uid,
                 value=actual if runner is None else runner.value,
                 channel=channel,
-                _event_ids=_events(handler, effect),
+                _event_ids=event_ids,
                 runner_modifier=runner,
             )
     final = actual if runner is None else runner.value

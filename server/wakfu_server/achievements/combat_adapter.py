@@ -95,6 +95,11 @@ def settle_participants(
                     fight_id=fight.id,
                     source_scene=dict(
                         environmental_scene,
+                        region_id=(
+                            environmental_scene["admission_regions"].get(owner)
+                            if "admission_regions" in environmental_scene
+                            else environmental_scene.get("region_id")
+                        ),
                         original_entities=tuple(
                             dict(monster) for monster in original_monsters
                         ),

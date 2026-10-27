@@ -9,6 +9,18 @@ def _short(value):
     return ((value + 32768) % 65536) - 32768
 
 
+def pack_state_identity(reference, level):
+    """Native fyW.ae(short,short), preserving the level's low sixteen bits."""
+    if (
+        type(reference) is not int
+        or not 0 < reference <= 32767
+        or type(level) is not int
+        or not -32768 <= level <= 32767
+    ):
+        raise ValueError("Invalid native packed state identity")
+    return (reference << 16) + (level & 65535)
+
+
 def native_float_parameter(parameters, index, level):
     """eVn.w; share the existing float32/Math.round native implementation."""
     from .combat_level_group import _native_float_parameter

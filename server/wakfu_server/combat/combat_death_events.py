@@ -81,7 +81,11 @@ def deliver_owned_death(
                 authority=authority,
             )
         )
-    outcomes.extend(replay(replace(source, event_ids=(1010,)), authority=authority))
+    from .rift_ko_cleanup import owned_ko_boundary
+
+    local_ko = replace(source, event_ids=(1010,))
+    with owned_ko_boundary(fight, local_ko):
+        outcomes.extend(replay(local_ko, authority=authority))
     for event_id in (1010, 1012):
         if hasattr(fight, "native_global_pv_collections"):
             from .combat_global_pv_collections import global_pv_iterator

@@ -42,14 +42,18 @@ def persist(
         db, session.account_id, session.generation, session.character_id
     )
     from .combat_terminal_metadata import registered_summon_actor_ids
+    from .combat_companions import registered_companion_ids, validate_durable_roster
 
-    summons = registered_summon_actor_ids(original_fight)
+    validate_durable_roster(db, original_fight)
+    non_characters = registered_summon_actor_ids(
+        original_fight
+    ) | registered_companion_ids(original_fight)
     owned_ids = {
         actor.id
         for actor in original_fight.actors.values()
         if actor.controlled
         and actor.owner_id == session.account_id
-        and actor.id not in summons
+        and actor.id not in non_characters
     }
     members = tuple(
         db.execute(
@@ -97,6 +101,9 @@ def persist(
             ),
         )
         applied = applied or inserted.rowcount == 1
+    from wakfu_server.characters.companions import settle_owner_exit
+
+    settle_owner_exit(db, store, original_fight, session.account_id)
     if captured_departure_fight is not None:
         if captured_departure_fight.id != original_fight.id:
             raise ValueError("Captured teardown belongs to another fight")

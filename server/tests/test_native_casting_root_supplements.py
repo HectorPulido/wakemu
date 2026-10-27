@@ -31,8 +31,12 @@ class NativeCastingRootSupplementTests(PostgresCase):
                 )
                 self.assertIsNone(supplemental_root(root, spell_reference=4778))
             self.assertIsNone(supplemental_root(1, spell_reference=8460))
-            with patch.object(native_catalog, "release", return_value="a" * 64):
-                self.assertIsNone(supplemental_root(401997, spell_reference=8460))
+            from wakfu_server.native_casting_roots import _supplemental_root
+
+            # A caller cannot substitute a non-active request revision. Actual
+            # new publications require exact original-document compatibility,
+            # covered by the integrated fresh-source regression.
+            self.assertIsNone(_supplemental_root("a" * 64, 401997, 8460))
 
     def test_primary_root_wins_and_unknown_root_remains_unknown(self):
         from wakfu_server.combat_casting_context import NativeOwnedCastingContext

@@ -1,4 +1,8 @@
 """Immutable database placements for original neutral encounter markers."""
+
+from .combat_encounter_source_revision import source_revision_matches
+
+SOURCE_DEPENDENCIES = ("native-effect-areas.json",)
 from dataclasses import dataclass
 from functools import lru_cache
 import hashlib
@@ -111,6 +115,9 @@ def active_marker_placements(map_id, monster_references):
     if (result.map_id, result.monster_references) != (
         map_id,
         references,
-    ) or result.catalog_revision != native_catalog.release():
+    ) or not source_revision_matches(
+        result.catalog_revision,
+        (*SOURCE_DEPENDENCIES, f"combat-maps/{result.map_id}.json"),
+    ):
         raise ValueError("Encounter marker placements differ from scope or catalog")
     return result

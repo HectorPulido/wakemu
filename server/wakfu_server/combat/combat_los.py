@@ -59,7 +59,9 @@ def static_visible(map_id, source, target):
     return pair in catalog["visible"]
 
 
-def authoritative_visible(map_id, source, target, fight, *, blocking_footprints):
+def authoritative_visible(
+    map_id, source, target, fight, *, blocking_footprints, prepared_geometry=None
+):
     """Native Sf probes + QI.h XY occupancy for explicit owned actor blockers.
 
     Every living actor needs a footprint; empty explicitly means nonblocking.
@@ -68,7 +70,13 @@ def authoritative_visible(map_id, source, target, fight, *, blocking_footprints)
     alive = {a.id for a in fight.actors.values() if a.hp > 0}
     if set(blocking_footprints) != alive:
         raise ValueError("LOS requires explicit footprints of every living actor")
-    permitted = {(cell[0], cell[1]) for cell in fight.walkable}
+    from .combat_los_geometry import prepared_permitted_xy
+
+    permitted = prepared_permitted_xy(
+        prepared_geometry, map_id=map_id, walkable=fight.walkable
+    )
+    if permitted is None:
+        permitted = {(cell[0], cell[1]) for cell in fight.walkable}
     blocked = set()
     ignored = getattr(fight, "native_los_ignored_affiliations", frozenset())
     if not isinstance(ignored, frozenset) or any(

@@ -3,6 +3,70 @@ from wakfu_server.combat_qi_snapshot import NativeQISnapshot, RegisteredObstacle
 
 
 class NativeQISnapshotTests(unittest.TestCase):
+    def test_frozen_masks_share_only_terrain_and_preserve_mutable_validation(self):
+        from copy import deepcopy
+        import json
+        from types import SimpleNamespace
+        from wakfu_server.combat_geometry_snapshot import (
+            freeze_terrain,
+            source_snapshot,
+        )
+        from wakfu_server.fight_checkpoint_store import _plain
+
+        raw = [0, 128]
+        fight = SimpleNamespace(
+            walkable={(10, 20, 0), (11, 20, 0)},
+            edges=None,
+            actors={},
+            native_qi_snapshot=dict(x=10, y=20, width=2, height=1, cell_masks=raw),
+        )
+        before = source_snapshot(fight)
+        freeze_terrain(fight)
+        private = deepcopy(fight)
+        original_qi = NativeQISnapshot(fight.native_qi_snapshot, obstacles=[])
+        private_qi = NativeQISnapshot(
+            private.native_qi_snapshot, obstacles=[RegisteredObstacle(1, 10, 20, 0)]
+        )
+        self.assertIs(original_qi.masks, private_qi.masks)
+        self.assertIsNot(original_qi.occupancy, private_qi.occupancy)
+        self.assertIsNone(original_qi.U(10, 20))
+        self.assertEqual(private_qi.U(10, 20), frozenset({1}))
+        self.assertEqual(_plain(source_snapshot(fight)), before)
+        self.assertEqual(
+            json.loads(json.dumps(_plain(fight.native_qi_snapshot)))["cell_masks"], raw
+        )
+        # A mutable caller remains detached, and its later edits are validated.
+        raw[0] = True
+        self.assertFalse(original_qi.P(10, 20))
+        with self.assertRaises(ValueError):
+            self.snapshot(raw)
+        with self.assertRaises(TypeError):
+            private_qi.masks[0] = 128
+        from wakfu_server.combat_invariant_spatial import check_legacy_topology
+
+        findings = []
+        check_legacy_topology(
+            dict(
+                native_qi_snapshot=fight.native_qi_snapshot,
+                native_qi_byte_topology={},
+                native_qi_touched_cells=[],
+            ),
+            [],
+            lambda *row: findings.append(row),
+            lambda *row: findings.append(row),
+            [],
+        )
+        self.assertEqual(findings, [])
+        for replacement in (
+            dict(width=1),
+            dict(height=True),
+            dict(x=1 << 31),
+            dict(cell_masks=[0, 65535]),
+            dict(cell_masks=(0, 1.0)),
+        ):
+            with self.subTest(replacement=replacement), self.assertRaises(ValueError):
+                NativeQISnapshot(dict(fight.native_qi_snapshot, **replacement))
+
     def snapshot(self, masks, **kwargs):
         return NativeQISnapshot(
             dict(x=10, y=20, width=len(masks), height=1, cell_masks=masks), **kwargs

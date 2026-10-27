@@ -192,10 +192,10 @@ class ShopPostgresTests(PostgresCase):
         )
         with self.assertRaises(LookupError):
             adapter.dispatch("GET", prefix + "categories/" + hidden_id, {}, "")
-        with self.assertRaises(LookupError):
-            adapter.dispatch(
-                "POST", prefix + "catalog-pages:get", {"category_id": "999999"}, ""
-            )
+        absent = adapter.dispatch(
+            "POST", prefix + "catalog-pages:get", {"category_id": "999999"}, ""
+        )
+        self.assertEqual(absent["articles"], {"count": 0, "values": []})
 
         with self.store.connection() as db:
             db.execute("UPDATE shop_categories SET enabled=false WHERE key='weapons'")

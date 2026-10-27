@@ -639,7 +639,7 @@ class NativeProvider:
         else:
             from .combat_wire import actor_state
             from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
-            from .combat_movement_runtime import movement_stats_snapshot
+            from .combat_movement_runtime import movement_stats_snapshots
 
             packets = list(preview.packets) + [candidate._flush()]
             hidden = hidden_snapshot_actor_ids(preview.fight)
@@ -647,26 +647,29 @@ class NativeProvider:
                 if actor.id in hidden:
                     continue
                 stats = stats_serializer(actor, preview.fight)
+                snapshots = (stats,)
                 previous = runtime.fight.actors.get(actor.id)
                 if previous is not None and (
                     actor.id == runtime.fight.current.id
                     or actor.position == previous.position
                 ):
-                    stats = movement_stats_snapshot(
+                    snapshots = movement_stats_snapshots(
                         stats,
                         stats_serializer(previous, runtime.fight),
+                        actor=actor,
                         position_owned=actor.id == runtime.fight.current.id,
                     )
-                packets.append(
+                packets.extend(
                     (
                         12873,
                         actor_state(
                             12873,
                             preview.fight.id,
                             actor.id,
-                            stats,
+                            snapshot,
                         ),
                     )
+                    for snapshot in snapshots
                 )
             packets.append(candidate._flush())
             candidate.fight = preview.fight

@@ -1,6 +1,6 @@
 """Native QI.h visibility and fcr cast rays from owned QK authority."""
 from .combat_conditions import UnknownCondition
-from .combat_pointer_qi_registry import registered_slot, registered_terrain
+from .combat_pointer_qi_registry import registered_obstacle, registered_terrain
 
 
 def _i32(value):
@@ -94,7 +94,7 @@ def native_casting_ray(
     evaluated_slots = []
 
     def visibility(slot):
-        row = registered_slot(registry, slot)
+        row = registered_obstacle(registry, slot)
         if diagnostic is not None:
             evaluated_slots.append(
                 dict(
@@ -187,7 +187,7 @@ def native_casting_los(
         raise UnknownCondition("Missing complete native QI.biO visibility exclusions")
     slot = caster.native_obstacle_id
     source_row = (
-        registered_slot(registry, slot)
+        registered_obstacle(registry, slot)
         if type(slot) is int and 0 <= slot <= 126
         else None
     )

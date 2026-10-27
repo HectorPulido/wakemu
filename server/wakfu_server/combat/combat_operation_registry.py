@@ -277,6 +277,7 @@ _CONTRACTS = (
         ("native source runner phases",),
         ("original casting UIDs", "native transformation additional fields"),
         ("test_combat_morph_spellbook", "test_equipment_morph_characteristic_parsers"),
+        (DependencySpec("morph", 0, transform="signed-short"),),
     ),
     _contract(
         "world.property",
@@ -921,6 +922,10 @@ def dependency_specs(family):
     contract = operation_for_family(family)
     if contract is not None:
         return contract.dependencies
+    # eYJ338.C reads its target-AURA definition from slot0.
+    # This structural edge does not qualify an execution/lifecycle contract.
+    if family == 338:
+        return (DependencySpec("area", 0),)
     # Installed eZq/eZn constructs faB; eHI.cmY is fixed profile2349.
     # Structural references remain known even before an execution contract is
     # independently qualified for the operation.

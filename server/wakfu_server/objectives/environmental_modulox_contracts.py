@@ -134,8 +134,11 @@ def load(db, row, targets, rewards, *, attest):
         raise ValueError("Invalid original Modulox target level")
     from wakfu_server import native_catalog
 
-    if native_catalog.release() != authority["native_catalog_revision"]:
-        raise ValueError("Modulox source differs from the published catalog")
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(
+        authority["native_catalog_revision"], (authority["monsters_path"],)
+    )
     attest_authority(db, authority, attest=attest)
     return dict(authority)
 

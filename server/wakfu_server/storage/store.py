@@ -322,7 +322,7 @@ class Store:
                         is None
                     ):
                         raise ValueError("Authentication required")
-                    from wakfu_server.characters.heroes import preflight_main_selection
+                    from wakfu_server.heroes import preflight_main_selection
 
                     preflight_main_selection(db, account_id)
                 count = db.execute(
@@ -811,9 +811,11 @@ class Store:
             self.lock_character(
                 db, account_id, generation, character_id, selected=False
             )
-            from wakfu_server.characters import heroes
+            from wakfu_server import heroes
 
-            heroes.preflight_main_selection(db, account_id, character_id)
+            heroes.preflight_main_selection(
+                db, account_id, character_id, store=self, generation=generation
+            )
             from wakfu_server.characters.guild_character import record_presence
             from wakfu_server.equipment_stacks import normalize
 
@@ -1035,7 +1037,7 @@ class Store:
                 "SELECT account_id FROM account_hero_rosters WHERE account_id=%s FOR UPDATE",
                 (account_id,),
             )
-            from wakfu_server.characters.heroes import session_authorized
+            from wakfu_server.heroes import session_authorized
 
             if not session_authorized(
                 db,
@@ -1064,9 +1066,30 @@ class Store:
             if modulation is not None and build_index == modulation["build_index"]:
                 raise ValueError("Temporary automatic build is read-only")
             from wakfu_server.builds import validated_saved_blobs
-            from wakfu_server.equipment_stacks import for_sheet
+            from wakfu_server.equipment_stacks import EquipmentOwnershipError, for_sheet
 
-            if for_sheet(db, character_id, blobs["equipment"]):
+            try:
+                split_items = for_sheet(db, character_id, blobs["equipment"])
+            except EquipmentOwnershipError as error:
+                owner = db.execute(
+                    "SELECT c.id,c.name FROM inventory_items i "
+                    "JOIN characters c ON c.id=i.character_id "
+                    "WHERE i.uid=%s AND c.account_id=%s AND c.deleted_at IS NULL",
+                    (error.uid, account_id),
+                ).fetchone()
+                if owner is not None and session_authorized(
+                    db,
+                    {
+                        "account_id": account_id,
+                        "id": owner["id"],
+                        "selected_character_id": lease["character_id"],
+                    },
+                ):
+                    raise EquipmentOwnershipError(
+                        error.uid, owner_name=owner["name"]
+                    ) from None
+                raise
+            if split_items:
                 character = self.character(account_id, character_id, db)
             merged = validated_saved_blobs(character, build_index, blobs)
             values = [
@@ -1150,7 +1173,7 @@ class Store:
             "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
             (*[destination[key] for key in keys], character_id),
         )
-        from wakfu_server.characters.heroes import follow_main
+        from wakfu_server.heroes import follow_main
 
         follow_main(db, self, account_id, generation, character_id)
         from wakfu_server.haven_world_travel import external_departure

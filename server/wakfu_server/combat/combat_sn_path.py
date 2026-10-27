@@ -3,7 +3,7 @@ from wakfu_server import native_catalog as protocol_catalog
 from dataclasses import dataclass
 from contextlib import nullcontext
 from functools import lru_cache
-from threading import RLock
+from wakfu_server.native_source_singleflight import NativeSourceFlights
 from types import MappingProxyType
 from .combat_casting_range import int32
 from .combat_conditions import UnknownCondition
@@ -306,9 +306,11 @@ class NativeSnColumns:
         if type(map_id) is not int or map_id <= 0:
             raise ValueError("Invalid native Sn map identity")
         revision = protocol_catalog.release()
-        # Serialize cold loads so concurrent fights do not decode a large map twice.
-        with _published_columns_lock:
-            return _published_columns(cls, revision, map_id)
+        # Share one source per map/release without blocking unrelated geometry.
+        return _published_column_flights.run(
+            (cls, revision, map_id),
+            lambda: _published_columns(cls, revision, map_id),
+        )
 
     @classmethod
     def _load_published(cls, map_id):
@@ -367,7 +369,7 @@ class NativeSnColumns:
         return None
 
 
-_published_columns_lock = RLock()
+_published_column_flights = NativeSourceFlights("catalog.sn.singleflight_wait")
 
 
 @lru_cache(maxsize=4)

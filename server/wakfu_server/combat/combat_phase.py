@@ -1,14 +1,20 @@
 """Native cvx12514 transition into ACTION, not a client-side phase override.
 
-Initial combat has no timeline bonus effects, queued timed events or permanent
-zones. Their native typed zero-count encodings are included, never empty blobs.
+Initial combat has no timeline bonus effects or queued timed events. The final
+fdA/eHZ blob restores supplied fdy controller rows, not permanent zones.
+Ordinary initial combat retains its exact typed zero-count encodings.
 """
 import struct
 from .combat_input_observation import wall_time
 
 
 def action_transition(
-    fight_id, *, timestamp_ms=None, duration_seconds=0, bonus_period=3
+    fight_id,
+    *,
+    timestamp_ms=None,
+    duration_seconds=0,
+    bonus_period=3,
+    controller_records=(),
 ):
     if type(fight_id) is not int or not 0 < fight_id < 2**31:
         raise ValueError("Invalid fight identity")
@@ -26,14 +32,19 @@ def action_transition(
     bonuses = struct.pack(">iBBB", bonus_period, 0, 0, 0)
     # TG/TC: affected-member set i16count; two i32 event-map counts.
     timed = struct.pack(">hii", 0, 0, 0)
-    # fdA.eI: i16 map entry count (permanent zone descriptors).
-    zones = struct.pack(">h", 0)
+    # cvx.mzj -> eHZ/fdA.eI restores explicit fdy rows; no control effect is invented.
+    from .combat_scene_controller_snapshot import controller_snapshot
+
+    controllers = controller_snapshot(controller_records)
     body = (
         struct.pack(">iBiqi", fight_id, 2, duration_seconds, timestamp_ms, len(bonuses))
         + bonuses
     )
     body += b"\x00"  # no feb(q actor,q reference,i effect) entries.
     body += (
-        struct.pack(">i", len(timed)) + timed + struct.pack(">i", len(zones)) + zones
+        struct.pack(">i", len(timed))
+        + timed
+        + struct.pack(">i", len(controllers))
+        + controllers
     )
     return 12514, body

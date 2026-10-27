@@ -15,7 +15,28 @@ class CombatSessionAdapter:
     def __init__(self, store, *, player_appearance=None):
         self.store = store
         self.player_appearance = player_appearance
-        self.registry = Registry(self._lease_is_current)
+        self.registry = Registry(
+            self._lease_is_current,
+            admitted_main_reconnect=self._admitted_main_reconnect,
+        )
+
+    def _admitted_main_reconnect(self, shared, previous, session):
+        from .combat_admitted_main_reconnect import admitted_main_reconnect
+
+        with self.store.connection() as db:
+            return admitted_main_reconnect(
+                db,
+                self.store,
+                session.account_id,
+                session.generation,
+                session.character_id,
+                previous.character_id,
+                fight_id=shared.fight.id,
+                previous_generation=previous.generation,
+            )
+
+    def reconnect_owner_matches(self, shared, session):
+        return self.registry.reconnect_owner_matches(shared, session)
 
     def _lease_is_current(self, session):
         return self.store.current_character_session(
@@ -775,15 +796,8 @@ class CombatSessionAdapter:
         return self.registry.recover_timeline(fight_id, session, body, now_ms=now_ms)
 
     def expire_current_turn(self, fight_id, session, *, now_ms):
-        """Delegate the idle-loop deadline check to the shared fight registry."""
-        shared = self.registry.lookup(fight_id)
-        if (
-            getattr(shared, "full_abandon_owner", None) == session
-            and shared.fight.phase == "finished"
-        ):
-            self.registry._live(session)
-            return False, None
-        return self.registry.expire_current_turn(fight_id, session, now_ms=now_ms)
+        """Poll a bounded shared deadline job without blocking this socket."""
+        return self.registry.poll_expired_turn(fight_id, session, now_ms=now_ms)
 
     def publish(self, session, fight_id, packets):
         return self.registry.publish(fight_id, session, packets)
@@ -988,7 +1002,7 @@ class CombatSessionAdapter:
             previous = shared.participants.get(session.account_id)
             if (
                 previous is None
-                or previous.character_id != session.character_id
+                or not self.reconnect_owner_matches(shared, session)
                 or session.account_id in shared.returned
                 or session.account_id in shared.withdrawals
                 or shared.fight.phase not in ("placement", "active")
@@ -1020,6 +1034,7 @@ class CombatSessionAdapter:
         from .combat_reconnect_world_actors import (
             ordinary_npc_appearances,
             ordinary_player_appearances,
+            companion_appearances,
         )
 
         context = shared.join_context or {}
@@ -1035,6 +1050,7 @@ class CombatSessionAdapter:
             character_source=getattr(getattr(self, "store", None), "character", None),
             serializer=serializer,
         )
+        appearances += companion_appearances(fight)
         packets = owned_snapshot(
             fight, shared, session, actor_payload=self.actor_payload
         )
@@ -1045,8 +1061,16 @@ class CombatSessionAdapter:
         ):
             from .rift_combat_adapter import world_snapshot
 
-            return appearances + world_snapshot(fight) + tuple(packets)
-        return appearances + ordinary_npc_appearances(fight, shared) + tuple(packets)
+            prefix = appearances + world_snapshot(fight)
+        else:
+            prefix = appearances + ordinary_npc_appearances(fight, shared)
+        from .combat_reconnect_birth_stage import StagedReconnectPackets
+
+        return (
+            packets.prefixed(prefix)
+            if isinstance(packets, StagedReconnectPackets)
+            else prefix + tuple(packets)
+        )
 
     def reconcile_disconnected_pve(self, session, *, groups=None):
         """Heal an orphaned old lease before initializing a reconnect's world HP."""

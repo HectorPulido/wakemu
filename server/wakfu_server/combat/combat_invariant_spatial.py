@@ -2,7 +2,11 @@
 
 
 def check_legacy_topology(state, slots, issue, unknown, checked):
-    from .combat_qi_snapshot import NativeQISnapshot, RegisteredObstacle
+    from .combat_qi_snapshot import (
+        ImmutableQIMasks,
+        NativeQISnapshot,
+        RegisteredObstacle,
+    )
 
     path = "fight.native_qi_byte_topology"
     arena, topology = state.get("native_qi_snapshot"), state.get(
@@ -17,7 +21,7 @@ def check_legacy_topology(state, slots, issue, unknown, checked):
         unknown("coverage.limit", path, "QL cell inspection limit reached")
         return
     masks = arena.get("cell_masks")
-    if type(masks) not in (list, tuple) or len(masks) > 32767:
+    if type(masks) not in (list, tuple, ImmutableQIMasks) or len(masks) > 32767:
         issue(
             "spatial.terrain",
             "fight.native_qi_snapshot",

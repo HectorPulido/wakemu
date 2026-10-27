@@ -1,0 +1,2276 @@
+{
+  "schema": 1,
+  "scope": "Original unchanged production healing_resistance_after function body; pure arithmetic only, not authority admission or full native battle",
+  "sourceHashes": {
+    "server/wakfu_server/items/equipment_damage.py": "c8bb1823115d2213d678fe91925d78210175dc7250f1df5ccbd6e70a68b8dac5",
+    "server/wakfu_server/combat/combat_damage_parameters.py": "7a771ff351e4963ba2dfc6675a9c5702db9fb79ebdcc973593a5c49bc0bb1895",
+    "server/wakfu_server/combat/combat_damage_healing.py": "5da5f90206104e970d0a6df0eff569d5dc381ba172755c75282c544f05053454",
+    "server/wakfu_server/combat/combat_stat_effects.py": "4f1534773e40b89354a654f27123b63ae8f4901eaaf2b5e4a03c88aac53fb569"
+  },
+  "oracle": "wakfu_server.combat_damage_healing.healing_resistance_after",
+  "caseCount": 174,
+  "cases": [
+    {
+      "id": "rawHeal-2147483648:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 0
+    },
+    {
+      "id": "rawHeal-2147483648:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 0
+    },
+    {
+      "id": "rawHeal-2147483648:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 0
+    },
+    {
+      "id": "rawHeal-2147483648:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-2147483648:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-2147483648:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-2147483648:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal-2147483648:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-2147483648:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-2147483648:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-2147483648:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal-2147483648:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -2147483648,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-25:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 15
+    },
+    {
+      "id": "rawHeal-25:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 0
+    },
+    {
+      "id": "rawHeal-25:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 94
+    },
+    {
+      "id": "rawHeal-25:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-25:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-25:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-25:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal-25:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-25:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-25:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-25:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal-25:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -25,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-5:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 19
+    },
+    {
+      "id": "rawHeal-5:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 0
+    },
+    {
+      "id": "rawHeal-5:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 98
+    },
+    {
+      "id": "rawHeal-5:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-5:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-5:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-5:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal-5:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-5:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-5:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-5:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal-5:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -5,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-1:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 19
+    },
+    {
+      "id": "rawHeal-1:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 0
+    },
+    {
+      "id": "rawHeal-1:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 98
+    },
+    {
+      "id": "rawHeal-1:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-1:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-1:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-1:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal-1:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal-1:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-1:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal-1:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal-1:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": -1,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal0:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal0:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal0:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal0:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal0:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal0:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal0:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal0:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal0:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal0:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal0:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal0:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 0,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal1:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal1:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 60
+    },
+    {
+      "id": "rawHeal1:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal1:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal1:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal1:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal1:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal1:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal1:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal1:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal1:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal1:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 1,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal5:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 21
+    },
+    {
+      "id": "rawHeal5:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal5:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal5:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 2
+    },
+    {
+      "id": "rawHeal5:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal5:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal5:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal5:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal5:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal5:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal5:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal5:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 5,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal24:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 24
+    },
+    {
+      "id": "rawHeal24:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal24:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal24:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 5
+    },
+    {
+      "id": "rawHeal24:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal24:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal24:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal24:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal24:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal24:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal24:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal24:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 24,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal25:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 25
+    },
+    {
+      "id": "rawHeal25:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal25:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal25:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 6
+    },
+    {
+      "id": "rawHeal25:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal25:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal25:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal25:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal25:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal25:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal25:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal25:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 25,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal49:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 29
+    },
+    {
+      "id": "rawHeal49:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal49:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal49:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 10
+    },
+    {
+      "id": "rawHeal49:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal49:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal49:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal49:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal49:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal49:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal49:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal49:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 49,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal50:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 30
+    },
+    {
+      "id": "rawHeal50:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal50:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal50:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 11
+    },
+    {
+      "id": "rawHeal50:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal50:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal50:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal50:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal50:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal50:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal50:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal50:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 50,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal100:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 40
+    },
+    {
+      "id": "rawHeal100:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal100:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal100:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 21
+    },
+    {
+      "id": "rawHeal100:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal100:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal100:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal100:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal100:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal100:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal100:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal100:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 100,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal999:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal999:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal999:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal999:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 50
+    },
+    {
+      "id": "rawHeal999:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal999:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal999:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal999:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal999:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal999:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal999:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal999:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 999,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal2147483647:hp1000:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal2147483647:hp5:res20:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal2147483647:hp1000:res99:0:100:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 100
+    },
+    {
+      "id": "rawHeal2147483647:hp1000:res1:1:50:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 50
+    },
+    {
+      "id": "rawHeal2147483647:hp1000:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal2147483647:hp5:res20:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal2147483647:hp1000:res99:0:100:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal2147483647:hp1000:res1:1:50:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "rawHeal2147483647:hp1000:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal2147483647:hp5:res20:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 5,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "rawHeal2147483647:hp1000:res99:0:100:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 1000,
+        "current": 99,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 99
+    },
+    {
+      "id": "rawHeal2147483647:hp1000:res1:1:50:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 2147483647,
+        "target_max_hp": 1000,
+        "current": 1,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "expected": 1
+    },
+    {
+      "id": "zeroMaximum:enabledTrue:frozenFalse",
+      "inputs": {
+        "actual_heal": 10,
+        "target_max_hp": 0,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expectedError": "Unknown/zero native healing maximum HP"
+    },
+    {
+      "id": "zeroMaximum:enabledFalse:frozenFalse",
+      "inputs": {
+        "actual_heal": 10,
+        "target_max_hp": 0,
+        "current": 20,
+        "enabled": false,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "zeroMaximum:enabledTrue:frozenTrue",
+      "inputs": {
+        "actual_heal": 10,
+        "target_max_hp": 0,
+        "current": 20,
+        "enabled": true,
+        "frozen": true,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expected": 20
+    },
+    {
+      "id": "unsignedActualOverflow",
+      "inputs": {
+        "actual_heal": 2147483648,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expectedError": "Invalid native signed actual healing amount"
+    },
+    {
+      "id": "badBounds",
+      "inputs": {
+        "actual_heal": 10,
+        "target_max_hp": 1000,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 21,
+        "maximum": 100
+      },
+      "expectedError": "Invalid native heal resistance characteristic bounds"
+    },
+    {
+      "id": "negativeMaximumHP",
+      "inputs": {
+        "actual_heal": 10,
+        "target_max_hp": -1,
+        "current": 20,
+        "enabled": true,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100
+      },
+      "expectedError": "Invalid native characteristic amount"
+    }
+  ]
+}

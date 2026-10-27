@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 import wakfu_server
-from wakfu_server.maps import monster_life_plans
+from wakfu_server import monster_life_plans
 
 spec = importlib.util.spec_from_file_location(
     "ecology_service_bulk_merge",
@@ -83,10 +83,13 @@ class EcologyServiceBulkMergeTests(unittest.TestCase):
         chosen = monster_life_plans.choose(candidates, original["ticket"]["decision"])
         factory_calls = []
 
-        def choose_next(reference, configuration, *, draw, members, choose):
+        def choose_next(
+            reference, configuration, *, draw, members, choose, source_level
+        ):
             self.assertEqual(reference, 88)
             self.assertEqual(configuration, fresh["configuration"])
             self.assertEqual(draw, original["draw"])
+            self.assertEqual(source_level, fresh["expected_members"][0]["level"])
             self.assertIn(
                 members,
                 (fresh["expected_members"], original["expected_members"]),

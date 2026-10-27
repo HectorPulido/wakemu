@@ -353,6 +353,7 @@ def current_snapshot(
     if restore_summon_timeline:
         from .combat_recovery import recovery_packet
         from .combat_phase import action_transition
+        from .combat_encounter_scene_helpers import scene_helper_controller_records
 
         # cjk registers cvn/12053 on the spectator's same fight dispatcher;
         # cjv restores SU without a participant-owner check. Restore the full
@@ -360,7 +361,12 @@ def current_snapshot(
         packets.append(
             recovery_packet(fight, struct.pack(">i", fight.id), deadline_ms=deadline_ms)
         )
-        packets.append(action_transition(fight.id))
+        packets.append(
+            action_transition(
+                fight.id,
+                controller_records=scene_helper_controller_records(fight),
+            )
+        )
     packets.extend(state_packets)
     if state_packets:
         packets.append(flush)

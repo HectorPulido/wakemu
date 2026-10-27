@@ -1,0 +1,5994 @@
+{
+  "schema": "world-native-percent-base-and-light-healing-goldens-v1",
+  "oracle": "Actual unchanged production function AST bodies, imports excluded to avoid catalog-loading import graph; no copied formula implementation.",
+  "sourceSha256": {
+    "server/wakfu_server/items/equipment_damage.py": "c8bb1823115d2213d678fe91925d78210175dc7250f1df5ccbd6e70a68b8dac5",
+    "server/wakfu_server/combat/combat_damage_parameters.py": "7a771ff351e4963ba2dfc6675a9c5702db9fb79ebdcc973593a5c49bc0bb1895",
+    "server/wakfu_server/combat/combat_damage_healing.py": "5da5f90206104e970d0a6df0eff569d5dc381ba172755c75282c544f05053454",
+    "server/wakfu_server/combat/combat_stat_effects.py": "4f1534773e40b89354a654f27123b63ae8f4901eaaf2b5e4a03c88aac53fb569"
+  },
+  "lightHealingContext": {
+    "critical": false,
+    "single_target": true,
+    "area": false,
+    "melee": true,
+    "ranged": false,
+    "berserk": false,
+    "additional_mastery": 0,
+    "additional_final": 0
+  },
+  "baseKindNames": {
+    "1": "source_max_hp",
+    "2": "source_hp",
+    "3": "source_missing_hp",
+    "4": "target_max_hp",
+    "5": "target_hp",
+    "6": "target_missing_hp"
+  },
+  "percentCases": [
+    {
+      "id": "healthy:kind1:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind1:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind1:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind1:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind1:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind1:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind2:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind2:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind2:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind2:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind2:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind2:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind3:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind3:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind3:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind3:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind3:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind3:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind4:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind4:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind4:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind4:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind4:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind4:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind5:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind5:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind5:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind5:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind5:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind5:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind6:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind6:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind6:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind6:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind6:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "healthy:kind6:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1000,
+        "source_max_hp": 1000,
+        "target_hp": 2000,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind1:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind1:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind1:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind1:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind1:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind1:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind2:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 17,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind2:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 16,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind2:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 110,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind2:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 109,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind2:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 333,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind2:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 333,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind3:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 34,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind3:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 33,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind3:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 221,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind3:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 220,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind3:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 667,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind3:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 667,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind4:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind4:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind4:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind4:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind4:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind4:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind5:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 39,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind5:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 38,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind5:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 257,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind5:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 256,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind5:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 777,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind5:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 777,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind6:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 62,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind6:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 61,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind6:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 404,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind6:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 403,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "wounded:kind6:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1223,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "wounded:kind6:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1000,
+        "target_hp": 777,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1223,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind1:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 60,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind1:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 60,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind1:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 396,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind1:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 396,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind1:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1200,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind1:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1200,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind2:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 17,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind2:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 16,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind2:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 110,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind2:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 109,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind2:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 333,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind2:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 333,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind3:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 44,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind3:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 43,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind3:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 287,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind3:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 286,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind3:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 867,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind3:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 867,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind4:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 120,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind4:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 120,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind4:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 792,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind4:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 792,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind4:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2400,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind4:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2400,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind5:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 39,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind5:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 38,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind5:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 257,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind5:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 256,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind5:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 777,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind5:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 777,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind6:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 82,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind6:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 81,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind6:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 536,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind6:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 535,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "native_maximum_changed:kind6:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1623,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "native_maximum_changed:kind6:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 333,
+        "source_max_hp": 1200,
+        "target_hp": 777,
+        "target_max_hp": 2400
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1623,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind1:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind1:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind1:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind1:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind1:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind1:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind2:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind2:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind2:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind2:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind2:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind2:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind3:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind3:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 49,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind3:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind3:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 329,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind3:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 999,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind3:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 999,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind4:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind4:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind4:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind4:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind4:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind4:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind5:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind5:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind5:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind5:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind5:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind5:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind6:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind6:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 99,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind6:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind6:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 659,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 1
+    },
+    {
+      "id": "at_native_one_hp_floor:kind6:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1999,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "at_native_one_hp_floor:kind6:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 1,
+        "source_max_hp": 1000,
+        "target_hp": 1,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1999,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind1:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind1:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind1:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind1:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind1:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind1:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 1,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind2:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind2:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind2:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind2:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind2:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind2:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 2,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind3:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind3:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 50,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind3:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind3:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 330,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind3:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind3:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        3,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 1000,
+        "coefficient_mask": 0,
+        "base_kind": 3,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind4:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind4:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind4:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind4:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind4:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind4:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind5:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind5:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind5:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind5:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind5:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind5:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 0,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind6:percent5:sample0.0",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind6:percent5:sample0.999999",
+      "parameters": [
+        5,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind6:percent33:sample0.0",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind6:percent33:sample0.999999",
+      "parameters": [
+        33,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 660,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind6:percent100:sample0.0",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.0,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "zero_hp_context:kind6:percent100:sample0.999999",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      "level": 100,
+      "hpContext": {
+        "source_hp": 0,
+        "source_max_hp": 1000,
+        "target_hp": 0,
+        "target_max_hp": 2000
+      },
+      "rngSample": 0.999999,
+      "allowSignedBase": false,
+      "result": {
+        "base": 2000,
+        "coefficient_mask": 0,
+        "base_kind": 6,
+        "level": 100
+      },
+      "roundingDraws": 0
+    },
+    {
+      "id": "signedInt32MultiplyOverflow:allowSignedFalse",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 1,
+      "hpContext": {
+        "source_hp": 100,
+        "source_max_hp": 100,
+        "target_hp": 2147483647,
+        "target_max_hp": 2147483647
+      },
+      "rngSample": 0.5,
+      "allowSignedBase": false,
+      "error": "Unsupported negative damage parameter result"
+    },
+    {
+      "id": "signedInt32MultiplyOverflow:allowSignedTrue",
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "level": 1,
+      "hpContext": {
+        "source_hp": 100,
+        "source_max_hp": 100,
+        "target_hp": 2147483647,
+        "target_max_hp": 2147483647
+      },
+      "rngSample": 0.5,
+      "allowSignedBase": true,
+      "result": {
+        "base": -1,
+        "coefficient_mask": 0,
+        "base_kind": 4,
+        "level": 1
+      }
+    }
+  ],
+  "nativePAFloorCases": [
+    {
+      "id": "percentBaseIndependentOfNativePAFloor:floor0:frozenFalse",
+      "hpContext": {
+        "source_hp": 100,
+        "source_max_hp": 100,
+        "target_hp": 100,
+        "target_max_hp": 100
+      },
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 1,
+      "base": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 1
+      },
+      "targetNativeMinimum": 0,
+      "targetNativeFrozen": false,
+      "consumption": {
+        "current": 0,
+        "actual": 100,
+        "requested": 100,
+        "stat_changed": true
+      },
+      "scope": "Unchanged production eWR PA subtraction only; not armor/block/reactions or a full Fight."
+    },
+    {
+      "id": "percentBaseIndependentOfNativePAFloor:floor0:frozenTrue",
+      "hpContext": {
+        "source_hp": 100,
+        "source_max_hp": 100,
+        "target_hp": 100,
+        "target_max_hp": 100
+      },
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 1,
+      "base": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 1
+      },
+      "targetNativeMinimum": 0,
+      "targetNativeFrozen": true,
+      "consumption": {
+        "current": 100,
+        "actual": 0,
+        "requested": 100,
+        "stat_changed": false
+      },
+      "scope": "Unchanged production eWR PA subtraction only; not armor/block/reactions or a full Fight."
+    },
+    {
+      "id": "percentBaseIndependentOfNativePAFloor:floor1:frozenFalse",
+      "hpContext": {
+        "source_hp": 100,
+        "source_max_hp": 100,
+        "target_hp": 100,
+        "target_max_hp": 100
+      },
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 1,
+      "base": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 1
+      },
+      "targetNativeMinimum": 1,
+      "targetNativeFrozen": false,
+      "consumption": {
+        "current": 1,
+        "actual": 99,
+        "requested": 100,
+        "stat_changed": true
+      },
+      "scope": "Unchanged production eWR PA subtraction only; not armor/block/reactions or a full Fight."
+    },
+    {
+      "id": "percentBaseIndependentOfNativePAFloor:floor1:frozenTrue",
+      "hpContext": {
+        "source_hp": 100,
+        "source_max_hp": 100,
+        "target_hp": 100,
+        "target_max_hp": 100
+      },
+      "parameters": [
+        100,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      "level": 1,
+      "base": {
+        "base": 100,
+        "coefficient_mask": 0,
+        "base_kind": 5,
+        "level": 1
+      },
+      "targetNativeMinimum": 1,
+      "targetNativeFrozen": true,
+      "consumption": {
+        "current": 100,
+        "actual": 0,
+        "requested": 100,
+        "stat_changed": false
+      },
+      "scope": "Unchanged production eWR PA subtraction only; not armor/block/reactions or a full Fight."
+    }
+  ],
+  "lightHealingCases": [
+    {
+      "id": "lightHeal:fire_highest:res0:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 100,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:fire_highest:res0:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 100,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:fire_highest:res0:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 100,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 700
+    },
+    {
+      "id": "lightHeal:fire_highest:res455:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 100,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:fire_highest:res455:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 100,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 55
+    },
+    {
+      "id": "lightHeal:fire_highest:res455:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 100,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 385
+    },
+    {
+      "id": "lightHeal:fire_highest:res1000:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 100,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:fire_highest:res1000:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 100,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 1
+    },
+    {
+      "id": "lightHeal:fire_highest:res1000:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 100,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 1
+    },
+    {
+      "id": "lightHeal:water_highest:res0:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 100,
+        "22": 500,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:water_highest:res0:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 100,
+        "22": 500,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:water_highest:res0:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 100,
+        "22": 500,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 700
+    },
+    {
+      "id": "lightHeal:water_highest:res455:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 100,
+        "22": 500,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:water_highest:res455:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 100,
+        "22": 500,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 55
+    },
+    {
+      "id": "lightHeal:water_highest:res455:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 100,
+        "22": 500,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 385
+    },
+    {
+      "id": "lightHeal:water_highest:res1000:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 100,
+        "22": 500,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:water_highest:res1000:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 100,
+        "22": 500,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 1
+    },
+    {
+      "id": "lightHeal:water_highest:res1000:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 100,
+        "22": 500,
+        "23": 200,
+        "24": 300,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 1
+    },
+    {
+      "id": "lightHeal:all_tied:res0:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:all_tied:res0:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:all_tied:res0:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 700
+    },
+    {
+      "id": "lightHeal:all_tied:res455:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:all_tied:res455:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 55
+    },
+    {
+      "id": "lightHeal:all_tied:res455:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 385
+    },
+    {
+      "id": "lightHeal:all_tied:res1000:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:all_tied:res1000:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 1
+    },
+    {
+      "id": "lightHeal:all_tied:res1000:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "21": 500,
+        "22": 500,
+        "23": 500,
+        "24": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 1
+    },
+    {
+      "id": "lightHeal:earth_only_present:res0:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "23": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:earth_only_present:res0:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "23": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:earth_only_present:res0:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "23": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 0
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 700
+    },
+    {
+      "id": "lightHeal:earth_only_present:res455:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "23": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:earth_only_present:res455:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "23": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 55
+    },
+    {
+      "id": "lightHeal:earth_only_present:res455:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "23": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 455
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 385
+    },
+    {
+      "id": "lightHeal:earth_only_present:res1000:mask0",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "23": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 0,
+      "rngSample": 0.5,
+      "result": 100
+    },
+    {
+      "id": "lightHeal:earth_only_present:res1000:mask2",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "23": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 2,
+      "rngSample": 0.5,
+      "result": 1
+    },
+    {
+      "id": "lightHeal:earth_only_present:res1000:mask3",
+      "base": 100,
+      "nativeElement": 6,
+      "sourceStats": {
+        "23": 500,
+        "18": 100,
+        "20": 0,
+        "102": 0,
+        "103": 0,
+        "104": 0,
+        "105": 0,
+        "106": 0,
+        "107": 0,
+        "114": 0
+      },
+      "targetStats": {
+        "32": 1000
+      },
+      "coefficientMask": 3,
+      "rngSample": 0.5,
+      "result": 1
+    }
+  ],
+  "counts": {
+    "percentCases": 182,
+    "nativePAFloorCases": 4,
+    "lightHealingCases": 36
+  },
+  "limitations": [
+    "HP context means current/maxHP1, not virtualHP92.",
+    "Already-applied state changes are represented by explicit HP/max/min/frozen snapshots; no state application or criterion simulation is claimed.",
+    "Stochastic rounding samples are oracle inputs, not a proposed planner RNG or a native future-turn guarantee.",
+    "Light healing native element6 is distinct from all damage-family identifiers; healing_resistance32 is not elemental resistance.",
+    "Floor cases isolate native PA arithmetic after percent calculation; final vitality events, armor/block and conditional states remain World authority."
+  ]
+}

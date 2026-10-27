@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from datetime import datetime
 import json
 from wakfu_server.command_permissions import authorize_command, is_admin
+from wakfu_server.combat_admin_recovery import CombatRecoveryRejected
 
 
 def character_json(character):
@@ -35,6 +36,8 @@ def serve_api(
     test_tasks=None,
     global_tasks=None,
     ecology_bridge=None,
+    combat_recovery=None,
+    bots_bridge=None,
 ):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -126,6 +129,8 @@ def serve_api(
             )
 
         def do_POST(self):
+            if self.path.startswith("/internal/bots/"):
+                return self.bots_request(post=True)
             if self.path.startswith("/internal/ecology/"):
                 return self.ecology_request(post=True)
             try:
@@ -137,6 +142,20 @@ def serve_api(
                 body = json.loads(self.rfile.read(length))
                 if not isinstance(body, dict):
                     raise ValueError("Objeto JSON requerido")
+                if (
+                    self.path == "/test/admin/combat-recovery"
+                    and combat_recovery is not None
+                ):
+                    if access["kind"] == "scheduler":
+                        raise PermissionError(
+                            "La recuperación no pertenece al scheduler"
+                        )
+                    current = self.token_access(token, "api")
+                    if not is_admin(store, current["account_id"]):
+                        raise PermissionError("Permiso administrativo revocado")
+                    return self.reply(
+                        200, combat_recovery.execute(current["account_id"], body)
+                    )
                 if self.path.startswith("/test/tasks/") and global_tasks is not None:
                     name = self.path.rsplit("/", 1)[1]
                     if name in global_tasks.names():
@@ -242,6 +261,8 @@ def serve_api(
                 self.reply(401, {"error": "Acceso inválido o caducado."})
             except PermissionError:
                 self.reply(403, {"error": "Operación no autorizada."})
+            except CombatRecoveryRejected as error:
+                self.reply(409, {"error": str(error)})
             except (ValueError, KeyError, TypeError):
                 self.reply(400, {"error": "Datos o acceso inválidos."})
             except Exception:
@@ -295,6 +316,8 @@ def serve_api(
             return self.reply(404, {"error": "Ruta desconocida."})
 
         def do_GET(self):
+            if self.path.startswith("/internal/bots/"):
+                return self.bots_request(post=False)
             if self.path.startswith("/internal/ecology/"):
                 return self.ecology_request(post=False)
             if self.path.startswith("/test/"):
@@ -337,6 +360,47 @@ def serve_api(
                 self.reply(404, {"error": "Ruta desconocida."})
             except AuthenticationError:
                 self.reply(401, {"error": "Acceso inválido o caducado."})
+
+        def bots_request(self, *, post):
+            from wakfu_server.bots.bridge import BotBusy, BotConflict, MAX_BODY_BYTES
+
+            if bots_bridge is None:
+                return self.reply(404, {"error": "Bot bridge is disabled"})
+            if not bots_bridge.authorized(self.headers.get("Authorization", "")):
+                return self.reply(401, {"error": "Invalid bot credential"})
+            try:
+                body = None
+                if post:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= MAX_BODY_BYTES:
+                        return self.reply(413, {"error": "Invalid bot body length"})
+                    self.connection.settimeout(5)
+                    raw = self.rfile.read(length)
+                    if len(raw) != length:
+                        raise ValueError("Incomplete bot body")
+                    body = json.loads(
+                        raw,
+                        parse_constant=lambda value: (_ for _ in ()).throw(
+                            ValueError(value)
+                        ),
+                    )
+                    if type(body) is not dict:
+                        raise ValueError("Object body required")
+                return self.reply(
+                    200, bots_bridge.request("POST" if post else "GET", self.path, body)
+                )
+            except BotConflict as error:
+                return self.reply(409, {"error": str(error)})
+            except PermissionError:
+                return self.reply(403, {"error": "Bot capability is not enabled"})
+            except LookupError:
+                return self.reply(404, {"error": "Unknown bot endpoint"})
+            except (ValueError, TypeError, UnicodeError, OverflowError):
+                return self.reply(400, {"error": "Invalid bot request"})
+            except BotBusy:
+                return self.reply(503, {"error": "Bot bridge is busy"})
+            except Exception:
+                return self.reply(503, {"error": "Bot bridge unavailable"})
 
         def ecology_request(self, *, post):
             from wakfu_server.ecology.protocol import MAX_BODY_BYTES, bounded_json

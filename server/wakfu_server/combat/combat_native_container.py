@@ -113,7 +113,7 @@ def owned_state_container(fight, uid):
         or type(row.get("reference")) is not int
         or row["reference"] <= 0
         or type(row.get("level")) is not int
-        or not 0 <= row["level"] <= 32767
+        or not -32768 <= row["level"] <= 32767
         or registered_source_pv(fight, row.get("caster_id")) is None
         or state_manager(fight, row.get("target_id")) is None
     ):

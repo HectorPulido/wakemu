@@ -237,6 +237,12 @@ from functools import lru_cache
 
 @lru_cache(maxsize=1)
 def npc_spell_catalog():
+    from wakfu_server.combat_published_catalogs import compilation_mode
+    from wakfu_server.native_catalog_document import load_published_document
+
+    if not compilation_mode():
+        return load_published_document("native-npc-spell-effect-trees.json")
+
     import json
     from wakfu_server.paths import DATA_ROOT
 
@@ -251,8 +257,19 @@ def npc_runtime_catalog(*, imported=True):
 
 @lru_cache(maxsize=2)
 def _npc_runtime_catalog(imported):
-    from .combat_server_spell import compiled_runtime_catalog
+    from .combat_published_catalogs import compiling_catalog_offline
     from .combat_static_catalogs import CompiledEffects
+
+    if compiling_catalog_offline():
+        return compile_npc_runtime_catalog_eager(imported=imported)
+    return CompiledEffects.from_published(
+        "npc_imported" if imported else "npc_baseline"
+    )
+
+
+def compile_npc_runtime_catalog_eager(*, imported=True):
+    """Preserved original variant compiler for the offline publication child."""
+    from .combat_server_spell import compiled_runtime_catalog
     from .combat_effect_runtime import _merge_effects
 
     base = compiled_runtime_catalog()
@@ -264,9 +281,8 @@ def _npc_runtime_catalog(imported):
         document = {"effects": effects}
     from wakfu_server.maps import dungeon_scaling_catalog
 
-    return CompiledEffects(
-        dungeon_scaling_catalog.merge(_merge_effects(base.source_effects, document)),
-        base.source_states,
+    return base.with_effect_sources(
+        dungeon_scaling_catalog.merge(_merge_effects(base.source_effects, document))
     )
 
 

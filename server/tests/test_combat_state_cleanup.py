@@ -25,7 +25,7 @@ FIXTURE = json.loads(
 
 
 class CleanupRuntimeTests(unittest.TestCase):
-    def fixture(self, *, second_flag=False):
+    def fixture(self, *, second_flag=False, container_kind=25, container_identity=500):
         ledger = StateLedger(7)
         first = RunningState(
             100, 1144, 1, 7, 7, -1, "target", False, (), -1, True, None
@@ -50,7 +50,7 @@ class CleanupRuntimeTests(unittest.TestCase):
             fight.native_retained_order.append(entry.uid)
 
         for state, kind, identity, flag in (
-            (first, 25, 500, False),
+            (first, container_kind, container_identity, False),
             (second, None, None, second_flag),
         ):
             with running_container_scope(
@@ -83,7 +83,7 @@ class CleanupRuntimeTests(unittest.TestCase):
             )
         packed = (1144 << 16) | 1
         for uid, kind, identity, owner in (
-            (90, 25, 500, None),
+            (90, container_kind, container_identity, None),
             (101, 1, packed, 100),
             (201, 1, packed, 200),
             (91, 11, 600, None),

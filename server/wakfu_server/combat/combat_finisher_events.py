@@ -11,6 +11,29 @@ from .combat_event_replay import NativeEventSource
 POLICY = "wakemu.owned-finisher-boundaries-v1"
 
 
+def _cosmetic_listener_uids(fight, caster_id):
+    """Only descendants of the actual owned native innate4464 carrier."""
+    if fight is None:
+        return frozenset()
+    caster = fight.actors.get(caster_id)
+    if caster is None:
+        return frozenset()
+    carriers = {
+        entry.uid
+        for entry in getattr(getattr(caster, "state_ledger", None), "entries", ())
+        if entry.reference == 4464
+        and entry.caster_id == caster_id
+        and entry.target_id == caster_id
+    }
+    return frozenset(
+        uid
+        for uid, row in getattr(fight, "native_owned_group_effects", {}).items()
+        if row.get("state_uid") in carriers
+        and row.get("invocation", {}).get("state_uid") in carriers
+        and row["invocation"].get("caster_id") == caster_id
+    )
+
+
 def prepare_owned_finisher(fight, source, *, replay, authority):
     if not isinstance(source, NativeEventSource):
         raise ValueError("Finisher requires actual lethal running source")
@@ -37,9 +60,14 @@ def prepare_owned_finisher(fight, source, *, replay, authority):
         replay(
             replace(source, event_ids=(1018,), channel=60, manager_actor_id=caster.id),
             authority=authority,
+            eligible_uids=_cosmetic_listener_uids(fight, caster.id),
         )
     event = replace(source, event_ids=(1012,), channel=60, manager_actor_id=caster.id)
-    replay(event, authority=authority)
+    replay(
+        event,
+        authority=authority,
+        eligible_uids=_cosmetic_listener_uids(fight, caster.id),
+    )
     # Native target code5 resolves source.target; caster code2 resolves this
     # manager. Last-enemy/round/KO/PvP and exact cosmetic guards remain in AST.
     return event
@@ -49,4 +77,10 @@ def finish_owned_finisher(source, *, replay, authority):
     """Run removal-mask2 after the actual lethal packet, never before it."""
     if not isinstance(source, NativeEventSource) or source.event_ids != (1012,):
         raise ValueError("Finisher cleanup requires its owned source")
-    return replay(replace(source, event_ids=(1015,), channel=40), authority=authority)
+    retention = getattr(replay, "retention", None)
+    fight = None if retention is None else retention.fight
+    return replay(
+        replace(source, event_ids=(1015,), channel=40),
+        authority=authority,
+        eligible_uids=_cosmetic_listener_uids(fight, source.caster_id),
+    )

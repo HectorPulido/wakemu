@@ -29,6 +29,21 @@ def stage_damage(fight, *, action_id, runner_uid, source, target, result):
         return
     owner = source.id
     registered = False
+    scene_helper = None
+    if (
+        owner not in profile["player_ids"]
+        and profile.get("scene_helper_score_scope") is not None
+    ):
+        from wakfu_server.combat_encounter_scene_helpers import (
+            helper_score_owner_receipt,
+        )
+
+        scene_helper = helper_score_owner_receipt(fight, source)
+        if scene_helper is not None:
+            owner = scene_helper["owner_actor_id"]
+            boss_score.validate_scene_helper_score_proof(
+                profile, fight.id, source.id, owner, scene_helper
+            )
     visited = set()
     while owner not in profile["player_ids"]:
         if owner in visited:
@@ -64,6 +79,8 @@ def stage_damage(fight, *, action_id, runner_uid, source, target, result):
         round_number=round_number,
         source_is_registered_summon=registered,
     )
+    if scene_helper is not None:
+        event["source_scene_helper"] = scene_helper
     events = fight.boss_score_events
     previous = events.get(event["event_id"])
     if previous is not None and previous != event:
@@ -82,6 +99,14 @@ def persist(db, fight):
 
 def finish_survival(fight):
     profile = getattr(fight, "boss_score_profile", None)
+    objective = getattr(fight, "native_encounter_objective_policy", None)
+    if objective is not None:
+        from wakfu_server.combat_encounter_objective_policy import (
+            require_admitted_policy,
+        )
+
+        require_admitted_policy(objective)
+        return False  # Its earned native objective owns the terminal boundary.
     from wakfu_server.combat_boss_score_policy import OGREST_SCORE, native_score_policy
 
     if native_score_policy(profile) is not None:
@@ -119,9 +144,18 @@ def staged_score(fight):
             or (
                 event["source_id"] != event["owner_actor_id"]
                 and event["source_is_registered_summon"] is not True
+                and event.get("source_scene_helper") is None
             )
         ):
             raise ValueError("Staged boss score receipt changed ownership")
+        if event.get("source_scene_helper") is not None:
+            boss_score.validate_scene_helper_score_proof(
+                profile,
+                fight.id,
+                event["source_id"],
+                event["owner_actor_id"],
+                event["source_scene_helper"],
+            )
         amounts = (event["post_mitigation_damage"], event["armor_absorbed"])
         if any(type(amount) is not int or amount < 0 for amount in amounts):
             raise ValueError("Invalid staged boss score damage")
@@ -147,7 +181,7 @@ def finalize(db, fight):
         )
 
         terminal_authority = ogrest_terminal_authority(fight)
-    return boss_score.finalize(
+    result = boss_score.finalize(
         db,
         fight.id,
         completed_rounds=max(0, fight.native_timeline_round - 1),
@@ -161,3 +195,10 @@ def finalize(db, fight):
             for identity in profile["bosses"]
         ),
     )
+    if getattr(fight, "native_encounter_objective_policy", None) is not None:
+        from wakfu_server.combat_encounter_objective_facts import (
+            enqueue_objective_results,
+        )
+
+        enqueue_objective_results(db, fight)
+    return result

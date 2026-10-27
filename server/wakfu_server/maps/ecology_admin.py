@@ -1,5 +1,7 @@
 """Administrative population controls; no rewards, affinity or combat decisions."""
 from collections import Counter
+import time
+from psycopg.errors import DeadlockDetected, LockNotAvailable, SerializationFailure
 from psycopg.types.json import Jsonb
 
 from .monster_initial_population import REGIONS
@@ -8,6 +10,14 @@ from .monsters import reference, owned_instance
 from .planting import RESOURCES, SEEDS, decode
 
 COMMANDS = frozenset(("!nuke", "!nuke-all", "!genesis", "!genesis-all", "!eco-status"))
+
+
+_SCOPE_TRANSIENT_ERRORS = (LockNotAvailable, DeadlockDetected, SerializationFailure)
+_SCOPE_ATTEMPTS = 8
+
+
+def _retry_wait(delay):
+    time.sleep(delay)
 
 
 def locate(map_id, x, y, z):
@@ -465,7 +475,17 @@ def _empty_result():
 
 
 def execute(
-    store, groups, character, command, *, players=(), coordination=None, publish=None
+    store,
+    groups,
+    character,
+    command,
+    *,
+    players=(),
+    coordination=None,
+    publish=None,
+    prepare_scope=None,
+    validate_actor=None,
+    job=None,
 ):
     """Commit one bounded habitat at a time, then publish inside its fence.
 
@@ -478,8 +498,15 @@ def execute(
         raise ValueError("Persistent ecology administration is unavailable")
     global_scope = command.endswith("-all")
     genesis = command.startswith("!genesis")
+    from wakfu_server.ecology_admin_jobs import EcologyAdminCancelled
+
     with store.connection() as db:
+        if validate_actor is not None:
+            db.execute("SET LOCAL lock_timeout='250ms'")
+            db.execute("SET LOCAL statement_timeout='3000ms'")
         _authorize(db, character)
+        if validate_actor is not None:
+            validate_actor(db, job)
         scopes = _scopes(db, character, global_scope, genesis=genesis)
     result = _empty_result()
     for scope in scopes:
@@ -488,84 +515,122 @@ def execute(
             if genesis:
                 from .ecology_admin_planner import prepare
 
-                prepared = prepare(scope[0], scope[2])
-            window = coordination(scope) if coordination is not None else groups.lock
-            with window:
-                scope_result = _empty_result()
-                with store.connection() as db, db.transaction():
-                    _authorize(db, character)
-                    db.execute(
-                        "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
-                        (f"monster-population:{scope[0]}:{scope[1]}",),
+                prepared = (
+                    prepare(scope[0], scope[2])
+                    if prepare_scope is None
+                    else prepare_scope("monsters", scope[0], scope[2])
+                )
+            for attempt in range(_SCOPE_ATTEMPTS):
+                committed = False
+                try:
+                    window = (
+                        coordination(scope) if coordination is not None else groups.lock
                     )
-                    if command == "!eco-status":
-                        result["message"] = _status(db, *scope)
-                        result["scopes"] = [scope]
-                        return result
-                    current_players = players() if callable(players) else players
-                    if isinstance(current_players, dict):
-                        current_players = current_players.get("players", ())
-                    outcome = (
-                        _genesis(
-                            db,
-                            groups,
-                            *scope,
-                            players=current_players,
-                            prepared=prepared,
-                        )
-                        if genesis
-                        else _nuke(db, *scope)
-                    )
-                    for key in ("removed", "deferred", "cancelled", "added"):
-                        scope_result[key] = outcome.get(key, 0)
-                    scope_result["location_packets"] = [
-                        (*scope[:2], opcode, payload)
-                        for opcode, payload in outcome["packets"]
-                    ]
-                    scope_result["scopes"] = [scope]
-                    for key in (
-                        "cancelled_characters",
-                        "created_groups",
-                        "removed_groups",
-                        "warnings",
-                    ):
-                        scope_result[key] = outcome.get(key, [])
-                    audit = {
-                        key: value
-                        for key, value in scope_result.items()
-                        if key != "location_packets"
-                    }
-                    operation = db.execute(
-                        "INSERT INTO ecology_admin_operations(account_id,character_id,command,outcome) VALUES(%s,%s,%s,%s) RETURNING id",
-                        (
-                            character["account_id"],
-                            character["id"],
-                            command,
-                            Jsonb(audit),
-                        ),
-                    ).fetchone()
-                    scope_result["operation_id"] = operation["id"]
-                    scope_result["operation_ids"] = [operation["id"]]
-                # Aggregate only committed outcomes. Publication is fenced against
-                # a simultaneous reset and occurs after the SQL commit.
-                for key in ("removed", "deferred", "cancelled", "added"):
-                    result[key] += scope_result[key]
-                for key in (
-                    "location_packets",
-                    "scopes",
-                    "cancelled_characters",
-                    "created_groups",
-                    "removed_groups",
-                    "operation_ids",
-                    "warnings",
-                ):
-                    result[key].extend(scope_result[key])
-                result["operation_id"] = scope_result["operation_id"]
-                if publish is not None:
-                    try:
-                        publish(scope_result)
-                    except (OSError, ValueError) as error:
-                        result["publication_failures"].append((*scope, str(error)))
+                    with window:
+                        scope_result = _empty_result()
+                        with store.connection() as db, db.transaction():
+                            if validate_actor is not None:
+                                db.execute("SET LOCAL lock_timeout='250ms'")
+                                db.execute("SET LOCAL statement_timeout='3000ms'")
+                            _authorize(db, character)
+                            if validate_actor is not None:
+                                validate_actor(db, job)
+                            db.execute(
+                                "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                                (f"monster-population:{scope[0]}:{scope[1]}",),
+                            )
+                            if command == "!eco-status":
+                                result["message"] = _status(db, *scope)
+                                result["scopes"] = [scope]
+                                return result
+                            current_players = (
+                                players() if callable(players) else players
+                            )
+                            if isinstance(current_players, dict):
+                                current_players = current_players.get("players", ())
+                            outcome = (
+                                _genesis(
+                                    db,
+                                    groups,
+                                    *scope,
+                                    players=current_players,
+                                    prepared=prepared,
+                                )
+                                if genesis
+                                else _nuke(db, *scope)
+                            )
+                            for key in ("removed", "deferred", "cancelled", "added"):
+                                scope_result[key] = outcome.get(key, 0)
+                            scope_result["location_packets"] = [
+                                (*scope[:2], opcode, payload)
+                                for opcode, payload in outcome["packets"]
+                            ]
+                            scope_result["scopes"] = [scope]
+                            for key in (
+                                "cancelled_characters",
+                                "created_groups",
+                                "removed_groups",
+                                "warnings",
+                            ):
+                                scope_result[key] = outcome.get(key, [])
+                            audit = {
+                                key: value
+                                for key, value in scope_result.items()
+                                if key != "location_packets"
+                            }
+                            operation = db.execute(
+                                "INSERT INTO ecology_admin_operations(account_id,character_id,command,outcome) VALUES(%s,%s,%s,%s) RETURNING id",
+                                (
+                                    character["account_id"],
+                                    character["id"],
+                                    command,
+                                    Jsonb(audit),
+                                ),
+                            ).fetchone()
+                            scope_result["operation_id"] = operation["id"]
+                            scope_result["operation_ids"] = [operation["id"]]
+                        committed = True
+                        # Aggregate only committed outcomes. Publication is fenced against
+                        # a simultaneous reset and occurs after the SQL commit.
+                        for key in ("removed", "deferred", "cancelled", "added"):
+                            result[key] += scope_result[key]
+                        for key in (
+                            "location_packets",
+                            "scopes",
+                            "cancelled_characters",
+                            "created_groups",
+                            "removed_groups",
+                            "operation_ids",
+                            "warnings",
+                        ):
+                            result[key].extend(scope_result[key])
+                        result["operation_id"] = scope_result["operation_id"]
+                        if publish is not None:
+                            try:
+                                publish(scope_result)
+                            except (OSError, ValueError) as error:
+                                result["publication_failures"].append(
+                                    (*scope, str(error))
+                                )
+                    break
+                except _SCOPE_TRANSIENT_ERRORS:
+                    if committed or attempt + 1 == _SCOPE_ATTEMPTS:
+                        raise
+                    # Release the transaction and all live-world fences before
+                    # waiting. Re-authorize and re-read the scope on each retry.
+                    _retry_wait(min(0.05 * (2**attempt), 1.0))
+        except EcologyAdminCancelled:
+            result["interrupted"] = True
+            break
+        except _SCOPE_TRANSIENT_ERRORS as error:
+            if not global_scope:
+                raise
+            result["failures"].append(
+                (
+                    *scope,
+                    f"Database contention after {_SCOPE_ATTEMPTS} attempts ({type(error).__name__})",
+                )
+            )
         except ValueError as error:
             if not global_scope:
                 raise

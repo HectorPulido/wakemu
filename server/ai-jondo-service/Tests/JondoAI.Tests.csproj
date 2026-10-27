@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <HostPlannerSource Condition="'$(HostPlannerSource)' == ''">../Host/Planner.cs</HostPlannerSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Core/**/*.cs" Link="Core/%(Filename)%(Extension)" />
+    <Compile Include="../Compatibility/**/*.cs" Link="Compatibility/%(Filename)%(Extension)" />
+    <Compile Include="Program.cs" />
+    <Compile Include="HostProjectionCases.cs" />
+    <Compile Include="HazardRouteCases.cs" />
+    <Compile Include="SpecificAiCases.cs" />
+    <Compile Include="NativeElementCases.cs" />
+    <Compile Include="FootprintCases.cs" />
+    <Compile Include="PlanningGateCases.cs" />
+    <Compile Include="PlannerDeadlineCases.cs" />
+    <Compile Include="NativeSupportCases.cs" />
+    <Compile Include="SearchQualityCases.cs" />
+    <Compile Include="AoeQualityCases.cs" />
+    <Compile Include="DirectionalAreaCases.cs" />
+    <Compile Include="$(HostPlannerSource)" Link="Host/Planner.cs" />
+    <Compile Include="../Host/TurnPlans.cs" Link="Host/TurnPlans.cs" />
+    <Compile Include="../Host/SpecificAi.cs" Link="Host/SpecificAi.cs" />
+    <Compile Include="../Host/PlanningGate.cs" Link="Host/PlanningGate.cs" />
+    <Compile Include="../Host/BasicMechanicAis.cs" Link="Host/BasicMechanicAis.cs" />
+    <Compile Include="../Host/SupremeMechanicAis.cs" Link="Host/SupremeMechanicAis.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Fixtures/NativeElementGoldens.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures/NativeDirectionalGeometryGoldens.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures/NativeTargetSelectionGoldens.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

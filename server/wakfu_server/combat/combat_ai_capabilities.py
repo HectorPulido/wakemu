@@ -12,6 +12,7 @@ def classify_roots(
 ):
     from .combat_damage_healing import DAMAGE_FAMILIES, HEAL_ELEMENTS
     from .combat_displacement import FAMILIES as DISPLACEMENTS
+    from .combat_ai_capability_projection import advisory_effect
 
     tags, unknown, visited = set(), set(), set()
     stack = [(reference, frozenset()) for reference in roots]
@@ -27,7 +28,16 @@ def classify_roots(
             unknown.add("capability_node_limit")
             break
         visited.add(reference)
-        effect = effects.get(str(reference))
+        effect = advisory_effect(
+            effects,
+            reference,
+            pending=(
+                following
+                for following, parents in reversed(stack)
+                if following not in visited and following not in parents
+            ),
+            remaining=max_nodes - len(visited),
+        )
         if effect is None:
             unknown.add("missing_effect:" + str(reference))
             continue
@@ -48,15 +58,14 @@ def classify_roots(
             # State linkage is level-dependent; no benefit is inferred solely
             # from application or the name of a state.
             try:
-                from .combat_definitions import effect_profile, state_profile
+                from .combat_definitions import effect_profile
+                from .combat_ai_capability_projection import selected_state_roots
 
                 parameters = effect_profile(effect, level)["parameters"]
                 if states is None or len(parameters) < 2:
                     raise ValueError("Missing state metadata")
-                state = state_profile(states, parameters[0], parameters[1])
-                stack.extend(
-                    (root, ancestors | {reference}) for root in state["effects"]
-                )
+                state_roots = selected_state_roots(states, parameters[0], parameters[1])
+                stack.extend((root, ancestors | {reference}) for root in state_roots)
             except (ValueError, KeyError, TypeError):
                 unknown.add("unresolved_state")
         elif registry is not None and str(family) in registry:
@@ -96,19 +105,51 @@ def describe_spell(spell, level):
     from .combat_npc_attack import npc_runtime_catalog
     from .combat_static_catalogs import characteristic_registry
 
-    try:
-        row, index = native_casting_table(spell, level)
-    except ValueError:
-        return dict(
-            spellId=spell,
-            level=level,
-            minimum=0,
-            maximum=0,
-            tags=["unknown"],
-            unknownDependencies=["missing_casting_table"],
-            conditional=True,
-        )
-    minimum, maximum, roots = row["levels"][index]
+    from . import combat_native_spell_casting as casting_module
+    from .combat_published_catalogs import static_catalog_descriptor
+
+    getter = getattr(casting_module, "catalog", None)
+    source = getter() if type(level) is int and level > 0 and callable(getter) else None
+    descriptor = None if source is None else static_catalog_descriptor(source)
+    selected = None
+    if (
+        descriptor is not None
+        and descriptor["revision"] != "0" * 64
+        and source.representation == "native_json"
+    ):
+        try:
+            selected = casting_module.selected_casting_projection(
+                spell, level, casting=source
+            )
+        except (KeyError, IndexError, TypeError, ValueError):
+            pass
+    if selected is None:
+        # Private/zero/malformed tables keep their original advisory behavior.
+        try:
+            options = {} if source is None else {"casting": source}
+            row, index = native_casting_table(spell, level, **options)
+        except ValueError:
+            return dict(
+                spellId=spell,
+                level=level,
+                minimum=0,
+                maximum=0,
+                tags=["unknown"],
+                unknownDependencies=["missing_casting_table"],
+                conditional=True,
+            )
+        minimum, maximum, roots = row["levels"][index]
+        envelope = [(minimum, maximum)] + [
+            tuple(rule["ranges"][index]) for rule in row["conditional"]
+        ]
+        conditional = bool(row["conditional"])
+    else:
+        minimum, maximum = selected.baseline[3:5]
+        roots = selected.roots
+        envelope = [(minimum, maximum)] + [
+            tuple(rule[1][3:5]) for rule in selected.rules
+        ]
+        conditional = bool(selected.rules)
     compiled = npc_runtime_catalog()
     semantic = classify_roots(
         roots,
@@ -117,20 +158,108 @@ def describe_spell(spell, level):
         registry=characteristic_registry().get("effects", {}),
         level=level,
     )
-    # Candidate pruning uses the envelope of every conditional native table.
-    # It never drops a cast solely because baseline range would exclude it.
-    envelope = [(minimum, maximum)] + [
-        tuple(rule["ranges"][index]) for rule in row["conditional"]
-    ]
+    # The projection includes every conditional native range; legality stays
+    # with the current native preview rather than these advisory bounds.
     return dict(
         spellId=spell,
         level=level,
         minimum=min(lo for lo, hi in envelope),
         maximum=max(hi for lo, hi in envelope),
-        conditional=bool(row["conditional"]) or semantic["conditional"],
+        conditional=conditional or semantic["conditional"],
         tags=semantic["tags"],
         unknownDependencies=semantic["unknownDependencies"],
     )
+
+
+def prepare_spell_capabilities(pairs):
+    """Batch mandatory static books without changing any classifier traversal.
+
+    Each spell retains its original DFS, ancestor/cycle checks and 128-node
+    limit. Only verified record reception is shared between those traversals;
+    ordinary describe_spell still computes every final capability result.
+    """
+    from . import combat_native_spell_casting as casting
+    from .combat_npc_attack import npc_runtime_catalog
+    from .combat_ai_capability_projection import (
+        _identity,
+        advisory_effect,
+        selected_state_roots,
+        prefetch_effects,
+        forest_prepared,
+        mark_forest_prepared,
+    )
+    from .combat_definitions import effect_profile
+
+    source = casting.catalog()
+    casting_identity = _identity(source)
+    if casting_identity is None or source.representation != "native_json":
+        return False
+    compiled = npc_runtime_catalog()
+    identities = (
+        casting_identity,
+        _identity(compiled.effects),
+        _identity(compiled.source_states.get("states")),
+        _identity(compiled.source_states.get("effects")),
+    )
+    if any(identity is None for identity in identities):
+        return False
+    frames, prepared = [], []
+    for spell, level in dict.fromkeys(pairs):
+        if type(level) is not int or level <= 0:
+            continue  # Private and explicit zero books retain their live path.
+        key = ("forest", identities, str(spell), level)
+        if forest_prepared(key):
+            continue
+        selected = casting.selected_casting_projection(spell, level, casting=source)
+        frames.append(
+            dict(
+                stack=[(root, frozenset()) for root in selected.roots],
+                visited=set(),
+                level=level,
+            )
+        )
+        prepared.append(key)
+    while frames:
+        pending, following = [], []
+        for frame in frames:
+            while frame["stack"] and len(frame["visited"]) < 128:
+                reference, ancestors = frame["stack"].pop()
+                if reference in ancestors or reference in frame["visited"]:
+                    continue
+                frame["visited"].add(reference)
+                pending.append((frame, reference, ancestors))
+                break
+        if not pending:
+            break
+        prefetch_effects(compiled.effects, (reference for _, reference, _ in pending))
+        for frame, reference, ancestors in pending:
+            effect = advisory_effect(compiled.effects, reference)
+            if effect is not None:
+                if effect.get("effect_class") == 304:
+                    try:
+                        parameters = effect_profile(effect, frame["level"])[
+                            "parameters"
+                        ]
+                        if len(parameters) < 2:
+                            raise ValueError("Missing state metadata")
+                        roots = selected_state_roots(
+                            compiled.source_states, parameters[0], parameters[1]
+                        )
+                        frame["stack"].extend(
+                            (root, ancestors | {reference}) for root in roots
+                        )
+                    except (ValueError, KeyError, TypeError):
+                        pass  # The normal classifier retains its unknown label.
+                frame["stack"].extend(
+                    (child, ancestors | {reference})
+                    for child in effect.get("children", ())
+                )
+            if frame["stack"] and len(frame["visited"]) < 128:
+                following.append(frame)
+        frames = following
+    for key in prepared:
+        mark_forest_prepared(key)
+    return bool(prepared)
 
 
 def spell_capabilities(fight, monsters):

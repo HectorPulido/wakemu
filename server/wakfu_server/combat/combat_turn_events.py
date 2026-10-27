@@ -56,7 +56,10 @@ def deliver_turn_start(dispatcher, *, actor_id):
 
 
 def deliver_turn_end(dispatcher, *, actor_id):
-    return _deliver(dispatcher, actor_id=actor_id, phase="end", event_id=1002)
+    outcomes = _deliver(dispatcher, actor_id=actor_id, phase="end", event_id=1002)
+    from .combat_brizlon_area_boundary import deliver_brizlon_area_turn_end
+
+    return outcomes + deliver_brizlon_area_turn_end(dispatcher, actor_id=actor_id)
 
 
 def deliver_turn_regeneration(dispatcher, *, actor_id):

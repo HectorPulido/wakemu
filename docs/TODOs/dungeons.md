@@ -41,9 +41,9 @@ No verified native entry level; kept separately from the level-sorted list.
 
 - [ ] **Neo Hoola Hoopiwi** (ID 208) — Astrub `!tp 527 -1 -161 40`. 3-room dungeon. Neo variant; shared entrance, check server availability.  **Notes:**
 
-- [ ] **The Raised Vault** (ID 89) — Astrub `!tp 527 75 91 0`. 3-room dungeon. **Notes:**
+- [x] **The Raised Vault** (ID 89) — Astrub `!tp 527 75 91 0`. 3-room dungeon. **Notes:**
 
-- [ ] **Treechnee Dungeon** (ID 125) — Astrub `!tp 527 -172 61 -20`. 3-room dungeon. Check rear-facing armor weakness and support summons. **Notes:**
+- [x] **Treechnee Dungeon** (ID 125) — Astrub `!tp 527 -172 61 -20`. 3-room dungeon. Check rear-facing armor weakness and support summons. **Notes:**
 
 ### Level 36
 

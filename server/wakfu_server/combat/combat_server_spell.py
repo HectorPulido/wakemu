@@ -22,17 +22,30 @@ from .combat_input_observation import observe_rng, observe_authority
 
 @lru_cache(maxsize=1)
 def compiled_runtime_catalog():
+    from .combat_published_catalogs import compiling_catalog_offline
+
+    if compiling_catalog_offline():
+        return compile_runtime_catalog_eager()
+    return CompiledEffects.from_published("player")
+
+
+def compile_runtime_catalog_eager():
+    """Original full compiler, invoked explicitly by the offline publisher."""
     from .combat_native_spell_casting import merged_spell_effects
 
     from .combat_effect_runtime import _merge_effects
     from .combat_effect_area_catalog import area_effect_catalog
 
     from .combat_aptitude_initialization import effect_catalog
+    from .rift_producer_catalog import configured_producer_catalog
 
     return CompiledEffects(
         _merge_effects(
-            _merge_effects(merged_spell_effects(), area_effect_catalog()),
-            effect_catalog(),
+            _merge_effects(
+                _merge_effects(merged_spell_effects(), area_effect_catalog()),
+                effect_catalog(),
+            ),
+            configured_producer_catalog(),
         ),
         states_catalog(),
     )
@@ -214,6 +227,9 @@ def server_runtime(
         condition_context=adapter.condition,
         draw_integer=lambda total: transaction_rng.randrange(total),
     )
+    from .combat_equipment_external_contracts import bind_owned_equipment_producers
+
+    bind_owned_equipment_producers(factory)
     from .combat_owned_equipment_factory import OwnedEquipmentRuntimeFactory
 
     return OwnedEquipmentRuntimeFactory(factory, compiled), adapter
@@ -467,19 +483,55 @@ def prepare_server_initialization(
     if fight_start:
         from .combat_start_events import deliver_fight_start
 
+        if getattr(preview, "native_abomination_quest_grant", None) is not None:
+            from .combat_abomination_scene import apply_start
+
+            scene_packets = []
+            apply_start(preview, factory, scene_packets)
+            packets += tuple(scene_packets)
+        if getattr(preview, "native_aguabrial_story_admission", None) is not None:
+            from .combat_aguabrial_scene import bind_aguabrial_start
+
+            bind_aguabrial_start(preview)
+        if getattr(preview, "native_spirit_scene_admission", None) is not None:
+            from .combat_encounter_objective_spirit import (
+                apply_spirit_start,
+                freeze_spirit_participants,
+            )
+
+            freeze_spirit_participants(
+                preview,
+                player_characters or {character["id"]: character},
+            )
+            scene_packets = []
+            apply_spirit_start(preview, factory, scene_packets)
+            packets += tuple(scene_packets)
         dispatcher, outbox = factory(
             preview, {"native_retained_container": {"present": False}}
         )
         with preview.effect_resolution():
             rift_state = getattr(preview, "rift_wave_state", None)
             if rift_state is not None:
-                from .rift_native_gameplay import install_wave_state
-
-                install_wave_state(
-                    dispatcher,
-                    actor_ids=rift_state["wave_actor_ids"],
-                    wave=rift_state["wave"],
+                from .rift_native_gameplay import (
+                    install_wave_state,
+                    policy as rift_policy,
                 )
+
+                if rift_policy(preview) is not None:
+                    from .rift_company_compensation import (
+                        company_actor_ids,
+                        install_company_compensation,
+                    )
+
+                    install_company_compensation(
+                        dispatcher,
+                        actor_ids=company_actor_ids(preview),
+                    )
+                    install_wave_state(
+                        dispatcher,
+                        actor_ids=rift_state["wave_actor_ids"],
+                        wave=rift_state["wave"],
+                    )
             layout = getattr(preview, "native_encounter_scene_layout", None)
             if layout is not None:
                 from .combat_rushu_encounter_setup import install_rushu_encounter_setup
@@ -491,9 +543,17 @@ def prepare_server_initialization(
                     layout=layout,
                 )
             deliver_fight_start(dispatcher, initialized_actor_ids=tuple(preview.actors))
+            if rift_state is not None:
+                from .rift_artifact_generation import spawn_artifacts
+
+                spawn_artifacts(dispatcher, wave=rift_state["wave"])
             from .combat_npc_phase_controller import install_npc_phase_score
 
             install_npc_phase_score(dispatcher)
+            if getattr(preview, "native_spirit_scene_admission", None) is not None:
+                from .combat_encounter_objective_spirit import install_spirit_objective
+
+                install_spirit_objective(dispatcher)
         packets += tuple(outbox)
     return preview, packets
 
@@ -535,6 +595,11 @@ def prepare_server_turn_end(
 
         from .combat_encounter_turn_end_order import turn_end_event_order
 
+        objective_terminal = None
+        if getattr(preview, "native_encounter_objective_policy", None) is not None:
+            from .combat_encounter_objective import deliver_objective_score_marker
+
+            deliver_objective_score_marker(dispatcher, actor_id=actor_id)
         deliver_npc_score_result(dispatcher, actor_id=actor_id)
         order = turn_end_event_order(preview, actor_id=actor_id)
         early_regeneration = order[0] == 1037
@@ -553,8 +618,15 @@ def prepare_server_turn_end(
             from .combat_ogrest_phase_controller import finish_ogrest_player_turn
 
             finish_ogrest_player_turn(dispatcher, actor_id=actor_id)
+        if getattr(preview, "native_encounter_objective_policy", None) is not None:
+            from .combat_encounter_objective import deliver_owned_objective_boundary
+
+            objective_terminal = deliver_owned_objective_boundary(
+                dispatcher, actor_id=actor_id, boundary="owned_player_end"
+            )
         if (
             not early_regeneration
+            and objective_terminal is None
             and preview.phase == "active"
             and preview.current is not None
         ):
@@ -605,6 +677,7 @@ def prepare_server_turn_start(
         preview, {"native_retained_container": {"present": False}}
     )
     with preview.effect_resolution():
+        objective_terminal = None
         if native_events:
             from .combat_periodic_aptitude import renew_periodic_aptitudes
             from .combat_npc_phase_controller import (
@@ -612,24 +685,51 @@ def prepare_server_turn_start(
                 deliver_npc_table_phase,
             )
 
-            renew_periodic_aptitudes(dispatcher, actor_id=actor_id)
-            deliver_npc_score_result(dispatcher, actor_id=actor_id)
-            deliver_npc_table_phase(dispatcher, actor_id=actor_id)
-            if preview.phase == "active":
-                deliver_turn_start(dispatcher, actor_id=actor_id)
-                if preview.phase == "active":
-                    from .combat_ogrest_phase_controller import (
-                        deliver_ogrest_post_turn_start,
+            from .combat_equipment_external_events import deliver_completed_round
+
+            if getattr(preview, "native_encounter_objective_policy", None) is not None:
+                from .combat_encounter_objective import deliver_objective_score_marker
+
+                deliver_objective_score_marker(dispatcher, actor_id=actor_id)
+            deliver_completed_round(dispatcher)
+            if getattr(preview, "native_encounter_objective_policy", None) is not None:
+                from .combat_encounter_objective import deliver_owned_objective_boundary
+
+                objective_terminal = deliver_owned_objective_boundary(
+                    dispatcher, actor_id=actor_id, boundary="completed_round"
+                )
+            if objective_terminal is None:
+                renew_periodic_aptitudes(dispatcher, actor_id=actor_id)
+                deliver_npc_score_result(dispatcher, actor_id=actor_id)
+                if (
+                    getattr(preview, "native_encounter_objective_policy", None)
+                    is not None
+                ):
+                    from .combat_encounter_objective import (
+                        deliver_owned_objective_boundary,
                     )
 
-                    deliver_ogrest_post_turn_start(dispatcher, actor_id=actor_id)
-                if preview.phase == "active" and preview.current is not None:
-                    from .combat_encounter_table_listeners import (
-                        deliver_owned_post_start_listeners,
+                    objective_terminal = deliver_owned_objective_boundary(
+                        dispatcher, actor_id=actor_id, boundary="owned_boss_start"
                     )
+                deliver_npc_table_phase(dispatcher, actor_id=actor_id)
+                if preview.phase == "active" and objective_terminal is None:
+                    deliver_turn_start(dispatcher, actor_id=actor_id)
+                    if preview.phase == "active":
+                        from .combat_ogrest_phase_controller import (
+                            deliver_ogrest_post_turn_start,
+                        )
 
-                    deliver_owned_post_start_listeners(dispatcher, actor_id=actor_id)
-        if area_callbacks and preview.phase == "active":
+                        deliver_ogrest_post_turn_start(dispatcher, actor_id=actor_id)
+                    if preview.phase == "active" and preview.current is not None:
+                        from .combat_encounter_table_listeners import (
+                            deliver_owned_post_start_listeners,
+                        )
+
+                        deliver_owned_post_start_listeners(
+                            dispatcher, actor_id=actor_id
+                        )
+        if area_callbacks and preview.phase == "active" and objective_terminal is None:
             dispatcher.native_area_events.turn_start(actor_id)
     return preview, tuple(packets)
 

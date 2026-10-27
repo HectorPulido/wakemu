@@ -12,7 +12,13 @@ def native_copied_equipment_catalog():
         Path(__file__).resolve().parents[2]
         / "protocol/native-copied-equipment-definitions.json"
     )
-    return protocol_catalog.load(path)
+    from .combat_published_catalogs import compilation_mode
+
+    if compilation_mode():
+        return protocol_catalog.load(path)
+    from wakfu_server.native_catalog_document import load_published_document
+
+    return load_published_document(path)
 
 
 def copied_equipment_source(authority, source_actor_id):
