@@ -5,6 +5,8 @@ install native NPC authority, publish creation packets and persist the receipt
 before admitting another command. No database or network work runs in previews.
 """
 
+from wakfu_server.combat_encounter_roles import assigned_roles
+
 
 def _state(fight):
     state = getattr(fight, "rift_wave_state", None)
@@ -26,14 +28,18 @@ def _state(fight):
 def defer_wave_victory(fight, alive):
     """Stage a cleared wave instead of settling the fight or paying loot."""
     state = _state(fight)
-    if state is None or alive != {0}:
+    if state is None or alive != {assigned_roles(fight).player_team}:
         return False
     pending = state.get("pending_wave")
     if pending is not None:
         if pending.get("completed_wave") != state["wave"]:
             raise ValueError("Stale pending rift wave")
         return True
-    enemies = [actor.id for actor in fight.actors.values() if actor.team == 1]
+    enemies = [
+        actor.id
+        for actor in fight.actors.values()
+        if actor.team == assigned_roles(fight).npc_team
+    ]
     if not enemies or any(fight._in_play(fight.actors[uid]) for uid in enemies):
         raise ValueError("Rift wave is not cleared")
     # Initial identities and later wave identities remain registered for native
@@ -83,7 +89,7 @@ def acknowledge_wave(fight, actor_ids, creation_packets, *, species_refs):
         actor_packets = packets[identity]
         if (
             actor is None
-            or actor.team != 1
+            or actor.team != assigned_roles(fight).npc_team
             or actor.controlled
             or not fight._in_play(actor)
             or identity not in fight.order
@@ -134,9 +140,34 @@ def finish_survival(fight):
         return False
     alive = {a.team for a in fight.actors.values() if fight._in_play(a)}
     fight.phase = "finished"
-    fight.winner = 0 if 0 in alive else (1 if 1 in alive else None)
-    state["outcome"] = "survived" if fight.winner == 0 else "defeated"
+    roles = assigned_roles(fight)
+    fight.winner = (
+        roles.player_team
+        if roles.player_team in alive
+        else (roles.npc_team if roles.npc_team in alive else None)
+    )
+    state["outcome"] = "survived" if fight.winner == roles.player_team else "defeated"
     fight._event("finished", winner=fight.winner, reason="rift_turn_budget")
+    return True
+
+
+def finish_defeat(fight, alive):
+    """Wakemu survival policy: no surviving player side is a Rift loss.
+
+    Actual outer death reconciliation supplies native IN_PLAY teams. A
+    mutually lethal chain must settle as loss, rather than leaving an
+    unpayable winner-less terminal fight. Ordinary/duel draws stay unchanged.
+    """
+    state = _state(fight)
+    if state is None or assigned_roles(fight).player_team in alive:
+        return False
+    roles = assigned_roles(fight)
+    fight.phase = "finished"
+    fight.winner = roles.npc_team
+    state["outcome"] = "defeated"
+    if "pending_wave" in state:
+        state["pending_wave"] = None
+    fight._event("finished", winner=fight.winner, reason="rift_no_surviving_players")
     return True
 
 
@@ -153,6 +184,9 @@ def creation_replay(fight, *, world_only=False):
     records = getattr(fight, "native_rift_creation_deliveries", {})
     if not isinstance(records, dict):
         raise ValueError("Invalid rift creation replay ledger")
+    from wakfu_server.combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    hidden = hidden_snapshot_actor_ids(fight)
     packets = []
     for identity, deliveries in records.items():
         if type(identity) is not int or identity not in fight.actors:
@@ -178,15 +212,16 @@ def creation_replay(fight, *, world_only=False):
             or struct.unpack_from(">iq", admission)[0:2] != (fight.id, identity)
         ):
             raise ValueError("Rift replay delivery belongs to another actor or fight")
-        packets.extend(restored[:1] if world_only else restored)
+        if identity not in hidden:
+            packets.extend(restored[:1] if world_only else restored)
     return tuple(packets)
 
 
 def world_snapshot(fight):
     """Create current ordinary rift avatars before a complete fight bootstrap."""
     import struct
-    from .monsters import owned_instance
-    from .combat_monster_world import world_actor
+    from wakfu_server.monsters import owned_instance
+    from wakfu_server.combat_monster_world import world_actor
 
     state = _state(fight)
     if state is None:
@@ -194,11 +229,20 @@ def world_snapshot(fight):
     sources = getattr(fight, "rift_monsters", None)
     if not isinstance(sources, dict):
         raise ValueError("Rift world snapshot lacks native monster sources")
+    from wakfu_server.combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    hidden = hidden_snapshot_actor_ids(fight)
     packets = []
     for identity, source in sources.items():
         actor = fight.actors.get(identity)
-        if actor is None or actor.controlled or actor.team != 1:
+        if (
+            actor is None
+            or actor.controlled
+            or actor.team != assigned_roles(fight).npc_team
+        ):
             raise ValueError("Rift world snapshot roster changed")
+        if identity in hidden:
+            continue
         monster = owned_instance(
             source["ref"],
             source["level"],

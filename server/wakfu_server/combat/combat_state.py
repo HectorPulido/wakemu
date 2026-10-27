@@ -590,30 +590,17 @@ class Fight:
         self._event("turn_ended", actor_id=self.current.id, turn_id=self.turn_id)
         next_index = (self.turn_index + 1) % len(self.order)
         if next_index == 0:
-            self.native_timeline_round += 1  # SU.bhO/bhP, including extra-turn cycles.
-        if (
-            next_index == 0
-            and getattr(self, "native_base_turn_order", None) is not None
-        ):
-            # Tc.bhP -> SX.bid -> feq.b restores the base list each round.
-            self.order = [
-                uid
-                for uid in self.native_base_turn_order
-                if self._in_play(self.actors[uid])
-            ]
-            self.native_base_turn_order = None
+            from .combat_round_boundary import complete_round
+
+            complete_round(self)
         self.turn_index = next_index
         self.turn_id += 1
-        if getattr(self, "rift_wave_state", None) is not None:
-            from .rift_combat_adapter import finish_survival
+        # Rift also checks its frozen budget at every accepted turn boundary;
+        # boss score survival historically checks only complete cycles.
+        from .combat_round_boundary import finish_turn_budget
 
-            if finish_survival(self):
-                return
-        if next_index == 0 and getattr(self, "boss_score_profile", None) is not None:
-            from wakfu_server.maps.boss_score_runtime import finish_survival
-
-            if finish_survival(self):
-                return
+        if finish_turn_budget(self, completed_cycle=next_index == 0):
+            return
         self._begin_turn()
 
     def apply_damage(self, source_id, target_id, amount):
@@ -641,10 +628,20 @@ class Fight:
         The dispatcher validates the trigger, ownership and native eligibility.
         Player requests continue through apply_damage's current-turn guard.
         """
+        if source_id not in self.actors:
+            from .combat_damage_source import native_damage_source, plain_area_source
+            from .combat_damage_healing import DAMAGE_FAMILIES
+
+            if (
+                not isinstance(native_runner_effect, dict)
+                or native_runner_effect.get("effect_class") not in DAMAGE_FAMILIES
+            ):
+                raise ValueError("Missing native area damage runner authority")
+            if not plain_area_source(native_damage_source(self, source_id)):
+                raise ValueError("Unregistered native damage source fighter")
         if (
             self.phase != "active"
             or self.current is None
-            or source_id not in self.actors
             or type(amount) is not int
             or amount < 0
         ):

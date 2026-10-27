@@ -3,7 +3,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import subprocess
-from export_monster_state_resistance import ROOT, digest
+from tools.export_monster_state_resistance import ROOT, digest
 
 CATALOG_PATH = "native-class-cell-group-metadata.json"
 

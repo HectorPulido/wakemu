@@ -1,8 +1,7 @@
 """Accepted rift action preparation before checkpoint and public delivery."""
 import struct
-import time
 
-from .combat_shared import Transition
+from wakfu_server.combat_shared import Transition
 
 
 def finish_accepted_action(
@@ -14,10 +13,8 @@ def finish_accepted_action(
     shared registry. Native sources live on the preview, never a mutable socket
     context shared with an operation that might still fail.
     """
-    from .rift_dispatch_lifecycle import next_roster
-    from .rift_npc_creation import install_native_wave
-    from .combat_recovery import recovery_packet
-    from .combat_phase import action_transition
+    from wakfu_server.rift_dispatch_lifecycle import next_roster
+    from wakfu_server.rift_npc_creation import install_native_wave
 
     state = getattr(fight, "rift_wave_state", None)
     if state is None:
@@ -27,20 +24,28 @@ def finish_accepted_action(
         return Transition(fight, runtime, tuple(packets))
     if runtime is None or runtime.fight is not fight:
         raise ValueError("Rift accepted action has a stale native runtime")
-    from .rift_policy import select_wave
+    from wakfu_server.rift_policy import select_wave
 
     next_refs = select_wave(
         state["catalog"], state["policy"], state["seed"], pending["completed_wave"] + 1
     )
-    if len(fight.actors) + len(next_refs) > 127:
-        # Native signed-byte roster/history limits are a local implementation
-        # boundary, not an official rift win condition or a reward entitlement.
+    from wakfu_server.combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    visible_count = len(fight.actors) - len(hidden_snapshot_actor_ids(fight))
+    if visible_count + len(next_refs) > 127:
+        # Native signed-byte presentation limits apply to current participants,
+        # not irreversible historical actors retained for sources and rewards.
+        # Concurrent capacity is not an official win or reward entitlement.
         fight.phase = "finished"
-        fight.winner = 1
+        from wakfu_server.combat_encounter_roles import assigned_roles
+
+        fight.winner = assigned_roles(fight).npc_team
         state["outcome"] = "capacity_exhausted"
         state["last_cleared_wave"] = dict(pending)
         state["pending_wave"] = None
-        fight._event("finished", winner=1, reason="rift_native_history_capacity")
+        fight._event(
+            "finished", winner=fight.winner, reason="rift_native_history_capacity"
+        )
         runtime.pending = []
         runtime.turn_deadline = runtime.deadline_turn = None
         return Transition(fight, runtime, tuple(packets))
@@ -58,7 +63,7 @@ def finish_accepted_action(
         initialize_actor=initialize_actor,
         initialize_wave=initialize_wave,
     )
-    from .combat_native_action_ids import NATIVE_ACTION_PACKETS
+    from wakfu_server.combat_native_action_ids import NATIVE_ACTION_PACKETS
 
     if 13051 in NATIVE_ACTION_PACKETS:
         added.append(
@@ -67,32 +72,12 @@ def finish_accepted_action(
                 struct.pack(">iiii", fight.id, runtime.action_id, -1, state["wave"]),
             )
         )
-    if runtime.awaiting_ack is not None:
-        # Turn-end prepared its next-turn presentation before this admission.
-        # Replace that unsent snapshot so ACK cannot restore the old roster.
-        runtime.native_initial_timeline_restore_pending = True
-        awaiting_ack = runtime.awaiting_ack
-        runtime.awaiting_ack = None
-        try:
-            runtime.pending = runtime.turn_started(arm_deadline=False)
-        finally:
-            runtime.awaiting_ack = awaiting_ack
-    # cYp inserts through native timeline policy. Publish the exact owned SU
-    # snapshot afterward to retain the server's explicit DEV insertion policy.
-    remaining = (
-        0
-        if runtime.turn_deadline is None
-        else max(0, runtime.turn_deadline - runtime.clock())
+    from wakfu_server.rift_publication_fence import publish_births_before_ack
+
+    published = publish_births_before_ack(
+        runtime,
+        packets,
+        added,
+        actor_ids=state["wave_actor_ids"],
     )
-    deadline_ms = int(time.time() * 1000 + remaining * 1000)
-    added.extend(
-        (
-            recovery_packet(
-                fight, struct.pack(">i", fight.id), deadline_ms=deadline_ms
-            ),
-            action_transition(fight.id),
-        )
-    )
-    return Transition(
-        fight, runtime, tuple(packets) + tuple(runtime.prepare_delivery(added))
-    )
+    return Transition(fight, runtime, published)

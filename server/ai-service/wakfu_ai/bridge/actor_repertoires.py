@@ -50,29 +50,45 @@ def allied_healing_scope(spell, level):
 
 
 def actor_repertoires(oracle, fight, actors, *, source_state, capabilities):
-    from wakfu_server.combat_native_spell_casting import native_casting_table
+    from .actor_casting_metadata import selected_cost_metadata
 
     result = {}
     ownership = getattr(oracle, "owned_spells", None)
-    for actor in actors:
-        if actor["hp"] <= 0:
-            continue
-        record = dict(
-            actorId=actor["id"],
-            sourceState=source_state,
-            stateRevision=fight.sequence,
-            spells=[],
-            unknownDependencies=[],
+
+    def owned_books():
+        for actor in actors:
+            if actor["hp"] <= 0:
+                continue
+            record = dict(
+                actorId=actor["id"],
+                sourceState=source_state,
+                stateRevision=fight.sequence,
+                spells=[],
+                unknownDependencies=[],
+            )
+            result[str(actor["id"])] = record
+            if not callable(ownership):
+                record["unknownDependencies"].append("missing_owned_spell_provider")
+                continue
+            try:
+                owned = ownership(fight, actor["id"])
+            except (KeyError, TypeError, ValueError):
+                record["unknownDependencies"].append("owned_spell_metadata_unavailable")
+                continue
+            yield actor, record, owned
+
+    books = owned_books()
+    prepare = getattr(capabilities, "prepare", None)
+    if callable(prepare):
+        books = list(books)
+        pairs = tuple(
+            (spell, level)
+            for _, _, owned in books
+            for spell, level in sorted(owned.items())
         )
-        result[str(actor["id"])] = record
-        if not callable(ownership):
-            record["unknownDependencies"].append("missing_owned_spell_provider")
-            continue
-        try:
-            owned = ownership(fight, actor["id"])
-        except (KeyError, TypeError, ValueError):
-            record["unknownDependencies"].append("owned_spell_metadata_unavailable")
-            continue
+        if pairs:
+            prepare(pairs)
+    for actor, record, owned in books:
         for spell, level in sorted(owned.items()):
             hint = capabilities(spell, level)
             if isinstance(hint, dict) and "heal" in hint.get("tags", ()):
@@ -90,10 +106,8 @@ def actor_repertoires(oracle, fight, actors, *, source_state, capabilities):
             )
             record["spells"].append(entry)
             try:
-                table, index = native_casting_table(spell, level)
-                options = [table["costs"][index]] + [
-                    rule["levels"][index] for rule in table.get("conditional", ())
-                ]
+                metadata = selected_cost_metadata(spell, level)
+                options = metadata.options
                 if any(
                     len(values) < 3
                     or any(type(value) is not int for value in values[:3])
@@ -104,7 +118,7 @@ def actor_repertoires(oracle, fight, actors, *, source_state, capabilities):
 
                 native_actor = fight.actors.get(actor["id"])
                 modifiers = getattr(native_actor, "spell_ap_cost_modifiers", None)
-                categories = table.get("categories", ())
+                categories = metadata.categories
                 known_modifiers = not categories or (
                     isinstance(modifiers, dict)
                     and all(
@@ -133,7 +147,7 @@ def actor_repertoires(oracle, fight, actors, *, source_state, capabilities):
                     dict(ap=ap, mp=mp, wp=wp)
                     for ap, mp, wp in sorted({tuple(values[:3]) for values in options})
                 ]
-                entry["conditionalCosts"] = bool(table.get("conditional"))
+                entry["conditionalCosts"] = metadata.conditional
             except (KeyError, IndexError, TypeError, ValueError):
                 entry["costUncertainties"].append("missing_native_cost_table")
     return result

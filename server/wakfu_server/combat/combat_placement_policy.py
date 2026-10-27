@@ -25,6 +25,77 @@ def _policy(value):
     return dict(value)
 
 
+def partition_scene_helper_seeds(
+    arena, seeds, *, original_npc_seeds, map_id, instance_id, account_id, character_id
+):
+    """Keep real helper destinations on their source-qualified logical side."""
+    manifest = arena.get("native_encounter_scene_helpers")
+    if manifest is None:
+        return seeds, 0
+    from .combat_encounter_scene_helpers import validated_manifest
+
+    source = validated_manifest(manifest)
+    order = arena.get("native_encounter_scene_helper_seed_order")
+    positions = arena.get("native_encounter_scene_helper_seed_positions")
+    expected = {row["id"] for row in source["originals"]} | {
+        row["actor_id"] for row in source["helpers"]
+    }
+    birth_positions = {}
+    declared_positions = [
+        (row["id"], row.get("position")) for row in source["originals"]
+    ]
+    declared_positions.extend(
+        (row["actor_id"], row.get("initial_position")) for row in source["helpers"]
+    )
+    for identity, position in declared_positions:
+        if (
+            not isinstance(position, (list, tuple))
+            or len(position) != 3
+            or any(type(value) is not int for value in position)
+            or identity in birth_positions
+        ):
+            raise ValueError(
+                "Scene helper seed lacks its immutable native birth position"
+            )
+        birth_positions[identity] = tuple(position)
+    if (
+        (
+            source["map_id"],
+            source["instance_id"],
+            source["account_id"],
+            source["principal_id"],
+        )
+        != (map_id, instance_id, account_id, character_id)
+        or not isinstance(order, (list, tuple))
+        or any(type(identity) is not int for identity in order)
+        or len(order) != len(expected)
+        or set(order) != expected
+        or len(order) != len(seeds[1])
+        or not isinstance(positions, (list, tuple))
+        or any(
+            not isinstance(cell, (list, tuple))
+            or len(cell) != 3
+            or any(type(value) is not int for value in cell)
+            for cell in positions
+        )
+        or tuple(map(tuple, positions)) != tuple(map(tuple, original_npc_seeds))
+        or any(
+            birth_positions[identity] != tuple(position)
+            for identity, position in zip(order, positions)
+        )
+    ):
+        raise ValueError(
+            "Scene helper placement seeds differ from their actual source order"
+        )
+    friendly = {
+        row["actor_id"] for row in source["helpers"] if row["team_role"] == "player"
+    }
+    players, npcs = list(seeds[0]), []
+    for identity, cell in zip(order, seeds[1]):
+        (players if identity in friendly else npcs).append(cell)
+    return {0: players, 1: npcs}, len(friendly)
+
+
 def _arena(map_id, instance_id, layout):
     cells = {tuple(c) for c in layout["cells"]}
     edges = {tuple(tuple(c) for c in edge) for edge in layout["edges"]}
@@ -73,6 +144,26 @@ def _arena(map_id, instance_id, layout):
         ):
             raise ValueError("Persisted encounter terrain reference changed")
         reference = scene_reference
+    emiw_border = layout.get("native_emiw_border")
+    from .combat_emiw_scene_policy import ROLE_POLICY as EMIW_ROLE_POLICY
+
+    if (
+        isinstance(layout.get("native_encounter_roles"), dict)
+        and layout["native_encounter_roles"].get("policy") == EMIW_ROLE_POLICY
+        and emiw_border is None
+    ):
+        raise ValueError("Frozen Emiw roles require their native perimeter receipt")
+    if emiw_border is not None:
+        from .combat_emiw_scene_policy import validate_emiw_border
+
+        if scene_reference is not None:
+            raise ValueError("Emiw border conflicts with an authored scene terrain")
+        reference = validate_emiw_border(
+            emiw_border,
+            map_id=map_id,
+            role_record=layout.get("native_encounter_roles"),
+            cells=layout.get("native_border_cells", ()),
+        )
     result.update(
         terrain_effect_id=reference,
         native_border_receipt=border,
@@ -86,13 +177,31 @@ def _arena(map_id, instance_id, layout):
         ),
         native_border_policy=layout.get("native_border_policy"),
     )
+    if emiw_border is not None:
+        result["native_emiw_border"] = emiw_border
+    scene_helpers = layout.get("native_encounter_scene_helpers")
+    if scene_helpers is not None:
+        from .combat_encounter_scene_helpers import validated_manifest
+
+        helper_source = validated_manifest(scene_helpers)
+        if (helper_source["map_id"], helper_source["instance_id"]) != (
+            map_id,
+            instance_id,
+        ):
+            raise ValueError("Frozen scene helpers belong to another world instance")
+        result["native_encounter_scene_helpers"] = scene_helpers
+        for key in (
+            "native_encounter_scene_helper_seed_order",
+            "native_encounter_scene_helper_seed_positions",
+        ):
+            result[key] = layout[key]
     if layout.get("native_encounter_scene_layout") is not None:
         result["native_encounter_scene_layout"] = layout[
             "native_encounter_scene_layout"
         ]
         result["participant_player_position"] = layout["participant_player_position"]
     if "native_encounter_roles" in layout:
-        from .combat_encounter_roles import roles_from_record
+        from wakfu_server.combat_encounter_roles import roles_from_record
 
         result["native_encounter_roles"] = roles_from_record(
             layout["native_encounter_roles"],
@@ -104,6 +213,7 @@ def _arena(map_id, instance_id, layout):
         "native_initial_glyph_policy",
         "native_initial_glyph_authority",
         "native_initial_glyph_source_url",
+        "native_environment_participant_footprints",
         "native_los_gap_policy",
         "native_los_gap_surfaces",
     ):
@@ -153,13 +263,14 @@ def freeze(
         ).fetchone()
         policy = _policy(None if row is None else row["value"])
         cells, edges = selected_arena["validated_cells"], selected_arena["valid_edges"]
+        original_npc_seeds = seeds[1]
         relocations = selected_arena.get("participant_positions", [])
         if relocations:
             if [tuple(pair[0]) for pair in relocations] != [tuple(c) for c in seeds[1]]:
                 raise ValueError("Encounter relocation source changed")
             seeds = {0: seeds[0], 1: [tuple(pair[1]) for pair in relocations]}
         scene = selected_arena.get("native_encounter_scene_layout")
-        from .combat_encounter_roles import roles_from_record
+        from wakfu_server.combat_encounter_roles import roles_from_record
 
         role_record = selected_arena.get("native_encounter_roles")
         roles = (
@@ -177,6 +288,15 @@ def freeze(
             ):
                 raise ValueError("Reconstructed placement player origin changed")
             seeds = {0: [tuple(player_relocation[1])], 1: seeds[1]}
+        seeds, friendly_helpers = partition_scene_helper_seeds(
+            selected_arena,
+            seeds,
+            original_npc_seeds=original_npc_seeds,
+            map_id=map_id,
+            instance_id=instance_id,
+            account_id=account_id,
+            character_id=character_id,
+        )
         if scene is not None:
             players = {tuple(cell) for cell in scene["party_placement_cells"]}
             npcs = {tuple(scene["source"])}
@@ -199,6 +319,14 @@ def freeze(
         else:
             if roles is not None:
                 seeds = roles.placement_cells(seeds[0], seeds[1])
+            helper_capacity = {}
+            if friendly_helpers:
+                player_team = 0 if roles is None else roles.player_team
+                npc_team = 1 if roles is None else roles.npc_team
+                helper_capacity["team_capacities"] = {
+                    player_team: policy["slots_per_team"] + friendly_helpers,
+                    npc_team: policy["slots_per_team"],
+                }
             placement = generate(
                 cells,
                 edges,
@@ -210,12 +338,33 @@ def freeze(
                 spread_teams=selected_arena.get("native_border_policy")
                 == "wakemu.compact-cardinal-perimeter-v1",
                 avoid_cells=selected_arena.get("native_border_cells", ()),
+                **helper_capacity,
             )
         from .combat_border_policy import choose as choose_border
 
+        emiw_border = selected_arena.get("native_emiw_border")
+        from .combat_emiw_scene_policy import ROLE_POLICY as EMIW_ROLE_POLICY
+
+        if (
+            isinstance(role_record, dict)
+            and role_record.get("policy") == EMIW_ROLE_POLICY
+            and emiw_border is None
+        ):
+            raise ValueError("Emiw admission requires its selected native perimeter")
+        if emiw_border is not None:
+            from .combat_emiw_scene_policy import validate_emiw_border
+
+            validate_emiw_border(
+                emiw_border,
+                map_id=map_id,
+                role_record=role_record,
+                cells=selected_arena.get("native_border_cells", ()),
+            )
         layout = dict(
             border=None
-            if scene is not None and "terrain_effect_id" in scene
+            if emiw_border is not None
+            or scene is not None
+            and "terrain_effect_id" in scene
             else choose_border(db),
             native_border_cells=sorted(selected_arena.get("native_border_cells", [])),
             native_border_policy=selected_arena.get("native_border_policy"),
@@ -234,12 +383,31 @@ def freeze(
                 layout["scene_terrain_effect_id"] = scene["terrain_effect_id"]
         if roles is not None:
             layout["native_encounter_roles"] = roles.record()
+        if emiw_border is not None:
+            layout["native_emiw_border"] = emiw_border
+        scene_helpers = selected_arena.get("native_encounter_scene_helpers")
+        if scene_helpers is not None:
+            from .combat_encounter_scene_helpers import validated_manifest
+
+            helper_source = validated_manifest(scene_helpers)
+            if (helper_source["map_id"], helper_source["instance_id"]) != (
+                map_id,
+                instance_id,
+            ):
+                raise ValueError("Scene helpers leave the actual placement instance")
+            layout["native_encounter_scene_helpers"] = scene_helpers
+            for key in (
+                "native_encounter_scene_helper_seed_order",
+                "native_encounter_scene_helper_seed_positions",
+            ):
+                layout[key] = selected_arena[key]
         for key in (
             "native_border_scope_cells",
             "native_initial_glyphs",
             "native_initial_glyph_policy",
             "native_initial_glyph_authority",
             "native_initial_glyph_source_url",
+            "native_environment_participant_footprints",
             "native_los_gap_policy",
             "native_los_gap_surfaces",
         ):

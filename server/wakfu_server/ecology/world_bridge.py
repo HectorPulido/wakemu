@@ -169,6 +169,9 @@ class EcologyWorldBridge:
             "scopes": [list(scope) for scope in scopes],
             "locations": [list(scope) for scope in scopes],
             "players": positions,
+            "empty_scopes": self.world.empty_scope_snapshot()
+            if hasattr(self.world, "empty_scope_snapshot")
+            else [],
             "excluded_ids": excluded,
             "started_at_ms": started_at_ms,
             "now_ms": int(self.clock() * 1000),

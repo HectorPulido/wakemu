@@ -1,0 +1,38 @@
+# Optional external character controllers. No LLM is enabled by this overlay.
+services:
+  world:
+    environment:
+      WAKFU_BOTS_TOKEN_FILE: /run/secrets/bots-world-token
+  bots:
+    image: ${WAKFU_BOTS_IMAGE:-wakemu-bots:local}
+    build:
+      context: ./server/bot-service
+    init: true
+    group_add:
+      - '${WAKFU_BOTS_SECRET_GID:-20}'
+    depends_on:
+      world:
+        condition: service_healthy
+    environment:
+      WAKFU_WORLD_URL: http://world:18081
+      WAKFU_SHOP_URL: http://shop:18083
+      WAKFU_BOTS_TOKEN_FILE: /run/secrets/bots-world-token
+      WAKFU_BOTS_ADMIN_TOKEN_FILE: /run/secrets/bots-admin-token
+      WAKFU_BOTS_PROFILES_FILE: /data/profiles.json
+      WAKFU_BOTS_STATE_FILE: /data/worker-state.json
+      WAKFU_BOTS_HOST: 0.0.0.0
+      WAKFU_BOTS_PORT: '8096'
+    volumes:
+      - bots-data:/data
+      - ./.database/secrets/bots-world-token:/run/secrets/bots-world-token:ro
+      - ./.database/secrets/bots-admin-token:/run/secrets/bots-admin-token:ro
+    ports:
+      - '127.0.0.1:18087:8096'
+    networks: [isolated, client-access]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8096/health',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+volumes:
+  bots-data:

@@ -17,10 +17,16 @@ def complete(store, db, account_id, generation, character, fight):
     main_id = character["id"]
     store.lock_character(db, account_id, generation, main_id)
     summons = registered_summon_actor_ids(fight)
+    from .combat_companions import registered_companion_ids
+
+    companions = registered_companion_ids(fight)
     identities = {
         actor.id
         for actor in fight.actors.values()
-        if actor.controlled and actor.owner_id == account_id and actor.id not in summons
+        if actor.controlled
+        and actor.owner_id == account_id
+        and actor.id not in summons
+        and actor.id not in companions
     }
     members = tuple(
         db.execute(

@@ -24,6 +24,12 @@ from .combat_casting_eligibility import (
 
 @lru_cache(maxsize=1)
 def casting_root_catalog():
+    from wakfu_server.combat_published_catalogs import compilation_mode
+    from wakfu_server.native_catalog_document import load_published_document
+
+    if not compilation_mode():
+        return load_published_document("combat_casting_context.casting_root_catalog")
+
     data = protocol_catalog.load(DATA_ROOT / "native-class-casting-roots.json")
     if data.get("schema") != "native-class-casting-roots-v1":
         raise ValueError("Missing native fKX casting metadata provenance")
@@ -705,15 +711,19 @@ def cast_cell_condition(
     return (conditions, actual) if return_invocation else conditions
 
 
-def resolve_criterion_cell_invocation(adapter, fight, invocation):
+def resolve_criterion_cell_invocation(
+    adapter, fight, invocation, *, return_obstacle=False, _registry=None
+):
     """Keep raw aBn marker and resolve eII's actual first QI fighter separately."""
     from dataclasses import replace
     from .combat_qi_fight import current_registry
 
     target_id = None
+    obstacle = None
     if invocation.cell is not None:
-        registry = current_registry(fight)
-        for slot in registry.ordered_U(*invocation.cell[:2]):
+        registry = current_registry(fight) if _registry is None else _registry
+        order = registry.ordered_U(*invocation.cell[:2])
+        for slot in order:
             row = registered_slot(registry, slot)
             if row is None or row["identity"][0] != "actor":
                 continue
@@ -726,7 +736,12 @@ def resolve_criterion_cell_invocation(adapter, fight, invocation):
             if kind:
                 target_id = actor.id
                 break
-    return replace(invocation, target_id=target_id)
+        if return_obstacle:
+            # eOV reads the first QI slot; eII independently finds the first
+            # actual fighter. An area in the first slot must not alias a PC.
+            obstacle = bool(order and registry.slots[order[0]] is not None)
+    resolved = replace(invocation, target_id=target_id)
+    return (resolved, obstacle) if return_obstacle else resolved
 
 
 def use_gate_triggering_effect(adapter, fight, plan, effect, invocation):

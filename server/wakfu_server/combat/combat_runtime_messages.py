@@ -478,8 +478,16 @@ class RuntimeMessages:
             )
             if initial_recovery:
                 from .combat_phase import action_transition
+                from .combat_encounter_scene_helpers import (
+                    scene_helper_controller_records,
+                )
 
-                packets.append(action_transition(self.fight.id))
+                packets.append(
+                    action_transition(
+                        self.fight.id,
+                        controller_records=scene_helper_controller_records(self.fight),
+                    )
+                )
             # Original cvn restores SU and retains ACTION/controller objects.
             # Reentering ACTION during an ongoing fight repeats ckv.eDR's649
             # shortcut insertion. Only initial placement needs that transition.
@@ -581,8 +589,14 @@ class RuntimeMessages:
             )
         packets.append((12233, struct.pack(">i", self.fight.id)))
         from .combat_phase import action_transition
+        from .combat_encounter_scene_helpers import scene_helper_controller_records
 
-        packets.append(action_transition(self.fight.id))
+        packets.append(
+            action_transition(
+                self.fight.id,
+                controller_records=scene_helper_controller_records(self.fight),
+            )
+        )
         # Joining PCs may have equal INIT but different effective levels. The
         # client recomputes placement order as actor snapshots arrive; publish
         # the owned Ready timeline before its first actor advance.
@@ -677,6 +691,26 @@ class RuntimeMessages:
             raise ValueError("Unsupported turn transition during end callbacks")
         return self.synchronize_defeated_turn(actor_id, previous_turn)
 
+    def _close_terminal_turn(self):
+        """A completed fight owns no subsequent START or turn-ACK barrier."""
+        if self.fight.phase != "finished":
+            return False
+        self.pending = []
+        self.awaiting_ack = None
+        self.turn_deadline = self.deadline_turn = None
+        self.native_timeline_restore_pending_turn = None
+        from .rift_publication_fence import birth_fence
+
+        fence = birth_fence(self.fight)
+        if fence is not None:
+            # Preserve the publication evidence without claiming a client ACK.
+            self.fight.native_rift_terminal_birth_fence = dict(
+                fence,
+                outcome="fight_finished",
+            )
+            self.fight.native_rift_birth_fence = None
+        return True
+
     @native_delivery_boundary
     @atomic_area_turn
     def end_turn(self, owner_id, actor_id, actor_turn):
@@ -691,6 +725,7 @@ class RuntimeMessages:
         previous = self.fight.turn_id
         expiry = self._end_owned(actor)
         if self.fight.phase != "active":
+            self._close_terminal_turn()
             self.turn_deadline = self.deadline_turn = None
             return expiry
         synchronized = self._synchronize_pre_end_death(actor_id, previous)
@@ -701,6 +736,8 @@ class RuntimeMessages:
             (12502, self._prefix() + struct.pack(">qii", actor_id, -1, 0)),
             self._flush(),
         ]
+        if self._close_terminal_turn():
+            return packets
         self.pending = self.turn_started(arm_deadline=False)
         self.turn_deadline = self.deadline_turn = None
         self.awaiting_ack = previous
@@ -773,6 +810,7 @@ class RuntimeMessages:
         facing_boundary = (self.fight.sequence, self.action_id)
         expiry = self._end_owned(actor)
         if self.fight.phase != "active":
+            self._close_terminal_turn()
             self.turn_deadline = self.deadline_turn = None
             return expiry
         synchronized = self._synchronize_pre_end_death(actor_id, previous)
@@ -813,6 +851,8 @@ class RuntimeMessages:
                 self._flush(),
             ]
         )
+        if self._close_terminal_turn():
+            return packets
         self.pending = self.turn_started(arm_deadline=False)
         self.turn_deadline = self.deadline_turn = None
         self.awaiting_ack = global_turn
@@ -826,6 +866,9 @@ class RuntimeMessages:
             or struct.unpack(">i", body)[0] != self.awaiting_ack
         ):
             raise ValueError("Invalid or stale turn synchronization")
+        from .rift_publication_fence import release_birth_fence
+
+        release_birth_fence(self, struct.unpack(">i", body)[0])
         self.awaiting_ack = None
         packets = self.pending
         self.pending = []
@@ -881,6 +924,13 @@ class RuntimeMessages:
         # phase owns an active SU/deadline. Preserve its existing presentation
         # and ACK queue instead of constructing an invalid active-turn recovery.
         if self.fight.phase in ("placement", "finished"):
+            return []
+        from .rift_publication_fence import birth_fence
+
+        if birth_fence(self.fight) is not None:
+            # coX is a recovery request, not proof that queued aVH births ran.
+            # The mandatory replacement is delivered after the existing real
+            # end-turn ACK; this request must not destroy their queue meanwhile.
             return []
         from .combat_recovery import recovery_packet
 

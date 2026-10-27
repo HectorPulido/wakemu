@@ -75,7 +75,7 @@ def prepare_finish(
             from .fight_store import finish
 
             finish(store, db, account_id, generation, character["id"], fight.id)
-            from .combat_consumable_lifecycle import prepare_outcome
+            from .combat_scene_outcome import prepare_outcome
 
             candidate, outcome_packets = prepare_outcome(
                 fight,
@@ -319,7 +319,7 @@ def prepare_finish_shared(
         nonlocal previous_fight
         from .combat_captured_roster_checkpoint import persist_captured_roster_updates
 
-        from .combat_consumable_lifecycle import prepare_outcome
+        from .combat_scene_outcome import prepare_outcome
 
         outcome, outcome_packets = prepare_outcome(
             candidate,
@@ -350,7 +350,14 @@ def prepare_finish_shared(
             actor_id = member["character_id"]
             actor = candidate.actors[actor_id]
             character = observe("character", store.character, owner, actor_id, db)
-            if member.get("withdrawn", False) or actor.team != candidate.winner:
+            from wakfu_server.combat_reward_ownership import is_earned_rift_recipient
+
+            earned_rift = is_earned_rift_recipient(
+                db, candidate, owner, member["session_generation"], actor_id
+            )
+            if member.get("withdrawn", False) or (
+                actor.team != candidate.winner and not earned_rift
+            ):
                 participant_rewards[actor_id] = None
                 participant_loot[actor_id] = None
                 continue

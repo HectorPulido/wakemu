@@ -1,6 +1,31 @@
 """Split equipment before native UI publication without losing owned units."""
 
 
+class EquipmentOwnershipError(ValueError):
+    """Keep native equipment rejection while explaining authorized custody."""
+
+    def __init__(self, uid, *, owner_name=None):
+        super().__init__("Equipment sheet item is unavailable or foreign")
+        self.uid = uid
+        self.owner_name = owner_name
+
+    @property
+    def player_message(self):
+        if self.owner_name is not None:
+            return (
+                "No se puede guardar la build: un objeto está en el inventario de "
+                f"{self.owner_name}. Si está equipado, quítalo de sus builds y "
+                "guarda los cambios; después, desde el inventario normal de bolsas "
+                "y fuera del editor de builds, transfiérelo al personaje que estás "
+                "equipando y vuelve a guardar."
+            )
+        return (
+            "No se puede guardar la build: un objeto ya no está disponible en el "
+            "inventario de este personaje. Reabre el inventario y vuelve a "
+            "seleccionar los objetos."
+        )
+
+
 def ensure_singleton(db, character_id, uid):
     """Separate one owned unit in the caller's locked action transaction.
 
@@ -165,7 +190,7 @@ def for_sheet(db, character_id, blob):
             (uid, character_id),
         ).fetchone()
         if item is None:
-            raise ValueError("Equipment sheet item is unavailable or foreign")
+            raise EquipmentOwnershipError(uid)
         if item["quantity"] > 1:
             ensure_singleton(db, character_id, uid)
             changed.append(uid)

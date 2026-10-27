@@ -6,12 +6,15 @@ class CompanySelectionRejected(ValueError):
     """A valid owned selection would change a currently frozen company."""
 
 
-def preflight_main_selection(db, account_id, main_character_id=None):
+def preflight_main_selection(
+    db, account_id, main_character_id=None, *, store=None, generation=None
+):
     """Fence a prospective company change before creation/selection mutates.
 
     The caller already owns the account row. Lock its session before company
     characters, matching dungeon admission's session/character boundary. A
-    reconnect to the same leader does not change the frozen company.
+    reconnect to the same leader or an already active hero preserves the frozen
+    company. A different owned character still changes its membership.
     """
     from psycopg.pq import TransactionStatus
 
@@ -42,7 +45,27 @@ def preflight_main_selection(db, account_id, main_character_id=None):
     if [entry["id"] for entry in owned] != identities:
         raise ValueError("Company selection contains an unavailable owned character")
     try:
-        _idle(db, identities)
+        if any(entry["character_id"] == main_character_id for entry in slots):
+            from wakfu_server.combat_admitted_main_reconnect import (
+                admitted_main_reconnect,
+            )
+
+            reconnect = store is not None and admitted_main_reconnect(
+                db,
+                store,
+                account_id,
+                generation,
+                main_character_id,
+                row["leader_id"],
+                selected=False,
+            )
+            if not reconnect:
+                _outside_combat(db, identities)
+            _switch_instance_authority(
+                db, row["leader_id"], main_character_id, update_owner=False
+            )
+        else:
+            _idle(db, identities)
     except ValueError as error:
         raise CompanySelectionRejected(str(error)) from error
 
@@ -362,14 +385,29 @@ def select_main(store, account_id, generation, main_character_id, *, db=None):
                 "SELECT * FROM account_hero_slots WHERE account_id=%s ORDER BY slot",
                 (account_id,),
             ).fetchall()
-            _idle(
-                db,
-                [row["leader_id"], main_character_id]
-                + [r["character_id"] for r in slots],
-            )
             selected = next(
                 (r for r in slots if r["character_id"] == main_character_id), None
             )
+            identities = [row["leader_id"], main_character_id] + [
+                entry["character_id"] for entry in slots
+            ]
+            if selected:
+                from wakfu_server.combat_admitted_main_reconnect import (
+                    admitted_main_reconnect,
+                )
+
+                if not admitted_main_reconnect(
+                    db,
+                    store,
+                    account_id,
+                    generation,
+                    main_character_id,
+                    row["leader_id"],
+                ):
+                    _outside_combat(db, identities)
+                _switch_instance_authority(db, row["leader_id"], main_character_id)
+            else:
+                _idle(db, identities)
             if selected:
                 db.execute(
                     "UPDATE account_hero_slots SET character_id=%s WHERE account_id=%s AND slot=%s",
@@ -409,7 +447,7 @@ def select_main(store, account_id, generation, main_character_id, *, db=None):
         return load_roster(db, store, account_id, main_character_id)
 
 
-def _switch_instance_authority(db, main_character_id, hero_id):
+def _switch_instance_authority(db, main_character_id, hero_id, *, update_owner=True):
     """Preserve frozen participants while changing their account's input owner."""
     identities = [main_character_id, hero_id]
     memberships = db.execute(
@@ -431,7 +469,7 @@ def _switch_instance_authority(db, main_character_id, hero_id):
     for run in runs:
         if not set(identities).issubset(run["members"]):
             raise ValueError("Selected hero does not share the frozen rift membership")
-        if run["owner_character_id"] == main_character_id:
+        if update_owner and run["owner_character_id"] == main_character_id:
             db.execute(
                 "UPDATE rift_instances SET owner_character_id=%s,revision=revision+1 "
                 "WHERE instance_id=%s",

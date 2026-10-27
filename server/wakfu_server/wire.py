@@ -349,12 +349,27 @@ def complete_public_characteristics(payload):
     row_size = struct.calcsize(">Biiii")
     if len(payload) != 2 + count * row_size:
         raise ValueError("Invalid owned public characteristics length")
-    from wakfu_server.combat.combat_actor_snapshot import native_actor_catalog
+    from wakfu_server.combat_actor_snapshot import (
+        native_actor_catalog,
+        native_characteristic_definitions,
+    )
+    from wakfu_server.combat_published_catalogs import static_catalog_descriptor
 
     # A refresh can target an actor that previously received a richer capture
     # or another equipment sheet. Send native defaults explicitly so omitted
     # damage/resistance rows cannot survive from that older snapshot.
-    native_rows = native_actor_catalog()["characteristics"]
+    catalog = native_actor_catalog()
+    native_rows = catalog["characteristics"]
+    if (
+        static_catalog_descriptor(native_rows) is not None
+        and native_rows.representation == "native_json"
+    ):
+        # Reuse the same bounded immutable index as combat snapshots. Keep
+        # caller-owned legacy dictionaries on the original validation path.
+        native_rows = {
+            str(identity): row
+            for identity, row in native_characteristic_definitions(catalog).items()
+        }
     rows = {
         int(identity): (
             int(identity),
@@ -800,6 +815,30 @@ def empty_equipment_sheets(body, character):
             value = character["id"]
         result.extend(proto_field(tag, value))
     return struct.pack(">qI", character["id"], len(result)) + result
+
+
+def native_configuration_packet(key, value):
+    """cEp22318 updates one native configuration key without replacing others."""
+    if (
+        type(key) is not str
+        or type(value) is not str
+        or not key
+        or "\x00" in key
+        or "\x00" in value
+    ):
+        raise ValueError("Invalid native configuration update")
+    key, value = key.encode("utf-8"), value.encode("utf-8")
+    if len(key) > 256 or len(value) > 65536:
+        raise ValueError("Native configuration update is too large")
+    return (
+        22318,
+        struct.pack(">I", len(key)) + key + struct.pack(">I", len(value)) + value,
+    )
+
+
+def native_chat_flood_packet():
+    """Disable native text flood checks while retaining other action policies."""
+    return native_configuration_packet("chat.flood.check.enabled", "false")
 
 
 def native_xp_rate_packet(rate_bp):

@@ -46,7 +46,7 @@ def _rift_destination(character, run):
 
 def reconcile(db, store, account_id, generation, leader, hero, *, joining):
     """Called inside the roster transaction, before slot mutation is committed."""
-    from wakfu_server.characters.heroes import _outside_combat
+    from wakfu_server.heroes import _outside_combat
     from wakfu_server.objectives.challenges import is_challenge_instance
 
     if any(is_challenge_instance(member["instance_id"]) for member in (leader, hero)):
@@ -138,7 +138,16 @@ def reconcile(db, store, account_id, generation, leader, hero, *, joining):
         if rift["status"] == "entered":
             members = set(rift["members"])
             if joining:
-                if hero["level"] < rift["catalog"]["level"]:
+                from wakfu_server.maps.instance_entry_level import (
+                    enforced,
+                    minimum_level_allowed,
+                )
+
+                if not minimum_level_allowed(
+                    hero["level"],
+                    rift["catalog"]["level"],
+                    enforce_minimum=enforced(db),
+                ):
                     raise ValueError("Rift companion does not meet its entrance level")
                 members.add(hero["id"])
                 if len(members) > rift["policy"]["max_members"]:

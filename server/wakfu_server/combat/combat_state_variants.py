@@ -9,6 +9,7 @@ original fyW.ox caller. Unique subscribed pairs inside mixed states use the
 causing branch too; unrelated roots and group descendants preserve native ALL.
 """
 from .combat_state_decurse import RULES
+from collections.abc import Mapping
 from .combat_native_container import resolve_state_container, resolve_state_wire_payload
 from .combat_effect_removal import _identity_fields
 
@@ -40,7 +41,7 @@ def paired_state_variants(state, definitions):
     """Recognize unambiguous equivalent family330/999 normal/critical root pairs."""
     roots = getattr(state, "effect_ids", None)
     if (
-        not isinstance(definitions, dict)
+        not isinstance(definitions, Mapping)
         or not isinstance(roots, (list, tuple))
         or not roots
         or len(roots) % 2
@@ -94,7 +95,7 @@ def paired_state_callback(state, definitions, effect_reference):
     """
     roots = getattr(state, "effect_ids", None)
     if (
-        not isinstance(definitions, dict)
+        not isinstance(definitions, Mapping)
         or not isinstance(roots, (list, tuple))
         or effect_reference not in roots
         or len(set(roots)) != len(roots)

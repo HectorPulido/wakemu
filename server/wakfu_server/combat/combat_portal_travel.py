@@ -122,7 +122,10 @@ def try_apply_portal_travel(
         raise ValueError("Native gate destination is blocked")
     from .combat_tackle_movement import movement_tackle_cost
 
-    tackle_ap, tackle_mp = movement_tackle_cost(fight, actor, [destination])
+    tackle_departures = []
+    tackle_ap, tackle_mp = movement_tackle_cost(
+        fight, actor, [destination], capture=tackle_departures
+    )
     cost = 1 + tackle_mp
     if actor.mp < cost or actor.ap < tackle_ap:
         raise ValueError("Insufficient AP/MP for native gate travel")
@@ -186,15 +189,20 @@ def try_apply_portal_travel(
             payment["ap_raw_post"],
             payment["mp_raw_post"],
         )
+        from .combat_equipment_tackle_events import committed_tackle_departure
+
         with native_gate_movement_scope(fight, receipt):
-            step_callback(fight, actor, origin, destination)
+            with committed_tackle_departure(
+                fight, tackle_departures[0] if tackle_departures else None
+            ):
+                step_callback(fight, actor, origin, destination)
     stats = (
         runtime_stats_serializer(actor, fight)
         if runtime_stats_serializer is not None
         else stats_serializer(actor)
     )
     from .combat_movement import portal_movement
-    from .combat_movement_runtime import movement_stats_snapshot
+    from .combat_movement_runtime import movement_stats_snapshots
     from .combat_wire import actor_state
     from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
 
@@ -203,13 +211,12 @@ def try_apply_portal_travel(
     )
     packets = [animation, candidate._flush()]
     if actor_id not in hidden_snapshot_actor_ids(fight):
-        packets.append(
+        packets.extend(
             (
                 12873,
-                actor_state(
-                    12873, fight.id, actor_id, movement_stats_snapshot(stats, previous)
-                ),
+                actor_state(12873, fight.id, actor_id, snapshot),
             )
+            for snapshot in movement_stats_snapshots(stats, previous, actor=actor)
         )
     candidate.action_id += 1
     from .combat_area_boundary import adopt_runtime

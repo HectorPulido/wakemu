@@ -15,6 +15,17 @@ class PositionOwnerBusy(TimeoutError):
     """Recoverable contention; the authoritative position remains dirty."""
 
 
+@contextmanager
+def _recoverable_position_lock():
+    """Translate row contention only after the enclosed transaction unwinds."""
+    from psycopg.errors import LockNotAvailable
+
+    try:
+        yield
+    except LockNotAvailable as error:
+        raise PositionOwnerBusy("Position owner is busy; retry checkpoint") from error
+
+
 class Positions:
     def __init__(self, store, *, lease_active):
         self.store = store
@@ -213,7 +224,7 @@ class Positions:
             return 0
         # Pool waits must happen before taking any player ownership barrier.
         started = time.monotonic()
-        with ExitStack() as transaction:
+        with _recoverable_position_lock(), ExitStack() as transaction:
             db = transaction.enter_context(self.store.connection(timeout=0.25))
             self.observe("pool", started, account_id=scope.get("account_id"))
             return self._flush(db, commit=transaction.close, **scope)
@@ -288,6 +299,41 @@ class Positions:
                 entry["persisted"] = {k: entry["current"][k] for k in _KEYS}
                 entry["dirty"] = False
             return len(committed)
+
+    def release_committed_transition(
+        self, account_id, generation, character_id, source, destination
+    ):
+        """Supersede an exact buffered source after a real durable map commit.
+
+        Recovery may repair a stale PostgreSQL scene while the loaded World
+        and buffer already agree outside. Never flush that older source over
+        the committed destination, and retain Redis' normal exact-revision ACK.
+        """
+        with self.account_barrier(account_id):
+            with self.store.connection() as db:
+                saved = db.execute(
+                    "SELECT c.map_id,c.instance_id,c.x,c.y,c.z FROM characters c "
+                    "JOIN sessions s ON s.account_id=c.account_id "
+                    "WHERE c.id=%s AND c.account_id=%s AND s.generation=%s "
+                    "AND s.character_id=c.id AND s.expires_at>%s",
+                    (character_id, account_id, generation, self.store.now()),
+                ).fetchone()
+            if saved is None or any(
+                saved[key] != destination[key] for key in _KEYS[:-1]
+            ):
+                raise ValueError(
+                    "Buffered transition has no matching committed destination"
+                )
+            key = (account_id, generation, character_id)
+            with self.lock:
+                entry = self.entries.get(key)
+                if entry is not None:
+                    if any(entry["current"][field] != source[field] for field in _KEYS):
+                        raise ValueError(
+                            "Buffered source changed after committed transition"
+                        )
+                    entry["dirty"] = False
+            self.release(account_id, generation, character_id)
 
     def release(self, account_id, generation, character_id, *, discard_stale=False):
         key = (account_id, generation, character_id)

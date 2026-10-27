@@ -19,11 +19,18 @@ class NativeStats:
             raise ValueError("Statistics belong to another native encounter")
         return NativeStats(
             characters=self.characters,
-            monsters=self.monsters,
+            monsters=self.monster_sources(fight),
             fight_id=self.fight_id,
             registrations=getattr(fight, "native_summon_registrations", {}),
             map_id=self.map_id,
         )
+
+    def monster_sources(self, fight):
+        from wakfu_server.combat_ordinary_reinforcement_sources import (
+            current_monster_sources,
+        )
+
+        return current_monster_sources(fight, self.monsters, map_id=self.map_id)
 
     def __call__(self, actor, fight=None):
         from wakfu_server.combat_actor import (
@@ -48,10 +55,27 @@ class NativeStats:
         )
         if actor.id in registrations:
             return self.summon_stats(actor, registrations[actor.id], fight)
+        if fight is not None and str(actor.id) in getattr(
+            fight, "native_companion_sources", {}
+        ):
+            from wakfu_server.combat_companions import fighter_stats
+
+            source = fight.native_companion_sources[str(actor.id)]
+            if (
+                not isinstance(source, dict)
+                or type(source.get("native_actor_type")) is not int
+                or source["native_actor_type"] != 5
+                or source.get("level") != actor.effective_level
+                or getattr(actor, "native_companion_source", None) != source
+            ):
+                raise ValueError("Companion statistics differ from its native snapshot")
+            return fighter_stats(fight, actor)
         source = (
             self.characters.get(actor.id)
             if actor.controlled
-            else self.monsters.get(actor.id)
+            else (self.monsters if fight is None else self.monster_sources(fight)).get(
+                actor.id
+            )
         )
         if source is None:
             raise ValueError("Missing owned native statistics source")

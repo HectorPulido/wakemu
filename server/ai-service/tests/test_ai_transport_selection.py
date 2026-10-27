@@ -126,8 +126,17 @@ class AiTransportSelectionTests(unittest.TestCase):
         listener = Mock()
         with patch.dict(os.environ, {}, clear=True), patch.object(
             framed_server, "FramedServer", return_value=listener
-        ) as constructor, patch.object(http, "BoundedHTTPServer") as old_http:
+        ) as constructor, patch.object(
+            http, "BoundedHTTPServer"
+        ) as old_http, patch.object(
+            http, "context_store", return_value=object()
+        ) as context_store, patch.object(
+            framed_server, "seal_bootstrap_catalog", return_value={"fixture": "sealed"}
+        ) as bootstrap:
             framed_server.main()
+        bootstrap.assert_called_once_with(
+            context_store.return_value, framed_server.DEFAULT_MANIFEST
+        )
         constructor.assert_called_once_with(("0.0.0.0", 8090))
         listener.serve_forever.assert_called_once_with()
         listener.server_close.assert_called_once_with()

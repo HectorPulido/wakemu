@@ -129,11 +129,18 @@ def prepare(store, snapshot, limit=16):
     # Overlap recovery runs on the next tick, even between wandering cadences.
     wander_slots = min(1, len(scopes))
     background_limit = limit - wander_slots
-    proposals = (
-        prepare_cleanup(store, snapshot, limit=background_limit)
-        if background_limit
-        else []
-    )
+    proposals = []
+    if background_limit:
+        from .monster_idle_distribution_store import (
+            prepare as prepare_idle_distribution,
+        )
+
+        proposals.extend(
+            prepare_idle_distribution(store, snapshot, limit=background_limit)
+        )
+        remaining = background_limit - _proposal_slots(proposals)
+        if remaining > 0:
+            proposals.extend(prepare_cleanup(store, snapshot, limit=remaining))
     noops = []
     policies = dict(
         maturation=maturation.policy(store),
@@ -177,6 +184,10 @@ def prepare(store, snapshot, limit=16):
             }
         by_id = {g["group_id"]: g for g in groups}
         living_groups = [g for g in groups if g["status"] != "defeated"]
+        from .monster_birth_home import ensure_homes, home_destination_allowed
+        from .monster_idle_distribution import native_physical_radius
+
+        homes = ensure_homes(store, *scope, living_groups)
         zone_members = sum(len(g["members"]) for g in living_groups)
         ordered_domains = [("maturation", maturation), ("reproduction", reproduction)]
         category_offset = domain_tick % len(ordered_domains)
@@ -274,6 +285,7 @@ def prepare(store, snapshot, limit=16):
                             candidates, ticket["decision"]
                         ),
                         members=members,
+                        source_level=parent["level"],
                     )
                     grown = (
                         None
@@ -301,6 +313,14 @@ def prepare(store, snapshot, limit=16):
                 else:
                     if indexed is None:
                         indexed = _edges(scope[0])
+                    stage = maturation.STAGES[parent["ref"]]
+                    from .monster_family_stages import initial_candidates
+
+                    birth_pool = initial_candidates(stage[0]["family_id"])
+                    if not birth_pool:
+                        continue
+                    candidate = life_plans.choose(birth_pool, ticket["decision"])
+                    child_radius = native_physical_radius(candidate["reference"])
                     blocked = planted | {(p["x"], p["y"]) for p in scoped}
                     blocked |= {
                         (m["x"], m["y"])
@@ -312,6 +332,12 @@ def prepare(store, snapshot, limit=16):
                         p
                         for p in indexed[1].get(wander.point(parent), ())
                         if p[:2] not in blocked
+                        and home_destination_allowed(
+                            scope[0],
+                            homes.get(ticket["group_id"]),
+                            p,
+                            radii=(child_radius,),
+                        )
                         and habitat_destination_allowed(
                             scope[0],
                             scope[1],
@@ -335,13 +361,6 @@ def prepare(store, snapshot, limit=16):
                         proposal["configuration"],
                         group_size=len(members),
                     ):
-                        stage = maturation.STAGES[parent["ref"]]
-                        from .monster_family_stages import initial_candidates
-
-                        birth_pool = initial_candidates(stage[0]["family_id"])
-                        if not birth_pool:
-                            continue
-                        candidate = life_plans.choose(birth_pool, ticket["decision"])
                         with store.connection() as db:
                             _, identity = reproduction.allocate_identity(db)
                         child = owned_instance(
@@ -423,21 +442,54 @@ def prepare(store, snapshot, limit=16):
             ):
                 continue
             own_cells = {wander.point(member) for member in members}
-            result = wander.plan_group_path(
-                members,
-                scoped,
-                (),
+            home = homes.get(group["group_id"])
+            radii = tuple({native_physical_radius(member["ref"]) for member in members})
+
+            def inside_home(cell, _map=scope[0], _home=home, _radii=radii):
+                return home_destination_allowed(_map, _home, cell, radii=_radii)
+
+            options = dict(
                 occupied=scope_occupied - own_cells,
-                neighbor_index=neighbors,
-                other_groups=living_groups,
                 radius=configuration["radius"],
                 min_steps=configuration["min_steps"],
                 max_steps=configuration["max_steps"],
                 indexed=indexed,
                 destination_allowed=lambda cell: habitat_destination_allowed(
                     scope[0], scope[1], cell
-                ),
+                )
+                and inside_home(cell),
             )
+            if home is not None and any(
+                not inside_home(wander.point(member)) for member in members
+            ):
+                from .monster_home_paths import homing_path
+
+                result = homing_path(
+                    members,
+                    scoped,
+                    indexed,
+                    home,
+                    lambda cell, _home=home, _inside=inside_home: _home
+                    if _inside(cell)
+                    else 0,
+                    occupied=options["occupied"],
+                    radius=configuration["radius"],
+                    min_steps=configuration["min_steps"],
+                    max_steps=configuration["max_steps"],
+                    destination_allowed=lambda cell: habitat_destination_allowed(
+                        scope[0], scope[1], cell
+                    ),
+                    map_id=(scope[0], tuple(sorted(radii))),
+                )
+            else:
+                result = wander.plan_group_path(
+                    members,
+                    scoped,
+                    (),
+                    neighbor_index=neighbors,
+                    other_groups=living_groups,
+                    **options,
+                )
             if result is None:
                 continue
             candidate = result["members"]
@@ -806,6 +858,33 @@ def apply(store, groups, harvests, world, proposal, *, world_epoch):
 
     if proposal["world_epoch"] != world_epoch:
         return {"status": "stale_epoch"}
+    if proposal["kind"] == "idle_distribution":
+        from .monster_idle_distribution_store import commit, validate_chunk
+
+        prepared = validate_chunk(store, proposal)
+        with groups.lock, harvests.lock, world.lock:
+            scope = tuple(proposal["scope"])
+            episode_current = world.empty_scope_generation(*scope) == proposal[
+                "empty_generation"
+            ] and not any(
+                world.location(entry[2]) == scope for entry in world.players.values()
+            )
+            outcomes = commit(
+                store,
+                groups,
+                proposal,
+                episode_current=episode_current,
+                prepared=prepared,
+            )
+            return dict(
+                status="applied"
+                if outcomes
+                else "duplicate"
+                if episode_current
+                else "stale",
+                applied_groups=sum(row["status"] == "applied" for row in outcomes),
+                skipped_groups=sum(row["status"] == "skipped" for row in outcomes),
+            )
     if proposal["kind"] == "cleanup_unassigned":
         from .monster_population_cleanup import apply as apply_cleanup
 

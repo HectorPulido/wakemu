@@ -85,6 +85,20 @@ def note_preparation_modifier(fight, invocation):
     )
 
 
+def completed_attack_preparation(fight, actor_id):
+    """Attest a settled real primary attack inside its still-owned cast scope."""
+    scope = _scope.get()
+    return (
+        scope is not None
+        and scope["fight"] is fight
+        and scope["actor_id"] == actor_id
+        and scope["delivered"] is True
+        and scope.get("settled") is True
+        and type(scope.get("source_uid")) is int
+        and scope["source_uid"] > 0
+    )
+
+
 def _preparation_marker(effects, root, modifier_reference, state_reference):
     """Qualify the original next-attack modifier/marker/decurse recipe."""
     import re

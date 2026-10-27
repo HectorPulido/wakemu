@@ -31,18 +31,25 @@ def prepare_death_reconciliation(fight):
 
 def apply_death_reconciliation(fight, plan):
     """Preserve wave deferral, victory settlement and successor turn ordering."""
-    fight.order = list(plan.surviving_order)
     alive = set(plan.alive_teams)
+    if getattr(fight, "rift_wave_state", None) is not None:
+        from .rift_combat_adapter import finish_defeat
+
+        if finish_defeat(fight, alive):
+            fight.order = list(plan.surviving_order)
+            return
     defer_victory = False
     if getattr(fight, "rift_wave_state", None) is not None:
         from .rift_combat_adapter import defer_wave_victory
 
         defer_victory = defer_wave_victory(fight, alive)
     if len(alive) < 2 and not defer_victory:
+        fight.order = list(plan.surviving_order)
         fight.phase = "finished"
         fight.winner = next(iter(alive), None)
         fight._event("finished", winner=fight.winner)
-    elif plan.current_id in fight.order:
+    elif plan.current_id in plan.surviving_order:
+        fight.order = list(plan.surviving_order)
         # Native additional turns deliberately repeat identities. Filtering
         # preserves the current occurrence, not the first equal actor ID.
         surviving = set(plan.surviving_order)
@@ -51,18 +58,36 @@ def apply_death_reconciliation(fight, plan):
             for identity in plan.original_order[: plan.current_index]
         )
     else:
-        start = plan.current_index
-        next_slot = next(
-            (start + offset) % len(plan.original_order)
+        successor_slot = next(
+            (plan.current_index + offset) % len(plan.original_order)
             for offset in range(1, len(plan.original_order) + 1)
-            if plan.original_order[(start + offset) % len(plan.original_order)]
-            in fight.order
+            if plan.original_order[
+                (plan.current_index + offset) % len(plan.original_order)
+            ]
+            in plan.surviving_order
         )
-        surviving = set(plan.surviving_order)
-        fight.turn_index = sum(
-            identity in surviving for identity in plan.original_order[:next_slot]
-        )
+        wrapped = successor_slot <= plan.current_index
+        if wrapped:
+            from .combat_round_boundary import complete_round
+
+            # Observe the actual ending actor and original SU occurrence
+            # before filtering, including an inactive tail skipped by death.
+            if not complete_round(fight):
+                fight.order = list(plan.surviving_order)
+            fight.turn_index = 0
+        else:
+            fight.order = list(plan.surviving_order)
+            surviving = set(plan.surviving_order)
+            fight.turn_index = sum(
+                identity in surviving
+                for identity in plan.original_order[:successor_slot]
+            )
         fight.turn_id += 1
+        if wrapped:
+            from .combat_round_boundary import finish_turn_budget
+
+            if finish_turn_budget(fight):
+                return
         fight._begin_turn()
 
 

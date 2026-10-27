@@ -56,11 +56,35 @@ def load(db):
         or not isinstance(value["arrivals"], list)
     ):
         raise ValueError("Invalid original Boat arrival authority")
-    from wakfu_server.storage.native_catalog import _database, release
+    from wakfu_server import native_catalog
+    from wakfu_server.native_catalog_compatibility import require_source_revision
 
-    revision = release()
-    if value["catalog_revision"] != revision:
+    revision = native_catalog.release()
+    pinned = value["catalog_revision"]
+    if (
+        type(pinned) is not str
+        or len(pinned) != 64
+        or any(char not in "0123456789abcdef" for char in pinned)
+    ):
+        raise ValueError("Invalid Boat arrival source catalog")
+    dependencies = set()
+    for entry in value["arrivals"]:
+        if (
+            not isinstance(entry, dict)
+            or type(entry.get("map_id")) is not int
+            or not 0 < entry["map_id"] < 2**31
+        ):
+            raise ValueError("Invalid native Boat arrival record")
+        dependencies.add(f"combat-maps/{entry['map_id']}.json")
+    if dependencies:
+        # Boat endpoints/routes are the independently checked DB contract
+        # below. Only these native map documents are read from the catalog;
+        # topology_sha256 is the original map JAR hash, not a JSON checksum.
+        require_source_revision(pinned, tuple(sorted(dependencies)))
+    elif pinned != revision:
         raise ValueError("Boat arrival source catalog changed")
+    if native_catalog.release() != revision:
+        raise ValueError("Boat arrival catalog changed during validation")
     from . import native_boats
 
     contracts = native_boats.load(db)
@@ -121,7 +145,7 @@ def load(db):
             raise ValueError(
                 "Boat arrival differs from its original linked endpoint/column"
             )
-        with _database().connection() as source_db:
+        with native_catalog._database().connection() as source_db:
             manifest = source_db.execute(
                 "SELECT sha256 FROM native_catalog_documents WHERE revision=%s AND path=%s",
                 (revision, f"combat-maps/{entry['map_id']}.json"),
@@ -151,6 +175,8 @@ def load(db):
             targets.add(target)
         seen.add(entry["endpoint_id"])
         result.append(dict(entry, source=source, targets=frozenset(targets)))
+    if native_catalog.release() != revision:
+        raise ValueError("Boat arrival catalog changed during validation")
     return tuple(result)
 
 

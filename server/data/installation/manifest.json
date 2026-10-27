@@ -2,9 +2,9 @@
   "artifacts": {
     "native-catalogs": {
       "compression": "none",
-      "path": "catalogs/manifest.json",
-      "sha256": "2e8aa4194648b98a3db1384dedaf93a2c927070f6b529082c28e62471600121e",
-      "size": 7155214
+      "path": "catalogs/manifest-spirit-abomination-morphs-v1.json",
+      "sha256": "911f81b82778ff7983c794fae0a60ca0008f788a6b4b2ea47e3e693397e5b27f",
+      "size": 7160046
     },
     "reviewed-dungeons": {
       "compression": "gzip",
@@ -37,15 +37,15 @@
     "sha256": "bced62c8a6b6cfc7aa64ee3d9279af181162bd0b26160c14747be13f8c14d7f9"
   },
   "catalogs": {
-    "active_revision": "b3963fc05f1d8ec1eb9afc268fab0350f4de120144d67f7eee470747750b2450",
+    "active_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
     "fishing_revision": "20f2731c921701c025af2d8416696e5b01c7346fc9393408b47533c092cab5fa",
     "manifest": "native-catalogs",
     "mining_revision": "14b63a5b28014e455fd9910c99fe037e6d957ac9b40508335bfe130c2ee54518",
     "releases": [
       {
-        "document_count": 7490,
-        "revision": "b3963fc05f1d8ec1eb9afc268fab0350f4de120144d67f7eee470747750b2450",
-        "source_bytes": 2444501271
+        "document_count": 7491,
+        "revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+        "source_bytes": 2446116471
       },
       {
         "document_count": 7531,

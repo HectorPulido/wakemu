@@ -252,22 +252,45 @@ class Plantings:
             finished["applied"] = not finished["duplicate"]
             return finished
 
-    def snapshots(self, map_id, instance_id, *, position=None):
+    def snapshots(self, map_id, instance_id, *, position=None, chunks=None):
         """Replay native resource appearances only into loaded nearby partitions.
 
-        Omitting position retains the complete-map API for offline callers.
+        Explicit chunks follow the same accepted animation checkpoints as
+        native interactive hydration. Position still binds the owning scene;
+        it must not narrow those checkpoints to the immediate path endpoint.
+        Omitting both selectors retains the complete-map API for offline callers.
         Presentation filtering does not change persisted resources or growth.
         """
+        from .world_scene_sync import chunk, neighborhood
+
         visible_chunks = None
         if position is not None:
-            from .world_scene_sync import chunk, neighborhood
-
             if (
                 position["map_id"] != map_id
                 or position.get("instance_id", 0) != instance_id
             ):
                 raise ValueError("Resource snapshot position belongs to another scene")
             visible_chunks = neighborhood(chunk(position))
+        if chunks is not None:
+            if (
+                type(map_id) is not int
+                or not 0 < map_id < 1 << 31
+                or type(instance_id) is not int
+                or not 0 <= instance_id < 1 << 63
+            ):
+                raise ValueError("Resource snapshot chunks belong to an invalid scene")
+            if not isinstance(chunks, (tuple, list, set, frozenset)) or any(
+                not isinstance(selected, tuple)
+                or len(selected) != 2
+                or any(type(axis) is not int for axis in selected)
+                for selected in chunks
+            ):
+                raise ValueError(
+                    "Resource snapshot chunks require native integer partition pairs"
+                )
+            visible_chunks = frozenset(chunks)
+        if visible_chunks is not None and not visible_chunks:
+            return []
         with self.store.connection() as db:
             rows = list(
                 db.execute(

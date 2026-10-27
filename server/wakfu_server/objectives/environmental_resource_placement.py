@@ -1,15 +1,15 @@
-"""Declared map-wide resource placement on reachable original native terrain.
+"""Mission-zone resource placement on reachable original native terrain.
 
 Player positions choose reachable components only. They never rank spawn
 locations. Event-seeded spatial buckets spread resources through the original
-map; reserved native approach paths and spacing prevent a dense wall of
+mission zone; reserved native approach paths and spacing prevent a dense wall of
 plants. Capacity shortfalls cap the population instead of filling adjacent tiles.
 """
 from collections import defaultdict, deque
 from hashlib import sha256
 from math import isqrt
 
-POLICY = "wakemu.environmental-resource-reachable-map-spread.v3"
+POLICY = "wakemu.environmental-resource-reachable-zone-spread.v4"
 
 
 def _point(value):
@@ -59,8 +59,9 @@ def plan(
     """Plan native points plus approach proofs; do not mutate a DB or World.
 
     ``native_surfaces`` has the planting_cells.cells mapping shape. The event's
-    original region remains its admission/credit identity, not a placement
-    boundary: resources use the entire map as explicitly declared server policy.
+    original region is also the strict placement boundary. The complete native
+    map graph still proves access through actual paths and bridges; resources
+    never spill into a different mission zone when the selected zone is small.
     Selected XYZs and each approach edge exist in both directions natively.
     There is no height cutoff; reachable original upper surfaces remain valid.
     """
@@ -103,10 +104,16 @@ def plan(
         (x, y, row["z"]) for (x, y), rows in native_surfaces.items() for row in rows
     }
     original = {_point(point) for point in original}
+    mission_zone = {
+        _point((x, y, row["z"]))
+        for (x, y), rows in native_surfaces.items()
+        for row in rows
+        if row["region_id"] == region_id
+    }
     ordinals = {point: ordinal for ordinal, point in enumerate(sorted(original))}
     candidates = (
         point
-        for point in original.intersection(parent)
+        for point in mission_zone.intersection(parent)
         if point[:2] not in blocked and point not in roots and adjacency[point]
     )
     selected, selected_xy, spaced, transit = [], set(), set(), set()

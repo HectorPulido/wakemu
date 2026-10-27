@@ -1,0 +1,54 @@
+{
+  "repository": "https://github.com/Keka-Bron/JondoEmu",
+  "commit": "cc58d8996d952f3adff2f6a14f13bdd39964506c",
+  "files": [
+    {
+      "source": "Jondo.Unity.Server/Managers/MonsterTactics.cs",
+      "file": "Core/MonsterTactics.cs",
+      "sha256": "f8f260cb1da1c1d949b4f03473dc6ff2f7b884e6d435677f3e2a7c8587cef9e8",
+      "upstream_sha256": "2c4f2a41f17c65e876c74bf2599f65d5ec09c194df8e3c51ea0a5af25c701807",
+      "local_extension": "Native Wakfu advisory damage/element dispatch, translated XY footprint routing and body-aware aims; bounded resource-distinct cast origins, finite native support limits with paid healing reuse, and soft bounded allied terminal-access scoring. Cooperative soft-budget search with best observed prefix retention and replay cleanup; hazard-aware hypothetical escape credit without changing actual AP/MP. Memoized exact native-offset inverse area centers around visible enemy bodies, with old-aim-first deadline preservation. Exact native directional descriptor membership and deadline-bounded four-cardinal inverse candidate centers; preserve authoritative coincident facing. Native null-selector caster anchoring for fixed and directional areas; local legal-reference search preserves reversed orientation. Native paid-walking facing projection and private replay undo; actual gate travel preserves facing and unknown jumps defer coincident native geometry. Staged generic HP-dependent advisory amounts and native healing, source/condition authority, weighted stochastic utility, PA bounds/raw/frozen consumption and private replay undo; no World RNG or game-effect mutation."
+    },
+    {
+      "source": "Jondo.Unity.Server/Managers/MonsterTactics.Planner.cs",
+      "file": "Core/MonsterTactics.Planner.cs",
+      "sha256": "94121b7be4cca4514e80e32648adf2492ee09acbd588b0d21bd23758e63249a9",
+      "upstream_sha256": "f5653c4c2393f0e97dd6351dcd2d316a78c6d22ed43f9390807ed35861bf6111",
+      "local_extension": "Native semantic element/context replay and body-aware target identity; preserve bounded resource-distinct origins through candidate/beam pruning, revalidate support repeat limits, and track self-target usage during private replay. Cooperative soft-budget search with best observed prefix retention and replay cleanup; hazard-aware hypothetical escape credit without changing actual AP/MP. Native paid-walking facing projection and private replay undo; actual gate travel preserves facing and unknown jumps defer coincident native geometry. Staged generic HP-dependent advisory amounts and native healing, source/condition authority, weighted stochastic utility, PA bounds/raw/frozen consumption and private replay undo; no World RNG or game-effect mutation."
+    },
+    {
+      "source": "Jondo.Unity.World/Fights/Fighter.cs",
+      "file": "Compatibility/Fighter.cs",
+      "sha256": "cc7de594d29097403c1a1dc8a8f48516e9c9a05acc3326aad5c61c75d5189c71",
+      "upstream_sha256": "2890c1eb6241e6a994538e4f72cff21619ce6bf72fc26156d6daabe3e2f215b6",
+      "local_extension": "Store native advisory characteristic points, direction, radius and virtual HP maximum; legacy fields retained only for upstream compatibility. Staged generic HP-dependent advisory amounts and native healing, source/condition authority, weighted stochastic utility, PA bounds/raw/frozen consumption and private replay undo; no World RNG or game-effect mutation."
+    },
+    {
+      "source": "Jondo.Unity.World/Fights/Buff.cs",
+      "file": "Compatibility/Buff.cs",
+      "sha256": "48d0a3dbab087a4a960517b4b954ebf8456fe6b93123b33ea1e227419fd4a58a"
+    },
+    {
+      "source": "Jondo.Unity.World/Fights/DamageCalculator.cs",
+      "file": "Compatibility/DamageCalculator.cs",
+      "sha256": "5b0b89c5c04524c8257f81ff4788b3f97db9c1ffbef402e5970f05266f5af0ac",
+      "upstream_sha256": "d4946ff2d17534fc0ea886aec01cd46375d91112f59e00a21187a1d220f1ca79",
+      "local_extension": "Expose Light and Stasis explicitly; slot zero is Physical with Neutral retained solely as the upstream compatibility alias."
+    },
+    {
+      "source": "Jondo.Unity.World/Fights/Tackle.cs",
+      "file": "Compatibility/Tackle.cs",
+      "sha256": "ac92c810c94ce002677f2cadc77efa96c3da06f8b6c26a2d92b4e8db08b62be1"
+    },
+    {
+      "source": "Jondo.Unity.World/Combat/EffectSupport.cs",
+      "file": "Compatibility/EffectSupport.cs",
+      "sha256": "b6b0313ce5e9e72f184e6cdf94c8d5682e4424ee120ec70d23aaca2bfcf08906"
+    },
+    {
+      "source": "Jondo.Unity.Server/Managers/SpellModifiers.cs",
+      "file": "Compatibility/SpellModifiers.cs",
+      "sha256": "c8fe6680d6f83945f75de4ca971895aa55fad9af51ce578cceef0efe2b15ec4f"
+    }
+  ]
+}

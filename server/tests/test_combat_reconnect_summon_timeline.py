@@ -7,7 +7,7 @@ import unittest
 from test_combat_runtime_messages import RuntimeMessageTests
 from wakfu_server.combat_reconnect_snapshot import owned_snapshot
 from wakfu_server.combat_geometry_snapshot import source_snapshot
-from wakfu_server.combat_wire import decode_bootstrap
+from wakfu_server.combat_wire import decode_bootstrap, decode_actor_state
 
 
 def fixture(current_summon):
@@ -62,6 +62,46 @@ def timeline_fields(data):
 
 
 class ReconnectSummonTimelineTests(unittest.TestCase):
+    def test_original_pending_or_historical_marker_keeps_real_counter_and_owner(self):
+        for pending, historical_actor in ((True, 100), (False, 100), (False, 999999)):
+            with self.subTest(pending=pending, historical_actor=historical_actor):
+                fight, summon, shared = fixture(True)
+                session = SimpleNamespace(account_id=1, character_id=100)
+                marker = (
+                    (
+                        12502,
+                        struct.pack(
+                            ">iiiqii", fight.id, 40, -1, historical_actor, -1, 0
+                        ),
+                    ),
+                    (13420, struct.pack(">i", fight.id)),
+                )
+                shared.ack = SimpleNamespace(turn=12, received={1})
+                if pending:
+                    shared.runtime.awaiting_ack = 12
+                    shared.reconnect_turn_end_packets = marker
+                else:
+                    shared.reconnect_end_turn_history = (12, marker)
+                before = source_snapshot(fight)
+                packets = owned_snapshot(
+                    fight,
+                    shared,
+                    session,
+                    actor_payload=lambda *args: (b"owned-stats", bytes(2)),
+                )
+                qualified = pending or historical_actor == 100
+                self.assertEqual(packets.presentation.counter, 12 if qualified else 13)
+                self.assertEqual(
+                    packets.presentation.marker_packets, marker if qualified else ()
+                )
+                self.assertEqual(packets.presentation.canonical_marker, pending)
+                initial = decode_bootstrap(packets[0][1])["myG"]
+                self.assertEqual(timeline_fields(initial)[-1], 12 if qualified else 13)
+                self.assertEqual(shared.ack.received, {1})
+                recovery = packets.presentation.resume_packets[0][1]
+                self.assertEqual(timeline_fields(recovery[15:])[-1], 13)
+                self.assertEqual(source_snapshot(fight), before)
+
     def test_birth_fence_restores_full_progress_and_actual_current_without_duplicates(
         self,
     ):
@@ -95,17 +135,40 @@ class ReconnectSummonTimelineTests(unittest.TestCase):
                 self.assertEqual(
                     packets[birth_index + 1], (13420, struct.pack(">i", fight.id))
                 )
-                recovery_index, recovery = next(
+                early_index, early = next(
                     (i, body) for i, (op, body) in enumerate(packets) if op == 12053
                 )
-                self.assertLess(birth_index + 1, recovery_index)
+                self.assertLess(early_index, action_index)
+                self.assertEqual(early[15:], bootstrap["myG"])
+                self.assertNotIn(13912, [opcode for opcode, _ in packets])
+                self.assertEqual(packets.presentation.counter, 13)
+                self.assertEqual(packets.presentation.actor_ids, (summon.id,))
+                # Only the real native witness releases this frozen tail.
+                continuation = packets.presentation.resume_packets
+                recovery_index, recovery = next(
+                    (i, body)
+                    for i, (op, body) in enumerate(continuation)
+                    if op == 12053
+                )
+                self.assertEqual(recovery_index, 0)
                 phase, orders, progress, index, turn = timeline_fields(recovery[15:])
                 self.assertEqual(phase, 1)
                 self.assertEqual(turn, 13)
                 self.assertEqual(progress[summon.id], 3)
                 self.assertEqual(orders[0].count(summon.id), 1)
                 self.assertEqual(orders[0][index], fight.current.id)
-                self.assertEqual(packets[recovery_index + 1][0], 13912)
+                reset_ids = [
+                    decode_actor_state(op, body)["actor_id"]
+                    for op, body in continuation
+                    if op == 13912
+                ]
+                self.assertEqual(reset_ids, [summon.id])
+                restored_ids = [
+                    decode_actor_state(op, body)["actor_id"]
+                    for op, body in continuation
+                    if op == 12873
+                ]
+                self.assertEqual(set(restored_ids), set(fight.actors))
                 self.assertEqual(source_snapshot(fight), before)
 
 

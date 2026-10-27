@@ -95,7 +95,9 @@ class EquipmentTriggerLevelDomainTests(unittest.TestCase):
         with self.assertRaises(UnknownDynamicLevel):
             domain.leaf_domain_witnesses(damage)
         nested = _leaf(430, [0, 0, -100, 0, 0, 0], 3)
-        nested["target_masks"][1] = [2]
+        nested["target_masks"][1] = [1004]
+        self.assertEqual(domain.leaf_domain_witnesses(nested), (0, 32767))
+        nested["target_masks"][1] = [True]
         with self.assertRaises(UnknownDynamicLevel):
             domain.leaf_domain_witnesses(nested)
 

@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from wakfu_server import native_boats
+from wakfu_server.performance_profiler import PerformanceProfiler
 from test_native_boat_catalog import seeded_indexes
 
 
@@ -68,6 +69,7 @@ class NativeBoatDispatchTests(unittest.TestCase):
             service="world",
             join_world=Mock(),
             mark_static_sync_pending=Mock(),
+            PROFILER=PerformanceProfiler(),
         )
         self.terrain = ModuleType("wakfu_server.combat_terrain")
         self.terrain.map_geometry = Mock(
@@ -109,7 +111,7 @@ class NativeBoatDispatchTests(unittest.TestCase):
             self.namespace["connection"], "world", 13974, b"native"
         )
         self.namespace["join_world"].assert_called_once_with(
-            11, self.namespace["connection"], self.saved
+            11, self.namespace["connection"], self.saved, defer_scene_snapshot=True
         )
         self.namespace["mark_static_sync_pending"].assert_called_once_with()
 
@@ -134,7 +136,7 @@ class NativeBoatDispatchTests(unittest.TestCase):
         with patch.object(native_boats, "admit_source", return_value=True):
             self.run_dispatch()
         self.namespace["WORLD"].leave.assert_not_called()
-        self.namespace["send"].assert_not_called()
+        self.assertEqual(self.namespace["send"].call_args.args[2], 349)
         self.assertIs(self.character, self.namespace["character"])
 
     def test_nonboat_zaap_and_drago_keep_existing_resolver_and_transition(self):

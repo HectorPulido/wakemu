@@ -47,12 +47,12 @@ def _summon(actor):
 
 
 def _wisdom(actor, catalog):
+    from wakfu_server.native_catalog_document import is_native_json_mapping
+
     characteristics = catalog.get("characteristics")
-    row = (
-        characteristics.get(str(WISDOM_STAT_ID))
-        if isinstance(characteristics, dict)
-        else None
-    )
+    if not is_native_json_mapping(characteristics):
+        raise ValueError("Native Wisdom characteristic identity is unavailable")
+    row = characteristics.get(str(WISDOM_STAT_ID))
     if not isinstance(row, dict) or row.get("name") != "WISDOM":
         raise ValueError("Native Wisdom characteristic identity is unavailable")
     stats = getattr(actor, "effect_stats", None)
@@ -115,6 +115,9 @@ def build_context(
         raise ValueError("Fight has no authoritative actor roster")
     monster_rows = _monster_index(monsters)
     catalog = native_actor_catalog()
+    from wakfu_server.combat_companions import registered_companion_ids
+
+    companion_ids = registered_companion_ids(fight)
 
     recipient = actors.get(character_id)
     if (
@@ -122,6 +125,7 @@ def build_context(
         or not recipient.controlled
         or recipient.owner_id != account_id
         or _summon(recipient)
+        or recipient.id in companion_ids
         or recipient.team != winner_team
     ):
         raise ValueError("Reward recipient is not the owned winning player")
@@ -155,7 +159,9 @@ def build_context(
             raise ValueError("Unregistered NPC cannot enter reward context")
 
         if actor.team == winner_team:
-            is_player = actor.controlled and not is_summon
+            is_player = (
+                actor.controlled and not is_summon and actor.id not in companion_ids
+            )
             if actor.controlled and not is_summon:
                 _integer(actor.owner_id, "player owner", 1, (1 << 63) - 1)
             winners.append(

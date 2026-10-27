@@ -11,6 +11,29 @@ import combat_operation_catalog as catalog
 
 
 class CombatOperationCatalogTests(unittest.TestCase):
+    def test_morph_and_aura_keep_separate_native_dependency_domains(self):
+        tables = dict(
+            spells={"1": [10, 11], "6007": []},
+            morph_profiles={
+                "4252": dict(
+                    abilities=[dict(reference=6007)], initial_state_triples=[999, 1, 1]
+                )
+            },
+            profiles={"4252": dict(abilities=[dict(reference=6006)])},
+            areas={"991": []},
+            effects={
+                "10": dict(effect_class=933, parameters=[4252, 0]),
+                "11": dict(effect_class=338, parameters=[991, 0]),
+            },
+        )
+        report = catalog.compile_catalog(tables, [("spell", 1)]).report()
+        self.assertIn("morph:4252", report["nodes"])
+        self.assertIn("spell:6007", report["nodes"])
+        self.assertIn("area:991", report["nodes"])
+        self.assertNotIn("summon:4252", report["nodes"])
+        self.assertNotIn("state:999", report["nodes"])
+        self.assertNotIn("spell:6006", report["nodes"])
+
     def test_compiler_import_and_empty_compile_work_without_database_configuration(
         self,
     ):

@@ -5,9 +5,50 @@ from .captured_roster import OwnedCapturedRoster
 from .captured_roster_store import load, save
 
 
-def select(store, account_id, character, body, *, fight=None):
+def request_owner(body):
     if not isinstance(body, bytes) or len(body) != 9:
         raise ValueError("Invalid native Symbiot selection payload")
+    owner_id, slot = struct.unpack(">qb", body)
+    if owner_id <= 0 or not 0 <= slot < 10:
+        raise ValueError("Invalid owned Symbiot selection")
+    return owner_id
+
+
+def owned_request_character(
+    store, account_id, generation, selected, owner_id, *, fight=None
+):
+    """Resolve a controlled hero only inside the live shared action boundary."""
+    if selected.get("account_id") != account_id:
+        raise ValueError("Foreign selected Symbiot account")
+    if owner_id == selected.get("id"):
+        return selected
+    actor = fight.actors.get(owner_id) if fight is not None else None
+    if (
+        fight is None
+        or fight.phase != "active"
+        or fight.current is not actor
+        or actor is None
+        or actor.controlled is not True
+        or actor.owner_id != account_id
+        or actor.hp <= 0
+        or getattr(actor, "pve_withdrawn", False)
+    ):
+        raise ValueError("Symbiot hero is not the current owned combat actor")
+    if not store.current_character_session(account_id, generation, selected["id"]):
+        raise ValueError("Stale selected Symbiot session")
+    owner = store.character(account_id, owner_id)
+    if (
+        owner.get("id") != owner_id
+        or owner.get("account_id") != account_id
+        or owner.get("breed") != 2
+        or owner.get("deleted_at") is not None
+    ):
+        raise ValueError("Missing owned Osamodas combat character")
+    return owner
+
+
+def select(store, account_id, character, body, *, fight=None):
+    request_owner(body)
     owner_id, slot = struct.unpack(">qb", body)
     if (
         owner_id != character["id"]

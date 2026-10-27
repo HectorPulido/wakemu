@@ -9,7 +9,7 @@ import copy
 import json
 import uuid
 import time
-from .position_buffer import Positions, _KEYS
+from .position_buffer import Positions, _KEYS, _recoverable_position_lock
 
 
 class PositionJournalError(ValueError):
@@ -270,7 +270,7 @@ class RedisPositions(Positions):
                 return 0
         # Acquire scarce DB capacity before holding any account barrier.
         started = time.monotonic()
-        with ExitStack() as transaction:
+        with _recoverable_position_lock(), ExitStack() as transaction:
             db = transaction.enter_context(self.store.connection(timeout=0.25))
             self.observe("pool", started, account_id=scope.get("account_id"))
             with self.flush_barrier(**scope) as accounts:

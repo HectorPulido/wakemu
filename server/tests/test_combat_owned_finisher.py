@@ -162,7 +162,7 @@ class OwnedFinisherTreeTests(unittest.TestCase):
         order = []
         cleanup_packets = []
 
-        def replay(source, *, authority):
+        def replay(source, *, authority, eligible_uids=None):
             source.validate()
             order.append((source.event_ids, source.channel))
             if source.event_ids == (1012,):

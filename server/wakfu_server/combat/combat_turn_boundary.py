@@ -60,6 +60,10 @@ def execute_turn_delivery(dispatcher, plan):
     from .combat_event_replay import NativeExternalEvent
     from .combat_turn_events import TURN_BOUNDARY_POLICY, validate_turn_boundary_context
     from .combat_external_turn_recipient import owned_turn_recipient_scope
+    from .combat_external_event_removal import (
+        has_removal_subscription,
+        removal_recipients,
+    )
 
     fight = dispatcher.native_retention.fight
     deliveries = getattr(fight, "native_turn_event_deliveries", {})
@@ -88,6 +92,24 @@ def execute_turn_delivery(dispatcher, plan):
                     authority=authority,
                 )
             )
+        # Start/regeneration close the corresponding turn-scoped listeners.
+        # Keep the original frozen manager order and the same owned boundary
+        # facts; a null-source L6 notification alone cannot select mask2.
+        if plan.event_id in (1001, 1037) and has_removal_subscription(
+            dispatcher, plan.event_id
+        ):
+            for identity, channel in removal_recipients(plan.recipients):
+                outcomes.extend(
+                    dispatcher.replay_event(
+                        NativeExternalEvent(
+                            identity,
+                            (plan.event_id,),
+                            channel,
+                            turn_boundary_context=context,
+                        ),
+                        authority=authority,
+                    )
+                )
     deliveries = dict(deliveries)
     deliveries[f"{plan.turn_id}:{plan.actor_id}:{plan.phase}"] = dict(
         actor_id=plan.actor_id,

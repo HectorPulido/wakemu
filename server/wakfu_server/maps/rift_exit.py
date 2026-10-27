@@ -12,14 +12,18 @@ def _exit(
     *,
     allowed_accounts,
     source_allowed,
-    fighting
+    fighting,
+    relocation=None,
 ):
-    if not isinstance(body, (bytes, bytearray, memoryview)) or len(body) != 17:
-        raise ValueError("Invalid native rift exit request")
-    identity, _, flag, mode = struct.unpack(">qiBi", body)
-    if flag != 0 or mode != 2:
-        raise ValueError("Unsupported native rift exit mode")
-    from . import generic_transports, player_parties, rift_runtime
+    if relocation is None:
+        if not isinstance(body, (bytes, bytearray, memoryview)) or len(body) != 17:
+            raise ValueError("Invalid native rift exit request")
+        identity, _, flag, mode = struct.unpack(">qiBi", body)
+        if flag != 0 or mode != 2:
+            raise ValueError("Unsupported native rift exit mode")
+    elif body is not None:
+        raise ValueError("Administrative relocation is not a native exit request")
+    from wakfu_server import generic_transports, player_parties, rift_runtime
 
     with store.connection() as db:
         preliminary = db.execute(
@@ -37,6 +41,11 @@ def _exit(
         player_parties._lock_members(db, preliminary_run["members"])
         store.lock_character(db, account_id, generation, character_id)
         character = store.character(account_id, character_id, db)
+        if relocation is not None and any(
+            character[key] != relocation["source"][key]
+            for key in ("map_id", "instance_id", "x", "y", "z")
+        ):
+            raise ValueError("Rift relocation origin is desynchronized")
         run = rift_runtime._run(db, character["instance_id"])
         from wakfu_server.characters.hero_instance_membership import rift_company
 
@@ -57,24 +66,32 @@ def _exit(
             )
         ) or character["map_id"] != run["catalog"]["map_id"]:
             raise ValueError("Character is outside its owned rift")
-        if run["status"] == "running" or fighting(character_id):
+        if run["status"] == "running" or (
+            fighting is not None and fighting(character_id)
+        ):
             raise ValueError("Cannot leave a running rift fight")
-        sources = [
-            o
-            for o in run["catalog"]["objects"]
-            if o["id"] == identity
-            and o["type"] == "Teleporter"
-            and o["map_id"] == character["map_id"]
-        ]
-        if len(sources) != 1:
-            raise ValueError("Not the native exit of this rift")
-        # Reuse the full native criterion/cost/destination/altitude checks;
-        # only server-only private scope is temporarily normalized for lookup.
-        result = generic_transports.resolve(
-            dict(character, instance_id=0),
-            body,
-            source_allowed=lambda unused, source: source_allowed(character, source),
-        )
+        if relocation is None:
+            sources = [
+                o
+                for o in run["catalog"]["objects"]
+                if o["id"] == identity
+                and o["type"] == "Teleporter"
+                and o["map_id"] == character["map_id"]
+            ]
+            if len(sources) != 1:
+                raise ValueError("Not the native exit of this rift")
+            # Native exit criteria/cost/altitude remain authoritative.
+            result = generic_transports.resolve(
+                dict(character, instance_id=0),
+                body,
+                source_allowed=lambda unused, source: source_allowed(character, source),
+            )
+        else:
+            # Console authorization belongs to its existing caller. This is
+            # explicit administrative travel, never a fabricated portal click.
+            result = dict(
+                destination=relocation["destination"], direction=character["direction"]
+            )
         if result["destination"]["map_id"] == character["map_id"]:
             raise ValueError("Rift exit does not leave its interior")
         ids = (
@@ -82,7 +99,11 @@ def _exit(
             if run["status"] == "entered"
             else sorted(company | {character_id})
         )
-        if run["status"] == "entered" and run["owner_character_id"] != character_id:
+        if (
+            relocation is None
+            and run["status"] == "entered"
+            and run["owner_character_id"] != character_id
+        ):
             raise ValueError("Only the owner may cancel an unstarted rift")
         rows = db.execute(
             "SELECT c.*,s.generation,s.character_id AS selected_character_id,s.expires_at "
@@ -93,7 +114,7 @@ def _exit(
         if {r["id"] for r in rows} != set(ids) or any(
             r["account_id"] not in allowed_accounts
             or r["instance_id"] != run["instance_id"]
-            or fighting(r["id"])
+            or (fighting is not None and fighting(r["id"]))
             for r in rows
         ):
             raise ValueError("Rift exit membership changed or entered combat")
@@ -141,12 +162,38 @@ def leave(
     body,
     *,
     source_allowed,
-    fighting
+    fighting,
 ):
     """Commit every affected position before queueing native map hydration."""
-    from .rift_transition_delivery import queue
+    return _leave(
+        store,
+        positions,
+        account_id,
+        generation,
+        character_id,
+        body,
+        source_allowed=source_allowed,
+        fighting=fighting,
+    )
 
-    if not callable(source_allowed) or not callable(fighting):
+
+def _leave(
+    store,
+    positions,
+    account_id,
+    generation,
+    character_id,
+    body,
+    *,
+    source_allowed,
+    fighting,
+    relocation=None,
+):
+    from wakfu_server.rift_transition_delivery import queue
+
+    if (
+        relocation is None and (not callable(source_allowed) or not callable(fighting))
+    ) or (fighting is not None and not callable(fighting)):
         raise ValueError("Rift exit requires native approach and combat authorities")
     with store.connection() as db:
         members = db.execute(
@@ -170,6 +217,7 @@ def leave(
             allowed_accounts=set(accounts),
             source_allowed=source_allowed,
             fighting=fighting,
+            relocation=relocation,
         )
         if result is None:
             return None
@@ -177,3 +225,47 @@ def leave(
             positions.release(row["account_id"], row["generation"], row["id"])
         queue(result["members"], result["destination"])
         return result
+
+
+def relocate(
+    store, positions, account_id, generation, character_id, source, destination
+):
+    """Reuse native departure custody for an authorized console relocation.
+
+    The caller authorizes the command. Native floor, selected ownership, full
+    source CAS, frozen cohort and durable combat checks still apply. Entered
+    cancellation moves every member; terminal travel moves only this company.
+    No completed roster, earned result or reward receipt is rewritten.
+    """
+    from wakfu_server.combat_geometry import published_geometry
+
+    if positions is None:
+        raise ValueError("Rift relocation requires its position authority")
+    keys = ("map_id", "instance_id", "x", "y", "z")
+    if (
+        any(
+            type(location) is not dict
+            or any(type(location.get(key)) is not int for key in keys)
+            for location in (source, destination)
+        )
+        or destination["instance_id"] != 0
+    ):
+        raise ValueError("Rift relocation requires a typed exterior destination")
+    if (
+        tuple(destination[key] for key in ("x", "y", "z"))
+        not in published_geometry(destination["map_id"]).cells
+    ):
+        raise ValueError("Rift relocation destination is not native walkable floor")
+    return _leave(
+        store,
+        positions,
+        account_id,
+        generation,
+        character_id,
+        None,
+        source_allowed=None,
+        # Running status and the complete cohort's persisted combat membership
+        # are checked under the same run/owner locks as native departure.
+        fighting=None,
+        relocation=dict(source=dict(source), destination=dict(destination)),
+    )

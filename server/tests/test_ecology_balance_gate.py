@@ -112,7 +112,7 @@ class EcologyBalanceStatisticalGate(unittest.TestCase):
                 )
                 self.assertTrue(spawn_group([member], group_id=1))
 
-    def test_seeded_population_trajectory_is_reversible_and_respects_soft_sizes_and_caps(
+    def test_seeded_population_trajectory_never_regresses_and_respects_soft_sizes_and_caps(
         self,
     ):
         rng = random.Random(681113)
@@ -149,9 +149,8 @@ class EcologyBalanceStatisticalGate(unittest.TestCase):
                 roster[index] = {**roster[index], "ref": selected["reference"]}
             for member in roster:
                 rank_hits[monster_maturation.STAGES[member["ref"]][1]] += 1
-        self.assertGreater(up, 100)
-        self.assertGreater(down, 100)
-        self.assertLess(max(rank_hits.values()) / sum(rank_hits.values()), 0.85)
+        self.assertGreater(up, 0)
+        self.assertEqual(down, 0)
 
         # Seeded public habitat run: groups start at2–5, births can extend an
         # existing roster or establish an external group, with hard caps at
@@ -317,9 +316,8 @@ class EcologyBalanceReceiptGate(PostgresCase):
         self.assertEqual(1, receipts)
         self.assertEqual(1, outbox)
 
-    def test_maturation_receipt_replays_same_nonabsorbing_transition(self):
-        # Find a normal upper-tier Gobball for which seeded categorical samples
-        # can select an adjacent lower tier; this guards against absorbing growth.
+    def test_maturation_receipt_replays_the_same_upward_transition(self):
+        # A committed growth draw remains authoritative when the cycle is retried.
         family = monster_maturation.STAGES[2][0]
         candidate = None
         configuration = dict(
@@ -329,7 +327,7 @@ class EcologyBalanceReceiptGate(PostgresCase):
             boss_probability=0.0,
         )
         for ref, (candidate_family, rank) in monster_maturation.STAGES.items():
-            if candidate_family is not family or rank <= 0:
+            if candidate_family is not family:
                 continue
             draw = next(
                 (
@@ -337,7 +335,7 @@ class EcologyBalanceReceiptGate(PostgresCase):
                     for i in range(1000)
                     if (
                         lambda result: result is not None
-                        and monster_maturation.STAGES[result["reference"]][1] < rank
+                        and monster_maturation.STAGES[result["reference"]][1] > rank
                     )(
                         monster_maturation.choose_next(
                             ref,
@@ -384,10 +382,11 @@ class EcologyBalanceReceiptGate(PostgresCase):
         )
         self.assertFalse(first["duplicate"])
         self.assertTrue(replay["duplicate"])
-        self.assertLess(
+        self.assertGreater(
             monster_maturation.STAGES[first["to_reference"]][1],
             monster_maturation.STAGES[ref][1],
         )
+        self.assertEqual(first["policy"]["composition_model"], 2)
         self.assertEqual(first["to_reference"], replay["to_reference"])
         with self.store.connection() as db:
             receipts = db.execute(

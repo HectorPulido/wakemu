@@ -141,6 +141,53 @@ class PartyDispatchTests(PostgresCase):
             all(body[0:8] == struct.pack(">q", party_id) for _, body in roster)
         )
 
+    def test_name_lookup_uses_canonical_identity_and_missing_target_leaves_no_invitation(
+        self,
+    ):
+        leader = self.player("leader")
+        target = self.player("target", map_id=527)
+        self.sent.clear()
+
+        def by_name(name):
+            encoded = name.encode("utf-8")
+            return b"\x01" + struct.pack(">qqBB", -7, -2, 0, len(encoded)) + encoded
+
+        self.request(leader, 1156, by_name(target["character"]["name"].swapcase()))
+        self.assertEqual(
+            self.sent,
+            [
+                (
+                    target["peer"].name,
+                    *party_wire.invitation(
+                        leader["character"]["id"], leader["character"]["name"]
+                    ),
+                )
+            ],
+        )
+        with self.store.connection() as db:
+            invitation = db.execute(
+                "SELECT inviter_id,invitee_id,invitee_generation "
+                "FROM player_party_invitations"
+            ).fetchone()
+        self.assertEqual(invitation["inviter_id"], leader["character"]["id"])
+        self.assertEqual(invitation["invitee_id"], target["character"]["id"])
+        self.assertEqual(invitation["invitee_generation"], target["generation"])
+        self.request(target, 1031, self.answer_body(False, leader))
+        self.sent.clear()
+        for missing in ("undefined", "MissingPlayer"):
+            with self.subTest(target=missing), self.assertRaisesRegex(
+                ValueError, "no está conectado"
+            ):
+                self.request(leader, 1156, by_name(missing))
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM player_party_invitations"
+                ).fetchone()["n"],
+                0,
+            )
+        self.assertEqual(self.sent, [])
+
     def test_decline_spoof_and_stale_session_do_not_publish_or_mutate_membership(self):
         leader = self.player("leader")
         target = self.player("target", map_id=527)

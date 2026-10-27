@@ -404,10 +404,12 @@ def plan(db, event, profile, policy, *, taken):
         "USING(monster_reference) WHERE s.source_key=%s AND s.scenario_id=%s AND s.policy_version=%s ORDER BY monster_reference",
         (policy["source_key"], policy["scenario_id"], policy["policy_version"]),
     ).fetchall()
-    if not records or any(
-        r["catalog_revision"] != native_catalog.release() for r in records
-    ):
+    if not records:
         raise ValueError("Environmental exact species catalog changed")
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    for revision in {row["catalog_revision"] for row in records}:
+        require_source_revision(revision, ("monsters.json",))
     species = {r["monster_reference"]: r["native_min_level"] for r in records}
     if (
         expected_family in ("monster_defeat", "monster_destroy")
@@ -427,6 +429,8 @@ def plan(db, event, profile, policy, *, taken):
             "WHERE p.profile_key=%s AND p.version=%s",
             (profile["profile_key"], profile["version"]),
         ).fetchall()
+        for revision in {row["catalog_revision"] for row in sources}:
+            require_source_revision(revision, ("monster-encyclopedia.json",))
         if (
             not sources
             or {r["monster_reference"] for r in sources} != set(species)
@@ -434,7 +438,6 @@ def plan(db, event, profile, policy, *, taken):
                 r["scenario_id"] != policy["scenario_id"]
                 or r["source_key"] != policy["source_key"]
                 or r["template_reference"] != policy["group_reference"]
-                or r["catalog_revision"] != native_catalog.release()
                 or r["descriptor_sha256"] != _digest(r["action_descriptor"])
                 or native_destroy_action(r["monster_reference"], r["action_id"])[
                     "native"

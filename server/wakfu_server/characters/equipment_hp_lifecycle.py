@@ -11,7 +11,7 @@ from psycopg.pq import TransactionStatus
 
 
 def _native_catalog():
-    from wakfu_server.combat.combat_actor_snapshot import native_actor_catalog
+    from wakfu_server.combat_actor_snapshot import native_actor_catalog
 
     return native_actor_catalog()
 

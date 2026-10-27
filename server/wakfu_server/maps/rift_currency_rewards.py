@@ -1,4 +1,4 @@
-"""Exactly-once rift XP/kamas: fifty times the ordinary per-recipient reward.
+"""Exactly-once earned Rift XP/kamas: normal reward times reached wave times10.
 
 The ordinary configured reward policy owns monster values, Wisdom, party and
 level scaling, global rates, conquest rates and the single inclusive kama roll.
@@ -12,9 +12,9 @@ from psycopg.pq import TransactionStatus
 from psycopg.types.json import Jsonb
 
 from wakfu_server import combat_reward_context, combat_rewards, reward_policy
+from wakfu_server.combat_encounter_roles import assigned_roles
 
-MULTIPLIER = 50
-ALGORITHM = "rift-fifty-times-ordinary-xp-kamas-v1"
+ALGORITHM = "rift-reached-wave-times-ten-ordinary-xp-kamas-v1"
 
 
 def reward_context(fight, character, run, rosters, eligible_character_ids):
@@ -23,45 +23,13 @@ def reward_context(fight, character, run, rosters, eligible_character_ids):
     Count only defeated original enemies, including kills from the unfinished
     final wave. Summons, living enemies and merely planned waves never pay.
     """
-    sources = getattr(fight, "rift_monsters", None)
-    if not isinstance(sources, dict):
-        raise ValueError("Rift reward lacks accumulated trusted native sources")
-    bound = {}
-    for roster in rosters:
-        ids, refs = roster["actor_ids"], roster["species_refs"]
-        if not ids or len(ids) != len(refs):
-            raise ValueError("Malformed durable rift reward roster")
-        for identity, ref in zip(ids, refs):
-            if (
-                type(identity) is not int
-                or identity >= 0
-                or identity in bound
-                or type(ref) is not int
-                or ref <= 0
-            ):
-                raise ValueError("Invalid or duplicate durable rift enemy")
-            bound[identity] = ref
-    if set(sources) != set(bound):
-        raise ValueError("Rift accumulated sources differ from admitted waves")
-    killed = []
-    for identity, reference in sorted(bound.items()):
-        source, actor = sources[identity], fight.actors.get(identity)
-        if (
-            actor is None
-            or actor.id != identity
-            or actor.controlled
-            or actor.team != 1
-            or combat_reward_context._summon(actor)
-            or source.get("id") != identity
-            or source.get("ref") != reference
-            or source.get("instance_id") != run["instance_id"]
-            or source.get("level") != actor.effective_level
-        ):
-            raise ValueError(
-                "Rift original enemy differs from durable/native authority"
-            )
-        if actor.hp <= 0:
-            killed.append(source)
+    from wakfu_server.rift_earned_rewards import defeated_sources
+
+    killed = defeated_sources(None, fight, run, rosters=rosters)
+    from wakfu_server.combat_companions import registered_companion_ids
+
+    companion_ids = registered_companion_ids(fight)
+    roles = assigned_roles(fight)
     eligible = tuple(eligible_character_ids)
     if len(set(eligible)) != len(eligible) or any(
         type(cid) is not int or cid not in run["members"] for cid in eligible
@@ -71,17 +39,23 @@ def reward_context(fight, character, run, rosters, eligible_character_ids):
         identity: actor
         for identity, actor in fight.actors.items()
         if actor.controlled
-        and actor.team == 0
+        and actor.team == roles.player_team
         and not combat_reward_context._summon(actor)
         and not getattr(actor, "pve_withdrawn", False)
     }
-    if set(winners) != set(eligible) or character["id"] not in winners:
+    if set(winners) - companion_ids != set(eligible) or character["id"] not in eligible:
         raise ValueError("Rift reward eligibility differs from actual participants")
     if not killed:
         return None, ()
     view = SimpleNamespace(
         phase="finished",
-        winner=0,
+        winner=roles.player_team,
+        native_encounter_roles=getattr(fight, "native_encounter_roles", None),
+        native_companion_sources={
+            str(identity): fight.native_companion_sources[str(identity)]
+            for identity in companion_ids
+            if identity in winners
+        },
         actors={
             **winners,
             **{source["id"]: fight.actors[source["id"]] for source in killed},
@@ -95,12 +69,14 @@ def reward_context(fight, character, run, rosters, eligible_character_ids):
     return context, snapshot
 
 
-def scaled_policy(baseline, totals):
+def scaled_policy(baseline, totals, multiplier):
     """Apply the multiplier after ordinary rounding, then native/storage caps."""
+    if type(multiplier) is not int or not 1 <= multiplier <= 100000:
+        raise ValueError("Invalid earned Rift reward multiplier")
     return combat_rewards.Policy(
-        xp=min(baseline.xp * MULTIPLIER, (2**63 - 1) - totals["xp"]),
+        xp=min(baseline.xp * multiplier, (2**63 - 1) - totals["xp"]),
         kamas=min(
-            baseline.kamas * MULTIPLIER, 2**31 - 1, (2**63 - 1) - totals["kamas"]
+            baseline.kamas * multiplier, 2**31 - 1, (2**63 - 1) - totals["kamas"]
         ),
     )
 
@@ -134,22 +110,37 @@ def resolve(
     if receipt is None:
         raise ValueError("Rift currency reward requires durable terminal settlement")
     actor = fight.actors.get(character_id)
+    roles = assigned_roles(fight)
+    outcome = "won" if fight.winner == roles.player_team else "lost"
     if (
-        receipt["outcome"] != "won"
-        or fight.winner != 0
+        receipt["outcome"] not in ("won", "lost")
+        or state.get("outcome") in ("capacity_exhausted", "administrative_victory")
         or actor is None
+        or actor.team != roles.player_team
         or getattr(actor, "pve_withdrawn", False)
     ):
         return combat_rewards.Policy()
     if (
         fight.phase != "finished"
-        or run["status"] != "won"
-        or receipt["result"]["turn"] < run["policy"]["turn_budget"]
+        or receipt["outcome"] != outcome
+        or run["status"] != outcome
+        or (
+            outcome == "won"
+            and receipt["result"]["turn"] < run["policy"]["turn_budget"]
+        )
         or character["id"] != character_id
         or character["account_id"] != account_id
     ):
         raise ValueError("Rift currency reward survival or recipient is invalid")
-    from wakfu_server.combat_reward_ownership import lock_recipient
+    from wakfu_server.combat_reward_ownership import (
+        lock_recipient,
+        is_earned_rift_recipient,
+    )
+
+    if outcome == "lost" and not is_earned_rift_recipient(
+        db, fight, account_id, generation, character_id
+    ):
+        raise ValueError("Rift defeat reward lacks its earned settlement capability")
 
     lock_recipient(store, db, account_id, generation, character_id, fight.id)
     old = db.execute(
@@ -160,15 +151,20 @@ def resolve(
         if old["account_id"] != account_id:
             raise ValueError("Rift currency receipt belongs to another account")
         return reward_policy._existing_decision(old).policy
-    rosters = db.execute(
-        "SELECT actor_ids,species_refs FROM rift_wave_rosters WHERE instance_id=%s ORDER BY wave",
-        (run["instance_id"],),
-    ).fetchall()
+    from wakfu_server.rift_wave_bindings import rosters as bound_rosters
+
+    rosters = bound_rosters(db, run, fight=fight)
+    from wakfu_server.combat_companions import validate_durable_roster
+
+    validate_durable_roster(db, fight)
     context, killed = reward_context(
         fight, character, run, rosters, eligible_character_ids
     )
     if context is None:
         return combat_rewards.Policy()
+    from wakfu_server.rift_earned_rewards import frozen_factor
+
+    factor = frozen_factor(db, run, receipt["result"])
     ordinary = reward_policy.resolve(
         store,
         db,
@@ -182,10 +178,12 @@ def resolve(
         # Previously settled/legacy fight amounts are immutable, never scaled twice.
         return ordinary.policy
     totals = combat_rewards.load(db, character)
-    scaled = scaled_policy(ordinary.policy, totals)
+    scaled = scaled_policy(ordinary.policy, totals, factor["multiplier"])
     snapshot = dict(
         algorithm=ALGORITHM,
-        multiplier=MULTIPLIER,
+        multiplier=factor["multiplier"],
+        factor_policy=factor,
+        outcome=outcome,
         instance_id=run["instance_id"],
         fight_id=fight.id,
         character_id=character_id,
@@ -195,8 +193,8 @@ def resolve(
         defeated_native_monsters=list(killed),
         eligible_character_ids=sorted(eligible_character_ids),
         limits=dict(
-            xp_capped=scaled.xp < ordinary.policy.xp * MULTIPLIER,
-            kamas_capped=scaled.kamas < ordinary.policy.kamas * MULTIPLIER,
+            xp_capped=scaled.xp < ordinary.policy.xp * factor["multiplier"],
+            kamas_capped=scaled.kamas < ordinary.policy.kamas * factor["multiplier"],
         ),
     )
     encoded = json.dumps(

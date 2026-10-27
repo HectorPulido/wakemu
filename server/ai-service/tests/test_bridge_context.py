@@ -667,9 +667,10 @@ class ContextBridgeHTTPTests(unittest.TestCase):
         self.addCleanup(exporter.close)
         if not source.stat().st_ino:
             self.skipTest("Filesystem does not expose physical inode identity")
+        original_resolve = Path.resolve
         with patch.object(
-            Path, "resolve", side_effect=AssertionError("Repeated ancestor resolution")
-        ):
+            Path, "resolve", autospec=True, side_effect=original_resolve
+        ) as resolutions:
             first, snapshots = exporter.inventory()
             self.assertEqual(len(first["entries"]), 2)
             self.assertEqual(len(exporter.cache), 1)
@@ -679,6 +680,9 @@ class ContextBridgeHTTPTests(unittest.TestCase):
             replacement.replace(source)
             (root / "new.future-format").write_bytes(b"all-future-data")
             second, current = exporter.inventory()
+            self.assertEqual(
+                resolutions.call_count, 4
+            )  # Capture/end, once per root and scan.
         by_name = {row["path"]: row["sha256"] for row in second["entries"]}
         self.assertEqual(len(by_name), 3)
         self.assertEqual(by_name["all/hardlink.future"], original)
@@ -1066,6 +1070,221 @@ class ContextBridgeHTTPTests(unittest.TestCase):
         ):
             status, _ = self.post_raw("/v3/context/block", raw)
             self.assertEqual(status, 400)
+
+
+class ContextInventoryScanTests(unittest.TestCase):
+    def test_overlapping_roots_fresh_aliases_index_custody_and_catalog_headers(self):
+        from contextlib import nullcontext
+        from wakfu_ai.bridge.world_bridge import DatabaseCatalogSource
+        from wakfu_server import native_catalog
+        from wakfu_server.paths import DATA_ROOT
+
+        with tempfile.TemporaryDirectory(prefix="ai-inventory-qa-") as directory:
+            base = Path(directory)
+            outer, cache = base / "source", base / "snapshots"
+            engine, sdk = outer / "engine", outer / "sdk"
+            engine.mkdir(parents=True)
+            sdk.mkdir()
+            source = engine / "same.future"
+            source.write_bytes(b"same-version-A")
+            (engine / ".hidden").write_bytes(b"complete\x00\xff")
+            (sdk / "world_entry.py").write_bytes(b"entry = 1\n")
+            (outer / "entry.py").write_bytes(b"shim = 1\n")
+            os.link(source, engine / "hardlink.future")
+            (engine / "file-link").symlink_to(source)
+            roots = {"whole": outer, "engine": engine, "sdk": sdk}
+            files = {"explicit/shim": outer / "entry.py"}
+            exporter = CompleteContextExporter(
+                roots, files=files, cache_root=cache, source_only=True
+            )
+            self.addCleanup(exporter.close)
+
+            def expected():
+                rows = []
+                for name, root in sorted(roots.items()):
+                    for path in sorted(root.rglob("*")):
+                        if path.is_file():
+                            raw = path.read_bytes()
+                            rows.append(
+                                dict(
+                                    path=name + "/" + path.relative_to(root).as_posix(),
+                                    sha256=hashlib.sha256(raw).hexdigest(),
+                                    size=len(raw),
+                                )
+                            )
+                for name, path in sorted(files.items()):
+                    raw = path.read_bytes()
+                    rows.append(
+                        dict(
+                            path=name,
+                            sha256=hashlib.sha256(raw).hexdigest(),
+                            size=len(raw),
+                        )
+                    )
+                return dict(format="wakfu-complete-context-1", entries=rows)
+
+            def verify():
+                resolve = Path.resolve
+                with patch.object(
+                    Path, "resolve", autospec=True, side_effect=resolve
+                ) as resolutions:
+                    actual, sources = exporter.inventory()
+                    self.assertEqual(
+                        resolutions.call_count, 2 * len(set(roots.values()))
+                    )
+                self.assertEqual(actual, expected())
+                for entry in actual["entries"]:
+                    self.assertEqual(
+                        hashlib.sha256(
+                            sources[entry["sha256"]].read_bytes()
+                        ).hexdigest(),
+                        entry["sha256"],
+                    )
+                return actual, sources
+
+            first, first_sources = verify()
+            index = exporter._cache_index
+            identity = exporter._file_identity(index.stat())
+            index_bytes = index.read_bytes()
+            replace = os.replace
+            with patch(
+                "wakfu_ai.bridge.world_bridge.os.replace", wraps=replace
+            ) as replacements:
+                again, _ = verify()
+                self.assertEqual(again, first)
+                self.assertEqual(exporter._file_identity(index.stat()), identity)
+                self.assertEqual(index.read_bytes(), index_bytes)
+                replacements.assert_not_called()
+            original = next(
+                row for row in first["entries"] if row["path"] == "engine/same.future"
+            )
+            status = source.stat()
+            source.write_bytes(b"same-version-B")
+            os.utime(source, ns=(status.st_atime_ns, status.st_mtime_ns))
+            changed, _ = verify()
+            self.assertNotEqual(
+                next(
+                    row["sha256"]
+                    for row in changed["entries"]
+                    if row["path"] == "engine/same.future"
+                ),
+                original["sha256"],
+            )
+            self.assertEqual(
+                first_sources[original["sha256"]].read_bytes(), b"same-version-A"
+            )
+            # Replacements, new nested files, rename and cleared in-process
+            # hints may not remove any newly enumerated source or logical alias.
+            (sdk / "nested").mkdir()
+            (sdk / "nested/future.binary").write_bytes(bytes(range(32)))
+            (outer / "entry.py").rename(outer / "renamed.py")
+            files["explicit/shim"] = outer / "renamed.py"
+            exporter.files = dict(files)
+            exporter.cache.clear()
+            renamed, current = verify()
+            self.assertTrue(
+                any(
+                    row["path"] == "whole/sdk/nested/future.binary"
+                    for row in renamed["entries"]
+                )
+            )
+            index.write_bytes(b"broken hint index")
+            verify()  # A corrupted hint triggers full recapture, not a stale manifest.
+            cycle = outer / "linked-cycle"
+            cycle.symlink_to(outer, target_is_directory=True)
+            with self.assertRaisesRegex(
+                ValueError, "Unenumerated linked context directory"
+            ):
+                exporter.inventory()
+            cycle.unlink()
+            _, current = verify()
+            snapshot = next(iter(current.values()))
+            snapshot.write_bytes(b"tampered snapshot")
+            try:
+                recaptured, copies = exporter.inventory()
+            except ValueError as error:
+                self.assertIn("snapshot", str(error).lower())
+            else:
+                self.assertEqual(recaptured, expected())
+                for entry in recaptured["entries"]:
+                    self.assertEqual(
+                        hashlib.sha256(
+                            copies[entry["sha256"]].read_bytes()
+                        ).hexdigest(),
+                        entry["sha256"],
+                    )
+
+            # A configured root can change between scans, but a retarget while
+            # its original physical enumeration is running must fail closed.
+            old, new = base / "old-root", base / "new-root"
+            old.mkdir()
+            new.mkdir()
+            (old / "one").write_bytes(b"old")
+            (new / "two").write_bytes(b"new")
+            alias = base / "active-root"
+            alias.symlink_to(old, target_is_directory=True)
+            retarget = CompleteContextExporter({"all": alias}, source_only=True)
+            self.addCleanup(retarget.close)
+            replace = os.replace
+            switched = []
+
+            def switch(source, destination):
+                result = replace(source, destination)
+                if (
+                    Path(destination).parent == Path(retarget._snapshots.name)
+                    and not switched
+                ):
+                    # The old bytes are already frozen; only the configured
+                    # root changes before the final source-custody check.
+                    alias.unlink()
+                    alias.symlink_to(new, target_is_directory=True)
+                    switched.append(True)
+                return result
+
+            with patch("wakfu_ai.bridge.world_bridge.os.replace", side_effect=switch):
+                with self.assertRaisesRegex(ValueError, "root changed"):
+                    retarget.inventory()
+            manifest, _ = retarget.inventory()
+            self.assertEqual([row["path"] for row in manifest["entries"]], ["all/two"])
+
+            # Published headers stay lazy and are read anew for each inventory;
+            # no source-body opening or gameplay/catalog decoding is permitted.
+            revision = {"value": "a" * 64}
+            headers = [dict(path="one.native", sha256="1" * 64, source_bytes=3)]
+            queries = []
+
+            def execute(query, parameters):
+                self.assertEqual(parameters, (revision["value"],))
+                self.assertIn("SELECT path,sha256,source_bytes", query)
+                queries.append(parameters)
+                return SimpleNamespace(fetchall=lambda: list(headers))
+
+            database = SimpleNamespace(
+                connection=lambda: nullcontext(SimpleNamespace(execute=execute))
+            )
+            catalog = CompleteContextExporter({"catalog": DATA_ROOT})
+            self.addCleanup(catalog.close)
+            with patch.object(
+                native_catalog, "release", side_effect=lambda: revision["value"]
+            ), patch.object(
+                native_catalog, "_database", return_value=database
+            ), patch.object(
+                DatabaseCatalogSource,
+                "open",
+                side_effect=AssertionError("native raw read"),
+            ):
+                before, _ = catalog.inventory()
+                revision["value"] = "b" * 64
+                headers.append(
+                    dict(path="future.native", sha256="2" * 64, source_bytes=4)
+                )
+                after, sources = catalog.inventory()
+                self.assertEqual(len(queries), 2)
+                self.assertEqual(len(before["entries"]), 1)
+                self.assertEqual(len(after["entries"]), 2)
+                self.assertTrue(
+                    all(row.revision == "b" * 64 for row in sources.values())
+                )
 
 
 if __name__ == "__main__":

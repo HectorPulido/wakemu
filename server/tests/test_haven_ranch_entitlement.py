@@ -59,7 +59,7 @@ class RanchEntitlementTests(unittest.TestCase):
         require_owned_entitlement(self.store, 2, "generation", self.actor)
 
     def test_stale_live_item_and_admin_flags_do_not_authorize(self):
-        with self.assertRaisesRegex(ValueError, "owned Emerald Biome"):
+        with self.assertRaisesRegex(ValueError, r"Bioma Esmeralda \(32864\)"):
             self.check()
         self.assertEqual(self.loads, [(2, 10, "owned-transaction")])
         self.lease.assert_called_once_with(

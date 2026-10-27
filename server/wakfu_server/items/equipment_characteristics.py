@@ -7,12 +7,16 @@ from wakfu_server.paths import DATA_ROOT
 
 @lru_cache(maxsize=1)
 def native_rows():
-    return {
-        int(identity): row
-        for identity, row in native_catalog.load(
-            DATA_ROOT / "native-actor-characteristics.json"
-        )["characteristics"].items()
-    }
+    from wakfu_server.combat_published_catalogs import compilation_mode
+
+    path = DATA_ROOT / "native-actor-characteristics.json"
+    if compilation_mode():
+        document = native_catalog.load(path)
+    else:
+        from wakfu_server.native_catalog_document import load_published_document
+
+        document = load_published_document(path)
+    return {int(identity): row for identity, row in document["characteristics"].items()}
 
 
 def apply_scalar(current, row, amount, subtract):

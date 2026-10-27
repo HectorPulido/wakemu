@@ -1,4 +1,5 @@
 """Persisted central fresh-cast retention registry, including native groups."""
+from .combat_state_parameters import pack_state_identity
 
 from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from wakfu_server import native_catalog as protocol_catalog
@@ -47,6 +48,12 @@ def _set_current_families():
 
 @lru_cache(maxsize=1)
 def native_retained_metadata():
+    from wakfu_server.combat_published_catalogs import compilation_mode
+    from wakfu_server.native_catalog_document import load_published_document
+
+    if not compilation_mode():
+        return load_published_document("native-retained-effect-metadata.json")
+
     return protocol_catalog.load(DATA_ROOT / "native-retained-effect-metadata.json")
 
 
@@ -58,11 +65,13 @@ class _UncacheableRetainedRecord(Exception):
     pass
 
 
-@lru_cache(maxsize=2048)
-def _cached_retained_record(keys, values, value_types):
-    # Only immutable, bounded metadata belongs here. The type tuple keeps
-    # malformed bool/int aliases distinct for the live view's strict checks.
-    for key, value, value_type in zip(keys, values, value_types):
+@lru_cache(maxsize=2048, typed=True)
+def _cached_retained_record(**record):
+    # Keyword values are immediate LRU arguments, so typed=True distinguishes
+    # bool/int aliases without rebuilding three Python tuples on every hit.
+    # Only immutable, bounded metadata belongs here; live ownership is separate.
+    for key, value in record.items():
+        value_type = type(value)
         if (
             type(key) is not str
             or len(key) > 64
@@ -71,7 +80,7 @@ def _cached_retained_record(keys, values, value_types):
             or (value_type is int and value.bit_length() > 64)
         ):
             raise _UncacheableRetainedRecord
-    return RetainedEffect(**dict(zip(keys, values)))
+    return RetainedEffect(**record)
 
 
 def _retained_record(record):
@@ -79,9 +88,7 @@ def _retained_record(record):
     if type(record) is not dict or len(record) > 17:
         return RetainedEffect(**record)
     try:
-        return _cached_retained_record(
-            tuple(record), tuple(record.values()), tuple(map(type, record.values()))
-        )
+        return _cached_retained_record(**record)
     except (_UncacheableRetainedRecord, TypeError):
         # Preserve constructor behavior for unsupported/unhashable inputs.
         return RetainedEffect(**record)
@@ -115,14 +122,17 @@ def native_retained_condition_effects(fight, actor_id):
 
 
 def _native_retained_condition_population(fight):
-    live = (
-        set(fight.owned_stat_effects)
-        | set(fight.state_wire_payloads)
-        | set(fight.native_owned_group_effects)
-        | set(getattr(fight, "native_owned_area_effects", {}))
-        | set(getattr(fight, "native_owned_spatial_effects", {}))
+    # This construction is a pure read: share the verified managers with the
+    # complete view instead of resolving all area geometry a second time.
+    managers = _RetainedManagerPass(fight)
+    live = set(fight.owned_stat_effects)
+    live.update(
+        fight.state_wire_payloads,
+        fight.native_owned_group_effects,
+        getattr(fight, "native_owned_area_effects", {}),
+        getattr(fight, "native_owned_spatial_effects", {}),
     )
-    live.update(e.uid for a in state_managers(fight) for e in a.state_ledger.entries)
+    live.update(e.uid for a in managers.managers for e in a.state_ledger.entries)
     live.difference_update(pending_state_uids(fight))
     if (
         live != set(fight.native_retained_records)
@@ -137,6 +147,7 @@ def _native_retained_condition_population(fight):
             for uid in fight.native_retained_order
         ],
         population_verified_complete=True,
+        _manager_pass=managers,
     )
     population = {}
     for entry in view.entries:
@@ -235,22 +246,24 @@ class NativeRetainedRuntime:
         self.container(None)
 
     def _live(self, *, _manager_pass=None):
-        return (
-            set(self.fight.owned_stat_effects)
-            | set(self.fight.state_wire_payloads)
-            | set(self.fight.native_owned_group_effects)
-            | set(getattr(self.fight, "native_owned_area_effects", {}))
-            | set(getattr(self.fight, "native_owned_spatial_effects", {}))
-            | {
-                e.uid
-                for a in (
-                    state_managers(self.fight)
-                    if _manager_pass is None
-                    else _manager_pass.managers
-                )
-                for e in a.state_ledger.entries
-            }
-        ) - pending_state_uids(self.fight)
+        live = set(self.fight.owned_stat_effects)
+        live.update(
+            self.fight.state_wire_payloads,
+            self.fight.native_owned_group_effects,
+            getattr(self.fight, "native_owned_area_effects", {}),
+            getattr(self.fight, "native_owned_spatial_effects", {}),
+        )
+        live.update(
+            e.uid
+            for a in (
+                state_managers(self.fight)
+                if _manager_pass is None
+                else _manager_pass.managers
+            )
+            for e in a.state_ledger.entries
+        )
+        live.difference_update(pending_state_uids(self.fight))
+        return live
 
     def synchronize(self):
         live = self._live()
@@ -294,12 +307,12 @@ class NativeRetainedRuntime:
                 dict(
                     container_present=True,
                     container_type=1,
-                    container_id=(state.reference << 16) | state.level,
+                    container_id=pack_state_identity(state.reference, state.level),
                     container_kind="state",
                     container_is_spell=False,
                     spell_protected=None,
                 ),
-                (state.reference << 16) | state.level,
+                pack_state_identity(state.reference, state.level),
             )
         direct = None if invocation is None else invocation.native_retained_container
         if direct is None:
@@ -381,6 +394,13 @@ class NativeRetainedRuntime:
             raise ValueError("Missing native applying carrier parent authority")
         if entry.retained:
             self.synchronize()  # Replacement removed old Qf carriers before iteration.
+        if parent is not None:
+            from .combat_retained_source_provenance import capture_state_source
+
+            container, _ = self.container(parent)
+            # Capture exact applying UID before nested children register. This
+            # is provenance only; native Qf insertion still occurs afterward.
+            capture_state_source(self.fight, entry, parent, container)
         self._container_scopes.append({entry.uid: entry})
         try:
             with pending_state_registration(self.fight, entry):
@@ -605,6 +625,18 @@ class NativeRetainedRuntime:
             raise ValueError("Missing native fyW removal metadata")
         parent = self._carrier_parents[-1] if self._carrier_parents else invocation
         container, _ = self.container(parent)
+        from .combat_retained_source_provenance import capture_state_source
+
+        provenance = getattr(self.fight, "native_state_source_provenance", None)
+        if provenance is None:
+            provenance = {}
+        if str(uid) in provenance.get("entries", {}) or any(
+            uid in scope for scope in self._container_scopes
+        ):
+            capture_state_source(self.fight, state, parent, container)
+        # Legacy untracked registrations have no authentic applying-state UID.
+        # Preserve their native registration; never invent a source edge from
+        # whichever unrelated invocation happens to flush the old carrier.
         self.record(
             RetainedEffect(
                 uid,
@@ -694,6 +726,7 @@ class NativeRetainedRuntime:
                         20,
                         21,  # eWO_HP owns its applied PA delta and native removal.
                         250,  # eWM owns its applied HP maximum and native removal.
+                        272,  # eYP retains the actual MP delta through eWQ/PA.oo.
                         28,
                         31,
                         41,
@@ -739,6 +772,9 @@ class NativeRetainedRuntime:
                         1003,
                         923,  # eXm always cancels itself; synthetic eWf30 is non-retained.
                         982,
+                        983,  # eYP retains the actual AP delta through eWQ/PA.oo.
+                        1031,  # eXY force-removes PL12 using central owned callbacks.
+                        1033,  # eXY force-removes PL36 using central owned callbacks.
                         327,
                         328,
                         342,
@@ -787,7 +823,9 @@ class NativeRetainedRuntime:
                     or str(effect["effect_class"]) in self.stat_handler.registry
                 ):
                     raise ValueError(
-                        "Retained native effect family lacks central ownership machinery"
+                        "Retained native effect family lacks central ownership machinery "
+                        f"(effect={invocation.reference}, family={effect['effect_class']}, "
+                        f"uid={invocation.native_running_uid})"
                     )
             if state:
                 self._carrier_parents.append(invocation)
@@ -1627,17 +1665,13 @@ class NativeRetainedRuntime:
         # synchronize/prune mutates ownership and may remove retired PVs. The
         # shared read pass starts afterwards and never crosses a callback.
         managers = _RetainedManagerPass(self.fight)
-        if set(self._live(_manager_pass=managers)) != set(
-            self.fight.native_retained_records
-        ):
+        records = set(self.fight.native_retained_records)
+        if self._live(_manager_pass=managers) != records:
             raise ValueError(
                 "Unregistered native retained effects prevent complete view"
             )
-        if set(self.fight.native_retained_order) != set(
-            self.fight.native_retained_records
-        ) or len(self.fight.native_retained_order) != len(
-            set(self.fight.native_retained_order)
-        ):
+        ordered = set(self.fight.native_retained_order)
+        if ordered != records or len(self.fight.native_retained_order) != len(ordered):
             raise ValueError("Native retained insertion order is inconsistent")
         return NativeRetainedEffectView(
             self.fight,

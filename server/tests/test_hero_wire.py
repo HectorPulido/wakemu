@@ -1,7 +1,7 @@
 import struct
 import unittest
-from wakfu_server.characters import hero_wire
-from wakfu_server.characters.hero_wire import (
+from wakfu_server import hero_wire
+from wakfu_server.hero_wire import (
     add_request,
     switch_request,
     added_success,
@@ -290,7 +290,12 @@ class HeroWireTests(unittest.TestCase):
     ):
         from protocol_codec import Reader
 
-        payload = struct.pack(">IhI", 1, 99, 5) + b"other"
+        payload = (
+            struct.pack(">IhI", 2, 99, 5)
+            + b"other"
+            + struct.pack(">hI", 2058, 4)
+            + b"true"
+        )
         opcode, body = configuration(struct.pack(">I", len(payload)) + payload)
         self.assertEqual(23053, opcode)
         outer = Reader(body)
@@ -302,7 +307,15 @@ class HeroWireTests(unittest.TestCase):
             values[key] = reader.take(reader.number("I")).decode()
         reader.finish()
         self.assertEqual(
-            {99: "other", 431: "true", 602: "true", 603: "true", 622: "2"}, values
+            {
+                99: "other",
+                431: "true",
+                602: "true",
+                603: "true",
+                622: "2",
+                2058: "false",
+            },
+            values,
         )
         for invalid in (
             b"",

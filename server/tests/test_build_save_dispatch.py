@@ -91,13 +91,17 @@ class BuildSaveDispatchTest(unittest.TestCase):
             "def run():\n    global character\n" + textwrap.indent(branch, "    "),
             context,
         )
-        from wakfu_server import characters
+        from wakfu_server import hero_wire as native_hero_wire
 
         hero_wire = SimpleNamespace(
             refresh=lambda template, actor: (13046, b"hero"),
             statistics=lambda actor: (15548, b"stats"),
         )
-        with patch.object(characters, "hero_wire", hero_wire, create=True), patch.dict(
+        with patch.object(
+            native_hero_wire, "refresh", side_effect=hero_wire.refresh
+        ), patch.object(
+            native_hero_wire, "statistics", side_effect=hero_wire.statistics
+        ), patch.dict(
             sys.modules,
             {
                 "wakfu_server.inventory_move": SimpleNamespace(
@@ -107,7 +111,9 @@ class BuildSaveDispatchTest(unittest.TestCase):
                     equipment_inventory=lambda actor: (13078, b"gear")
                 ),
             },
-        ), patch("wakfu_server.spells.default_deck", return_value=b""), patch(
+        ), patch(
+            "wakfu_server.spells.default_deck", return_value=b""
+        ), patch(
             "wakfu_server.combat_lifecycle.outside_progression",
             return_value=(13046, b"authoritative-actor"),
         ):
@@ -165,7 +171,8 @@ class BuildSaveDispatchTest(unittest.TestCase):
         )
         self.assertEqual(context["character"]["id"], 37)
         self.assertEqual(
-            [call.args[2] for call in context["send"].call_args_list], [22318, 12284]
+            [call.args[2] for call in context["send"].call_args_list],
+            [349, 22318, 12284],
         )
 
 

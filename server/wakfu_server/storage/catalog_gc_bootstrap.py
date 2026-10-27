@@ -117,13 +117,25 @@ def _cleanup():
 
 
 def main():
-    if (
-        os.environ.get("WAKFU_ENABLE_COMBAT_TEST") == "1"
-        and os.environ.get("WAKFU_CATALOG_GC_FREEZE", "1") == "1"
-    ):
-        result = freeze_startup_heap(_prewarm, _cleanup)
+    if os.environ.get("WAKFU_ENABLE_COMBAT_TEST") == "1":
+        # Compile outside World. Keep only sealed collection handles here;
+        # freezing the old eager heap would retain every source definition.
+        from wakfu_server.combat_static_catalogs import CompiledEffects
+
+        variants = ("player", "npc_imported", "npc_baseline", "weapon")
+        started = time.monotonic()
+        views = [CompiledEffects.from_published(variant) for variant in variants]
+        result = dict(
+            variants=list(variants),
+            effect_definitions={
+                name: len(view.effects) for name, view in zip(variants, views)
+            },
+            elapsed_ms=round((time.monotonic() - started) * 1000, 3),
+            gc_enabled=gc.isenabled(),
+        )
         print(
-            json.dumps(dict(event="catalog_startup_heap_frozen", **result)), flush=True
+            json.dumps(dict(event="published_catalog_handles_ready", **result)),
+            flush=True,
         )
     world = Path(__file__).resolve().parents[2] / "local_game_server.py"
     runpy.run_path(str(world), run_name="__main__")

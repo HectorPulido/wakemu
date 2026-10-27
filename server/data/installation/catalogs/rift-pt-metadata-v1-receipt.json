@@ -1,0 +1,24 @@
+{
+  "activated": false,
+  "actual_new_chunk_bytes": 79305,
+  "added_casting_roots": 11,
+  "candidate_manifest": "catalogs/manifest-rift-pt-metadata-v1.json",
+  "candidate_manifest_sha256": "29656b58aa3ac532de322587fe379142ab904b9fff5030da561db6f27d02ba4e",
+  "candidate_revision": "72c33b9d9a94d6e4e913399e5e3c6b28db939227e926f237572e720b1170fd48",
+  "changed_documents": [
+    {
+      "path": "native-class-casting-roots.json",
+      "record_count": 11482,
+      "sha256": "d7247f97af686b7f0ac98fc31ecd84271c849179ae1cbe180256320d3e499a59",
+      "source_bytes": 1606897
+    }
+  ],
+  "database_staged": false,
+  "old_casting_roots": 11455,
+  "old_rows_preserved": true,
+  "parent_manifest_sha256": "d5536bc145927d451601d10c5013be4ae7612c738871b8be019ba8ee905f3902",
+  "parent_revision": "3e4526040347907ce699a264e6736af1aec81bfacca09cfd5f1290747a055177",
+  "public_selector_changed": false,
+  "schema": "wakemu-rift-pt-metadata-release-v1",
+  "source_proof_sha256": "d8bac08cfab10a7167bb0195333431f49d6b2a971ae1e328e93e353c1dceaf48"
+}

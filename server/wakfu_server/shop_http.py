@@ -160,8 +160,14 @@ class ShopAdapter:
                 or self.missing()
             )
 
-        def scoped_rows(ident):
-            selected = find_category(ident)
+        def scoped_rows(ident, *, missing_ok=False):
+            selected = next(
+                (value for value in categories if value["id"] == str(ident)), None
+            )
+            if selected is None:
+                if missing_ok:
+                    return []
+                self.missing()
             return [row for row in rows if row["category"] == selected["key"]]
 
         def page_of(selected_rows, default_limit=20):
@@ -236,7 +242,14 @@ class ShopAdapter:
             }
         if route == "catalog-pages:get" and method == "POST":
             category_id = body.get("category_id")
-            selected_rows = rows if category_id is None else scoped_rows(category_id)
+            # Catalog category IDs are filters, including native categories
+            # without any local offers. An absent department has an empty page;
+            # explicit category resource requests still return 404.
+            selected_rows = (
+                rows
+                if category_id is None
+                else scoped_rows(category_id, missing_ok=True)
+            )
             return {
                 "articles": page_of(selected_rows),
                 "possible_sorts": [],
@@ -418,7 +431,12 @@ def make_server(domain, host="0.0.0.0", port=18083):
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format, *args):
-            LOG.info("shop %s %s", self.command, urlsplit(self.path).path)
+            LOG.info(
+                "shop %s %s status=%s",
+                self.command,
+                urlsplit(self.path).path,
+                args[1] if len(args) > 1 else "unknown",
+            )
 
         def handle_request(self):
             if serve_item_icon(self):

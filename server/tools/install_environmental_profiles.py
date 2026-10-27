@@ -28,6 +28,17 @@ SEEDS = (
     "environmental_resource_stage_profiles.sql",
 )
 GENESIS = "wakemu.environmental-exact-species-genesis-v1"
+# Original physical resource actions, creature definitions and regional birth
+# authority consumed by the installed profile families. Metadata-only catalog
+# additions do not rewrite the frozen revision stored on sealed profiles.
+PROFILE_SOURCE_DOCUMENTS = (
+    "plant-resources.json",
+    "seed-actions.json",
+    "monsters.json",
+    "monster-encyclopedia.json",
+    "territory-map-cells.json",
+    "territory-protector-bonuses.json",
+)
 
 
 def seed_body(sql):
@@ -129,20 +140,25 @@ def verify(db, expected_revision):
     _catalog(db, expected_revision)
     row = db.execute(
         "SELECT count(*) AS n,count(*) FILTER(WHERE sealed) AS sealed,"
-        "count(DISTINCT native_scenario_id) AS scenarios,count(*) FILTER(WHERE enabled) AS enabled,"
-        "count(*) FILTER(WHERE catalog_revision<>%s) AS foreign_catalog "
+        "count(DISTINCT native_scenario_id) AS scenarios,count(*) FILTER(WHERE enabled) AS enabled "
         "FROM environmental_runtime_profiles",
-        (expected_revision,),
     ).fetchone()
-    if (row["n"], row["sealed"], row["scenarios"], row["foreign_catalog"]) != (
-        1270,
-        1270,
-        1057,
-        0,
-    ):
+    if (row["n"], row["sealed"], row["scenarios"]) != (1270, 1270, 1057):
         raise ValueError(
             "Environmental installation requires 1270 sealed profiles and 1057 source scenarios"
         )
+    source_revisions = tuple(
+        source["catalog_revision"]
+        for source in db.execute(
+            "SELECT DISTINCT catalog_revision FROM environmental_runtime_profiles "
+            "ORDER BY catalog_revision"
+        ).fetchall()
+    )
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    for revision in source_revisions:
+        if revision != expected_revision:
+            require_source_revision(revision, PROFILE_SOURCE_DOCUMENTS)
     policies = db.execute(
         "SELECT count(*) AS n,count(*) FILTER(WHERE sealed) AS sealed,"
         "count(*) FILTER(WHERE enabled) AS enabled FROM environmental_regional_schedule_policies "
@@ -191,6 +207,7 @@ def verify(db, expected_revision):
         sealed_profiles=row["sealed"],
         native_scenarios=row["scenarios"],
         catalog_revision=expected_revision,
+        source_catalog_revisions=list(source_revisions),
         schedule_version=9,
         schedule_policies=policies["n"],
         schedule_candidates=candidates,

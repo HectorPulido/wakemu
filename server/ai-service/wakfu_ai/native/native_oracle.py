@@ -41,6 +41,24 @@ class NativeOracle:
         self.runtime = runtime
         self.characters = deepcopy(characters)
         self.monsters = deepcopy(monsters)
+        from wakfu_server.combat_companions import (
+            registered_companion_ids,
+            registered_source,
+        )
+
+        self.companions = {}
+        for identity in registered_companion_ids(runtime.fight):
+            actor = runtime.fight.actors[identity]
+            source = runtime.fight.native_companion_sources[str(identity)]
+            if (
+                registered_source(runtime.fight, actor, source) is None
+                or type(source.get("native_actor_type")) is not int
+                or source["native_actor_type"] != 5
+                or source.get("level") != actor.effective_level
+                or getattr(actor, "native_companion_source", None) != source
+            ):
+                raise ValueError("Missing complete native companion authority")
+            self.companions[identity] = deepcopy(source)
         self.decks = deepcopy(decks)
         self.excluded_decks = deepcopy(excluded_decks)
         self.viewer_id = viewer_id
@@ -56,10 +74,20 @@ class NativeOracle:
             raise ValueError("Missing native viewer authority")
         registrations = getattr(runtime.fight, "native_summon_registrations", {})
         ordinary = set(runtime.fight.actors) - set(registrations)
-        if ordinary != set(self.characters) | set(self.monsters):
+        if set(self.companions) & (
+            set(self.characters) | set(self.monsters)
+        ) or ordinary != set(self.characters) | set(self.monsters) | set(
+            self.companions
+        ):
             raise ValueError("Incomplete encounter actor authority")
         for identity, actor in runtime.fight.actors.items():
             if identity in registrations:
+                continue
+            if identity in self.companions:
+                source = self.companions[identity]
+                owner = self.characters.get(source["owner_character_id"])
+                if owner is None or owner.get("account_id") != source["account_id"]:
+                    raise ValueError("Companion lacks its actual human owner authority")
                 continue
             source = (
                 self.characters.get(identity)
@@ -80,6 +108,8 @@ class NativeOracle:
                 (runtime or self.runtime).fight, "native_summon_registrations", {}
             ),
         )
+        if self.companions:
+            authorities["companions"] = self.companions
         if self.outcome_features_provider is not None:
             provider = self.outcome_features_provider
             if inspect.isroutine(provider):
@@ -214,7 +244,14 @@ class NativeOracle:
         registrations = getattr(fight, "native_summon_registrations", {})
         ordinary_ids = set(fight.actors) - set(registrations)
         chars = {i: c for i, c in self.characters.items() if i in ordinary_ids}
-        monsters = {i: c for i, c in self.monsters.items() if i in ordinary_ids}
+        from wakfu_server.combat_ordinary_reinforcement_sources import (
+            current_monster_sources,
+        )
+
+        sources = current_monster_sources(
+            fight, self.monsters, map_id=self.characters[self.viewer_id].get("map_id")
+        )
+        monsters = {i: c for i, c in sources.items() if i in ordinary_ids}
         selected = {
             i: validate_deck(self.decks[i], c["breed"], c["level"])
             for i, c in chars.items()
@@ -294,8 +331,18 @@ class NativeOracle:
         return OwnedEquipmentRuntimeFactory(factory, compiled), adapter
 
     def fork(self, fight=None, *, runtime=None):
-        private = deepcopy(runtime or self.runtime)
-        if fight is not None:
+        source = runtime or self.runtime
+        if fight is None:
+            try:
+                from wakfu_server.combat_preview_copy import scalar_actor_memo
+            except ModuleNotFoundError as error:
+                if error.name != "wakfu_server.combat_preview_copy":
+                    raise
+                private = deepcopy(source)
+            else:
+                private = deepcopy(source, scalar_actor_memo(source.fight))
+        else:
+            private = deepcopy(source)
             private.fight = deepcopy(fight)
         # Rebind pure callbacks to the complete encounter authority, rather
         # than calling closures belonging to the live socket's single viewer.
@@ -429,8 +476,10 @@ class NativeOracle:
                 fight, actor, self.characters[actor.id], self.decks[actor.id]
             )
             return {spell: entry["level"] for spell, entry in actions.items()}
-        elif actor.id in self.monsters or actor.id in getattr(
-            fight, "native_summon_registrations", {}
+        elif (
+            actor.id in self.monsters
+            or actor.id in self.companions
+            or actor.id in getattr(fight, "native_summon_registrations", {})
         ):
             result = {
                 row["spell_id"]: row["spell_level"]
@@ -649,8 +698,17 @@ class NativeOracle:
         source = (
             self.characters.get(actor.id)
             if actor.id in self.characters
+            else self.companions.get(actor.id)
+            if actor.id in self.companions
             else self.monsters.get(actor.id)
         )
+        if actor.id in self.companions:
+            from wakfu_server.combat_companions import (
+                registered_source as registered_companion_source,
+            )
+
+            if registered_companion_source(fight, actor, source) is None:
+                raise ValueError("Companion differs from its captured native authority")
         if source is None or source.get("id") != actor.id:
             raise ValueError("Missing native actor source")
         return source
@@ -1118,7 +1176,7 @@ class NativeOracle:
             )
             packets = candidate.prepare_delivery(list(packets))
         elif kind == "move":
-            from wakfu_server.combat_movement_runtime import movement_stats_snapshot
+            from wakfu_server.combat_movement_runtime import movement_stats_snapshots
 
             private, effects, _ = self.preview(runtime, action, forecast=False)
             packets = list(effects) + [candidate._flush()]
@@ -1131,26 +1189,29 @@ class NativeOracle:
                 if actor.id in hidden:
                     continue
                 stats = stats_serializer(actor, private.fight)
+                snapshots = (stats,)
                 previous = runtime.fight.actors.get(actor.id)
                 if previous is not None and (
                     actor.id == runtime.fight.current.id
                     or actor.position == previous.position
                 ):
-                    stats = movement_stats_snapshot(
+                    snapshots = movement_stats_snapshots(
                         stats,
                         stats_serializer(previous, runtime.fight),
+                        actor=actor,
                         position_owned=actor.id == runtime.fight.current.id,
                     )
-                packets.append(
+                packets.extend(
                     (
                         12873,
                         actor_state(
                             12873,
                             private.fight.id,
                             actor.id,
-                            stats,
+                            snapshot,
                         ),
                     )
+                    for snapshot in snapshots
                 )
             packets.append(candidate._flush())
             candidate.fight, candidate.action_id = private.fight, private.action_id

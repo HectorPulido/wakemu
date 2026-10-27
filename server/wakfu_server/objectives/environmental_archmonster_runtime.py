@@ -134,6 +134,22 @@ def _eligible(db, source, counts):
     return eligible
 
 
+def _current_monsters_sha(publication):
+    """Read one current document identity, retaining the publication fence."""
+    from wakfu_server import native_catalog
+
+    if native_catalog.release() != publication:
+        raise ValueError("Archmonster catalog changed during source validation")
+    with native_catalog._database().connection() as catalog_db:
+        document = catalog_db.execute(
+            "SELECT sha256 FROM native_catalog_documents WHERE revision=%s AND path=%s",
+            (publication, "monsters.json"),
+        ).fetchone()
+    if native_catalog.release() != publication:
+        raise ValueError("Archmonster catalog changed during source validation")
+    return None if document is None else document["sha256"]
+
+
 def _birth(db, store, groups, location, now_ms, occupied):
     from wakfu_server import native_catalog
     from wakfu_server.monsters import owned_instance, reference
@@ -164,9 +180,12 @@ def _birth(db, store, groups, location, now_ms, occupied):
             source["requested_group_count"] != 1
             or source["participation_criterion"] != "False"
             or source["announcement_duration_ms"] != 10000
-            or source["catalog_revision"] != native_catalog.release()
         ):
             raise ValueError("Archmonster source differs from original birth contract")
+        from wakfu_server.native_catalog_compatibility import require_source_revision
+
+        publication = native_catalog.release()
+        require_source_revision(source["catalog_revision"], ("monsters.json",))
         last = db.execute(
             "SELECT cooldown_until_ms FROM archmonster_spawn_births "
             "WHERE source_key=%s AND scenario_id=%s AND map_id=%s AND region_id=%s "
@@ -180,18 +199,13 @@ def _birth(db, store, groups, location, now_ms, occupied):
             "WHERE source_key=%s AND scenario_id=%s",
             (source["source_key"], source["scenario_id"]),
         ).fetchone()
-        with native_catalog._database().connection() as catalog_db:
-            document = catalog_db.execute(
-                "SELECT sha256 FROM native_catalog_documents WHERE revision=%s AND path='monsters.json'",
-                (source["catalog_revision"],),
-            ).fetchone()
+        document_sha = _current_monsters_sha(publication)
         breed = reference(source["monster_reference"])
         if (
             native is None
             or native["native_type"] != 4
             or native["duration_raw"] != 10
-            or document is None
-            or document["sha256"] != source["monsters_sha256"]
+            or document_sha != source["monsters_sha256"]
             or (breed["min_level"], breed["max_level"])
             != (source["native_min_level"], source["native_max_level"])
         ):

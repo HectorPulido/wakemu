@@ -166,7 +166,7 @@ class ExternalFightMarkers:
         ):
             return None
         leaders = context.get("leaders")
-        from .combat_encounter_roles import assigned_roles
+        from wakfu_server.combat_encounter_roles import assigned_roles
 
         if (
             not isinstance(leaders, dict)
@@ -285,7 +285,7 @@ class ExternalFightMarkers:
         ):
             return None
 
-        from .combat_encounter_roles import assigned_roles
+        from wakfu_server.combat_encounter_roles import assigned_roles
 
         roles = assigned_roles(fight)
         teams = []

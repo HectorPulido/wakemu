@@ -89,8 +89,9 @@ def _native_destroy_action(revision, monster_reference, action_id):
     from wakfu_server import native_catalog
     from wakfu_server.paths import DATA_ROOT
 
-    if native_catalog.release() != revision:
-        raise ValueError("Native DESTROY source revision changed")
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(revision, ("monster-encyclopedia.json",))
     row = native_catalog.record(
         DATA_ROOT / "monster-encyclopedia.json", "monsters", str(monster_reference)
     )

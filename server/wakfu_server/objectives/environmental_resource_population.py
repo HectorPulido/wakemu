@@ -181,9 +181,11 @@ def populate(db, event, *, now_ms):
 
     # Sealed rows above still attest the original scenario territory. The old
     # generated list was a lexicographic prefix, not the complete zone. This
-    # User-declared v3 placement uses the complete map's native surfaces,
-    # intersected with reachable walk geometry. The original event region and
-    # action/UID ownership still authorize admission and harvest credit.
+    # The mission's exact original region bounds resource placement. Runtime
+    # planning uses all native surfaces of that zone, rather than this old
+    # prefix or another region sharing the same map. Complete native walk
+    # geometry proves access; a small zone never spills into a different one.
+    # Original action/UID ownership still authorizes harvest credit.
     # Native walkable upper surfaces are valid; do not blanket-exclude the XY
     # of decorative interactive objects or impose an invented height cutoff.
     placement = plan(

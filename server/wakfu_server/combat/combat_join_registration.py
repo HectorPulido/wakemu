@@ -8,7 +8,7 @@ ordinary actor, not a summon and not a reconstruction of the existing roster.
 def register_joined_fighter(fight, actor, position, *, controller_id=None):
     if fight.phase != "placement" or actor.id in fight.actors:
         raise ValueError("Fresh joined placement fighter required")
-    from .combat_encounter_roles import validate_participant_role
+    from wakfu_server.combat_encounter_roles import validate_participant_role
 
     validate_participant_role(fight, actor, player=actor.owner_id is not None)
     position = tuple(position)

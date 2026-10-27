@@ -32,7 +32,7 @@ from wakfu_server import combat_local_criteria as local_criteria
 
 
 SCHEMA = "wakemu-operation-catalog-v1"
-KINDS = {"spell", "state", "area", "summon", "effect"}
+KINDS = {"spell", "state", "area", "summon", "morph", "effect"}
 
 
 def _digest(value):
@@ -226,7 +226,10 @@ def normalize_tables(tables):
     """Normalize collection names only; preserve all original definition rows."""
     if not isinstance(tables, Mapping):
         raise ValueError("Catalog tables required")
-    aliases = {"summon": ("summons", "profiles", "monsters")}
+    aliases = {
+        "summon": ("summons", "profiles", "monsters"),
+        "morph": ("morphs", "morph_profiles"),
+    }
     result = {}
     for kind in KINDS:
         names = aliases.get(kind, (kind + "s",))
@@ -307,11 +310,12 @@ def compile_catalog(
             edges[(key, destination, reason)] = edge
             pending.append((target_kind, target, (*path, destination), reason))
 
-        if kind == "summon":
+        if kind in ("summon", "morph"):
             abilities = row.get("native_abilities", row.get("abilities", ()))
             for ability in abilities:
                 link("spell", ability.get("spell_id", ability.get("reference")))
-            triples = row.get("initial_state_triples", ())
+            # Morph933 switches the book; it does not initialize NPC states.
+            triples = row.get("initial_state_triples", ()) if kind == "summon" else ()
             if len(triples) % 3:
                 raise ValueError("Malformed native summon initial states")
             for state in triples[::3]:

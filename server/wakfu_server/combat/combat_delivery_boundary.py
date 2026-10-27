@@ -24,6 +24,7 @@ class PreparedReconnect:
     runtime: object = None
     ack: object = None
     pending_turn_recovered: bool | None = None
+    presentation: object = None
 
     @property
     def recovered_pending_turn(self):
@@ -102,17 +103,34 @@ def prepare_reconnect(
         if packets is None:
             raise ValueError("Settled owner packets are unavailable")
         return PreparedReconnect(native_packets(packets))
+    from .rift_publication_fence import birth_fence
+    from .combat_reconnect_birth_stage import StagedReconnectPackets
+
+    def prepared(packets, *state):
+        return PreparedReconnect(
+            native_packets(packets),
+            *state,
+            presentation=(
+                packets.presentation
+                if isinstance(packets, StagedReconnectPackets)
+                else None
+            ),
+        )
+
     recover_pending = bool(
         recover_disconnected
         and not shared.connected
         and shared.fight.phase == "active"
         and shared.runtime is not None
         and getattr(shared.runtime, "awaiting_ack", None) is not None
+        # A new transport reconstructs ordinary actors in12847 and replays the
+        # ORIGINAL12502 below. Its real13510 must complete this birth fence;
+        # cancelling the cohort here would strand the deferred native queue.
+        and birth_fence(shared.fight) is None
+        and not getattr(shared.fight, "native_summon_registrations", {})
     )
     if not recover_pending and prepare_authority is None:
-        return PreparedReconnect(
-            native_packets(bootstrap_packets(shared.fight, shared, session))
-        )
+        return prepared(bootstrap_packets(shared.fight, shared, session))
     fight, runtime = deepcopy((shared.fight, shared.runtime))
     ack = deepcopy(shared.ack)
     view = copy(shared)
@@ -124,11 +142,11 @@ def prepare_reconnect(
         view.reconnect_turn_end_packets = None
         view.reconnect_remaining_turn_seconds = None
         runtime.recover(session.account_id, struct.pack(">i", fight.id), now_ms=now_ms)
-    packets = native_packets(bootstrap_packets(fight, view, session))
-    return PreparedReconnect(packets, fight, runtime, ack, recover_pending)
+    packets = bootstrap_packets(fight, view, session)
+    return prepared(packets, fight, runtime, ack, recover_pending)
 
 
-def initial_summon_timeline(fight, birth_ids):
+def initial_summon_timeline(fight, birth_ids, *, counter=0):
     """Prepare unique INITIAL members; full recovery owns current-cycle slots.
 
     Additional turns duplicate IDs in the current cycle. Native base order and
@@ -146,4 +164,7 @@ def initial_summon_timeline(fight, birth_ids):
     }:
         raise ValueError("Initial recovery requires unique authoritative base members")
     identities = [identity for identity in base if identity not in birth_ids]
-    return initial_timeline(identities, identities)
+    if type(counter) is not int or not 0 <= counter < 2**31:
+        raise ValueError("Invalid actual reconnect witness counter")
+    payload = initial_timeline(identities, identities)
+    return payload[:2] + struct.pack(">i", counter) + payload[6:]

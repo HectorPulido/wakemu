@@ -5,7 +5,19 @@ import json, struct
 from pathlib import Path
 from wakfu_server.spells import available_spells
 
-_COSTS = protocol_catalog.load(DATA_ROOT / "spell-costs.json")["spells"]
+
+def _cost_records():
+    from .combat_published_catalogs import compilation_mode
+
+    path = DATA_ROOT / "spell-costs.json"
+    if compilation_mode():
+        return protocol_catalog.load(path)["spells"]
+    from wakfu_server.native_catalog_document import load_published_document
+
+    return load_published_document("spell_audit.costs_catalog")
+
+
+_COSTS = _cost_records()
 
 
 def base_costs(character, spell_id):
@@ -23,9 +35,12 @@ def base_costs(character, spell_id):
         raise ValueError("Spell is not owned/unlocked")
     record = _COSTS.get(str(spell_id))
     if record is None:
-        from .combat_common_spell_catalog import merge_cost_records
+        from .combat_published_catalogs import compilation_mode
 
-        record = merge_cost_records(_COSTS).get(str(spell_id))
+        if compilation_mode():
+            from .combat_common_spell_catalog import merge_cost_records
+
+            record = merge_cost_records(_COSTS).get(str(spell_id))
     if record is None:
         raise ValueError("Missing native owned spell costs")
     index = character["level"] - 1

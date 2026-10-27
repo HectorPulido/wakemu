@@ -7,8 +7,54 @@ blobs. This provider deliberately accepts neither summons nor wrapped actors.
 from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
+from dataclasses import dataclass, replace
 from wakfu_server.paths import DATA_ROOT
 from .combat_runtime_adapter import NativeActorAuthority
+
+
+def ordinary_cell_obstacle(preview, plan, effect, invocation):
+    """Source-bound eOV first-slot query for the ordinary native producer."""
+    if invocation.cell is None:
+        return None
+    from .combat_qi_fight import current_registry
+
+    registry = current_registry(preview)
+    order = registry.ordered_U(*invocation.cell[:2])
+    return bool(order and registry.slots[order[0]] is not None)
+
+
+@dataclass(frozen=True)
+class OrdinaryConditionCellQuery:
+    """One owned QI read supplying distinct eII-target and eOV-slot facts."""
+
+    obstacle_provider: object
+    policies: tuple = ()  # Original factory capabilities, not query results.
+    created_by: object = None
+
+    def admitted(self, adapter):
+        from .combat_summon import RegisteredSummonAuthority
+        from .combat_runtime_adapter import NativeServerRuntimeAdapter
+
+        authority = adapter.actor_authority
+        return (
+            type(adapter) is NativeServerRuntimeAdapter
+            and self.obstacle_provider is ordinary_cell_obstacle
+            and adapter.cast.cell_obstacle is self.obstacle_provider
+            and (
+                type(authority) is OrdinaryActorAuthority
+                or (
+                    type(authority) is RegisteredSummonAuthority
+                    and type(authority.ordinary) is OrdinaryActorAuthority
+                )
+            )
+        )
+
+    def __call__(self, adapter, fight, invocation):
+        from .combat_casting_context import resolve_criterion_cell_invocation
+
+        return resolve_criterion_cell_invocation(
+            adapter, fight, invocation, return_obstacle=True
+        )
 
 
 def visibility_property_side_effect(preview, affiliation, *, applying):
@@ -712,8 +758,11 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
     def damage(p, plan, e, i):
         from .combat_native_actor_lookup import native_actor
 
-        source = native_actor(p, i.caster_id)
-        actors(p, source)
+        from .combat_damage_source import native_damage_source, plain_area_source
+
+        source = native_damage_source(p, i.caster_id)
+        if not plain_area_source(source):
+            actors(p, source)
         target = native_damage_target(p, i.target_id)
         if target is None:
             raise ValueError("Native damage requires an actor or typed fbd PV target")
@@ -776,16 +825,7 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
             return replace(context, executable=False)
         return context
 
-    def obstacle(p, plan, e, i):
-        # eOV queries actual QI.V, including registered dynamic QK objects.
-        # Actor identities retained after OUT_OF_PLAY are not QI occupancy.
-        if i.cell is None:
-            return None
-        from .combat_qi_fight import current_registry
-
-        registry = current_registry(p)
-        order = registry.ordered_U(*i.cell[:2])
-        return bool(order and registry.slots[order[0]] is not None)
+    obstacle = ordinary_cell_obstacle
 
     def group_cells(p, plan, e, i):
         from .combat_group_cells import group_cells as native_group_cells
@@ -879,7 +919,7 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
             draw_integer=draw,
         )
 
-    return NativeCastAuthority(
+    cast = NativeCastAuthority(
         resolution,
         cell_eligible,
         group_cells,
@@ -896,6 +936,19 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
             limit, exclusions, draw_index=lambda size: rng.randint(0, size - 1)
         ),
         damage_block=damage_block,
+        condition_cell_query=OrdinaryConditionCellQuery(obstacle),
+    )
+    return replace(
+        cast,
+        condition_cell_query=OrdinaryConditionCellQuery(
+            obstacle,
+            tuple(
+                (name, value)
+                for name, value in vars(cast).items()
+                if name != "condition_cell_query"
+            ),
+            ordinary_cast_authority,
+        ),
     )
 
 

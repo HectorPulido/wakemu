@@ -237,7 +237,7 @@ class NativeStateHandler:
             self.prepared_rejections.add(id(invocation))
             return invocation
         # Native eWu.C computes a signed short before Qe evaluates criteria.
-        # Application retains its strict level validation in __call__.
+        # Application preserves that same signed-short grade in its carrier.
         parameters = self._parameters(
             effect, values, invocation, allow_signed_calculation=True
         )
@@ -345,7 +345,9 @@ class NativeStateHandler:
             if id(invocation) in self.prepared_rejections:
                 self.prepared_rejections.remove(id(invocation))
                 return False
-            parameters = self._parameters(effect, values, invocation)
+            parameters = self._parameters(
+                effect, values, invocation, allow_signed_calculation=True
+            )
         except ValueError as error:
             raise UnsupportedEffectExecution(str(error)) from error
         if not self.native_eligibility(effect, invocation):

@@ -199,11 +199,11 @@ def _execution_contract_payload(sources, compiled, registry):
                 characteristics["400"] = registry.get("effects", {}).get("400")
         if not ordinary_roots:
             continue
-        pending = [(str(reference), root_level) for reference in ordinary_roots]
+        pending = [(str(reference), root_level, True) for reference in ordinary_roots]
         visited = set()
         while pending:
-            reference, execution_level = pending.pop()
-            identity = (reference, execution_level)
+            reference, execution_level, caster_is_owner = pending.pop()
+            identity = (reference, execution_level, caster_is_owner)
             if identity in visited:
                 continue
             visited.add(identity)
@@ -214,6 +214,34 @@ def _execution_contract_payload(sources, compiled, registry):
                 raise ValueError("Missing reachable equipment effect definition")
             effects[reference] = definition
             family = definition.get("effect_class")
+            minimum, maximum = definition.get("minimum_level"), definition.get(
+                "maximum_level"
+            )
+            if (
+                type(minimum) is int
+                and type(maximum) is int
+                and minimum <= maximum
+                and not minimum <= execution_level <= maximum
+            ):
+                # Match the real dispatcher and admission before interpreting
+                # level-dependent operators or their descendant branches.
+                continue
+            child_is_owner = caster_is_owner
+            if family in (330, 844, 912, 913, 999, 1020, 1047):
+                from .combat_effect_groups import decode_group_mode
+
+                mode = decode_group_mode(
+                    effect_profile(definition, execution_level)["parameters"][:6],
+                    raw_target_parameter=definition["parameters"][4]
+                    if definition.get("parameter_count", 0) >= 3
+                    else None,
+                )
+                if mode.actor_rebind:
+                    child_is_owner = False
+
+            def enqueue(reference, level):
+                pending.append((str(reference), level, child_is_owner))
+
             key = str(family)
             characteristics[key] = registry.get("effects", {}).get(key)
             if family == 449:
@@ -254,42 +282,66 @@ def _execution_contract_payload(sources, compiled, registry):
                     str(domain.state_id)
                 ] = read_state
                 for child in definition.get("children", ()):
-                    pending.extend((str(child), level) for level in domain.child_levels)
+                    for level in domain.child_levels:
+                        enqueue(child, level)
             elif family in (913, 1047):
                 from .combat_equipment_hp_group_parser import child_domain_witnesses
 
-                pending.extend(
-                    (str(child), level)
-                    for child, level in child_domain_witnesses(
-                        definition, compiled.effects, source_states
-                    )
-                )
+                for child, level in child_domain_witnesses(
+                    definition, compiled.effects, source_states, registry=registry
+                ):
+                    enqueue(child, level)
+            elif family == 912:
+                from .combat_equipment_cost_level_domain import child_domain_witnesses
+
+                for child, child_level in child_domain_witnesses(
+                    definition,
+                    compiled.effects,
+                    source_states,
+                    registry=registry,
+                    level=execution_level,
+                ):
+                    enqueue(child, child_level)
             elif family == 1020:
                 from .combat_equipment_trigger_level_domain import (
                     child_domain_witnesses,
                 )
 
-                pending.extend(
-                    (str(child), level)
-                    for child, level in child_domain_witnesses(
-                        definition, compiled.effects
-                    )
-                )
-            elif family == 999 and source.get("_generic_owner_level_facts") is not None:
+                for child, level in child_domain_witnesses(
+                    definition,
+                    compiled.effects,
+                    registry=registry,
+                    states=source_states,
+                ):
+                    enqueue(child, level)
+            elif family == 999:
                 from .combat_equipment_dynamic_levels import (
                     source_level_facts,
-                    owner_child_levels,
+                    group_child_levels,
                 )
 
                 profiled = dict(definition, _capability_reference=int(reference))
-                domain = owner_child_levels(
-                    profiled, execution_level, source_level_facts(source)
+                domain = group_child_levels(
+                    profiled,
+                    execution_level,
+                    source_level_facts(source) if caster_is_owner else None,
                 )
-                for child in definition.get("children", ()):
-                    pending.extend((str(child), level) for level in domain.levels)
+                if getattr(domain, "child_level_domain", None) is not None:
+                    from .combat_equipment_selected_level_domain import (
+                        child_domain_witnesses,
+                    )
+
+                    for child, level in child_domain_witnesses(
+                        profiled, compiled.effects, source_states, registry=registry
+                    ):
+                        enqueue(child, level)
+                else:
+                    for child in definition.get("children", ()):
+                        for level in domain.levels:
+                            enqueue(child, level)
             else:
                 for child in definition.get("children", ()):
-                    pending.append((str(child), execution_level))
+                    enqueue(child, execution_level)
 
             if family != 304:
                 continue
@@ -313,17 +365,36 @@ def _execution_contract_payload(sources, compiled, registry):
             state = state_catalog.get(state_key)
             if not isinstance(state, Mapping):
                 raise ValueError("Missing reachable equipment state definition")
+            from .combat_state_parameters import interpret_state_parameters
+
+            application = interpret_state_parameters(
+                effect_profile(definition, execution_level)["parameters"],
+                allow_signed_calculation=True,
+            )
+            if application["level"] < 0:
+                children = state.get("effect_ids")
+                if not isinstance(children, (tuple, list)) or any(
+                    not isinstance(compiled.effects.get(str(child)), Mapping)
+                    or type(compiled.effects[str(child)].get("minimum_level"))
+                    is not int
+                    or compiled.effects[str(child)]["minimum_level"] < 0
+                    for child in children
+                ):
+                    raise ValueError(
+                        "Negative state descendants need a complete domain proof"
+                    )
             maximum = state.get("maximum_level")
             if type(maximum) is not int or not 0 <= maximum <= 32767:
                 raise ValueError("Invalid reachable equipment state level domain")
             states[state_key] = state
-            if state_key in expanded_states:
+            state_owner = (state_key, caster_is_owner)
+            if state_owner in expanded_states:
                 continue
-            expanded_states.add(state_key)
+            expanded_states.add(state_owner)
             for requested_level in range(maximum + 1):
                 profile = state_profile(source_states, state_reference, requested_level)
                 for child in profile["effects"]:
-                    pending.append((str(child), profile["level"]))
+                    pending.append((str(child), profile["level"], caster_is_owner))
 
     payload = dict(states=states, effects=effects, characteristics=characteristics)
     if operator_contexts:

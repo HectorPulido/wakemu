@@ -4,6 +4,7 @@ Qm compares PL.aZY and PL.QF, not Java object identity. The authority below
 uses the existing complete central retained view and original state bindings.
 No monster, spell, or state reference is special-cased.
 """
+from .combat_state_parameters import pack_state_identity
 from dataclasses import dataclass, replace
 
 
@@ -120,7 +121,7 @@ class RetainedCleanupAuthority:
             if type(entry.owner_uid) is not int:
                 raise ValueError("State-owned effect lacks actual PL binding")
             state = resolve_state_container(self.fight, entry.owner_uid)
-            if key.identity != ((state.reference << 16) | state.level):
+            if key.identity != (pack_state_identity(state.reference, state.level)):
                 raise ValueError(
                     "Retained state PL differs from its actual owned snapshot"
                 )
@@ -146,7 +147,7 @@ class RetainedCleanupAuthority:
         if additional is None:
             raise ValueError("Missing native carrier AdditionalDatas")
         flags = _identity_fields(additional, integer_fields=(10, 13, 18))
-        packed = (state.reference << 16) | state.level
+        packed = pack_state_identity(state.reference, state.level)
         signed = lambda value: value - (1 << 64) if value >= (1 << 63) else value
         if (
             fields.get(1) != state.uid
@@ -275,7 +276,9 @@ class RetainedCleanupAuthority:
             from .combat_native_container import resolve_state_container
 
             state = resolve_state_container(self.fight, entry.uid)
-            state_key = NativeContainerKey(1, (state.reference << 16) | state.level)
+            state_key = NativeContainerKey(
+                1, pack_state_identity(state.reference, state.level)
+            )
             # Installed eZk.fRd calls fbX.a1046, whose only implementation returns
             # false; buH does not override. Do not invent a server event here.
             children = tuple(
@@ -320,6 +323,8 @@ class RetainedCleanupAuthority:
 
 
 class NativeStateCleanupHandler:
+    family = 982
+
     def __init__(
         self, retention, *, allocate_uid, rng, event_lifecycle, identity_hash=None
     ):
@@ -350,7 +355,7 @@ class NativeStateCleanupHandler:
         self._validate(effect, values)
         if invocation.native_running_uid is not None:
             raise ValueError("Unaudited restored eXW runner")
-        runner = NativeRunnerAmount(self.allocate_uid(), 982, rng=self.rng)
+        runner = NativeRunnerAmount(self.allocate_uid(), self.family, rng=self.rng)
         invocation = replace(invocation, native_running_uid=runner.uid)
         self._phase(effect, invocation, runner, 1)
         self.prepared[runner.uid] = runner
@@ -366,10 +371,15 @@ class NativeStateCleanupHandler:
         self._validate(effect, values)
         if invocation.native_running_uid is not None or clone_uid in self.prepared:
             raise ValueError("Invalid actual eXW clone identity")
-        runner = NativeRunnerAmount(clone_uid, 982, rng=self.rng)
+        runner = NativeRunnerAmount(clone_uid, self.family, rng=self.rng)
         self.prepared[clone_uid] = runner
         self.activated.add(clone_uid)
         return replace(invocation, native_running_uid=clone_uid)
+
+    def _authority(self, target_id):
+        return RetainedCleanupAuthority(
+            self.retention, target_id, identity_hash=self.identity_hash
+        )
 
     def __call__(self, effect, values, invocation):
         from .combat_native_timing_context import native_definition_timing
@@ -384,9 +394,7 @@ class NativeStateCleanupHandler:
             raise ValueError("Missing actual prepared cleanup runner")
         if not activated:
             self._phase(effect, invocation, runner, 2)
-        RetainedCleanupAuthority(
-            self.retention, invocation.target_id, identity_hash=self.identity_hash
-        ).execute()
+        self._authority(invocation.target_id).execute()
         runner.finish_application()
         self._phase(effect, invocation, runner, 3)
         self._phase(effect, invocation, runner, 4)

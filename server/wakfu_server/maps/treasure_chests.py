@@ -89,14 +89,51 @@ def _digest(rule):
     ).hexdigest()
 
 
-@lru_cache(maxsize=32)
 def _native_authority(
     revision, map_id, object_id, native_payload, native_state, geometry_hash, position
+):
+    from wakfu_server import native_catalog
+
+    return _native_authority_cached(
+        native_catalog.release(),
+        revision,
+        map_id,
+        object_id,
+        native_payload,
+        native_state,
+        geometry_hash,
+        position,
+    )
+
+
+@lru_cache(maxsize=32)
+def _native_authority_cached(
+    publication,
+    revision,
+    map_id,
+    object_id,
+    native_payload,
+    native_state,
+    geometry_hash,
+    position,
 ):
     """Bounded source lookup; never import an entire map to claim one chest."""
     from wakfu_server import native_catalog
     from wakfu_server.paths import DATA_ROOT
 
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(
+        revision,
+        (
+            "native-map-objects.json",
+            "native-interactive-states.json",
+            f"combat-maps/{map_id}.json",
+        ),
+    )
+    current_revision = native_catalog.release()
+    if current_revision != publication:
+        raise ValueError("Treasure publication changed during source validation")
     original = native_catalog.record(
         DATA_ROOT / "native-map-objects.json", "$", str(object_id)
     )
@@ -106,7 +143,7 @@ def _native_authority(
     with native_catalog._database().connection() as db:
         terrain = db.execute(
             "SELECT sha256 FROM native_catalog_documents WHERE revision=%s AND path=%s",
-            (revision, f"combat-maps/{map_id}.json"),
+            (current_revision, f"combat-maps/{map_id}.json"),
         ).fetchone()
     if (
         original is None
@@ -120,12 +157,15 @@ def _native_authority(
         or state.get("type") != "LootChest"
         or state.get("payload_hex") != native_state
         or terrain["sha256"] != geometry_hash
-        or native_catalog.release() != revision
+        or native_catalog.release() != current_revision
     ):
         raise ValueError(
             "Treasure source no longer matches its declared native placement"
         )
     return True
+
+
+_native_authority.cache_clear = _native_authority_cached.cache_clear
 
 
 def _packet(rule, *, claimed):

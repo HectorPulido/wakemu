@@ -19,6 +19,7 @@ import runpy
 import subprocess
 import sys
 import tempfile
+import tarfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -154,6 +155,47 @@ def source_inventory(root=ROOT):
     return files, hashlib.sha256(encoded).hexdigest()
 
 
+def archived_source_inventory(archive):
+    """Recover the exact previous installer inventory from preserved source."""
+    files = {}
+    with tarfile.open(archive, "r:*") as source:
+        for member in source:
+            path = PurePosixPath(member.name)
+            if (
+                path.is_absolute()
+                or ".." in path.parts
+                or member.issym()
+                or member.islnk()
+            ):
+                raise ValueError("Unsafe previous source archive")
+            parts = path.parts
+            relevant = (
+                member.name == "compose.install.yaml"
+                or parts[:1] in (("server",), ("tools",))
+                or parts[:2] == ("database", "shop-assets")
+            )
+            if (
+                not relevant
+                or not member.isfile()
+                or parts[:3] == ("server", "data", "installation")
+                or any(
+                    part in ("__pycache__", ".pytest_cache", ".venv", "venv", ".git")
+                    for part in parts
+                )
+                or path.suffix in (".pyc", ".pyo")
+            ):
+                continue
+            if member.name in files:
+                raise ValueError("Duplicate previous source archive entry")
+            digest = hashlib.sha256()
+            with source.extractfile(member) as stream:
+                for block in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(block)
+            files[member.name] = digest.hexdigest()
+    encoded = json.dumps(files, sort_keys=True, separators=(",", ":")).encode()
+    return files, hashlib.sha256(encoded).hexdigest()
+
+
 def migrations(root=ROOT):
     rows = []
     for path in sorted((root / "server/migrations").glob("[0-9][0-9][0-9]_*.sql")):
@@ -208,6 +250,13 @@ class Installer:
     def run(self, key, command, *, repeat=False):
         previous = self.progress["stages"].get(key)
         if previous is not None and not repeat:
+            if (
+                self.progress.get("source_updates")
+                and previous.get("command") != command
+            ):
+                raise ValueError(
+                    "Completed data-stage command differs after source recovery: " + key
+                )
             print("Already complete: " + key, flush=True)
             return
         print("Installing: " + key, flush=True)
@@ -267,14 +316,163 @@ class Installer:
         with installation_lock(self.state):
             self._install()
 
+    def resume_source(self):
+        """Explicit recovery of an interrupted pre-World installer-only change."""
+        archive = getattr(self.args, "resume_source_archive", None)
+        old = self.progress["installation"]
+        if archive is None:
+            raise ValueError(
+                "Existing installation is pinned to different source/data; no state was reset"
+            )
+        if {k: v for k, v in old.items() if k != "source_inventory_sha256"} != {
+            k: v for k, v in self.identity.items() if k != "source_inventory_sha256"
+        }:
+            raise ValueError(
+                "Source recovery cannot change project/database/public data identity"
+            )
+        stages = self.progress["stages"]
+        if (
+            self.progress.get("status") in ("VERIFIED", "READY_UNVERIFIED")
+            or "start-world-ai-shop" in stages
+            or "native-login-reconnect" in stages
+            or any(
+                (self.state / "receipts" / name).exists()
+                for name in (
+                    "native-login-reconnect.json",
+                    "native-login-reconnect.log",
+                    "start-world-ai-shop.log",
+                )
+            )
+        ):
+            raise ValueError(
+                "Source recovery is restricted to interrupted pre-World installations"
+            )
+        previous_files, previous_sha = archived_source_inventory(archive)
+        if previous_sha != old["source_inventory_sha256"]:
+            raise ValueError(
+                "Previous source archive does not prove the installed source identity"
+            )
+        changed = sorted(
+            path
+            for path in previous_files.keys() | self.source_files.keys()
+            if previous_files.get(path) != self.source_files.get(path)
+        )
+
+        # Bounded installer repair, not an arbitrary runtime/data upgrade.
+        # Completed consumer/producer changes cannot reuse their old receipts.
+        def allowed(path):
+            return (
+                path == "tools/install-wakemu.py"
+                or path.startswith(("tools/tests/", "server/tests/"))
+                or path == "server/tools/install_environmental_profiles.py"
+                and "environmental-profiles" not in stages
+            )
+
+        if not changed or any(not allowed(path) for path in changed):
+            raise ValueError(
+                "Source recovery changes completed-stage consumers or immutable build/data inputs"
+            )
+        inputs = self.state / "inputs"
+        seed = json.loads(safe_child(inputs, "manifest.json").read_text())
+        catalog_ref = self.public["catalogs"]["manifest"]
+        catalog = json.loads(
+            verified_artifact(
+                self.pack, self.public["artifacts"][catalog_ref]
+            ).read_text()
+        )
+        if (
+            seed.get("releases") != catalog.get("releases")
+            or seed.get("active_revision") != self.public["catalogs"]["active_revision"]
+            or seed.get("format") != "wakemu-installation-seed-v1"
+            or seed.get("contains_private_capture") is not False
+            or seed.get("player_tables_exported") != []
+        ):
+            raise ValueError(
+                "Materialized catalog input identity changed during source recovery"
+            )
+        bootstrap, reviewed = seed["bootstrap_export"], seed["reviewed_dungeons"]
+        if (
+            sha256(verified_artifact(inputs, bootstrap, "import_expected_sha256"))
+            != self.public["bootstrap"]["sha256"]
+            or sha256(verified_artifact(inputs, reviewed))
+            != self.public["reviewed_dungeons"]["sha256"]
+        ):
+            raise ValueError("Materialized bootstrap/reviewed input identity changed")
+        additional = seed.get("additional_seeds", [])
+        refs = self.public.get("sql_seeds", [])
+        if len(additional) != len(refs):
+            raise ValueError("Materialized public seed input set changed")
+        for row, ref in zip(additional, refs):
+            artifact = self.public["artifacts"][ref]
+            original = verified_artifact(self.pack, artifact)
+            if artifact.get("compression", "none") != "none":
+                import gzip
+
+                with gzip.open(original, "rb") as stream:
+                    digest = hashlib.file_digest(stream, "sha256").hexdigest()
+            else:
+                digest = artifact["sha256"]
+            if sha256(verified_artifact(inputs, row)) != digest:
+                raise ValueError("Materialized public seed identity changed")
+        invalidated = {
+            key: stages[key]
+            for key in ("compose-config", "build-world", "build-ai", "build-shop")
+            if key in stages
+        }
+        transition = dict(
+            created_at=now(),
+            previous_installation=old,
+            next_installation=self.identity,
+            previous_archive_sha256=sha256(Path(archive)),
+            changed_files=[
+                dict(
+                    path=path,
+                    before=previous_files.get(path),
+                    after=self.source_files.get(path),
+                )
+                for path in changed
+            ],
+            previous_stages=stages.copy(),
+            invalidated_stages=invalidated,
+            previous_images={
+                kind: "wakemu-install-" + kind + ":" + previous_sha[:16]
+                for kind in ("world", "ai", "shop")
+            },
+            next_images={
+                kind: "wakemu-install-" + kind + ":" + self.source_sha[:16]
+                for kind in ("world", "ai", "shop")
+            },
+        )
+        name = (
+            "source-update-" + previous_sha[:16] + "-" + self.source_sha[:16] + ".json"
+        )
+        target = self.state / "receipts" / name
+        if target.exists():
+            recorded = json.loads(target.read_text())
+            if {k: v for k, v in recorded.items() if k != "created_at"} != {
+                k: v for k, v in transition.items() if k != "created_at"
+            }:
+                raise ValueError("Source transition receipt differs from this recovery")
+        else:
+            atomic_json(target, transition)
+        self.progress.setdefault("source_updates", []).append(
+            dict(receipt=name, sha256=sha256(target))
+        )
+        self.progress["installation"] = self.identity
+        for key in invalidated:
+            del stages[key]
+        atomic_json(self.state / "installation.json", self.progress)
+        print(
+            "Reviewed source transition recorded; immutable data stages retained and complete images will rebuild.",
+            flush=True,
+        )
+
     def _install(self):
         receipt = self.state / "installation.json"
         if receipt.exists():
             self.progress = json.loads(receipt.read_text())
             if self.progress["installation"] != self.identity:
-                raise ValueError(
-                    "Existing installation is pinned to different source/data; no state was reset"
-                )
+                self.resume_source()
         else:
             existing = subprocess.check_output(
                 [
@@ -434,6 +632,15 @@ class Installer:
                 ),
                 repeat=True,
             )
+        self.run(
+            "compiled-combat-catalog",
+            self.helper(
+                "/app/tools/publish_compiled_combat_catalog.py",
+                "--ensure",
+                "--warm-redis",
+            ),
+            repeat=True,
+        )
         self.run("zero-player-state", self.helper("-c", ZERO_CHECK))
         expected = {
             "installation": self.identity,
@@ -516,6 +723,11 @@ def main(argv=None):
         "--data-pack", type=Path, default=ROOT / "server/data/installation"
     )
     parser.add_argument("--project", default="wakemu-install")
+    parser.add_argument(
+        "--resume-source-archive",
+        type=Path,
+        help="Explicit pre-World installer repair using an exact preserved prior source archive",
+    )
     parser.add_argument("--state-dir", type=Path)
     parser.add_argument("--advertise-host", default="127.0.0.1")
     parser.add_argument("--world-port", type=int, default=15556)
@@ -564,7 +776,13 @@ def main(argv=None):
             )
         else:
             installer.install()
-    except (ValueError, OSError, RuntimeError, subprocess.SubprocessError) as error:
+    except (
+        ValueError,
+        OSError,
+        RuntimeError,
+        tarfile.TarError,
+        subprocess.SubprocessError,
+    ) as error:
         print(
             "Installation stopped without resetting state: " + str(error),
             file=sys.stderr,

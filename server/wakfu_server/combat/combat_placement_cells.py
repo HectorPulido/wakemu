@@ -67,6 +67,7 @@ def generate(
     avoid_cells=(),
     spread_teams=False,
     occupied_cells=(),
+    team_capacities=None,
 ):
     """Return disjoint team0/1 placement sets containing every current actor.
 
@@ -76,6 +77,16 @@ def generate(
     """
     if type(slots_per_team) is not int or not 1 <= slots_per_team <= 127:
         raise ValueError("Invalid local placement capacity")
+    if team_capacities is not None and (
+        not isinstance(team_capacities, dict)
+        or set(team_capacities) != {0, 1}
+        or any(type(team) is not int for team in team_capacities)
+        or any(
+            type(value) is not int or not 1 <= value <= 127
+            for value in team_capacities.values()
+        )
+    ):
+        raise ValueError("Invalid per-team placement capacity")
     if type(spread_teams) is not bool:
         raise ValueError("Invalid team placement spread policy")
     if variation_seed is not None and (
@@ -153,7 +164,13 @@ def generate(
     if not blocked <= cells:
         raise ValueError("Occupied placement footprints exceed selected terrain")
     occupied = selected[0] | selected[1] | blocked
-    limits = {team: max(slots_per_team, len(selected[team])) for team in (0, 1)}
+    limits = {
+        team: max(
+            slots_per_team if team_capacities is None else team_capacities[team],
+            len(selected[team]),
+        )
+        for team in (0, 1)
+    }
     while True:
         added = False
         for team in (0, 1):

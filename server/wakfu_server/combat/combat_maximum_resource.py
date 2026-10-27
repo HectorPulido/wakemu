@@ -582,25 +582,33 @@ def _reduction_area_lacks_characteristic(fight, identity, stat):
     return True
 
 
-class NativeMaximumReductionHandler:
-    """eWO shifts both raw PA bounds; unlike eWN stores requested amount.
+class NativeMaximumReductionHandler(NativeMaximumResourceHandler):
+    """Native eWO PC2/3/4 arithmetic and Qe calculation/application phases."""
 
-    Chance<100 requires independent UK.pT-compatible transaction RNG callback.
-    Parameter flags2/3 equal1 enable restore/reduce current, default true.
-    """
+    native_runner_value_verified = True
 
     def __init__(
-        self, fight, packets, *, action_id, allocate_uid, context, probability=None
+        self,
+        fight,
+        packets,
+        *,
+        action_id,
+        allocate_uid,
+        context,
+        probability=None,
+        rng=None,
     ):
-        self.fight, self.packets = fight, packets
-        self.action_id, self.allocate_uid, self.context = (
-            action_id,
-            allocate_uid,
-            context,
+        super().__init__(
+            fight,
+            packets,
+            action_id=action_id,
+            allocate_uid=allocate_uid,
+            context=context,
+            rng=rng,
         )
         self.probability = probability
 
-    def __call__(self, effect, values, invocation):
+    def _context(self, effect, invocation):
         stat = REDUCTION_FAMILIES.get(effect["effect_class"])
         parameters = effect["parameters"]
         if stat is None or len(parameters) not in (2, 4, 6, 8):
@@ -636,8 +644,20 @@ class NativeMaximumReductionHandler:
             raise ValueError("Unverified native maximum reduction guards")
         if type(context.executable) is not bool or type(context.retained) is not bool:
             raise ValueError("Unknown native reduction execution")
+        return stat, actor, absent_area_pa, context
+
+    def _events(self, effect, *, applied=None, current_changed=False):
+        from .combat_maximum_reduction_events import reduction_event_ids
+
+        return reduction_event_ids(
+            effect, applied=applied, current_changed=current_changed
+        )
+
+    def _calculate(self, effect, invocation):
+        stat, actor, absent_area_pa, context = self._context(effect, invocation)
         if not context.executable:
-            return False
+            return context, 0, (), stat, actor, absent_area_pa
+        parameters = effect["parameters"]
         parsed = [
             parameter_value(parameters, i, invocation.level)
             for i in range(len(parameters) // 2)
@@ -662,6 +682,110 @@ class NativeMaximumReductionHandler:
                 raise ValueError("Missing native triggering reduction amount")
         elif amount == -2 and not absent_area_pa:
             amount = current  # eWO.C PV.c(resource), current not maximum.
+        return context, amount, parsed, stat, actor, absent_area_pa
+
+    def prepare(self, effect, values, invocation):
+        if self.event_lifecycle is None:
+            return invocation
+        self._context(effect, invocation)
+        uid = self.allocate_uid()
+        invocation = replace(invocation, native_running_uid=uid)
+        try:
+            runner = NativeRunnerAmount(uid, effect["effect_class"], rng=self.rng)
+            self.runner_amounts[uid] = runner
+            self.event_lifecycle.phase(
+                effect,
+                invocation,
+                uid=uid,
+                value=0,
+                channel=1,
+                _event_ids=self._events(effect),
+                runner_modifier=runner,
+            )
+            calculated = self._calculate(effect, invocation)
+            self.prepared_maxima[uid] = calculated
+            runner.set_calculated(calculated[1])
+            return invocation
+        except Exception:
+            self.cancel_prepared(invocation)
+            raise
+
+    def _finish_events(
+        self,
+        effect,
+        invocation,
+        uid,
+        amount,
+        context,
+        runner,
+        *,
+        absent=False,
+        current_changed=False,
+    ):
+        if context.retained and self.event_lifecycle is not None:
+            self.event_lifecycle.register_applied(effect, invocation, uid)
+        if runner is not None:
+            runner.set_applied(amount)
+            runner.finish_application()
+        if self.event_lifecycle is not None:
+            events = self._events(
+                effect,
+                applied=None if absent else amount,
+                current_changed=current_changed,
+            )
+            for channel in (3, 4):
+                self.event_lifecycle.phase(
+                    effect,
+                    invocation,
+                    uid=uid,
+                    value=runner.value,
+                    channel=channel,
+                    _event_ids=events,
+                    runner_modifier=runner,
+                )
+        final = amount if runner is None else runner.value
+        if context.retained and final != amount:
+            entry = self.fight.owned_stat_effects[uid]
+            entry["actual"] = final
+            payload = owned_effect_payload(
+                uid=uid,
+                base_uid=invocation.base_uid,
+                generic_effect=invocation.reference,
+                caster_id=invocation.caster_id,
+                target_id=invocation.target_id,
+                value=final,
+                timing_payload=context.timing_payload,
+            )
+            additional = _integer(34, int(entry["restore_current"])) + _integer(
+                35, int(entry["reduce_current"])
+            )
+            entry["payload"] = (
+                payload + b"\x42" + _varint(len(additional)) + additional
+            ).hex()
+        from .combat_runner_callbacks import notify_runner_value
+
+        notify_runner_value(invocation, final)
+        return True
+
+    def _apply(self, effect, values, invocation):
+        uid = invocation.native_running_uid
+        if uid is None:
+            context, amount, parsed, stat, actor, absent_area_pa = self._calculate(
+                effect, invocation
+            )
+        else:
+            if uid not in self.prepared_maxima:
+                raise ValueError("Missing prepared native eWO resource runner")
+            (
+                context,
+                amount,
+                parsed,
+                stat,
+                actor,
+                absent_area_pa,
+            ) = self.prepared_maxima.pop(uid)
+        if not context.executable:
+            return False
         chance = (
             100 if len(parsed) < 2 or parsed[1] < 0 else max(0, min(100, parsed[1]))
         )
@@ -673,12 +797,45 @@ class NativeMaximumReductionHandler:
                 raise ValueError("Unknown native reduction chance result")
             if not accepted:
                 return False
+        runner = self.runner_amounts.get(uid)
+        if self.event_lifecycle is not None:
+            uid = uid or self.allocate_uid()
+            runner = runner or NativeRunnerAmount(
+                uid, effect["effect_class"], rng=self.rng, value=amount
+            )
+            self.event_lifecycle.phase(
+                effect,
+                invocation,
+                uid=uid,
+                value=amount,
+                channel=2,
+                _event_ids=self._events(effect),
+                runner_modifier=runner,
+            )
+            stat, actor, absent_area_pa, live = self._context(effect, invocation)
+            if not live.executable:
+                return False
+            if live.retained != context.retained:
+                raise ValueError("Native eWO resource retention changed during L2")
+            amount = runner.value
+        if not absent_area_pa and amount == -1:
+            # eWO.c retries the live triggering amount after synchronous L2.
+            if invocation.native_trigger_context is not None:
+                amount = maximum_application_amount(
+                    amount, invocation, context_applied=True
+                )
+            elif type(context.trigger_value) is int:
+                amount = context.trigger_value
+        if not absent_area_pa:
+            current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(
+                actor, stat
+            )
         restore = len(parsed) < 3 or parsed[2] == 1
         reduce = len(parsed) < 4 or parsed[3] == 1
         if absent_area_pa:
             # eWO.c calls mu(true), without changing aSg or cancelling Qe.a.
             # A real selected PV stays selected; no PA or PR.b is invented.
-            uid = self.allocate_uid()
+            uid = uid or self.allocate_uid()
             if context.retained:
                 payload = owned_effect_payload(
                     uid=uid,
@@ -706,10 +863,9 @@ class NativeMaximumReductionHandler:
                     state_uid=invocation.state_uid,
                     timer=None if context.timer is None else dict(vars(context.timer)),
                 )
-            from .combat_runner_callbacks import notify_runner_value
-
-            notify_runner_value(invocation, amount)
-            return True
+            return self._finish_events(
+                effect, invocation, uid, amount, context, runner, absent=True
+            )
         after = current
         new_raw, new_min = raw, raw_min
         if maximum != (1 << 31) - 1:
@@ -730,7 +886,7 @@ class NativeMaximumReductionHandler:
         if reduce:
             remaining = _int32(amount - _int32(current - after))
             after = max(new_minimum, min(new_maximum, _int32(after - remaining)))
-        uid = self.allocate_uid()
+        uid = uid or self.allocate_uid()
         payload = owned_effect_payload(
             uid=uid,
             base_uid=invocation.base_uid,
@@ -803,15 +959,24 @@ class NativeMaximumReductionHandler:
                 state_uid=invocation.state_uid,
                 timer=None if context.timer is None else dict(vars(context.timer)),
             )
-        self.packets.append(
-            (
-                12613,
-                evaluated_application_from_observation(
-                    packet, execute=not context.retained
-                ),
+        if runner is None or not runner.notification_suppressed:
+            self.packets.append(
+                (
+                    12613,
+                    evaluated_application_from_observation(
+                        packet, execute=not context.retained
+                    ),
+                )
             )
+        return self._finish_events(
+            effect,
+            invocation,
+            uid,
+            amount,
+            context,
+            runner,
+            current_changed=actor.effect_stats[stat] != current,
         )
-        return True
 
 
 def remove_maximum_reduction(handler, uid):

@@ -53,6 +53,11 @@ def award(
     """
     if not isinstance(policy, Policy):
         raise ValueError("Explicit local reward Policy required")
+    from wakfu_server.combat_reward_ownership import is_earned_rift_recipient
+
+    earned_rift = db is not None and is_earned_rift_recipient(
+        db, fight, account_id, generation, character_id
+    )
     actor = fight.actors.get(character_id)
     if (
         fight.phase != "finished"
@@ -60,7 +65,7 @@ def award(
         or actor is None
         or not actor.controlled
         or actor.owner_id != account_id
-        or actor.team != fight.winner
+        or (actor.team != fight.winner and not earned_rift)
     ):
         raise ValueError("Rewards require the own winning fight participant")
     if type(fight.id) is not int or not 0 < fight.id < 2**31:
@@ -82,7 +87,8 @@ def award(
         if (
             participant is None
             or participant["fight_kind"] != "pve"
-            or participant["team"] != fight.winner
+            or participant["team"] != actor.team
+            or (participant["team"] != fight.winner and not earned_rift)
             or participant["status"] != "finished"
             or (_durable_member and participant["session_generation"] != generation)
         ):

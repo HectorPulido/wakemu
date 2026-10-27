@@ -11,7 +11,7 @@ from .combat_encounter_area_seeds import (
     NativeEncounterAreaSeed,
     install_native_area_seeds,
 )
-from .combat_encounter_roles import assigned_roles
+from wakfu_server.combat_encounter_roles import assigned_roles
 
 POLICY = "wakemu.rushu.initial-vestiges.v2"
 _LEGACY_POLICY = "wakemu.rushu.initial-vestiges.v1"

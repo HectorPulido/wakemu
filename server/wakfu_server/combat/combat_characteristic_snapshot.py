@@ -29,3 +29,15 @@ def characteristics_only_snapshot(full_snapshot):
     if end > len(full_snapshot):
         raise ValueError("Truncated native fighter characteristics")
     return bytes((40,)) + full_snapshot[offset:end]
+
+
+def characteristics_and_properties_snapshots(full_snapshot, actor):
+    """Restore the live PB managers after big.a resets them for format40.
+
+    Native format26 carries both complete property namespaces without position,
+    QI, controller or spell-book fields. No native format combines it with40.
+    """
+    from .combat_property_wire import actor_property_snapshot
+
+    properties = actor_property_snapshot(full_snapshot, actor)
+    return characteristics_only_snapshot(full_snapshot), properties

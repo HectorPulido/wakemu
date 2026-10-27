@@ -33,6 +33,7 @@ def build():
     missing = []
     unknown_scaled = []
     nested_profiles = {}
+    nested_morph_profiles = {}
     pending = []
     for profile_id, profile in profiles.items():
         for ability in profile["abilities"]:
@@ -96,18 +97,23 @@ def build():
                 }
             )
         for spec in dependency_specs(family):
-            if spec.kind == "summon":
+            if spec.kind in ("summon", "morph"):
                 values = (
                     [spec.fixed_reference]
                     if spec.fixed_reference is not None
                     else references
                 )
-                nested_profiles[reference] = values
+                target_profiles = (
+                    nested_morph_profiles if spec.kind == "morph" else nested_profiles
+                )
+                if spec.transform == "signed-short":
+                    values = [((value + 32768) % 65536) - 32768 for value in values]
+                target_profiles[reference] = values
                 for child in values:
                     edges.append(
                         {
                             "source": owner,
-                            "target": f"pending-summon-profile:{child}",
+                            "target": f"pending-{spec.kind}-profile:{child}",
                             "kind": f"native{family}_profile_dependency",
                             "class_id": 2,
                         }
@@ -154,6 +160,10 @@ def build():
         "missing_legacy_records": missing,
         "unknown_scaled_legacy_references": unknown_scaled,
         "nested_summon_effect_profiles": nested_profiles,
+        "nested_morph_effect_profiles": nested_morph_profiles,
+        "pending_morph_profile_ids": sorted(
+            {r for refs in nested_morph_profiles.values() for r in refs}
+        ),
         "pending_profile_ids": sorted(
             {r for refs in nested_profiles.values() for r in refs}
         ),

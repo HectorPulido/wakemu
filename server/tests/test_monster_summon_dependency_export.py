@@ -16,6 +16,48 @@ from export_monster_summon_dependencies import (
 
 
 class MonsterSummonDependencyExportTests(unittest.TestCase):
+    def test_morph_book_cannot_borrow_an_ordinary_summon_profile(self):
+        tables = dict(
+            spells={"1": [10], "6007": []},
+            states={},
+            areas={},
+            effects={"10": dict(family=933, references=[4252], children=[])},
+        )
+        ordinary = {
+            "4252": dict(
+                native_abilities=[dict(spell_id=6006)], initial_state_triples=[]
+            )
+        }
+        missing = dependency_closure(tables, ordinary, [1])
+        self.assertEqual(missing["closure_profile_ids"], [])
+        self.assertEqual(missing["closure_morph_ids"], [4252])
+        self.assertIn("morphs:4252", missing["missing_definitions"])
+        tables["morphs"] = {
+            "4252": dict(
+                abilities=[dict(reference=6007)], initial_state_triples=[999, 1, 1]
+            )
+        }
+        reached = dependency_closure(tables, ordinary, [1])
+        self.assertEqual(reached["closure_spell_ids"], [1, 6007])
+        self.assertEqual(reached["closure_state_ids"], [])
+        self.assertEqual(reached["missing_definitions"], [])
+        self.assertEqual(reached["effect_profile_edges"], [])
+
+    def test_aura_reference_reaches_its_native_state_children(self):
+        tables = dict(
+            spells={"1": [10]},
+            states={"3992": []},
+            areas={"991": [11]},
+            effects={
+                "10": dict(family=338, references=[991], children=[]),
+                "11": dict(family=304, references=[3992], children=[]),
+            },
+        )
+        reached = dependency_closure(tables, {}, [1])
+        self.assertEqual(reached["closure_area_ids"], [991])
+        self.assertEqual(reached["closure_state_ids"], [3992])
+        self.assertEqual(reached["missing_definitions"], [])
+
     def scope_fixture(self, mode):
         tables = dict(
             spells={"1": [10], "1948": []},

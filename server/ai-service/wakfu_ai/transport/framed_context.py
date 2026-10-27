@@ -32,8 +32,8 @@ class FramedContextTransport(ContextTransport):
         deadline = None if available is None else time.monotonic() + available
         started = time.monotonic()
         opens = self.channel.tcp_opens
+        sent = self.channel.sent_payload_bytes
         self.metrics["requests"] += 1
-        self.metrics["sentBytes"] += len(_json_bytes(payload))
         try:
             status, result = self.channel.request(endpoint, payload, deadline=deadline)
             self.metrics["receivedBytes"] += len(_json_bytes(result))
@@ -51,5 +51,6 @@ class FramedContextTransport(ContextTransport):
                 )
             return result
         finally:
+            self.metrics["sentBytes"] += self.channel.sent_payload_bytes - sent
             self.metrics["tcpOpens"] += self.channel.tcp_opens - opens
             self.metrics["requestSeconds"] += time.monotonic() - started

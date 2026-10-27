@@ -37,16 +37,21 @@ def catalog():
 
 @lru_cache(maxsize=1)
 def weapon_runtime_catalog():
-    from .combat_server_spell import compiled_runtime_catalog
+    from .combat_published_catalogs import compiling_catalog_offline
     from .combat_static_catalogs import CompiledEffects
-    from wakfu_server.spell_audit import states_catalog
+
+    if compiling_catalog_offline():
+        return compile_weapon_runtime_catalog_eager()
+    return CompiledEffects.from_published("weapon")
+
+
+def compile_weapon_runtime_catalog_eager():
+    """Original full weapon compiler for the offline publication child only."""
+    from .combat_server_spell import compiled_runtime_catalog
 
     base = compiled_runtime_catalog()
     extra = protocol_catalog.load(DATA_ROOT / "weapon-combat-effects.json")["effects"]
-    from .combat_effect_runtime import _merge_effects
-
-    merged = _merge_effects(base.source_effects, {"effects": extra})
-    return CompiledEffects(merged, states_catalog())
+    return base.with_effect_sources(extra)
 
 
 def decode_request(body):
@@ -245,6 +250,7 @@ def prepare_server_weapon(
             present=True, type=12, id=item["reference"], is_spell=False, protected=None
         ),
     )
+    paid_before = (caster.ap, caster.mp, caster.effect_stats[4])
     if getattr(caster, "effect_resource_raw_currents", None) is not None:
         from .combat_resource_pa_notifications import shift_resource_current
 
@@ -259,21 +265,31 @@ def prepare_server_weapon(
         notify_resource_pa(preview, caster, 2, before_current=before_ap)
         caster.mp -= costs["mp"]
     caster.effect_stats.update({2: caster.ap, 3: caster.mp, 4: stats[4] - costs["wp"]})
+    from .combat_weapon_events import POLICY, weapon_event_scope
+
+    plan["native_weapon_payment"] = dict(
+        policy=POLICY,
+        actor_id=caster.id,
+        item_uid=item["uid"],
+        before=paid_before,
+        after=(caster.ap, caster.mp, caster.effect_stats[4]),
+    )
     from .combat_cast_facing import begin_cast_facing
 
     facing_packets = begin_cast_facing(caster, plan, fight=preview, action_id=action_id)
     dispatcher, packets = factory(preview, plan)
-    outcomes = execute_entry_roots(
-        preview,
-        plan,
-        caster,
-        dispatcher,
-        roots,
-        route="weapon",
-        invocation_factory=EffectInvocation,
-        native_level_source=lambda: rule["item_level"],
-        native_cell=cell,
-    )
+    with weapon_event_scope(dispatcher, plan):
+        outcomes = execute_entry_roots(
+            preview,
+            plan,
+            caster,
+            dispatcher,
+            roots,
+            route="weapon",
+            invocation_factory=EffectInvocation,
+            native_level_source=lambda: rule["item_level"],
+            native_cell=cell,
+        )
     packet = animation(
         fight.id,
         action_id,

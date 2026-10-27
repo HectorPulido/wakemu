@@ -4,6 +4,7 @@ from wakfu_server.combat_direct_target import (
     native_direct_target_policies,
     explicit_native_target,
 )
+from wakfu_server.combat_damage_contracts import DAMAGE_FAMILIES, HEAL_ELEMENTS
 from test_combat_effect_resolver import NativeResolverTests
 
 
@@ -73,8 +74,14 @@ class DirectTargetTests(unittest.TestCase):
 
     def test_fresh_area_group_enumerates_occupants_before_transmitting_point_pv(self):
         self.fixture.effect["native_target_selector"]["mask"] = 1
-        self.fixture.effect.update(area_class="anu", area_native="circle-2")
-        self.fixture.resolver.direct_target_policies = {"50": [25, False, False]}
+        self.fixture.effect.update(
+            effect_class=330,
+            parameter_count=0,
+            parameters=[],
+            area_class="anu",
+            area_native="circle-2",
+        )
+        self.fixture.resolver.direct_target_policies = {"50": [330, False, False]}
         invocation = replace(
             self.fixture.invocation,
             target_id=2,
@@ -82,11 +89,53 @@ class DirectTargetTests(unittest.TestCase):
             wakemu_fresh_child_selection=True,
         )
         selected = self.fixture.resolver(self.fixture.effect, invocation)
-        self.assertGreater(len(selected), 1)
+        self.assertEqual([i.target_id for i in selected], [1, 2, 3])
         replay = self.fixture.resolver(
             self.fixture.effect, replace(invocation, wakemu_fresh_child_selection=False)
         )
         self.assertEqual([i.target_id for i in replay], [2])
+
+    def test_transmitted_nonpoint_leaf_preserves_pv_without_a_second_area_selection(
+        self,
+    ):
+        f = self.fixture
+        f.effect.update(area_class="any", area_native="crossRing-1-1")
+        explicit = replace(
+            f.invocation,
+            target_id=2,
+            cell=f.actors[1].position,
+            native_explicit_target=True,
+            wakemu_fresh_child_selection=True,
+        )
+        for family in sorted(set(DAMAGE_FAMILIES) | set(HEAL_ELEMENTS)):
+            with self.subTest(family=family):
+                f.effect["effect_class"] = family
+                f.resolver.direct_target_policies = {"50": [family, False, False]}
+                f.effect["native_target_selector"]["mask"] = 1
+                self.assertEqual(
+                    [i.target_id for i in f.resolver(f.effect, explicit)], [2]
+                )
+                # Fresh area selection still occurs without a transmitted PV,
+                # or when the actual native runner explicitly requests aZX.
+                self.assertEqual(
+                    [
+                        i.target_id
+                        for i in f.resolver(
+                            f.effect, replace(explicit, native_explicit_target=False)
+                        )
+                    ],
+                    [1],
+                )
+                f.resolver.direct_target_policies = {"50": [family, True, False]}
+                self.assertEqual(
+                    [i.target_id for i in f.resolver(f.effect, explicit)], [1]
+                )
+                # Existing explicit relationship reconstruction is independent.
+                f.resolver.direct_target_policies = {"50": [family, False, False]}
+                f.effect["native_target_selector"]["mask"] = 2
+                self.assertEqual(
+                    [i.target_id for i in f.resolver(f.effect, explicit)], [1]
+                )
 
     def test_fresh_qq_selector_replaces_transmitted_actor_with_registered_area(self):
         self.fixture.native[2].update(is_Qq=True, is_amO=False, is_eGj=False)

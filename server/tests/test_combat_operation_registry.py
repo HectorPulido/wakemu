@@ -159,6 +159,17 @@ class CombatOperationRegistryTests(unittest.TestCase):
         self.assertEqual(registry.dependency_specs(304)[0].relation, "requires")
         self.assertEqual(registry.dependency_specs(999999), ())
 
+    def test_aura_and_morph_dependencies_are_typed_without_admission(self):
+        aura = registry.dependency_specs(338)
+        self.assertEqual((aura[0].kind, aura[0].parameter_index), ("area", 0))
+        self.assertIsNone(registry.operation_for_family(338))
+        morph = registry.dependency_specs(933)
+        self.assertEqual(
+            (morph[0].kind, morph[0].parameter_index, morph[0].transform),
+            ("morph", 0, "signed-short"),
+        )
+        self.assertNotEqual(morph[0].kind, registry.dependency_specs(307)[0].kind)
+
     def test_registry_source_does_not_import_catalog_or_runtime_modules(self):
         tree = ast.parse(REGISTRY_PATH.read_text(encoding="utf-8"))
         forbidden = (

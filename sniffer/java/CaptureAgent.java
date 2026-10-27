@@ -128,7 +128,7 @@ public final class CaptureAgent {
     }catch(Throwable error){out.put(key+"_error",error.toString());}
    }
    out.put("native_mode",call(movement,"bvy"));
-   out.put("idle_fallback",NativeMovementStop.diagnostic());
+   out.put("idle_fallback",Map.of("status", "not_instrumented"));
    for(String animationMethod:new String[]{"bkG","bpT","bvM"})
     try{out.put(animationMethod,call(movement,animationMethod));}
     catch(Throwable error){out.put(animationMethod+"_error",error.toString());}
@@ -346,83 +346,6 @@ public final class CaptureAgent {
         }
     }
 
-    static byte[] spectatorTerminalAck(byte[] data) {
-        ClassReader reader = new ClassReader(data);
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-        int[] patched = {0};
-        reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
-            @Override
-            public MethodVisitor visitMethod(int access, String method, String desc, String signature, String[] exceptions) {
-                MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
-                if (!method.equals("cbj") || !desc.equals("()V")) return target;
-                return new MethodVisitor(Opcodes.ASM8, target) {
-                    @Override
-                    public void visitFieldInsn(int opcode, String owner, String field, String descriptor) {
-                        if (opcode == Opcodes.GETFIELD && owner.equals("aUH") && field.equals("huP") && descriptor.equals("Z")) {
-                            // cbj runs after native terminal cleanup. Preserve its
-                            // coQ packet and loss flag, but acknowledge observers
-                            // too so the server can safely clear retained NPCs.
-                            // Keep the original receiver/result stack shape.
-                            super.visitInsn(Opcodes.POP);
-                            super.visitInsn(Opcodes.ICONST_0);
-                            patched[0]++;
-                        } else super.visitFieldInsn(opcode, owner, field, descriptor);
-                    }
-                };
-            }
-        }, 0);
-        if (patched[0] != 1) throw new IllegalStateException("Unexpected native spectator terminal ACK boundary");
-        return writer.toByteArray();
-    }
-
-    static byte[] decodedAreaRemoval(byte[] data) {
-        ClassReader reader = new ClassReader(data);
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-        int[] patched = {0};
-        reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
-            @Override
-            public MethodVisitor visitMethod(int access, String method, String desc, String signature, String[] exceptions) {
-                MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
-                if (!method.equals("cYg") || !desc.equals("()V")) return target;
-                return new MethodVisitor(Opcodes.ASM8, target) {
-                    @Override
-                    public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean iface) {
-                        if (opcode == Opcodes.INVOKEVIRTUAL && owner.equals("eZR") && name.equals("a") && descriptor.equals("(LQe;Z)V")) {
-                            super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativeDecodedAreaRemoval", "execute", "(LeZR;LQe;Z)V", false);
-                            patched[0]++;
-                        } else super.visitMethodInsn(opcode, owner, name, descriptor, iface);
-                    }
-                };
-            }
-        }, 0);
-        if (patched[0] != 2) throw new IllegalStateException("Unexpected native decoded area-removal boundaries");
-        return writer.toByteArray();
-    }
-
-    static byte[] movementPathCleared(byte[] data) {
-        ClassReader reader = new ClassReader(data);
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-        int[] exits = {0};
-        reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
-            @Override public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-                MethodVisitor target = super.visitMethod(access, name, desc, signature, exceptions);
-                if (!name.equals("bvC") || !desc.equals("()V")) return target;
-                return new MethodVisitor(Opcodes.ASM8, target) {
-                    @Override public void visitInsn(int opcode) {
-                        if (opcode == Opcodes.RETURN) {
-                            super.visitVarInsn(Opcodes.ALOAD, 0);
-                            super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativeMovementStop", "pathCleared", "(LacS;)V", false);
-                            exits[0]++;
-                        }
-                        super.visitInsn(opcode);
-                    }
-                };
-            }
-        }, 0);
-        if (exits[0] != 1) throw new IllegalStateException("Unexpected native path-clear completion exits");
-        return writer.toByteArray();
-    }
-
     public static void premain(String directory, Instrumentation instrumentation) throws Exception {
         Path base = Path.of(directory);
         Files.createDirectories(base);
@@ -430,88 +353,20 @@ public final class CaptureAgent {
         Files.createDirectory(sessionDir, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
         output = Files.newBufferedWriter(sessionDir.resolve("events.jsonl"));
         append(new LinkedHashMap<>(Map.of("event", "capture_start", "lifecycle_version", 2, "scope", "Netty pipeline bytes and message classes; includes repeated stages and TLS ciphertext/plaintext")));
-        instrumentation.addTransformer(new ClassFileTransformer() {
+        instrumentation.addTransformer(networkTransformer());
+        startInspector();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try { append(new LinkedHashMap<>(Map.of("event", "capture_stop"))); output.close(); }
+            catch (Exception ignored) {}
+        }));
+        System.out.println("CaptureAgent recording from JVM start to " + sessionDir);
+    }
+
+    // Only transport observation is instrumented; native game classes are untouched.
+    static ClassFileTransformer networkTransformer() {
+        return new ClassFileTransformer() {
             @Override
             public byte[] transform(ClassLoader loader, String name, Class<?> clazz, ProtectionDomain domain, byte[] data) {
-                if ("aVo".equals(name)) return decodedAreaRemoval(data);
-                if ("aUH".equals(name)) return spectatorTerminalAck(data);
-                if ("fnR".equals(name)) {
-                    ClassReader reader = new ClassReader(data);
-                    ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-                    reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
-                        @Override
-                        public MethodVisitor visitMethod(int access, String method, String desc, String signature, String[] exceptions) {
-                            MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
-                            boolean snapshot = method.equals("f") && desc.equals("(LfvH;)V");
-                            boolean hydrated = method.equals("a") && desc.equals("(LwS;)V");
-                            if (!snapshot && !hydrated) return target;
-                            return new MethodVisitor(Opcodes.ASM8, target) {
-                                @Override
-                                public void visitCode() {
-                                    super.visitCode();
-                                    if (snapshot) {
-                                        super.visitVarInsn(Opcodes.ALOAD, 0);
-                                        super.visitVarInsn(Opcodes.ALOAD, 1);
-                                        super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativePetStateRefresh", "reconcile", "(LfnR;LfvH;)LfvH;", false);
-                                        super.visitVarInsn(Opcodes.ASTORE, 1);
-                                    }
-                                }
-                                @Override
-                                public void visitFieldInsn(int opcode, String owner, String field, String descriptor) {
-                                    if (hydrated && opcode == Opcodes.PUTFIELD && owner.equals("fnR") && field.equals("kuu") && descriptor.equals("LfvH;")) {
-                                        // Preserve the original receiver/value stack shape and stack maps.
-                                        super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativePetStateRefresh", "assignHydrated", "(LfnR;LfvH;)V", false);
-                                    } else super.visitFieldInsn(opcode, owner, field, descriptor);
-                                }
-                            };
-                        }
-                    }, 0);
-                    return writer.toByteArray();
-                }
-                if ("bPO".equals(name)) {
-                    ClassReader reader = new ClassReader(data);
-                    ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-                    reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
-                        @Override
-                        public MethodVisitor visitMethod(int access, String method, String desc, String signature, String[] exceptions) {
-                            MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
-                            if (!method.equals("eH") || !desc.equals("(Ljava/lang/String;)Ljava/lang/Object;")) return target;
-                            return new MethodVisitor(Opcodes.ASM8, target) {
-                                @Override
-                                public void visitMethodInsn(int opcode, String owner, String called, String descriptor, boolean iface) {
-                                    if (opcode == Opcodes.INVOKEVIRTUAL && owner.equals("buH") && called.equals("a") && descriptor.equals("(LeGj;LfyG;LaBn;Z)LfyJ;")) {
-                                        // Consume exactly the original receiver/arguments; preserve stack maps.
-                                        super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativeSpellPreflight", "query", "(LbuH;LeGj;LfyG;LaBn;Z)LfyJ;", false);
-                                    } else {
-                                        super.visitMethodInsn(opcode, owner, called, descriptor, iface);
-                                    }
-                                }
-                            };
-                        }
-                    }, 0);
-                    return writer.toByteArray();
-                }
-                if ("adf".equals(name)) {
-                    ClassReader reader = new ClassReader(data);
-                    ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-                    reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
-                        @Override
-                        public MethodVisitor visitMethod(int access, String method, String desc, String signature, String[] exceptions) {
-                            MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
-                            if (!method.equals("b") || !desc.equals("(LacX;)V")) return target;
-                            return new MethodVisitor(Opcodes.ASM8, target) {
-                                @Override
-                                public void visitMethodInsn(int opcode, String owner, String called, String descriptor, boolean iface) {
-                                    if (opcode == Opcodes.INVOKEINTERFACE && owner.equals("acX") && called.equals("eg") && descriptor.equals("(Ljava/lang/String;)Z")) {
-                                        // Identical operand consumption; no added local loads or frames.
-                                        super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativeMovementStop", "finish", "(LacX;Ljava/lang/String;)Z", false);
-                                    } else super.visitMethodInsn(opcode, owner, called, descriptor, iface);
-                                }
-                            };
-                        }
-                    }, 0);
-                    return writer.toByteArray();
-                }
                 boolean unsafe = "io/netty/channel/AbstractChannel$AbstractUnsafe".equals(name);
                 if (!unsafe && !"io/netty/channel/AbstractChannelHandlerContext".equals(name)) return null;
                 ClassReader reader = new ClassReader(data);
@@ -559,17 +414,11 @@ public final class CaptureAgent {
                         };
                     }
                 }, 0);
-                try { append(new LinkedHashMap<>(Map.of("event", "hooks_installed", "class", name))); }
+                try { if (output != null) append(new LinkedHashMap<>(Map.of("event", "hooks_installed", "class", name))); }
                 catch (Exception error) { throw new IllegalStateException(error); }
                 return writer.toByteArray();
             }
-        });
-        startInspector();
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try { append(new LinkedHashMap<>(Map.of("event", "capture_stop"))); output.close(); }
-            catch (Exception ignored) {}
-        }));
-        System.out.println("CaptureAgent recording from JVM start to " + sessionDir);
+        };
     }
 
     private static void collect(Component component, List<Map<String, Object>> nodes) {
@@ -867,7 +716,7 @@ public final class CaptureAgent {
                                                     if (path != null) animation.put("path_points", call(path, "bDT"));
                                                 } catch (Throwable error) { animation.put("path_error", error.toString()); }
                                                 graphicState.put("animation", animation);
-                                                animation.put("stop_diagnostic", NativeMovementStop.diagnostic(id));
+                                                animation.put("stop_diagnostic", Map.of("status", "not_instrumented"));
                                                 Object scene = call(NativeDiagnosticReadiness.initializedClass("cdE"), "exN");
                                                 Object loaded = call(scene, "exP");
                                                 if (loaded instanceof Iterable<?> objects) {
@@ -903,51 +752,6 @@ public final class CaptureAgent {
                             } catch (Exception error) { throw new RuntimeException(error); }
                         });
                         response = (JSON.toJson(actors) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                    }
-                    case "/native-replay" -> {
-                        Path profileRoot = sessionDir.getParent().getParent();
-                        if (!profileRoot.getFileName().toString().startsWith("issue16-marker-visual-"))
-                            throw new IllegalStateException("Native replay is restricted to issue16 visual test profiles");
-                        Map<?, ?> input = JSON.fromJson(new String(exchange.getRequestBody().readNBytes(140000), java.nio.charset.StandardCharsets.UTF_8), Map.class);
-                        if (!(input.get("opcode") instanceof Number opcodeValue) || !(input.get("body_base64") instanceof String encoded))
-                            throw new IllegalArgumentException("opcode and body_base64 are required");
-                        int opcode = opcodeValue.intValue();
-                        if (opcode != 12304 && opcode != 12608 && opcode != 13753)
-                            throw new IllegalArgumentException("Only native world actor and marker opcodes may be replayed");
-                        byte[] packet = Base64.getDecoder().decode(encoded);
-                        if (packet.length < 1 || packet.length > 65536)
-                            throw new IllegalArgumentException("Invalid native replay body size");
-                        Map<String, Object> result = new LinkedHashMap<>();
-                        SwingUtilities.invokeAndWait(() -> {
-                            try {
-                                String className = switch (opcode) {
-                                    case 12304 -> "ctA";
-                                    case 12608 -> "ctE";
-                                    default -> "cuY";
-                                };
-                                Class<?> messageClass = Class.forName(className);
-                                Object message = messageClass.getConstructor().newInstance();
-                                boolean decoded = (Boolean) call(message, "dp", packet);
-                                int decodedOpcode = ((Number) call(message, "d")).intValue();
-                                if (!decoded || decodedOpcode != opcode)
-                                    throw new IllegalArgumentException("Native packet decoder rejected body");
-                                boolean accepted;
-                                if (opcode == 13753) {
-                                    Class<?> handlerClass = NativeDiagnosticReadiness.initializedClass("ckM");
-                                    var constructor = handlerClass.getDeclaredConstructor();
-                                    constructor.setAccessible(true);
-                                    Object handler = constructor.newInstance();
-                                    accepted = (Boolean) call(handler, "a", message);
-                                } else {
-                                    Object dispatcher = call(NativeDiagnosticReadiness.initializedClass("cgN"), "eCA");
-                                    accepted = (Boolean) call(dispatcher, "b", message);
-                                }
-                                result.put("opcode", opcode);
-                                result.put("decoded", decoded);
-                                result.put("native_handler_accepted", accepted);
-                            } catch (Exception error) { throw new RuntimeException(error); }
-                        });
-                        response = (JSON.toJson(result) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     }
                     case "/position" -> {
                         Map<String, Object> position = new LinkedHashMap<>();
@@ -1044,7 +848,7 @@ public final class CaptureAgent {
                                 diagnostic.put("count",call(actor,"dTB"));
                                 Object original=call(fight,"a",actor,book,null,true);
                                 diagnostic.put("null_target",String.valueOf(original));
-                                diagnostic.put("policy",String.valueOf(NativeSpellAvailability.withNativeContext(original,fight,actor,book)));
+                                diagnostic.put("policy",String.valueOf(original));
                                 List<Map<String,Object>> candidates=new ArrayList<>();
                                 for(Object target:(java.util.Collection<?>)call(fight,"dLy")) {
                                     Map<String,Object> row=new LinkedHashMap<>();

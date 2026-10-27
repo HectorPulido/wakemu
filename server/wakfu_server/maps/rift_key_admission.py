@@ -49,13 +49,16 @@ def lock_owner(db, run, character_id, fight_id):
     """Acquire the selected main before the run lock, like interactive admission."""
     # Session before character, matching Store.lock_character. The combat
     # participant must still name this selected main's actual lease generation.
+    from wakfu_server.rift_encounter_roles import roles_for_catalog
+
+    player_team = roles_for_catalog(run["catalog"], run["policy"]).player_team
     owner = db.execute(
         "SELECT s.account_id FROM sessions s JOIN characters c ON c.account_id=s.account_id "
         "JOIN combat_fight_participants p ON p.character_id=c.id "
         "AND p.account_id=c.account_id AND p.session_generation=s.generation "
         "WHERE c.id=%s AND s.character_id=c.id AND s.expires_at>CURRENT_TIMESTAMP "
-        "AND c.deleted_at IS NULL AND p.fight_id=%s AND p.team=0 FOR UPDATE OF s",
-        (character_id, fight_id),
+        "AND c.deleted_at IS NULL AND p.fight_id=%s AND p.team=%s FOR UPDATE OF s",
+        (character_id, fight_id, player_team),
     ).fetchone()
     if owner is None:
         raise ValueError("Ultimate rift start requires its current selected main")

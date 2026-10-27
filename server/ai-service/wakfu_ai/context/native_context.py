@@ -54,6 +54,27 @@ def _instance_fields(item):
     return values
 
 
+def _static_catalog_descriptor(value):
+    """Recognize only the sealed published type, without inspecting its reader."""
+    kind = type(value)
+    if kind.__name__ != "PublishedStaticMapping" or kind.__module__ not in (
+        "wakfu_server.combat_published_catalogs",
+        "wakfu_server.combat.combat_published_catalogs",
+    ):
+        return None
+    try:
+        from wakfu_server.combat_published_catalogs import static_catalog_descriptor
+    except ModuleNotFoundError as error:
+        if error.name != "wakfu_server.combat_published_catalogs":
+            raise
+        # The host-mounted SDK can precede a complete World image rebuild.
+        # Legacy images have no published views to encode; nested import
+        # failures in an installed implementation must still propagate.
+        return None
+
+    return static_catalog_descriptor(value)
+
+
 def _encode(value, *, serialize_nodes=False, _geometry_cache=True, _parts=None):
     check()
     if _parts is not None and not serialize_nodes:
@@ -67,6 +88,7 @@ def _encode(value, *, serialize_nodes=False, _geometry_cache=True, _parts=None):
     )
     fragment_lookup = None
     fragment_publish = None
+    fragment_rebase = None
     tuple_node_bytes = None
     tuple_value_bytes = None
     if serialize_nodes and _geometry_cache:
@@ -77,6 +99,9 @@ def _encode(value, *, serialize_nodes=False, _geometry_cache=True, _parts=None):
             cached_int_tuple_values,
         )
 
+        from .native_geometry_render_cache import rebase_fragment
+
+        fragment_rebase = rebase_fragment
         fragment_lookup = get_fragment
         fragment_publish = cache_fragment_from_encoded
         tuple_node_bytes = cached_int_tuple_node
@@ -130,8 +155,8 @@ def _encode(value, *, serialize_nodes=False, _geometry_cache=True, _parts=None):
                     identities.update(assignments)
                     check()
                     return {"ref": index}
-                root_index, following, assignments, rows = fragment.rebase(
-                    identities, len(nodes)
+                root_index, following, assignments, rows = fragment_rebase(
+                    fragment, identities, len(nodes)
                 )
                 if root_index != index:
                     raise ValueError("Native geometry fragment root identity mismatch")
@@ -156,7 +181,10 @@ def _encode(value, *, serialize_nodes=False, _geometry_cache=True, _parts=None):
             if serialized_tuple is not None:
                 nodes[index] = serialized_tuple
                 return {"ref": index}
-        if isinstance(item, (bytes, bytearray, memoryview)):
+        static_descriptor = _static_catalog_descriptor(item)
+        if static_descriptor is not None:
+            node.update(type="staticCatalog", descriptor=static_descriptor)
+        elif isinstance(item, (bytes, bytearray, memoryview)):
             node.update(
                 type=type(item).__name__,
                 value=base64.b64encode(bytes(item)).decode("ascii"),
@@ -365,7 +393,15 @@ class NativeGraph:
                 for key in ("module", "name")
             ):
                 raise ValueError("Invalid native type descriptor")
-            if kind == "dict":
+            if kind == "staticCatalog":
+                if set(node) != {"type", "descriptor"}:
+                    raise ValueError("Invalid native static catalog node")
+                from wakfu_server.combat_published_catalogs import (
+                    validate_static_catalog_descriptor,
+                )
+
+                validate_static_catalog_descriptor(node["descriptor"])
+            elif kind == "dict":
                 if set(node) != {"type", "entries"} | extra or not isinstance(
                     node["entries"], list
                 ):
@@ -449,6 +485,17 @@ class NativeGraph:
     @property
     def root(self):
         return self.resolve(self.data["root"])
+
+    def static_catalog(self, reference):
+        """Resolve an explicit published pin; plain conversion never loads rows."""
+        node = self.resolve(reference)
+        if not isinstance(node, dict) or node.get("type") != "staticCatalog":
+            raise ValueError("Native value is not a published static catalog")
+        from wakfu_server.combat_published_catalogs import (
+            resolve_static_catalog_descriptor,
+        )
+
+        return resolve_static_catalog_descriptor(node["descriptor"])
 
     def field(self, reference, key):
         """Return a field reference without projecting away other information."""

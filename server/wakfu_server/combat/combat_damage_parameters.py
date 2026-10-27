@@ -112,7 +112,8 @@ def damage_mastery_context(
     source_radius,
     target_radius,
     source_total_hp,
-    source_total_max_hp
+    source_total_max_hp,
+    source_has_berserk=True,
 ):
     """fau.fSD/eYE: area4, single22, forced melee23/ranged24.
 
@@ -127,21 +128,25 @@ def damage_mastery_context(
         *target_xy,
         source_radius,
         target_radius,
-        source_total_hp,
-        source_total_max_hp,
-    )
+    ) + ((source_total_hp, source_total_max_hp) if source_has_berserk else ())
     if (
-        len(source_xy) != 2
+        type(source_has_berserk) is not bool
+        or (
+            not source_has_berserk
+            and (source_total_hp is not None or source_total_max_hp is not None)
+        )
+        or len(source_xy) != 2
         or len(target_xy) != 2
         or any(type(v) is not int for v in inputs)
-        or min(source_radius, target_radius, source_total_hp, source_total_max_hp) < 0
+        or min(inputs[4:]) < 0
     ):
         raise ValueError("Unknown native mastery geometry/HP context")
     radius = source_radius + target_radius
     distance = sum(max(0, abs(a - b) - radius) for a, b in zip(source_xy, target_xy))
     forced = bool(flags & {23, 24})
     berserk = (
-        source_total_max_hp > 0
+        source_has_berserk
+        and source_total_max_hp > 0
         and _float(
             _float(_float(source_total_hp) / _float(source_total_max_hp)) * _float(100)
         )

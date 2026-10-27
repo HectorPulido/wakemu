@@ -1,4 +1,11 @@
 """Database-scoped publication for original encounter table listeners."""
+
+from .combat_encounter_source_revision import source_revision_matches
+
+SOURCE_DEPENDENCIES = (
+    "combat-state-definitions.json",
+    "native-retained-effect-metadata.json",
+)
 from functools import lru_cache
 
 
@@ -68,7 +75,7 @@ def freeze_table_listener_policy(map_id, monster_references, *, required=True):
     if (
         version["map_id"] != map_id
         or version["monster_references"] != references
-        or version["catalog_revision"] != native_catalog.release()
+        or not source_revision_matches(version["catalog_revision"], SOURCE_DEPENDENCIES)
     ):
         raise ValueError("Encounter table listener differs from admission or catalog")
     from wakfu_server.paths import DATA_ROOT
@@ -144,7 +151,9 @@ def freeze_encounter_table_listener_policy(fight, *, roles):
                 frozen["map_id"] != roles.map_id
                 or frozen["monster_references"]
                 != list(sorted(roles.monster_references))
-                or frozen["catalog_revision"] != native_catalog.release()
+                or not source_revision_matches(
+                    frozen["catalog_revision"], SOURCE_DEPENDENCIES
+                )
             ):
                 raise ValueError(
                     "Frozen table listener differs from encounter or catalog"

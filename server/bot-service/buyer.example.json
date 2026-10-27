@@ -1,0 +1,14 @@
+{
+  "bot_id": "astrub-buyer",
+  "character": {
+    "name": "AstrubBuyer",
+    "breed": 15,
+    "sex": 0,
+    "initial_kamas": 100000
+  },
+  "enabled": true,
+  "capabilities": ["shop"],
+  "behaviors": {
+    "buyer": {"purchase_percent": 80}
+  }
+}

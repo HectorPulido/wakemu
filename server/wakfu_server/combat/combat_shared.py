@@ -9,7 +9,7 @@ import struct
 import time
 import os
 from collections import deque
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from threading import Lock, RLock
@@ -96,6 +96,11 @@ class SharedFight:
     pending_publication_recoveries: dict = field(default_factory=dict)
     publication_recovery_origins: dict = field(default_factory=dict)
     reconnect_placement_paused_at: object = None
+    turn_expiry_work: object = None
+    turn_expiry_result: object = None
+    reconnect_presentations: dict = field(default_factory=dict)
+    completed_reconnect_presentations: dict = field(default_factory=dict)
+    reconnect_end_turn_history: object = None
 
     def seed_checkpoint_revision(self, revision):
         """Initialize from a socket read without regressing a newer revision."""
@@ -108,9 +113,10 @@ class SharedFight:
 
 
 class Registry:
-    def __init__(self, live_session):
+    def __init__(self, live_session, *, admitted_main_reconnect=None):
         """live_session(Session)->bool must verify current Store lease/selection."""
         self.live_session = live_session
+        self.admitted_main_reconnect = admitted_main_reconnect
         self.lock = RLock()
         self.fights = {}
         self.by_actor = {}
@@ -118,6 +124,55 @@ class Registry:
         # Historical marker targets are kept separately: a withdrawn actor
         # must not reserve its character ID against a later encounter.
         self.join_aliases = {}
+
+    def reconnect_owner_matches(self, shared, session):
+        """A primary identity may change only behind a durable admission proof."""
+        previous = shared.participants.get(session.account_id)
+        if previous is None:
+            return False
+        if previous.character_id == session.character_id:
+            return True
+        actor = shared.fight.actors.get(session.character_id)
+        return bool(
+            previous.generation != session.generation
+            and shared.fight.phase in ("placement", "active")
+            and (session.map_id, session.instance_id)
+            == (shared.map_id, shared.instance_id)
+            and actor is not None
+            and actor.controlled
+            and actor.owner_id == session.account_id
+            and callable(self.admitted_main_reconnect)
+            and self.admitted_main_reconnect(shared, previous, session)
+        )
+
+    @contextmanager
+    def _locked_fight(self, fight_id=None, *, character_id=None, registry=True):
+        """Pin, release Registry, wait for Fight, then revalidate exact membership.
+
+        No path may wait for a fight lock while holding Registry. Existing
+        index-mutating critical sections take Registry only after Fight; long
+        callbacks that already ran without Registry keep that behavior.
+        """
+        with self.lock:
+            if character_id is not None:
+                fight_id = self.by_character.get(character_id)
+            shared = self.fights.get(fight_id)
+        if shared is None:
+            yield None
+            return
+        with shared.lock:
+            with self.lock:
+                current = self.fights.get(fight_id)
+                if (
+                    current is not shared
+                    or character_id is not None
+                    and self.by_character.get(character_id) != fight_id
+                ):
+                    shared = None
+                if registry:
+                    yield shared
+                    return
+            yield shared
 
     def _lease_live(self, session):
         if not os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
@@ -162,6 +217,55 @@ class Registry:
             or session.account_id in shared.withdrawals
         ):
             raise ValueError("Session does not own this fight membership")
+        presentation = shared.reconnect_presentations.get(session.account_id)
+        if presentation is not None:
+            if presentation.session != session:
+                raise ValueError("Stale reconnect presentation owner")
+            presentation.check_transport()
+
+    @staticmethod
+    def _queue_recipient(shared, account, batch):
+        pending = shared.reconnect_presentations.get(account)
+        if pending is None:
+            shared.outboxes[account].append(batch)
+            return
+        marker = pending.buffer(
+            batch,
+            awaiting_ack=getattr(shared.runtime, "awaiting_ack", None),
+            fight_id=shared.fight.id,
+        )
+        if shared.fight.phase == "finished" and not pending.overflowed:
+            # No full SU restoration is needed after terminal presentation.
+            # Keep the original queue alive and let its real cleanup follow
+            # every buffered action, including all outstanding births.
+            shared.outboxes[account].extend(pending.batches)
+            shared.reconnect_presentations.pop(account)
+            shared.completed_reconnect_presentations[account] = (
+                pending.session.generation,
+                pending.presentation.counter,
+            )
+        elif marker:
+            shared.outboxes[account].append(
+                Batch(batch.sequence, marker, public_events=False)
+            )
+
+    @staticmethod
+    def _complete_reconnect_presentation(shared, session, pending):
+        if shared.reconnect_presentations.get(session.account_id) is not pending:
+            raise ValueError("Reconnect presentation changed before completion")
+        shared.outboxes[session.account_id].append(
+            Batch(
+                shared.sequence,
+                pending.presentation.resume_packets,
+                public_events=False,
+            )
+        )
+        shared.outboxes[session.account_id].extend(pending.batches)
+        shared.reconnect_presentations.pop(session.account_id)
+        shared.completed_reconnect_presentations[session.account_id] = (
+            session.generation,
+            pending.presentation.counter,
+        )
 
     @staticmethod
     def _observe_delivery(method, *args, **kwargs):
@@ -189,15 +293,21 @@ class Registry:
             shared.reconnect_turn_end_packets = turn_end + (
                 (13420, struct.pack(">i", shared.fight.id)),
             )
+            counter = getattr(shared.runtime, "awaiting_ack", None)
+            if len(turn_end) == 1 and type(counter) is int and counter > 0:
+                shared.reconnect_end_turn_history = (
+                    counter,
+                    shared.reconnect_turn_end_packets,
+                )
         shared.sequence += 1
         for account in shared.connected - set(exclude):
-            shared.outboxes[account].append(Batch(shared.sequence, packets))
+            self._queue_recipient(shared, account, Batch(shared.sequence, packets))
             if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
                 self._observe_delivery(
                     "record_enqueue",
                     shared.fight.id,
                     shared.participants.get(account),
-                    shared.outboxes[account][-1],
+                    Batch(shared.sequence, packets),
                 )
         return shared.sequence
 
@@ -207,7 +317,7 @@ class Registry:
             return
         # This helper runs under the fight lock alone on normal FSM paths.
         # Keep the registry index immutable here; resolution checks this
-        # per-fight set under registry->fight lock order, and terminal removal
+        # per-fight set under fight->registry lock order, and terminal removal
         # prunes the registry index while holding both locks.
         shared.join_aliases.clear()
 
@@ -224,18 +334,31 @@ class Registry:
             current = self.by_actor.get(actor_id)
             if current is not None:
                 return current
-            candidates = set()
-            for fight_id in self.join_aliases.get(actor_id, ()):
-                shared = self.fights.get(fight_id)
-                if shared is None:
-                    continue
-                with shared.lock:
-                    if (
-                        actor_id in shared.join_aliases
-                        and shared.fight.phase == "placement"
-                        and not shared.auto_locked
-                    ):
-                        candidates.add(fight_id)
+            snapshot = tuple(
+                (fight_id, self.fights.get(fight_id))
+                for fight_id in self.join_aliases.get(actor_id, ())
+            )
+        candidates = {}
+        for fight_id, expected in snapshot:
+            if expected is None:
+                continue
+            with self._locked_fight(fight_id) as shared:
+                if (
+                    shared is expected
+                    and actor_id in shared.join_aliases
+                    and shared.fight.phase == "placement"
+                    and not shared.auto_locked
+                ):
+                    candidates[fight_id] = shared
+        with self.lock:
+            current = self.by_actor.get(actor_id)
+            if current is not None:
+                return current
+            candidates = {
+                identity
+                for identity, expected in candidates.items()
+                if self.fights.get(identity) is expected
+            }
             if len(candidates) == 1:
                 return next(iter(candidates))
             if len(candidates) > 1:
@@ -277,10 +400,14 @@ class Registry:
             provider(shared, candidate, runtime, packets), candidate, runtime
         )
 
-    def _accepted_ack(self, shared, runtime):
+    def _accepted_ack(self, shared, runtime, *, release_previous=False):
         """Stage the presentation barrier before adopting any accepted action."""
         from .combat_delivery_boundary import accepted_ack
 
+        if release_previous:
+            shared = copy(shared)
+            shared.ack = deepcopy(shared.ack)
+            shared.ack.release()
         return accepted_ack(shared, runtime, self._lease_live)
 
     def _prepare_publication(self, shared, candidate, runtime, packets, *, operation):
@@ -288,6 +415,23 @@ class Registry:
         from .combat_delivery_boundary import PreparedPublication
         from .combat_invariant_observation import observe_prepared_boundary
 
+        if runtime is not None:
+            from .combat_runtime_messages import RuntimeMessages
+
+            if isinstance(runtime, RuntimeMessages):
+                from .combat_death import newly_registered_death_messages
+
+                if runtime.fight is not candidate:
+                    raise ValueError("Shared death delivery has a stale native runtime")
+                # Generic Registry payloads are not native delivery runtimes.
+                # For an actual runtime, contact/reaction deaths must precede
+                # successor checkpoint/birth. Existing cast/AI/turn delivery
+                # records suppress duplicates on this same private preview.
+                packets = tuple(packets) + tuple(
+                    newly_registered_death_messages(
+                        runtime, after_sequence=shared.fight.sequence
+                    )
+                )
         candidate, runtime, packets = self._prepare_accepted(
             shared, candidate, runtime, packets
         )
@@ -334,7 +478,7 @@ class Registry:
         owners = {a.owner_id for a in fight.actors.values() if a.controlled}
         if owners != {starter.account_id} or starter.character_id not in fight.actors:
             raise ValueError("Initial fight requires its owned starter")
-        from .combat_encounter_roles import assigned_roles
+        from wakfu_server.combat_encounter_roles import assigned_roles
 
         player_team = assigned_roles(fight).player_team
         with self.lock:
@@ -523,20 +667,18 @@ class Registry:
 
     def unregister_unpublished(self, fight_id):
         """Compensate a duel reservation before its first outbox is drained."""
-        with self.lock:
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(fight_id) as shared:
             if shared is None:
                 return False
-            with shared.lock:
-                if (
-                    shared.sequence != 1
-                    or shared.settlement_ready
-                    or shared.returned
-                    or any(len(box) != 1 for box in shared.outboxes.values())
-                ):
-                    raise ValueError("Cannot roll back a published duel registry")
-                self._remove_locked(self, shared)
-                return True
+            if (
+                shared.sequence != 1
+                or shared.settlement_ready
+                or shared.returned
+                or any(len(box) != 1 for box in shared.outboxes.values())
+            ):
+                raise ValueError("Cannot roll back a published duel registry")
+            self._remove_locked(self, shared)
+            return True
 
     def lookup(self, fight_id, *, blocking=True):
         if not self.lock.acquire(blocking=blocking):
@@ -555,20 +697,18 @@ class Registry:
         Caller holds registration and publication fenced until all joins and
         native setup succeed. This is not a cleanup path for an active fight.
         """
-        with self.lock:
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(fight_id) as shared:
             if shared is None:
                 return False
-            with shared.lock:
-                if (
-                    getattr(shared.fight, "rift_wave_state", None) is None
-                    or shared.fight.phase != "placement"
-                    or shared.runtime is not None
-                    or shared.settlement_ready
-                ):
-                    raise ValueError("Cannot retire a published or active rift setup")
-                self._remove_locked(self, shared)
-                return True
+            if (
+                getattr(shared.fight, "rift_wave_state", None) is None
+                or shared.fight.phase != "placement"
+                or shared.runtime is not None
+                or shared.settlement_ready
+            ):
+                raise ValueError("Cannot retire a published or active rift setup")
+            self._remove_locked(self, shared)
+            return True
 
     def lookup_character(self, character_id):
         """Return the registered fight for a character without exposing maps."""
@@ -581,53 +721,46 @@ class Registry:
     def reconcile_disconnected_pve(self, session, persist):
         """Retire an orphaned PvE lease after a fenced durable abort on login."""
         self._live(session)
-        with self.lock:
-            fight_id = self.by_character.get(session.character_id)
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(character_id=session.character_id) as shared:
             if shared is None:
                 return None
-            with shared.lock:
-                previous = shared.participants.get(session.account_id)
+            fight_id = shared.fight.id
+            previous = shared.participants.get(session.account_id)
+            if (
+                previous is None
+                or previous.character_id != session.character_id
+                or previous.generation == session.generation
+                or getattr(shared, "is_duel", False)
+                or shared.settlement_ready
+                or shared.fight.phase not in ("placement", "active")
+                or any(
+                    self._lease_live(owner) for owner in shared.participants.values()
+                )
+            ):
+                return None
+            connected = set(shared.connected)
+            abort_pending = shared.disconnect_abort_pending
+            shared.connected.clear()
+            shared.disconnect_abort_pending = True
+            try:
+                exits = persist(previous, shared)
                 if (
-                    previous is None
-                    or previous.character_id != session.character_id
-                    or previous.generation == session.generation
-                    or getattr(shared, "is_duel", False)
-                    or shared.settlement_ready
-                    or shared.fight.phase not in ("placement", "active")
+                    not isinstance(exits, dict)
+                    or set(exits)
+                    != {owner.character_id for owner in shared.participants.values()}
                     or any(
-                        self._lease_live(owner)
-                        for owner in shared.participants.values()
+                        not isinstance(exit_result, dict)
+                        or type(exit_result.get("applied")) is not bool
+                        for exit_result in exits.values()
                     )
                 ):
-                    return None
-                # A failed finalizer can leave stale connected bits. Actual
-                # lease validity above, rather than those bits, fences recovery.
-                connected = set(shared.connected)
-                abort_pending = shared.disconnect_abort_pending
-                shared.connected.clear()
-                shared.disconnect_abort_pending = True
-                try:
-                    exits = persist(previous, shared)
-                    if (
-                        not isinstance(exits, dict)
-                        or set(exits)
-                        != {
-                            owner.character_id for owner in shared.participants.values()
-                        }
-                        or any(
-                            not isinstance(exit_result, dict)
-                            or type(exit_result.get("applied")) is not bool
-                            for exit_result in exits.values()
-                        )
-                    ):
-                        raise ValueError("Missing complete durable PvE abort receipts")
-                except Exception:
-                    shared.connected.update(connected)
-                    shared.disconnect_abort_pending = abort_pending
-                    raise
-                self._remove_locked(self, shared)
-                return dict(shared=shared, exits=exits)
+                    raise ValueError("Missing complete durable PvE abort receipts")
+            except Exception:
+                shared.connected.update(connected)
+                shared.disconnect_abort_pending = abort_pending
+                raise
+            self._remove_locked(self, shared)
+            return dict(shared=shared, exits=exits)
 
     def join(
         self,
@@ -649,172 +782,172 @@ class Registry:
         """
         request = decode_join(body)
         self._live(session)
-        with self.lock:
-            fight_id = self.resolve_join_target(request["target_id"])
-            if expected_fight_id is not None and fight_id != expected_fight_id:
+        fight_id = self.resolve_join_target(request["target_id"])
+        if expected_fight_id is not None and fight_id != expected_fight_id:
+            raise ValueError("Join target changed during admission")
+        with self._locked_fight(fight_id) as shared:
+            if (
+                shared is None
+                or self.by_actor.get(request["target_id"], fight_id) != fight_id
+                or request["target_id"] not in self.by_actor
+                and fight_id not in self.join_aliases.get(request["target_id"], ())
+            ):
                 raise ValueError("Join target changed during admission")
-            shared = self.fights[fight_id]
-            with shared.lock:
-                fight = shared.fight
-                target = fight.actors.get(request["target_id"])
-                if getattr(shared, "is_duel", False):
-                    raise ValueError(
-                        "Friendly duel roster cannot admit another fighter"
-                    )
-                if (
-                    fight.phase != "placement"
-                    or shared.auto_locked
-                    or getattr(shared, "pending_publication_recoveries", {})
-                    or getattr(shared, "publication_recovery_origins", {})
-                ):
-                    raise ValueError("Fight is no longer joinable")
-                if (session.map_id, session.instance_id) != (
-                    shared.map_id,
-                    shared.instance_id,
-                ):
-                    raise ValueError("Foreign fight map/instance")
-                from .combat_encounter_roles import assigned_roles
+            fight = shared.fight
+            target = fight.actors.get(request["target_id"])
+            if getattr(shared, "is_duel", False):
+                raise ValueError("Friendly duel roster cannot admit another fighter")
+            if (
+                fight.phase != "placement"
+                or shared.auto_locked
+                or getattr(shared, "pending_publication_recoveries", {})
+                or getattr(shared, "publication_recovery_origins", {})
+            ):
+                raise ValueError("Fight is no longer joinable")
+            if (session.map_id, session.instance_id) != (
+                shared.map_id,
+                shared.instance_id,
+            ):
+                raise ValueError("Foreign fight map/instance")
+            from wakfu_server.combat_encounter_roles import assigned_roles
 
-                alias_team = shared.join_aliases.get(request["target_id"])
-                alias_target = (
-                    alias_team is not None
-                    and target is not None
-                    and getattr(target, "pve_withdrawn", False)
-                    and target.controlled
-                    and target.team == alias_team
-                    and alias_team == assigned_roles(fight).player_team
-                    and self._has_live_team_member_locked(shared, alias_team)
-                )
-                if (
-                    target is None
-                    or not target.controlled
-                    or (target.hp <= 0 and not alias_target)
-                ):
-                    raise ValueError("Join target is not an allied player")
-                if (
-                    session.character_id in self.by_character
-                    or session.account_id in shared.participants
-                ):
-                    raise ValueError("Owner already participating")
-                if (
-                    actor.id != session.character_id
-                    or not actor.controlled
-                    or actor.owner_id != session.account_id
-                    or actor.team != (alias_team if alias_target else target.team)
-                    or actor.hp <= 0
-                ):
-                    raise ValueError("Joined actor ownership/team invalid")
-                occupied = {a.position for a in fight.actors.values() if a.hp > 0}
-                cells = sorted(fight.placement[target.team] - occupied)
-                if not cells:
-                    raise ValueError("Native team placement capacity exhausted")
-                candidate, runtime = deepcopy((fight, shared.runtime))
-                new_actor = deepcopy(actor)
-                from .combat_join_registration import register_joined_fighter
+            alias_team = shared.join_aliases.get(request["target_id"])
+            alias_target = (
+                alias_team is not None
+                and target is not None
+                and getattr(target, "pve_withdrawn", False)
+                and target.controlled
+                and target.team == alias_team
+                and alias_team == assigned_roles(fight).player_team
+                and self._has_live_team_member_locked(shared, alias_team)
+            )
+            if (
+                target is None
+                or not target.controlled
+                or (target.hp <= 0 and not alias_target)
+            ):
+                raise ValueError("Join target is not an allied player")
+            if (
+                session.character_id in self.by_character
+                or session.account_id in shared.participants
+            ):
+                raise ValueError("Owner already participating")
+            if (
+                actor.id != session.character_id
+                or not actor.controlled
+                or actor.owner_id != session.account_id
+                or actor.team != (alias_team if alias_target else target.team)
+                or actor.hp <= 0
+            ):
+                raise ValueError("Joined actor ownership/team invalid")
+            occupied = {a.position for a in fight.actors.values() if a.hp > 0}
+            cells = sorted(fight.placement[target.team] - occupied)
+            if not cells:
+                raise ValueError("Native team placement capacity exhausted")
+            candidate, runtime = deepcopy((fight, shared.runtime))
+            new_actor = deepcopy(actor)
+            from .combat_join_registration import register_joined_fighter
 
-                register_joined_fighter(candidate, new_actor, cells[0])
-                candidate._check_positions()
-                candidate._event(
-                    "joined",
-                    actor_id=new_actor.id,
-                    owner_id=session.account_id,
-                    team=new_actor.team,
-                    position=new_actor.position,
-                )
-                if prepare_members is not None:
-                    candidate = prepare_members(candidate, new_actor, shared, session)
-                    if candidate is fight or candidate.id != fight.id:
-                        raise ValueError(
-                            "Joined roster preparation requires detached same fight"
-                        )
-                    new_actor = candidate.actors[actor.id]
-                    if runtime is not None and hasattr(runtime, "fight"):
-                        runtime.fight = candidate
-                newcomers = [
-                    member
-                    for identity, member in candidate.actors.items()
-                    if identity not in fight.actors
-                ]
-                if any(
-                    not member.controlled
-                    or member.owner_id != session.account_id
-                    or member.team != new_actor.team
-                    or member.hp <= 0
-                    or member.id in self.by_character
-                    or member.id in self.by_actor
-                    for member in newcomers
-                ):
+            register_joined_fighter(candidate, new_actor, cells[0])
+            candidate._check_positions()
+            candidate._event(
+                "joined",
+                actor_id=new_actor.id,
+                owner_id=session.account_id,
+                team=new_actor.team,
+                position=new_actor.position,
+            )
+            if prepare_members is not None:
+                candidate = prepare_members(candidate, new_actor, shared, session)
+                if candidate is fight or candidate.id != fight.id:
                     raise ValueError(
-                        "Joined roster contains foreign or reserved actors"
+                        "Joined roster preparation requires detached same fight"
                     )
-                candidate._check_positions()
-                notifications = (
-                    list(self._packets(member_packets(candidate, shared, session)))
-                    if member_packets is not None
-                    else []
-                )
-                for member in newcomers:
-                    stats, effects = actor_payload(candidate, member, session)
-                    notifications.append(
-                        added(
-                            candidate.id,
-                            member.id,
-                            actor_type=0,
-                            team=member.team,
-                            stats=stats,
-                            effects=effects,
-                        )
-                    )
-                own_packets = self._packets(
-                    bootstrap_packets(candidate, shared, session)
-                )
-                # Persistence runs only after all validators and serializers
-                # succeed, while the registry lock still reserves the chosen
-                # cell. A dispatcher can persist the participant row here in
-                # its own short transaction before publishing the in-memory
-                # membership and its outboxes.
-                if persist_member is not None:
-                    if not callable(persist_member):
-                        raise ValueError(
-                            "Participant persistence hook must be callable"
-                        )
-                    persist_member(candidate, new_actor, shared, session)
-                # All validators/serializers/persistence completed: commit the
-                # shared FSM, durable identity and ordered outboxes.
-                shared.fight = candidate
-                shared.runtime = runtime
-                shared.participants[session.account_id] = session
-                shared.connected.add(session.account_id)
-                shared.outboxes[session.account_id] = deque()
-                for member in newcomers:
-                    self.by_character[member.id] = candidate.id
-                    self.by_actor[member.id] = candidate.id
-                shared.auto_locked = request["auto_lock"]
-                self._retire_join_aliases_locked(shared)
-                sequence = self._broadcast(
-                    shared,
-                    [*notifications, (13652, placement_positions(candidate))],
-                    exclude=(session.account_id,),
-                )
-                shared.outboxes[session.account_id].append(
-                    Batch(sequence, own_packets, public_events=False)
-                )
-                if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
-                    self._observe_delivery(
-                        "record_bootstrap",
+                new_actor = candidate.actors[actor.id]
+                if runtime is not None and hasattr(runtime, "fight"):
+                    runtime.fight = candidate
+            newcomers = [
+                member
+                for identity, member in candidate.actors.items()
+                if identity not in fight.actors
+            ]
+            if any(
+                not member.controlled
+                or member.owner_id != session.account_id
+                or member.team != new_actor.team
+                or member.hp <= 0
+                or member.id in self.by_character
+                or member.id in self.by_actor
+                for member in newcomers
+            ):
+                raise ValueError("Joined roster contains foreign or reserved actors")
+            candidate._check_positions()
+            notifications = (
+                list(self._packets(member_packets(candidate, shared, session)))
+                if member_packets is not None
+                else []
+            )
+            for member in newcomers:
+                actor_type = 0
+                companion_source = getattr(
+                    candidate, "native_companion_sources", {}
+                ).get(str(member.id))
+                if companion_source is not None:
+                    from .combat_companions import registered_source
+
+                    if registered_source(candidate, member, companion_source) is None:
+                        raise ValueError("Missing registered joined companion source")
+                    actor_type = 5
+                stats, effects = actor_payload(candidate, member, session)
+                notifications.append(
+                    added(
                         candidate.id,
-                        session,
-                        own_packets,
-                        sequence=sequence,
-                        producer="join",
+                        member.id,
+                        actor_type=actor_type,
+                        team=member.team,
+                        stats=stats,
+                        effects=effects,
                     )
-                    self._observe_delivery(
-                        "record_enqueue",
-                        candidate.id,
-                        session,
-                        shared.outboxes[session.account_id][-1],
-                    )
-                return shared
+                )
+            own_packets = self._packets(bootstrap_packets(candidate, shared, session))
+            if persist_member is not None:
+                if not callable(persist_member):
+                    raise ValueError("Participant persistence hook must be callable")
+                persist_member(candidate, new_actor, shared, session)
+            shared.fight = candidate
+            shared.runtime = runtime
+            shared.participants[session.account_id] = session
+            shared.connected.add(session.account_id)
+            shared.outboxes[session.account_id] = deque()
+            for member in newcomers:
+                self.by_character[member.id] = candidate.id
+                self.by_actor[member.id] = candidate.id
+            shared.auto_locked = request["auto_lock"]
+            self._retire_join_aliases_locked(shared)
+            sequence = self._broadcast(
+                shared,
+                [*notifications, (13652, placement_positions(candidate))],
+                exclude=(session.account_id,),
+            )
+            shared.outboxes[session.account_id].append(
+                Batch(sequence, own_packets, public_events=False)
+            )
+            if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                self._observe_delivery(
+                    "record_bootstrap",
+                    candidate.id,
+                    session,
+                    own_packets,
+                    sequence=sequence,
+                    producer="join",
+                )
+                self._observe_delivery(
+                    "record_enqueue",
+                    candidate.id,
+                    session,
+                    shared.outboxes[session.account_id][-1],
+                )
+            return shared
 
     def execute(
         self,
@@ -856,16 +989,21 @@ class Registry:
                     pass
             with incident_context as incident:
                 self._member(shared, session)
+                if session.account_id in shared.reconnect_presentations:
+                    raise ValueError(
+                        "El combate se está recuperando. Espera la sincronización de las invocaciones."
+                    )
                 if (
                     expected_sequence is not None
                     and expected_sequence != shared.sequence
                 ):
                     raise ValueError("Stale shared combat sequence")
                 actor = shared.fight.actors.get(actor_id)
+                from .combat_effective_control import effective_input_owner
+
                 if (
                     actor is None
-                    or not actor.controlled
-                    or actor.owner_id != session.account_id
+                    or effective_input_owner(shared.fight, actor) != session.account_id
                     or actor.hp <= 0
                 ):
                     raise ValueError("Foreign/dead combat actor")
@@ -1012,17 +1150,37 @@ class Registry:
                     pass
             with incident_context as incident:
                 self._member(shared, session)
-                prior_rift_ack = (
-                    deepcopy(shared.ack)
-                    if getattr(shared.fight, "rift_wave_state", None) is not None
-                    else None
-                )
+                pending = shared.reconnect_presentations.get(session.account_id)
+                witness = pending is not None and pending.witness(session, body)
+                if witness:
+                    counter = pending.presentation.counter
+                    canonical = bool(
+                        pending.presentation.canonical_marker
+                        and shared.ack.turn == counter
+                        and shared.ack.expected.get(session.account_id)
+                        == session.generation
+                    )
+                    if not canonical:
+                        self._complete_reconnect_presentation(shared, session, pending)
+                        return False
+                elif pending is not None:
+                    raise ValueError("Invalid native reconnect presentation witness")
+                elif (
+                    len(body) == 4
+                    and shared.completed_reconnect_presentations.get(session.account_id)
+                    == (session.generation, struct.unpack(">i", body)[0])
+                    and shared.ack.turn != struct.unpack(">i", body)[0]
+                ):
+                    return False
+                prior_ack = deepcopy(shared.ack)
                 if not shared.ack.accept(session, body):
+                    if witness:
+                        self._complete_reconnect_presentation(shared, session, pending)
                     if incident is not None:
                         incident.result(False)
                     return False
-                candidate, runtime = deepcopy((shared.fight, shared.runtime))
                 try:
+                    candidate, runtime = deepcopy((shared.fight, shared.runtime))
                     candidate, runtime, packets = self._transition(
                         release_packets(candidate, runtime, body), candidate, runtime
                     )
@@ -1031,13 +1189,19 @@ class Registry:
                     candidate, runtime, packets = self._prepare_accepted(
                         shared, candidate, runtime, packets
                     )
+                    # Native start reactions may skip the next actor and
+                    # produce another12502 while releasing this barrier.
+                    # Release only the old private copy and stage that new
+                    # runtime barrier before adopting or publishing anything.
+                    ack = self._accepted_ack(shared, runtime, release_previous=True)
                 except Exception:
-                    if prior_rift_ack is not None:
-                        shared.ack = prior_rift_ack
+                    shared.ack = prior_ack
                     raise
                 shared.fight = candidate
                 shared.runtime = runtime
-                shared.ack.release()
+                shared.ack = ack
+                if witness:
+                    self._complete_reconnect_presentation(shared, session, pending)
                 self._retire_join_aliases_locked(shared)
                 self._broadcast(shared, packets)
                 if incident is not None:
@@ -1054,6 +1218,13 @@ class Registry:
         shared = self.lookup(fight_id)
         with shared.lock:
             self._member(shared, session)
+            if session.account_id in shared.reconnect_presentations:
+                # Native INITIAL aUM requests coX before emitting its real
+                # completion13510. Do not let that private request destroy
+                # the birth queue or cancel the shared authoritative ACK.
+                if len(body) != 4 or struct.unpack(">i", body)[0] != fight_id:
+                    raise ValueError("Recovery request belongs to another fight")
+                return False
             candidate, runtime = deepcopy((shared.fight, shared.runtime))
             packets = runtime.recover(
                 session.account_id,
@@ -1066,19 +1237,85 @@ class Registry:
             view = copy(shared)
             view.ack = deepcopy(shared.ack)
             view.ack.cancel_for_recovery()
-            prepared = self._prepare_publication(
-                view,
-                candidate,
-                runtime,
-                packets,
-                operation="Registry.recover_timeline",
-            )
+            try:
+                prepared = self._prepare_publication(
+                    view,
+                    candidate,
+                    runtime,
+                    packets,
+                    operation="Registry.recover_timeline",
+                )
+            finally:
+                # Accepted Rift preparation can commit its owned checkpoint
+                # before later native publication validation completes. Keep
+                # that durable writer fence even if validation raises; the
+                # unpublished fight/runtime/ACK still remain untouched below.
+                shared.checkpoint_revision = view.checkpoint_revision
+                shared.checkpoint_terminal = view.checkpoint_terminal
             shared.fight = prepared.fight
             shared.runtime = prepared.runtime
             shared.ack = prepared.ack
             self._retire_join_aliases_locked(shared)
             self._broadcast(shared, prepared.packets)
             return True
+
+    def poll_expired_turn(self, fight_id, session, *, now_ms, work=None):
+        """Never wait for Fight or run native end reactions on a socket reader."""
+        shared = self.lookup(fight_id, blocking=False)
+        if shared is None or not shared.lock.acquire(blocking=False):
+            return False, None
+        try:
+            if not self.lock.acquire(blocking=False):
+                return False, None
+            try:
+                if self.fights.get(fight_id) is not shared:
+                    return False, None
+            finally:
+                self.lock.release()
+            if (
+                getattr(shared, "full_abandon_owner", None) == session
+                and shared.fight.phase == "finished"
+            ):
+                self._live(session)
+                return False, None
+            self._member(shared, session)
+            if shared.turn_expiry_result is not None:
+                result = shared.turn_expiry_result
+                shared.turn_expiry_work = shared.turn_expiry_result = None
+                if isinstance(result[1], Exception):
+                    raise result[1]
+                return result
+            if shared.turn_expiry_work is not None:
+                if shared.turn_expiry_work.cancelled.is_set():
+                    shared.turn_expiry_work = None
+                return False, None
+            if shared.fight.phase != "active" or shared.ack.turn is not None:
+                return False, None
+            if shared.runtime is None or shared.runtime.fight is not shared.fight:
+                raise ValueError("Shared fight runtime is missing or stale")
+            if not shared.runtime.expiration_due():
+                return False, None
+            actor = shared.fight.current
+            from .combat_effective_control import effective_input_owner
+
+            if actor is None or effective_input_owner(shared.fight, actor) is None:
+                return False, None
+            from .combat_background_work import NATIVE_WORK
+            from .combat_turn_expiry import TurnExpiryWork
+
+            work = NATIVE_WORK if work is None else work
+            operation = TurnExpiryWork(self, shared, session, now_ms)
+            shared.turn_expiry_work = operation
+            try:
+                status = work.submit(("turn-expiry", id(self), fight_id), operation)
+            except BaseException:
+                shared.turn_expiry_work = None
+                raise
+            if status != "submitted":
+                shared.turn_expiry_work = None
+            return False, None
+        finally:
+            shared.lock.release()
 
     def expire_current_turn(self, fight_id, session, *, now_ms):
         """Run a timed shared turn end once and publish it to the whole roster.
@@ -1106,10 +1343,15 @@ class Registry:
             if runtime is None or runtime.fight is not candidate:
                 raise ValueError("Shared fight runtime is missing or stale")
             actor = candidate.current
-            if actor is None or not actor.controlled:
+            from .combat_effective_control import effective_input_owner
+
+            actor_owner = (
+                None if actor is None else effective_input_owner(candidate, actor)
+            )
+            if actor_owner is None:
                 return False, None
             packets, error = runtime.expire_current_or_recover(
-                actor.owner_id, now_ms=now_ms
+                actor_owner, now_ms=now_ms
             )
             if not packets:
                 return False, error
@@ -1240,7 +1482,7 @@ class Registry:
             previous = shared.participants.get(session.account_id)
             if (
                 previous is None
-                or previous.character_id != session.character_id
+                or not self.reconnect_owner_matches(shared, session)
                 or (session.map_id, session.instance_id)
                 != (shared.map_id, shared.instance_id)
             ):
@@ -1249,6 +1491,12 @@ class Registry:
                 raise ValueError("Combat participant already returned")
             if session.account_id in shared.withdrawals:
                 raise ValueError("PvE participant already withdrew")
+            if previous.character_id != session.character_id and not callable(
+                persist_takeover
+            ):
+                raise ValueError(
+                    "Alternate main takeover requires a durable lease fence"
+                )
             if recover_disconnected and not callable(persist_takeover):
                 raise ValueError("Disconnected takeover requires a durable lease fence")
             if prepare_authority is not None and not callable(persist_takeover):
@@ -1310,8 +1558,9 @@ class Registry:
                     prepare_authority=prepare_authority,
                 )
             except OwnerPublicationsPending as pending:
-                if os.environ.get("WAKFU_NATIVE_PARTY_STAGED_RECOVERY", "0") != "1":
-                    raise
+                # All disconnected owners must be able to retain their real
+                # replacement sources. Gating this step makes every owner wait
+                # for another source that can never be staged.
                 if shared.connected or not shared.disconnect_abort_pending:
                     raise ValueError(
                         "Partial native publication recovery cannot resume a live party"
@@ -1341,6 +1590,7 @@ class Registry:
             )
             staged = dict(getattr(shared, "pending_publication_recoveries", {}))
             staged_packets = {}
+            staged_presentations = {}
             if staged:
                 view = copy(shared)
                 view.fight, view.runtime, view.ack = (
@@ -1356,9 +1606,12 @@ class Registry:
                         raise ValueError(
                             "Staged recovery participant changed before final adoption"
                         )
-                    staged_packets[account] = self._packets(
-                        bootstrap_packets(candidate, view, entry.session)
-                    )
+                    owner_packets = bootstrap_packets(candidate, view, entry.session)
+                    from .combat_reconnect_birth_stage import StagedReconnectPackets
+
+                    if isinstance(owner_packets, StagedReconnectPackets):
+                        staged_presentations[account] = owner_packets.presentation
+                    staged_packets[account] = self._packets(owner_packets)
                 from .combat_instance_publication import require_current_publication
 
                 require_current_publication(candidate)
@@ -1443,11 +1696,28 @@ class Registry:
             if shared.ack is not None and session.account_id in shared.ack.expected:
                 shared.ack.expected[session.account_id] = session.generation
             shared.connected.add(session.account_id)
+            from .combat_reconnect_birth_stage import PendingBirthPresentation
+
+            shared.reconnect_presentations.pop(session.account_id, None)
+            shared.completed_reconnect_presentations.pop(session.account_id, None)
+            if prepared.presentation is not None:
+                shared.reconnect_presentations[
+                    session.account_id
+                ] = PendingBirthPresentation.bind(session, prepared.presentation)
             shared.outboxes[session.account_id] = deque(
                 [Batch(shared.sequence, packets, public_events=False)]
             )
             for account, owner_packets in staged_packets.items():
                 shared.connected.add(account)
+                owner = shared.participants[account]
+                shared.reconnect_presentations.pop(account, None)
+                shared.completed_reconnect_presentations.pop(account, None)
+                if account in staged_presentations:
+                    shared.reconnect_presentations[
+                        account
+                    ] = PendingBirthPresentation.bind(
+                        owner, staged_presentations[account]
+                    )
                 shared.outboxes[account] = deque(
                     [Batch(shared.sequence, owner_packets, public_events=False)]
                 )
@@ -1480,6 +1750,10 @@ class Registry:
         for shared in shared_fights:
             with shared.lock:
                 if shared.participants.get(session.account_id) == session:
+                    shared.reconnect_presentations.pop(session.account_id, None)
+                    shared.completed_reconnect_presentations.pop(
+                        session.account_id, None
+                    )
                     staged = dict(getattr(shared, "pending_publication_recoveries", {}))
                     if (
                         session.account_id in staged
@@ -1574,13 +1848,12 @@ class Registry:
         keeps private_runtime until its native12925 callback.
         """
         self._live(session)
-        with self.lock:
-            fight_id = self.by_character.get(session.character_id)
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(
+            character_id=session.character_id, registry=False
+        ) as shared:
             if shared is None:
                 raise ValueError("Unknown shared PvE membership")
-            shared.lock.acquire()
-        try:
+            fight_id = shared.fight.id
             if shared.participants.get(session.account_id) != session:
                 raise ValueError("Foreign PvE withdrawal membership")
             if session.account_id in shared.withdrawals:
@@ -1650,177 +1923,275 @@ class Registry:
             )
             shared.connected.discard(session.account_id)
             shared.outboxes[session.account_id].clear()
+            shared.reconnect_presentations.pop(session.account_id, None)
+            shared.completed_reconnect_presentations.pop(session.account_id, None)
             self._broadcast(shared, public)
             return shared.withdrawals[session.account_id]
-        finally:
-            shared.lock.release()
 
     def return_withdrawn_pve(self, fight_id, session, *, persist):
         """Free only this participant's indexes after its durable native ACK."""
         self._live(session)
-        with self.lock:
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(fight_id) as shared:
             if shared is None:
                 raise ValueError("Unknown withdrawn PvE encounter")
-            with shared.lock:
-                receipt = shared.withdrawals.get(session.account_id)
-                if receipt is None or receipt["session"] != session:
-                    raise ValueError("Foreign or stale PvE withdrawal return")
-                saved = persist()
-                shared.returned.add(session.account_id)
-                for identity in receipt["withdrawal"].removed_actor_ids:
-                    if self.by_actor.get(identity) == fight_id:
-                        self.by_actor.pop(identity)
-                    if self.by_character.get(identity) == fight_id:
-                        self.by_character.pop(identity)
-                if self.by_character.get(session.character_id) == fight_id:
-                    self.by_character.pop(session.character_id)
-                self._retire_join_aliases_locked(shared)
-                if (
-                    shared.fight.phase == "finished"
-                    and shared.fight.winner is None
-                    and shared.returned == set(shared.participants)
-                ):
-                    self._remove_locked(self, shared)
-                return saved
+            receipt = shared.withdrawals.get(session.account_id)
+            if receipt is None or receipt["session"] != session:
+                raise ValueError("Foreign or stale PvE withdrawal return")
+            saved = persist()
+            shared.returned.add(session.account_id)
+            for identity in receipt["withdrawal"].removed_actor_ids:
+                if self.by_actor.get(identity) == fight_id:
+                    self.by_actor.pop(identity)
+                if self.by_character.get(identity) == fight_id:
+                    self.by_character.pop(identity)
+            if self.by_character.get(session.character_id) == fight_id:
+                self.by_character.pop(session.character_id)
+            self._retire_join_aliases_locked(shared)
+            if (
+                shared.fight.phase == "finished"
+                and shared.fight.winner is None
+                and shared.returned == set(shared.participants)
+            ):
+                self._remove_locked(self, shared)
+            return saved
 
     def recover_withdrawn_pve(self, session, *, persist):
         """A replacement selected lease returns to world, never to combat."""
         self._live(session)
-        with self.lock:
-            fight_id = self.by_character.get(session.character_id)
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(character_id=session.character_id) as shared:
             if shared is None:
                 return None
-            with shared.lock:
-                receipt = shared.withdrawals.get(session.account_id)
-                if (
-                    receipt is None
-                    or receipt["session"].character_id != session.character_id
-                ):
-                    return None
-                previous = receipt["session"]
-                if previous.generation != session.generation and self._lease_live(
-                    previous
-                ):
-                    raise ValueError("Previous PvE withdrawal lease is still active")
-                saved = persist(fight_id, previous.generation)
-                receipt["session"] = session
-                shared.participants[session.account_id] = session
-                shared.returned.add(session.account_id)
-                for identity in receipt["withdrawal"].removed_actor_ids:
-                    if self.by_actor.get(identity) == fight_id:
-                        self.by_actor.pop(identity)
-                    if self.by_character.get(identity) == fight_id:
-                        self.by_character.pop(identity)
-                if self.by_character.get(session.character_id) == fight_id:
-                    self.by_character.pop(session.character_id)
-                self._retire_join_aliases_locked(shared)
-                if (
-                    shared.fight.phase == "finished"
-                    and shared.fight.winner is None
-                    and shared.returned == set(shared.participants)
-                ):
-                    self._remove_locked(self, shared)
-                return saved
+            fight_id = shared.fight.id
+            receipt = shared.withdrawals.get(session.account_id)
+            if (
+                receipt is None
+                or receipt["session"].character_id != session.character_id
+            ):
+                return None
+            previous = receipt["session"]
+            if previous.generation != session.generation and self._lease_live(previous):
+                raise ValueError("Previous PvE withdrawal lease is still active")
+            saved = persist(fight_id, previous.generation)
+            receipt["session"] = session
+            shared.participants[session.account_id] = session
+            shared.returned.add(session.account_id)
+            for identity in receipt["withdrawal"].removed_actor_ids:
+                if self.by_actor.get(identity) == fight_id:
+                    self.by_actor.pop(identity)
+                if self.by_character.get(identity) == fight_id:
+                    self.by_character.pop(identity)
+            if self.by_character.get(session.character_id) == fight_id:
+                self.by_character.pop(session.character_id)
+            self._retire_join_aliases_locked(shared)
+            if (
+                shared.fight.phase == "finished"
+                and shared.fight.winner is None
+                and shared.returned == set(shared.participants)
+            ):
+                self._remove_locked(self, shared)
+            return saved
 
     def clear_disconnect_abort(self, fight_id):
         """Allow recovery after a failed last-owner abort persistence attempt."""
-        with self.lock:
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(fight_id) as shared:
             if shared is None:
                 return False
-            with shared.lock:
-                if shared.connected or not shared.disconnect_abort_pending:
+            if shared.connected or not shared.disconnect_abort_pending:
+                return False
+            shared.disconnect_abort_pending = False
+            return True
+
+    def retire_admin_recovered_pve(self, receipt):
+        """Retire only a completed, audited offline administrative cancellation."""
+        from .combat_admin_recovery import AdminRecoveryReceipt
+
+        if (
+            type(receipt) is not AdminRecoveryReceipt
+            or type(receipt.audit_id) is not int
+            or receipt.audit_id <= 0
+        ):
+            raise ValueError("Missing durable administrator recovery proof")
+        shared = receipt.shared
+        with shared.lock:
+            if (
+                shared.fight.phase != "finished"
+                or shared.settlement_ready
+                or getattr(shared, "is_duel", False)
+                or shared.sequence != receipt.sequence
+                or tuple(sorted(shared.participants.items())) != receipt.participants
+                or any(
+                    self._lease_live(owner) for owner in shared.participants.values()
+                )
+            ):
+                raise ValueError(
+                    "Administrator recovery no longer owns the offline encounter"
+                )
+            with self.lock:
+                current = self.fights.get(shared.fight.id)
+                if current is None:
                     return False
-                shared.disconnect_abort_pending = False
-                return True
+                if current is not shared:
+                    raise ValueError("Administrator recovery registry identity changed")
+                # No native ACK, winner or runtime action is manufactured.
+                # Reconnecting sockets follow the durable exterior on login.
+                shared.publication_recovery_aborted = receipt.exits
+                self._remove_locked(self, shared)
+            return True
+
+    def abort_pending_publication_recovery(self, session, *, persist):
+        """Abort a wholly paused PvE cohort after its durable health exit.
+
+        An explicit selected-owner exit can abandon a disconnected encounter;
+        it cannot resume native actions, invent another owner's publication or
+        retire only part of the frozen roster. Persistence must atomically
+        preserve all owners' authoritative health and abort the durable fight.
+        """
+        self._live(session)
+        if not callable(persist):
+            raise ValueError("Pending recovery abort requires durable persistence")
+        with self._locked_fight(
+            character_id=session.character_id, registry=False
+        ) as shared:
+            if shared is None:
+                raise ValueError("Unknown pending combat recovery membership")
+            from .combat_instance_publication_recovery import (
+                publication_recovery_waiting,
+            )
+
+            if (
+                shared.participants.get(session.account_id) != session
+                or not publication_recovery_waiting(shared)
+                or shared.connected
+                or not shared.disconnect_abort_pending
+                or getattr(shared, "is_duel", False)
+                or shared.settlement_ready
+                or shared.fight.phase not in ("placement", "active")
+                or session.account_id in shared.returned
+                or session.account_id in shared.withdrawals
+                or (session.map_id, session.instance_id)
+                != (shared.map_id, shared.instance_id)
+            ):
+                raise ValueError(
+                    "Pending combat abort requires its paused owned cohort"
+                )
+            actor = shared.fight.actors.get(session.character_id)
+            if (
+                actor is None
+                or not actor.controlled
+                or actor.owner_id != session.account_id
+            ):
+                raise ValueError(
+                    "Pending combat abort owner is not in the frozen roster"
+                )
+            saved = persist(shared)
+            if not isinstance(saved, dict) or any(
+                member.character_id not in saved
+                or not isinstance(saved[member.character_id], dict)
+                or (
+                    "character" in saved[member.character_id]
+                    and (
+                        not isinstance(saved[member.character_id]["character"], dict)
+                        or saved[member.character_id]["character"].get("id")
+                        != member.character_id
+                    )
+                )
+                or (
+                    "character" not in saved[member.character_id]
+                    and type(saved[member.character_id].get("applied")) is not bool
+                )
+                for member in shared.participants.values()
+            ):
+                raise ValueError("Pending combat abort lacks every durable owner exit")
+            # Persistence has committed the complete cohort. No native FSM,
+            # rewards, victory or synthetic ACK is needed for world-only exit.
+            with self.lock:
+                if self.fights.get(shared.fight.id) is not shared:
+                    raise ValueError(
+                        "Pending combat abort registry changed during persistence"
+                    )
+                shared.publication_recovery_aborted = saved
+                self._remove_locked(self, shared)
+            return dict(shared=shared, exits=saved)
 
     def retire_disconnected_pve(self, fight_id, session):
         """Forget a PvE registry entry only after its durable abort succeeded."""
-        with self.lock:
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(fight_id) as shared:
             if shared is None:
                 return False
-            with shared.lock:
-                if (
-                    getattr(shared, "is_duel", False)
-                    or shared.participants.get(session.account_id) != session
-                    or shared.connected
-                    or not shared.disconnect_abort_pending
-                    or shared.settlement_ready
-                    or shared.fight.phase not in ("placement", "active")
-                ):
-                    return False
-                self._remove_locked(self, shared)
-                return True
+            if (
+                getattr(shared, "is_duel", False)
+                or shared.participants.get(session.account_id) != session
+                or shared.connected
+                or not shared.disconnect_abort_pending
+                or shared.settlement_ready
+                or shared.fight.phase not in ("placement", "active")
+            ):
+                return False
+            self._remove_locked(self, shared)
+            return True
 
     def retire_abandoned_single_owner(self, fight_id, session):
         """Retire the native abandon continuation for a one-owner shared PvE fight."""
-        with self.lock:
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(fight_id) as shared:
             if shared is None:
                 return False
-            with shared.lock:
-                runtime = shared.runtime
-                from .combat_pve_withdraw import live_owner_accounts
+            runtime = shared.runtime
+            from .combat_pve_withdraw import live_owner_accounts
 
-                if (
-                    getattr(shared, "is_duel", False)
-                    or live_owner_accounts(shared.fight) - {session.account_id}
-                    or shared.participants.get(session.account_id) != session
-                    or runtime is None
-                    or getattr(runtime, "abandon_owner", None)
-                    != (session.account_id, session.character_id)
-                    or not getattr(runtime, "abandon_returned", False)
-                    or shared.fight.phase != "finished"
-                    or shared.fight.winner is not None
-                    or shared.settlement_ready
-                ):
-                    return False
-                shared.returned.add(session.account_id)
-                shared.connected.discard(session.account_id)
-                for identity in shared.fight.actors:
-                    if self.by_actor.get(identity) == fight_id:
-                        self.by_actor.pop(identity)
-                if self.by_character.get(session.character_id) == fight_id:
-                    self.by_character.pop(session.character_id)
-                if shared.returned == set(shared.participants):
-                    self._remove_locked(self, shared)
-                return True
+            if (
+                getattr(shared, "is_duel", False)
+                or live_owner_accounts(shared.fight) - {session.account_id}
+                or shared.participants.get(session.account_id) != session
+                or runtime is None
+                or getattr(runtime, "abandon_owner", None)
+                != (session.account_id, session.character_id)
+                or not getattr(runtime, "abandon_returned", False)
+                or shared.fight.phase != "finished"
+                or shared.fight.winner is not None
+                or shared.settlement_ready
+            ):
+                return False
+            shared.returned.add(session.account_id)
+            shared.connected.discard(session.account_id)
+            for identity in shared.fight.actors:
+                if self.by_actor.get(identity) == fight_id:
+                    self.by_actor.pop(identity)
+            if self.by_character.get(session.character_id) == fight_id:
+                self.by_character.pop(session.character_id)
+            if shared.returned == set(shared.participants):
+                self._remove_locked(self, shared)
+            return True
 
     def retire_disconnected_abandon(self, fight_id, session):
         """Release an already-durable singleton abandon if its ACK socket closes."""
-        with self.lock:
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(fight_id) as shared:
             if shared is None:
                 return False
-            with shared.lock:
-                runtime = shared.runtime
-                from .combat_pve_withdraw import live_owner_accounts
+            runtime = shared.runtime
+            from .combat_pve_withdraw import live_owner_accounts
 
-                if (
-                    getattr(shared, "is_duel", False)
-                    or live_owner_accounts(shared.fight) - {session.account_id}
-                    or shared.participants.get(session.account_id) != session
-                    or session.account_id in shared.connected
-                    or runtime is None
-                    or getattr(runtime, "abandon_owner", None)
-                    != (session.account_id, session.character_id)
-                    or shared.fight.phase != "finished"
-                    or shared.fight.winner is not None
-                    or shared.settlement_ready
-                ):
-                    return False
-                shared.returned.add(session.account_id)
-                for identity in shared.fight.actors:
-                    if self.by_actor.get(identity) == fight_id:
-                        self.by_actor.pop(identity)
-                if self.by_character.get(session.character_id) == fight_id:
-                    self.by_character.pop(session.character_id)
-                if shared.returned == set(shared.participants):
-                    self._remove_locked(self, shared)
-                return True
+            if (
+                getattr(shared, "is_duel", False)
+                or live_owner_accounts(shared.fight) - {session.account_id}
+                or shared.participants.get(session.account_id) != session
+                or session.account_id in shared.connected
+                or runtime is None
+                or getattr(runtime, "abandon_owner", None)
+                != (session.account_id, session.character_id)
+                or shared.fight.phase != "finished"
+                or shared.fight.winner is not None
+                or shared.settlement_ready
+            ):
+                return False
+            shared.returned.add(session.account_id)
+            for identity in shared.fight.actors:
+                if self.by_actor.get(identity) == fight_id:
+                    self.by_actor.pop(identity)
+            if self.by_character.get(session.character_id) == fight_id:
+                self.by_character.pop(session.character_id)
+            if shared.returned == set(shared.participants):
+                self._remove_locked(self, shared)
+            return True
 
     def forfeit_duel(self, session, *, reason="disconnect"):
         """Resolve a disconnected duel owner as the loser without a turn/action."""
@@ -1877,20 +2248,16 @@ class Registry:
         If settling fails, retain registry/lease for retry. Never settle on one
         connection's finally or release groups while other players remain.
         """
-        with self.lock:
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(fight_id) as shared:
             if shared is None:
                 return False
-            with shared.lock:
-                if shared.fight.phase != "finished":
-                    raise ValueError("Fight has not finished")
-                if shared.settlement_ready and shared.returned != set(
-                    shared.participants
-                ):
-                    raise ValueError("Shared owners have not all returned")
-                settle(shared)
-                self._remove_locked(self, shared)
-                return True
+            if shared.fight.phase != "finished":
+                raise ValueError("Fight has not finished")
+            if shared.settlement_ready and shared.returned != set(shared.participants):
+                raise ValueError("Shared owners have not all returned")
+            settle(shared)
+            self._remove_locked(self, shared)
+            return True
 
     def settle_finished(self, fight_id, session, prepare_packets):
         """Persist one roster outcome, then queue a private result per owner.
@@ -1904,74 +2271,71 @@ class Registry:
         if not callable(prepare_packets):
             raise ValueError("Shared settlement requires a packet builder")
         self._live(session)
-        with self.lock:
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(fight_id, registry=False) as shared:
             if shared is None:
                 raise ValueError("Unknown shared fight")
-            # Acquire the per-fight lock while the registry membership is
-            # pinned, then drop the global lock before any SQL/encoding work.
-            shared.lock.acquire()
-        try:
-            with shared.lock:
-                # A friendly-duel forfeit is settled from the disconnect
-                # barrier after the owner has been removed from `connected`.
-                # The SQL lease remains current until the barrier finishes, so
-                # that exact durable duel participant may finalize the roster
-                # outcome without gaining socket/action authority. PvE retains
-                # the ordinary connected-member requirement.
-                if not (
+            if not (
+                (
                     getattr(shared, "is_duel", False)
-                    and shared.participants.get(session.account_id) == session
-                ):
-                    self._member(shared, session)
-                if shared.fight.phase != "finished":
-                    raise ValueError("Fight has not finished")
-                if shared.settlement_ready:
-                    return False
-                batches = prepare_packets(shared)
-                from .combat_delivery_boundary import settlement_batches
+                    or getattr(shared, "command_outcome_owner", None) == session
+                )
+                and shared.participants.get(session.account_id) == session
+            ):
+                self._member(shared, session)
+            if shared.fight.phase != "finished":
+                raise ValueError("Fight has not finished")
+            if shared.settlement_ready:
+                return False
+            batches = prepare_packets(shared)
+            from .combat_delivery_boundary import settlement_batches
 
-                checked = settlement_batches(batches, shared.participants)
-                # Only enqueue after the callback has completed its durable
-                # transaction and every owner payload has passed validation.
-                for account in sorted(shared.participants):
-                    shared.sequence += 1
-                    shared.settlement_batches[account] = checked[account]
-                    shared.outboxes[account].append(
-                        Batch(shared.sequence, checked[account])
-                    )
-                shared.settlement_ready = True
-                # Settlement commits the terminal checkpoint in the same
-                # durable transaction. Socket callbacks must not save an
-                # active checkpoint against its previous revision afterward.
-                shared.checkpoint_terminal = True
-                return True
-        finally:
-            shared.lock.release()
+            checked = settlement_batches(batches, shared.participants)
+            for account in sorted(shared.participants):
+                shared.sequence += 1
+                shared.settlement_batches[account] = checked[account]
+                self._queue_recipient(
+                    shared, account, Batch(shared.sequence, checked[account])
+                )
+            shared.settlement_ready = True
+            shared.checkpoint_terminal = True
+            if getattr(shared, "command_outcome_owner", None) == session:
+                # The administrative terminal result committed. Unbootstrapped
+                # source custody cannot gate an ordinary peer's result return.
+                # Native birth presentations and actual ACKs remain untouched.
+                shared.pending_publication_recoveries = {}
+                shared.publication_recovery_origins = {}
+            return True
 
     def mark_returned(self, fight_id, session):
         """Retire the shared registry only after each owner returns from UI."""
         self._live(session)
-        with self.lock:
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(fight_id) as shared:
             if shared is None:
                 return False
-            with shared.lock:
-                if (
-                    shared.participants.get(session.account_id) == session
-                    and session.account_id in shared.returned
-                ):
-                    return False
+            if (
+                shared.participants.get(session.account_id) == session
+                and session.account_id in shared.returned
+            ):
+                return False
+            if (
+                getattr(shared, "command_outcome_owner", None) == session
+                or getattr(shared, "command_return_owner", None) == session
+            ):
+                if shared.participants.get(session.account_id) != session:
+                    raise ValueError("Operator terminal owner changed")
+            else:
                 self._member(shared, session)
-                if not shared.settlement_ready:
-                    raise ValueError("Fight settlement has not been published")
-                shared.returned.add(session.account_id)
-                shared.connected.discard(session.account_id)
-                shared.outboxes[session.account_id].clear()
-                self._release_owner_actor_indices_locked(shared, session)
-                if shared.returned != set(shared.participants):
-                    return False
-                self._remove_locked(self, shared)
+            if not shared.settlement_ready:
+                raise ValueError("Fight settlement has not been published")
+            shared.returned.add(session.account_id)
+            shared.connected.discard(session.account_id)
+            shared.outboxes[session.account_id].clear()
+            shared.reconnect_presentations.pop(session.account_id, None)
+            shared.completed_reconnect_presentations.pop(session.account_id, None)
+            self._release_owner_actor_indices_locked(shared, session)
+            if shared.returned != set(shared.participants):
+                return False
+            self._remove_locked(self, shared)
         return True
 
     def _release_owner_actor_indices_locked(self, shared, session):
@@ -1979,7 +2343,7 @@ class Registry:
 
         ``register`` indexes every actor, including controlled heroes/summons,
         while return/recovery used to clear only the primary character. Keep the
-        registry -> shared lock order at call sites and fence every deletion by
+        shared -> registry lock order at call sites and fence every deletion by
         the old fight ID so an actor re-registered elsewhere is preserved.
         """
         fight_id = shared.fight.id
@@ -2002,13 +2366,12 @@ class Registry:
         self._live(session)
         if not callable(persist):
             raise ValueError("Settled world recovery requires durable persistence")
-        with self.lock:
-            fight_id = self.by_character.get(session.character_id)
-            shared = self.fights.get(fight_id)
+        with self._locked_fight(
+            character_id=session.character_id, registry=False
+        ) as shared:
             if shared is None:
                 return None
-            shared.lock.acquire()
-        try:
+            fight_id = shared.fight.id
             previous = shared.participants.get(session.account_id)
             current_recovery = (
                 pending_world_recovery is not None
@@ -2038,17 +2401,15 @@ class Registry:
             shared.connected.discard(session.account_id)
             shared.outboxes[session.account_id].clear()
             shared.pending_world_recoveries.pop(session.account_id, None)
-        finally:
-            shared.lock.release()
+            shared.reconnect_presentations.pop(session.account_id, None)
+            shared.completed_reconnect_presentations.pop(session.account_id, None)
 
-        # Keep Registry->fight lock order. If the other owner returned during
+        # Reacquire Fight before Registry. If the other owner returned during
         # persistence, it may already have retired the entire terminal fight.
-        with self.lock:
-            current = self.fights.get(fight_id)
+        with self._locked_fight(fight_id) as current:
             if current is shared:
-                with shared.lock:
-                    if shared.participants.get(session.account_id) == session:
-                        self._release_owner_actor_indices_locked(shared, session)
-                    if shared.returned == set(shared.participants):
-                        self._remove_locked(self, shared)
+                if shared.participants.get(session.account_id) == session:
+                    self._release_owner_actor_indices_locked(shared, session)
+                if shared.returned == set(shared.participants):
+                    self._remove_locked(self, shared)
         return result

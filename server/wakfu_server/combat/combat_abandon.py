@@ -11,6 +11,31 @@ from . import combat_health, combat_results, health
 from .combat_lifecycle import outside_progression
 
 
+def _owned_withdrawal_continuation(runtime, account_id, character_id):
+    """Admit only the private cleanup of an attested native PvE departure."""
+    owner = (account_id, character_id)
+    if getattr(runtime, "pve_withdrawal_owner", None) != owner:
+        return False
+    fight = runtime.fight
+    if (
+        getattr(runtime, "abandon_owner", None) != owner
+        or fight.phase != "finished"
+        or fight.winner is not None
+    ):
+        raise ValueError("Invalid private PvE withdrawal continuation")
+    from .combat_pve_departure import retired_pve_actor_ids
+
+    retired = retired_pve_actor_ids(fight)
+    record = getattr(fight, "native_pve_departures", {}).get(character_id, {})
+    if (
+        character_id not in retired
+        or record.get("root_actor_id") != character_id
+        or record.get("owner_id") != account_id
+    ):
+        raise ValueError("Missing private PvE withdrawal owner authority")
+    return True
+
+
 def _participant(account_id, character, runtime):
     fight = runtime.fight
     from .combat_terminal_metadata import registered_summon_actor_ids
@@ -38,7 +63,10 @@ def _participant(account_id, character, runtime):
         or actor.id in summon_ids
         or not actor.controlled
         or actor.owner_id != account_id
-        or getattr(actor, "pve_withdrawn", False)
+        or (
+            getattr(actor, "pve_withdrawn", False)
+            and not _owned_withdrawal_continuation(runtime, account_id, character["id"])
+        )
         or any(member.owner_id != account_id for member in controlled)
     ):
         raise ValueError("Unsupported or foreign abandon participant")
@@ -106,7 +134,10 @@ def committed_abandon_team(runtime):
         actor is None
         or not actor.controlled
         or actor.owner_id != owner[0]
-        or getattr(actor, "pve_withdrawn", False)
+        or (
+            getattr(actor, "pve_withdrawn", False)
+            and not _owned_withdrawal_continuation(runtime, owner[0], owner[1])
+        )
         or actor.team not in (0, 1)
     ):
         raise ValueError("Committed abandonment participant is stale")
@@ -152,7 +183,22 @@ def prepare(store, account_id, generation, character, runtime, body):
     # Build without mutating the authoritative FSM before ownership/HP CAS.
     planned = copy.copy(runtime)
     planned.fight = copy.copy(runtime.fight)
-    packets = _terminal_packets(planned, participant.team)
+    cleanup_packets = []
+    from .combat_scene_outcome import active_scene_grants, cleanup_scene_grants
+
+    earned_cleanup = bool(active_scene_grants(runtime.fight))
+    if earned_cleanup:
+        factory = getattr(runtime, "expiration_runtime_factory", None)
+        if not callable(factory):
+            raise ValueError("Earned scene abandonment requires its native runtime")
+        planned.fight = copy.deepcopy(runtime.fight)
+        with planned.fight.effect_resolution():
+            cleanup_scene_grants(
+                planned.fight,
+                factory(action_id=planned.action_id + 1),
+                cleanup_packets,
+            )
+    packets = cleanup_packets + _terminal_packets(planned, participant.team)
     # The durable outcome must not depend on the subsequent checkpoint or
     # client callback. Commit the abort and its health receipt together.
     with store.connection() as db:
@@ -173,7 +219,7 @@ def prepare(store, account_id, generation, character, runtime, body):
             account_id,
             generation,
             character,
-            runtime.fight,
+            planned.fight if earned_cleanup else runtime.fight,
             reason="abort",
             db=db,
         )
@@ -184,6 +230,11 @@ def prepare(store, account_id, generation, character, runtime, body):
         )
         if cursor.rowcount != 1:
             raise ValueError("Fight cannot be durably abandoned")
+    if earned_cleanup:
+        from .combat_area_boundary import adopt_fight
+
+        # Preserve the shared Fight and existing actor objects after commit.
+        adopt_fight(runtime.fight, planned.fight)
     runtime.fight.phase = "finished"
     runtime.fight.winner = None
     runtime.awaiting_ack = None

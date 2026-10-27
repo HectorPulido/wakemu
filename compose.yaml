@@ -27,7 +27,7 @@ services:
     build:
       context: ./server
       args:
-        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1}
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-25c7188c63110ff8fa404c3b0ff7bd3d0c41076ddb5843866ede693b62ca7aba}
     init: true
     depends_on:
       postgres:
@@ -39,7 +39,7 @@ services:
     environment:
       WAKFU_FISHING_CATALOG_REVISION: 20f2731c921701c025af2d8416696e5b01c7346fc9393408b47533c092cab5fa
       WAKFU_MINING_CATALOG_REVISION: 14b63a5b28014e455fd9910c99fe037e6d957ac9b40508335bfe130c2ee54518
-      WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1}
+      WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-25c7188c63110ff8fa404c3b0ff7bd3d0c41076ddb5843866ede693b62ca7aba}
       WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
       # Listen on the container network; published host ports stay localhost.
       WAKFU_BIND_HOST: ${WAKFU_BIND_HOST:-0.0.0.0}
@@ -50,6 +50,7 @@ services:
       WAKFU_OBJECTIVES_MODE: ${WAKFU_OBJECTIVES_MODE:-external}
       WAKFU_OBJECTIVES_PUBLIC_URL: ${WAKFU_OBJECTIVES_PUBLIC_URL:-http://127.0.0.1:18086/player/}
       WAKFU_ECOLOGY_TOKEN_FILE: /run/secrets/ecology-token
+      WAKFU_BOTS_TOKEN_FILE: ${WAKFU_BOTS_TOKEN_FILE:-}
       #
       WAKFU_ALL_ZAAPS: ${WAKFU_ALL_ZAAPS:-1}
       WAKFU_ADVERTISE_HOST: ${WAKFU_ADVERTISE_HOST:-127.0.0.1}
@@ -91,7 +92,10 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
-      start_period: 6m
+      # A new compiler generation is published once before World starts.
+      # Readiness succeeds immediately when it opens; this only tolerates
+      # the measured first publication and temporary-heap cleanup window.
+      start_period: 12m
   shop:
     image: ${WAKFU_SHOP_IMAGE:-wakemu-shop:performance-icons-20261011}
     build:
@@ -202,7 +206,7 @@ services:
       context: ./server
       dockerfile: ecology-service/Dockerfile
       args:
-        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1}
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-25c7188c63110ff8fa404c3b0ff7bd3d0c41076ddb5843866ede693b62ca7aba}
     user: "${WAKFU_SERVICE_UID:-1000}:${WAKFU_SERVICE_GID:-1000}"
     init: true
     depends_on:
@@ -287,7 +291,7 @@ services:
       context: ./server/ai-service
       args:
         WORLD_IMAGE: ${WAKFU_WORLD_IMAGE:-wakemu-world:systems-20261011}
-        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1}
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-25c7188c63110ff8fa404c3b0ff7bd3d0c41076ddb5843866ede693b62ca7aba}
     init: true
     depends_on:
       postgres:

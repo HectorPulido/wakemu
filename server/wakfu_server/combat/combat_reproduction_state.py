@@ -106,6 +106,18 @@ def _sort_key(value):
     raise UnsupportedReproductionState("Unordered collection has unsupported elements")
 
 
+def _static_catalog_descriptor(value):
+    kind = type(value)
+    if kind.__name__ != "PublishedStaticMapping" or kind.__module__ not in (
+        "wakfu_server.combat_published_catalogs",
+        "wakfu_server.combat.combat_published_catalogs",
+    ):
+        return None
+    from .combat_published_catalogs import static_catalog_descriptor
+
+    return static_catalog_descriptor(value)
+
+
 def encode_state(value, *, preserve_scalars=False):
     """Capture data and service requirements without invoking any providers."""
     if type(preserve_scalars) is not bool:
@@ -146,7 +158,10 @@ def encode_state(value, *, preserve_scalars=False):
         nodes.append(node)
         reference = {"ref": index}
         kind = type(current)
-        if kind is str:
+        static_descriptor = _static_catalog_descriptor(current)
+        if static_descriptor is not None:
+            node.update(kind="staticCatalog", descriptor=static_descriptor)
+        elif kind is str:
             node.update(kind="str", value=current)
         elif kind is bytes:
             node.update(kind="bytes", value=base64.b64encode(current).decode("ascii"))
@@ -264,7 +279,13 @@ def decode_state(payload):
         if not isinstance(node, dict):
             raise UnsupportedReproductionState("Invalid reproduction node")
         kind = node.get("kind")
-        if kind == "dict":
+        if kind == "staticCatalog":
+            if set(node) != {"kind", "descriptor"}:
+                raise UnsupportedReproductionState("Invalid static catalog node")
+            from .combat_published_catalogs import resolve_static_catalog_descriptor
+
+            objects[index] = resolve_static_catalog_descriptor(node["descriptor"])
+        elif kind == "dict":
             objects[index] = {}
         elif kind == "list":
             objects[index] = []

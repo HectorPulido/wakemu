@@ -6,6 +6,51 @@ import unittest
 
 
 class CatalogGCBootstrapTests(unittest.TestCase):
+    def test_published_startup_validates_four_handles_without_eager_heap_or_fallback(
+        self,
+    ):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from wakfu_server import catalog_gc_bootstrap as bootstrap
+        from wakfu_server.combat_static_catalogs import CompiledEffects
+
+        variants = ("player", "npc_imported", "npc_baseline", "weapon")
+        with patch.dict(os.environ, {"WAKFU_ENABLE_COMBAT_TEST": "1"}), patch.object(
+            CompiledEffects,
+            "from_published",
+            side_effect=lambda variant: SimpleNamespace(effects={"1": variant}),
+        ) as handles, patch.object(bootstrap.runpy, "run_path") as run, patch.object(
+            bootstrap,
+            "freeze_startup_heap",
+            side_effect=AssertionError("eager heap freeze"),
+        ), patch.object(
+            bootstrap, "_prewarm", side_effect=AssertionError("eager prewarm")
+        ), patch(
+            "builtins.print"
+        ):
+            bootstrap.main()
+            self.assertEqual(
+                [call.args[0] for call in handles.call_args_list], list(variants)
+            )
+            run.assert_called_once_with(
+                str(
+                    Path(bootstrap.__file__).resolve().parents[2]
+                    / "local_game_server.py"
+                ),
+                run_name="__main__",
+            )
+            handles.reset_mock()
+            run.reset_mock()
+            handles.side_effect = RuntimeError("missing exact publication")
+            with self.assertRaisesRegex(RuntimeError, "missing exact publication"):
+                bootstrap.main()
+            run.assert_not_called()
+            with patch.dict(os.environ, {"WAKFU_ENABLE_COMBAT_TEST": "0"}):
+                handles.reset_mock()
+                bootstrap.main()
+                handles.assert_not_called()
+                run.assert_called_once()
+
     def run_case(self, source):
         env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]))
         source = "import gc\ninitial_frozen = gc.get_freeze_count()\n" + source

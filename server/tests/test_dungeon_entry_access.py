@@ -7,20 +7,27 @@ from wakfu_server.maps import dungeon_entry_access, dungeon_criteria
 
 
 class Store:
-    def __init__(self, policy=None):
+    def __init__(self, policy=None, *, minimum_enforced=True):
         self.value = dict(dungeon_entry_access.DEFAULT) if policy is None else policy
+        self.minimum_enforced = minimum_enforced
+        self.selected_setting = None
 
     @contextmanager
     def connection(self):
         yield self
 
     def execute(self, query, params):
-        if params != (dungeon_entry_access.SETTING,):
+        from wakfu_server.maps.instance_entry_level import SETTING
+
+        if params not in ((dungeon_entry_access.SETTING,), (SETTING,)):
             raise AssertionError(params)
+        self.selected_setting = params[0]
         return self
 
     def fetchone(self):
-        return {"value": self.value}
+        if self.selected_setting == dungeon_entry_access.SETTING:
+            return {"value": self.value}
+        return {"value": {"version": 1, "enforce_minimum_level": self.minimum_enforced}}
 
 
 class DungeonEntryAccessTests(unittest.TestCase):

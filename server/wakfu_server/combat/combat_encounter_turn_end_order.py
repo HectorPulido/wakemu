@@ -3,6 +3,13 @@
 This orders existing native publications. It does not reinterpret their event
 IDs, channels, suppression, native criteria, resource costs or table counter.
 """
+
+from .combat_encounter_source_revision import source_revision_matches
+
+SOURCE_DEPENDENCIES = (
+    "combat-state-definitions.json",
+    "native-retained-effect-metadata.json",
+)
 from copy import deepcopy
 from functools import lru_cache
 
@@ -93,7 +100,7 @@ def freeze_turn_end_order_policy(fight, *, roles):
     if frozen is not None and (
         frozen["map_id"] != roles.map_id
         or frozen["monster_references"] != list(roles.monster_references)
-        or frozen["catalog_revision"] != native_catalog.release()
+        or not source_revision_matches(frozen["catalog_revision"], SOURCE_DEPENDENCIES)
     ):
         raise ValueError("Encounter turn-end policy differs from admission or catalog")
     # Absence is also an admission decision; a retry must never opt in after
@@ -119,7 +126,7 @@ def turn_end_event_order(fight, *, actor_id):
     if record is None:
         return DEFAULT_ORDER
     frozen = order_policy_from_record(record)
-    from .combat_encounter_roles import frozen_roles
+    from wakfu_server.combat_encounter_roles import frozen_roles
 
     roles = frozen_roles(fight)
     if (

@@ -4,18 +4,30 @@ Initialize once, before combat effects. Handlers subsequently mutate the same
 snapshot; rebuilding would erase active modifiers and is deliberately rejected.
 Absent characteristic values are never filled with invented zeros.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
 import json
 import math
 from dataclasses import dataclass, field, replace
 from functools import lru_cache
+from collections import OrderedDict
+from threading import RLock
+from types import MappingProxyType
+from wakfu_server.native_source_singleflight import NativeSourceFlights
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.equipment_stats import bonuses, effective_character
+from .combat_native_death_status import FreshPlayerDeathConstructor
 from wakfu_server.equipment_damage import _float
 
 
 @lru_cache(maxsize=1)
 def native_actor_catalog():
+    from wakfu_server.combat_published_catalogs import compilation_mode
+    from wakfu_server.native_catalog_document import load_published_document
+
+    if not compilation_mode():
+        return load_published_document("native-actor-characteristics.json")
+
     return protocol_catalog.load(DATA_ROOT / "native-actor-characteristics.json")
 
 
@@ -69,6 +81,7 @@ class ActorSnapshot:
     native_hp_on_operand: dict | None = None
     base_minima: dict | None = None
     native_initial_team: int | None = None
+    native_player_death_constructor: FreshPlayerDeathConstructor | None = None
 
     def install(self, actor):
         _fresh(actor, ())
@@ -106,6 +119,14 @@ class ActorSnapshot:
             or self.native_jump_height != 4
         ):
             raise ValueError("Missing or changed native fresh actor physics snapshot")
+        if self.native_player_death_constructor is not None:
+            from .combat_native_death_status import (
+                validate_fresh_player_death_constructor,
+            )
+
+            validate_fresh_player_death_constructor(
+                actor, self.native_player_death_constructor
+            )
         existing_cosmetics = getattr(actor, "native_cosmetic_state", None)
         if (
             self.native_cosmetic_state is not None
@@ -166,13 +187,113 @@ class ActorSnapshot:
         from .combat_departure_predicates import initialize_fresh_departure_flags
 
         initialize_fresh_departure_flags(actor)
+        if self.native_player_death_constructor is not None and not hasattr(
+            actor, "native_death_status"
+        ):
+            from .combat_native_death_status import initialize_fresh_player_death_status
+
+            initialize_fresh_player_death_status(
+                actor, constructor=self.native_player_death_constructor
+            )
 
 
-def _rows(catalog):
-    rows = {int(k): v for k, v in catalog["characteristics"].items()}
+_CHARACTERISTIC_INDEX = OrderedDict()
+_CHARACTERISTIC_INDEX_BYTES = 0
+_CHARACTERISTIC_INDEX_LOCK = RLock()
+_CHARACTERISTIC_INDEX_FLIGHTS = NativeSourceFlights()
+_CHARACTERISTIC_MAX_GENERATIONS = 4
+_CHARACTERISTIC_MAX_ROWS = 128
+_CHARACTERISTIC_MAX_BYTES = 256 * 1024
+
+
+def _read_characteristic_rows(source):
+    rows = {}
+    for key, row in source.items():
+        identity = int(key)
+        if identity in rows:
+            raise ValueError("Duplicate native characteristic identity")
+        rows[identity] = row
     if not {1, 2, 3, 4, 9, 32, 35, 92, 97, 100} <= rows.keys():
         raise ValueError("Incomplete native characteristic catalog")
     return rows
+
+
+def _characteristic_projection(source, key):
+    global _CHARACTERISTIC_INDEX_BYTES
+    # The only retained values are small immutable PC definitions, never NPC
+    # profiles, levels, actors, state ledgers, resource values or fight state.
+    rows = _read_characteristic_rows(source)
+    if len(rows) > _CHARACTERISTIC_MAX_ROWS:
+        return rows
+    if any(
+        type(row) is not dict
+        or len(row) > 16
+        or any(
+            type(field) is not str
+            or len(field) > 128
+            or type(value) not in (str, int, float, bool, type(None))
+            or type(value) is str
+            and len(value) > 1024
+            for field, value in row.items()
+        )
+        for row in rows.values()
+    ):
+        return rows
+    try:
+        size = len(
+            json.dumps(
+                rows,
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode()
+        )
+    except (TypeError, ValueError):
+        return rows
+    if size > _CHARACTERISTIC_MAX_BYTES:
+        return rows
+    immutable = MappingProxyType(
+        {identity: MappingProxyType(dict(row)) for identity, row in rows.items()}
+    )
+    with _CHARACTERISTIC_INDEX_LOCK:
+        previous = _CHARACTERISTIC_INDEX.pop(key, None)
+        if previous is not None:
+            _CHARACTERISTIC_INDEX_BYTES -= previous[1]
+        _CHARACTERISTIC_INDEX[key] = (immutable, size)
+        _CHARACTERISTIC_INDEX_BYTES += size
+        while (
+            len(_CHARACTERISTIC_INDEX) > _CHARACTERISTIC_MAX_GENERATIONS
+            or _CHARACTERISTIC_INDEX_BYTES > _CHARACTERISTIC_MAX_BYTES
+        ):
+            _, (_, removed) = _CHARACTERISTIC_INDEX.popitem(last=False)
+            _CHARACTERISTIC_INDEX_BYTES -= removed
+    return immutable
+
+
+def _rows(catalog):
+    source = catalog["characteristics"]
+    from .combat_published_catalogs import static_catalog_descriptor
+
+    descriptor = static_catalog_descriptor(source)
+    # Caller-owned dictionaries are intentionally revalidated on every call;
+    # only a sealed publication proves an immutable cache identity.
+    if descriptor is None or source.representation != "native_json":
+        return _read_characteristic_rows(source)
+    key = tuple(sorted(descriptor.items()))
+    with _CHARACTERISTIC_INDEX_LOCK:
+        cached = _CHARACTERISTIC_INDEX.get(key)
+        if cached is not None:
+            _CHARACTERISTIC_INDEX.move_to_end(key)
+            return cached[0]
+    return _CHARACTERISTIC_INDEX_FLIGHTS.run(
+        key, lambda: _characteristic_projection(source, key)
+    )
+
+
+def native_characteristic_definitions(catalog=None):
+    """Share the small sealed PC definition index, never live actor values."""
+    return _rows(native_actor_catalog() if catalog is None else catalog)
 
 
 def _finish(
@@ -376,11 +497,13 @@ def build_player_snapshot(
             initialization_warning(actor.id, e) for e in skipped
         )
     from .combat_cosmetic_conditions import fresh_player_cosmetic_state
+    from .combat_native_death_status import fresh_player_death_constructor
 
     return replace(
         result,
         native_hud_breed=character["breed"],
         native_cosmetic_state=fresh_player_cosmetic_state(character),
+        native_player_death_constructor=fresh_player_death_constructor(actor.id),
     )
 
 

@@ -37,6 +37,7 @@ IDENTITY_FIELDS = (
     "spell_id",
 )
 MAX_DOCUMENT_BYTES = 1_000_000_000
+STREAM_DOCUMENT_BYTES = 8 * 1024 * 1024
 
 
 def source_manifest(directory):
@@ -343,28 +344,70 @@ def import_catalogs(
                         position, len(manifest), imported, skipped, total_records
                     )
                 continue
-            raw = (directory / path).read_bytes()
-            if len(raw) != size or hashlib.sha256(raw).hexdigest() != checksum:
-                raise ValueError(f"Native source changed during import: {path}")
-            document = json.loads(raw)
-            db.execute(
-                """INSERT INTO native_catalog_documents
-                (revision,path,raw,sha256,source_bytes,record_count)
-                VALUES(%s,%s,%s,%s,%s,0)""",
-                (revision, path, raw, checksum, size),
-            )
-            count = 0
-            with db.cursor().copy(
-                "COPY native_catalog_records(revision,path,collection,record_key,payload) FROM STDIN"
-            ) as copy:
-                records = (
-                    ()
-                    if identity["record_policy"] == "raw-only"
-                    else catalog_records(path, document)
+            if size >= STREAM_DOCUMENT_BYTES:
+                from tools.native_catalog_streaming import (
+                    verified_snapshot,
+                    copy_raw_document,
+                    streamed_records,
                 )
-                for collection, key, payload in records:
-                    copy.write_row((revision, path, collection, key, Jsonb(payload)))
-                    count += 1
+
+                profile = lambda stage: profile_memory(path, size, stage)
+                profile("before_snapshot")
+                with verified_snapshot(directory / path, checksum, size) as snapshot:
+                    profile("verified_snapshot")
+                    copy_raw_document(db, revision, path, snapshot, checksum, size)
+                    profile("stored_raw")
+                    count = 0
+                    with db.cursor().copy(
+                        "COPY native_catalog_records(revision,path,collection,record_key,payload) FROM STDIN"
+                    ) as copy:
+                        for collection, key, payload in streamed_records(
+                            snapshot,
+                            path,
+                            entity_key=entity_key,
+                            spatial_directories=SPATIAL_DIRECTORIES,
+                            spatial_collections=SPATIAL_COLLECTIONS,
+                            index_records=identity["record_policy"] != "raw-only",
+                            stage=profile,
+                        ):
+                            copy.write_row(
+                                (revision, path, collection, key, Jsonb(payload))
+                            )
+                            count += 1
+                    profile("stored_records")
+            else:
+                profile_memory(path, size, "before_raw_read")
+                raw = (directory / path).read_bytes()
+                profile_memory(path, size, "loaded_raw")
+                if len(raw) != size or hashlib.sha256(raw).hexdigest() != checksum:
+                    raise ValueError(f"Native source changed during import: {path}")
+                document = json.loads(raw)
+                profile_memory(path, size, "decoded_document")
+                db.execute(
+                    """INSERT INTO native_catalog_documents
+                    (revision,path,raw,sha256,source_bytes,record_count)
+                    VALUES(%s,%s,%s,%s,%s,0)""",
+                    (revision, path, raw, checksum, size),
+                )
+                profile_memory(path, size, "stored_raw")
+                count = 0
+                with db.cursor().copy(
+                    "COPY native_catalog_records(revision,path,collection,record_key,payload) FROM STDIN"
+                ) as copy:
+                    records = (
+                        ()
+                        if identity["record_policy"] == "raw-only"
+                        else catalog_records(path, document)
+                    )
+                    for collection, key, payload in records:
+                        copy.write_row(
+                            (revision, path, collection, key, Jsonb(payload))
+                        )
+                        count += 1
+                profile_memory(path, size, "stored_records")
+                # Do not retain the previous small decoded document while
+                # indexing the next large snapshot.
+                del raw, document
             if path in expected_records and count != expected_records[path]:
                 raise ValueError(
                     f"Derived native record count differs from published inventory: {path}"
@@ -376,7 +419,6 @@ def import_catalogs(
             )
             total_records += count
             imported += 1
-            del document, raw
         if position % 100 == 0 or position == len(manifest):
             report_progress(position, len(manifest), imported, skipped, total_records)
     with database.connection() as db:
@@ -413,6 +455,39 @@ def import_catalogs(
     }
 
 
+def profile_memory(path, source_bytes, stage):
+    """Optional stage evidence; never include catalog contents or credentials."""
+    if os.environ.get("WAKFU_CATALOG_IMPORT_PROFILE") != "1":
+        return
+    import resource
+    import time
+
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    peak *= 1 if sys.platform == "darwin" else 1024
+    current = None
+    status = Path("/proc/self/status")
+    if status.is_file():
+        for line in status.read_text().splitlines():
+            if line.startswith("VmRSS:"):
+                current = int(line.split()[1]) * 1024
+                break
+    print(
+        json.dumps(
+            dict(
+                event="native_catalog_import_memory",
+                path=path,
+                source_bytes=source_bytes,
+                stage=stage,
+                rss_bytes=current,
+                peak_rss_bytes=peak,
+                monotonic_ns=time.monotonic_ns(),
+            )
+        ),
+        file=sys.stderr,
+        flush=True,
+    )
+
+
 def report_progress(position, total, imported, skipped, records):
     print(
         json.dumps(
@@ -438,6 +513,7 @@ def main():
         default=Path(__file__).resolve().parents[1] / "protocol",
     )
     parser.add_argument("--stage-only", action="store_true")
+    parser.add_argument("--profile-memory", action="store_true")
     parser.add_argument("--expected-revision")
     parser.add_argument(
         "--identity-scheme",
@@ -450,6 +526,8 @@ def main():
     parser.add_argument("--release-manifest", type=Path)
 
     args = parser.parse_args()
+    if args.profile_memory:
+        os.environ["WAKFU_CATALOG_IMPORT_PROFILE"] = "1"
     expected_release = None
     if args.release_manifest is not None:
         exported = json.loads(args.release_manifest.read_text())

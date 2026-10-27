@@ -15,6 +15,17 @@ def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell, acti
         raise ValueError("Voluntary movement requires the actual moved fighter")
     if tuple(from_cell) == tuple(to_cell):
         return ()
+    from .combat_equipment_tackle_events import deliver_tackle_boundary
+
+    # Native fei payment precedes the step event. Reactions to1005 may move
+    # or retire a participant; capture the paid1032 roles before those effects.
+    tackle_outcomes = deliver_tackle_boundary(
+        dispatcher,
+        actor_id=actor_id,
+        from_cell=from_cell,
+        to_cell=to_cell,
+        action_id=action_id,
+    )
     from .combat_global_pv_collections import global_pv_iterator
     from .combat_state_managers import registered_area_pv
 
@@ -39,7 +50,7 @@ def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell, acti
         if frozen is not None
         else ()
     )
-    outcomes = []
+    outcomes = list(tackle_outcomes)
     from .combat_external_movement_recipient import (
         POLICY,
         committed_movement_recipient_scope,

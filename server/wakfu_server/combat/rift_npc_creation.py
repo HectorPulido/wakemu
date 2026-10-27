@@ -4,9 +4,9 @@ The world appearance must precede cvg13091: aVH looks up an existing big and
 does not construct an NPC. Unlike eZl307 this path never marks a summon and
 never resets the fight phase through cvb12847.
 """
-from .combat_actor import actor_effects, monster_actor_stats
-from .combat_monster_world import spawn_monster
-from .combat_multiplayer_wire import added
+from wakfu_server.combat_actor import actor_effects, monster_actor_stats
+from wakfu_server.combat_monster_world import spawn_monster
+from wakfu_server.combat_multiplayer_wire import added
 
 
 def initialize_native_wave_actors(fight, monsters):
@@ -15,11 +15,17 @@ def initialize_native_wave_actors(fight, monsters):
     The caller owns an unpublished preview. Existing actors' innate states and
     controller changes must never be initialized again at a wave boundary.
     """
-    from .combat_npc_ai_initialization import initial_ai_actors
-    from .combat_npc_initialization import initial_plans, initialize_ordinary_npcs
+    from wakfu_server.combat_npc_ai_initialization import initial_ai_actors
+    from wakfu_server.combat_npc_initialization import (
+        initial_plans,
+        initialize_ordinary_npcs,
+    )
 
     sources = {monster["id"]: monster for monster in monsters}
-    from .combat_automatic_npc_turn import initial_root_manifest, install_root_manifest
+    from wakfu_server.combat_automatic_npc_turn import (
+        initial_root_manifest,
+        install_root_manifest,
+    )
 
     root_manifest = initial_root_manifest(fight, sources)
     ai_actors = initial_ai_actors(fight, sources)
@@ -50,7 +56,14 @@ def creation_packets(
     fight before publishing these packets. Monster identity/reference and base
     characteristics must come from the existing owned monster catalog.
     """
-    appearance = spawn_monster(monster, group_id=group_id, direction=direction)
+    direction = direction if actor is None else actor.direction
+    appearance = spawn_monster(
+        monster,
+        group_id=group_id,
+        direction=direction,
+        fighter=actor,
+        fight=fight,
+    )
     stats = monster_actor_stats(
         monster,
         fight_id,
@@ -59,8 +72,8 @@ def creation_packets(
     )
     effects = actor_effects()
     if actor is not None:
-        from .combat_actor import actual_monster_actor_stats
-        from .combat_remote_effects import active_actor_effects
+        from wakfu_server.combat_actor import actual_monster_actor_stats
+        from wakfu_server.combat_remote_effects import active_actor_effects
 
         if (
             fight is None
@@ -77,12 +90,18 @@ def creation_packets(
             direction=direction,
             fight=fight,
         )
-        effects = active_actor_effects(fight, actor.id)
+        from wakfu_server.combat_input_observation import wall_time_ns
+
+        effects = active_actor_effects(
+            fight,
+            actor.id,
+            now_milliseconds=wall_time_ns("rift.birth.effect_snapshot") // 1000000,
+        )
     admission = added(
         fight_id,
         monster["id"],
         actor_type=0,
-        team=monster["team"],
+        team=monster["team"] if actor is None else actor.team,
         stats=stats,
         effects=effects,
         controller=None,
@@ -90,11 +109,16 @@ def creation_packets(
     return ((12608, appearance), admission)
 
 
-def prepare_wave_npcs(monsters, *, catalog=None):
+def prepare_wave_npcs(monsters, *, catalog=None, team=1):
     """Prepare exact ordinary NPC resources and snapshots from native curves."""
-    from .combat_state import Actor
-    from .combat_actor_snapshot import native_npc_creation_values, build_npc_snapshot
+    from wakfu_server.combat_state import Actor
+    from wakfu_server.combat_actor_snapshot import (
+        native_npc_creation_values,
+        build_npc_snapshot,
+    )
 
+    if type(team) is not int or team not in (0, 1):
+        raise ValueError("Reviewed ordinary wave constructor team required")
     monsters = list(monsters)
     identities = [monster.get("id") for monster in monsters]
     positions = [
@@ -108,7 +132,7 @@ def prepare_wave_npcs(monsters, *, catalog=None):
         or any(any(type(value) is not int for value in p) for p in positions)
     ):
         raise ValueError("Invalid fresh rift NPC identities or positions")
-    from .combat_npc_initialization import (
+    from wakfu_server.combat_npc_initialization import (
         initial_property_counts,
         install_initial_properties,
     )
@@ -123,7 +147,7 @@ def prepare_wave_npcs(monsters, *, catalog=None):
         )
         actor = Actor(
             monster["id"],
-            1,
+            team,
             position,
             values[1]["current"],
             values[2]["current"],
@@ -157,10 +181,10 @@ def install_native_wave(
     any snapshot is serialized. Its packets follow all birth packets so native
     state applications cannot address an actor the client has not created yet.
     """
-    from .combat_qi_fight import current_registry
-    from .combat_global_pv_collections import register_global_fighter
-    from .combat_timeline_snapshot import insert
-    from .rift_combat_adapter import acknowledge_wave
+    from wakfu_server.combat_qi_fight import current_registry
+    from wakfu_server.combat_global_pv_collections import register_global_fighter
+    from wakfu_server.combat_timeline_snapshot import insert
+    from wakfu_server.rift_combat_adapter import acknowledge_wave
 
     state = getattr(fight, "rift_wave_state", None)
     if (
@@ -172,9 +196,25 @@ def install_native_wave(
     ):
         raise ValueError("Native rift admission requires a pending accepted wave")
     monsters = list(monsters)
-    actors = prepare_wave_npcs(monsters, catalog=catalog)
-    if len(fight.actors) + len(actors) > 127:
-        raise ValueError("Native rift fighter history capacity exhausted")
+    from wakfu_server.combat_encounter_roles import assigned_roles
+
+    actors = prepare_wave_npcs(
+        monsters, catalog=catalog, team=assigned_roles(fight).npc_team
+    )
+    from .combat_spawn_facing import toward_nearest
+
+    targets = tuple(
+        (member.id, member.position)
+        for member in fight.actors.values()
+        if member.team != actors[0].team and member.hp > 0 and fight._in_play(member)
+    )
+    for actor in actors:
+        actor.direction = toward_nearest(actor.position, targets)
+    from wakfu_server.combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    visible_count = len(fight.actors) - len(hidden_snapshot_actor_ids(fight))
+    if visible_count + len(actors) > 127:
+        raise ValueError("Native rift visible fighter capacity exhausted")
     occupied = {a.position for a in fight.actors.values() if fight._in_play(a)}
     if any(
         a.id in fight.actors
@@ -183,8 +223,19 @@ def install_native_wave(
         for a in actors
     ):
         raise ValueError("Rift NPC placement collides with current fight")
-    registry = current_registry(fight)
-    for actor in actors:
+    # big.a(eGH.cle) runs while the constructor PV is detached. Its original
+    # effects may query QI (including visibility-property callbacks), so do not
+    # publish a slot, fdy entry or timeline row until that constructor returns.
+    # Complete each admission before the next constructor, as companion entry
+    # does: earlier actors are real registered PVs, later actors are not yet born.
+    base = getattr(fight, "native_base_turn_order", None)
+    for actor, monster in zip(actors, monsters):
+        fight.actors[actor.id] = actor
+        try:
+            initialize_native_wave_actors(fight, (monster,))
+        finally:
+            del fight.actors[actor.id]
+        registry = current_registry(fight)
         if hasattr(fight, "native_pointer_checkpoint"):
             if actor.native_obstacle_id is None:
                 actor.native_obstacle_id = -1
@@ -202,16 +253,14 @@ def install_native_wave(
         if slot < 0:
             raise ValueError("Native rift QI population exhausted")
         actor.native_obstacle_id = slot
-    if hasattr(fight, "native_pointer_checkpoint"):
-        from .combat_carrying import _publish_registry
+        if hasattr(fight, "native_pointer_checkpoint"):
+            from wakfu_server.combat_carrying import _publish_registry
 
-        _publish_registry(fight, registry)
-    else:
-        fight.native_qi_slots = registry.serialized_slots()
-        fight.native_qi_touched_cells = registry.serialized_cells()
-        fight.native_qi_byte_topology = registry.serialized_byte_topology()
-    base = getattr(fight, "native_base_turn_order", None)
-    for actor in actors:
+            _publish_registry(fight, registry)
+        else:
+            fight.native_qi_slots = registry.serialized_slots()
+            fight.native_qi_touched_cells = registry.serialized_cells()
+            fight.native_qi_byte_topology = registry.serialized_byte_topology()
         fight.actors[actor.id] = actor
         register_global_fighter(fight, actor.id)
         # Explicit DEV policy: append wave reinforcements to remaining turns.
@@ -220,7 +269,6 @@ def install_native_wave(
             fight.order.append(actor.id)
             if base is not None:
                 base.append(actor.id)
-    initialize_native_wave_actors(fight, monsters)
     batch_packets = (
         ()
         if initialize_wave is None

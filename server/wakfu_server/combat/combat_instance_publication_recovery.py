@@ -76,7 +76,9 @@ def _new_source(session, publication, frozen_gn):
     return receipt
 
 
-def rebind_recovered_owner(fight, shared, session, publication, *, session_live=None):
+def rebind_recovered_owner(
+    fight, shared, session, publication, *, session_live=None, owner_matches=None
+):
     """Prepare real replacement sources; never resume a partial owner cohort."""
     if not requires_publication_recovery(fight):
         return False
@@ -93,7 +95,10 @@ def rebind_recovered_owner(fight, shared, session, publication, *, session_live=
     if (
         previous is None
         or previous.account_id != session.account_id
-        or previous.character_id != session.character_id
+        or (
+            previous.character_id != session.character_id
+            and not (callable(owner_matches) and owner_matches(shared, session))
+        )
         or (previous.generation == session.generation and not resume_staged)
         or (session.map_id, session.instance_id) != (shared.map_id, shared.instance_id)
     ):
@@ -127,7 +132,7 @@ def rebind_recovered_owner(fight, shared, session, publication, *, session_live=
     )
     pending = dict(getattr(shared, "pending_publication_recoveries", {}))
     pending[session.account_id] = entry
-    rebound, missing, unchanged = [], [], []
+    rebound, missing, unchanged, refreshed = [], [], [], []
     for (source, old_scope), old_receipt in zip(bindings, receipts):
         owner = old_scope[0]
         staged = pending.get(owner)
@@ -158,7 +163,33 @@ def rebind_recovered_owner(fight, shared, session, publication, *, session_live=
                     continue
             rebound.append(staged.publication)
         elif source.scope != old_scope or source.lease.current != old_receipt:
-            missing.append(owner)
+            # A still-current peer may have actually re-published its instance
+            # context without changing session. It cannot take over its own
+            # unchanged generation, so validate that fresh real source here.
+            current = shared.participants.get(owner)
+            if (
+                current is None
+                or old_scope
+                != (
+                    current.account_id,
+                    current.generation,
+                    current.character_id,
+                    current.map_id,
+                    current.instance_id,
+                )
+                or not callable(session_live)
+                or not session_live(current)
+            ):
+                missing.append(owner)
+                continue
+            try:
+                fresh_receipt = _new_source(current, (source, old_scope), frozen_gn)
+            except ValueError:
+                missing.append(owner)
+                continue
+            rebound.append((source, old_scope))
+            unchanged.append((source, fresh_receipt))
+            refreshed.append(current)
         else:
             rebound.append((source, old_scope))
             unchanged.append((source, old_receipt))
@@ -182,8 +213,44 @@ def rebind_recovered_owner(fight, shared, session, publication, *, session_live=
         )
     if any(source.lease.current != expected for source, expected in unchanged):
         raise ValueError("Another owner publication changed during recovery binding")
+    if any(not session_live(owner) for owner in refreshed):
+        raise ValueError("Refreshed participant lease changed during recovery binding")
     for owner, staged in pending.items():
         if owner != session.account_id and not session_live(staged.session):
             raise ValueError("Staged participant lease changed during recovery binding")
     require_current_publication(fight)
     return True
+
+
+def publication_recovery_token(shared):
+    """Observe replacement-source progress without executing recovery again.
+
+    A token is local scheduling data, never publication or membership authority.
+    Actual takeover still validates every source, session and frozen difficulty.
+    Trackers retain their identities across encounter copies, so a new write,
+    invalidation, staged replacement or disconnect changes this observation.
+    """
+    lease = getattr(shared.fight, "native_instance_publication_lease", None)
+    bindings = getattr(lease, "owner_bindings", ())
+    pending = getattr(shared, "pending_publication_recoveries", {})
+    return (
+        tuple(
+            (owner, session) for owner, session in sorted(shared.participants.items())
+        ),
+        frozenset(shared.connected),
+        bool(shared.disconnect_abort_pending),
+        tuple(
+            (id(source), source.scope, source.lease.current)
+            for source, _scope in bindings
+        ),
+        tuple(
+            (
+                owner,
+                entry.session,
+                id(entry.publication[0]),
+                entry.publication[0].scope,
+                entry.publication[0].lease.current,
+            )
+            for owner, entry in sorted(pending.items())
+        ),
+    )

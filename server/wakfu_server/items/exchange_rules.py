@@ -8,7 +8,18 @@ import json
 from .paths import DATA_ROOT
 
 
-CATALOG = protocol_catalog.load(DATA_ROOT / "item-exchange-metadata.json")
+def _catalog_document():
+    from wakfu_server.combat_published_catalogs import compilation_mode
+
+    path = DATA_ROOT / "item-exchange-metadata.json"
+    if compilation_mode():
+        return protocol_catalog.load(path)
+    from wakfu_server.native_catalog_document import load_published_document
+
+    return load_published_document(path)
+
+
+CATALOG = _catalog_document()
 if (
     CATALOG.get("errors") != 0
     or CATALOG.get("raw_records") != CATALOG.get("loaded_records")

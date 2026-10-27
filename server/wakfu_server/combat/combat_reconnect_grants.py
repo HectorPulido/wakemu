@@ -1,7 +1,7 @@
 """Give owned reconnect grants one constructor, after native ACTION binding.
 
-The final13912 snapshot publishes each retained649 after ACTION. Bootstrap
-and the additional evaluated carrier stream must not construct them as well.
+Native13912 does not execute649. Exclude grants from both reset snapshots,
+then publish their exact retained carriers after ACTION and the final reset.
 Canonical retained payloads and execution flags are never modified.
 """
 import struct
@@ -14,7 +14,9 @@ class ReconnectGrantProjection:
     def __init__(self, carrier_packets):
         self._carriers = {}
         self._projected = set()
+        self._final_projected = set()
         self.other_carriers = []
+        self.grant_carriers = []
         for opcode, body in carrier_packets:
             if opcode != 12613 or len(body) < 19:
                 self.other_carriers.append((opcode, body))
@@ -31,8 +33,9 @@ class ReconnectGrantProjection:
             if type(uid) is not int or uid <= 0 or uid in self._carriers:
                 raise ValueError("Duplicate or missing reconnect grant UID")
             self._carriers[uid] = payload
+            self.grant_carriers.append((opcode, body))
 
-    def effects(self, actor_id, effects):
+    def effects(self, actor_id, effects, *, final=False):
         retained = []
         for record in decode_remote_effects(effects):
             if record.effect_class != 649:
@@ -45,13 +48,16 @@ class ReconnectGrantProjection:
                 target -= 1 << 64
             if (
                 target != actor_id
-                or uid in self._projected
+                or uid in (self._final_projected if final else self._projected)
                 or self._carriers.get(uid) != record.payload
             ):
                 raise ValueError("Reconnect grant lacks its exact retained carrier")
-            self._projected.add(uid)
+            if final and uid not in self._projected:
+                raise ValueError("Final reconnect grant lacks its bootstrap projection")
+            (self._final_projected if final else self._projected).add(uid)
         return encode_remote_effects(retained)
 
-    def verify_complete(self):
-        if self._projected != set(self._carriers):
+    def verify_complete(self, *, final=False):
+        projected = self._final_projected if final else self._projected
+        if projected != set(self._carriers):
             raise ValueError("Reconnect grant projection omitted a live carrier")

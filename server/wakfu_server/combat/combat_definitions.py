@@ -18,11 +18,13 @@ def effect_profile(definition, level):
 
 
 def state_profile(catalog, reference, requested_level):
-    if type(requested_level) is not int or not 0 <= requested_level <= 32767:
+    if type(requested_level) is not int or not -32768 <= requested_level <= 32767:
         raise ValueError("Invalid native state level")
     definition = catalog["states"].get(str(reference))
     if definition is None:
         raise ValueError("Unknown native state")
+    # fyW.a(short,fyW) uses Math.min only; a signed negative grade remains
+    # a real carrier. Original child descriptors independently gate execution.
     level = min(requested_level, definition["maximum_level"])
     duration = definition["duration_base"] + level * definition["duration_per_level"]
     # fyW.aas uses signed Java int arithmetic.

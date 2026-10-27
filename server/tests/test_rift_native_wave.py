@@ -198,7 +198,7 @@ class RiftNativeWaveTests(unittest.TestCase):
             install_native_wave(preview, [self.monster(-201, 3)], initialize_actor=fail)
         self.assertEqual(snapshot(fight), before)
 
-    def test_accepted_action_consumes_frozen_roster_and_restores_same_timeline(self):
+    def test_accepted_action_consumes_frozen_roster_and_defers_timeline_until_ack(self):
         from wakfu_server.combat_runtime_messages import RuntimeMessages
         from wakfu_server.rift_dispatch_combat import finish_accepted_action
 
@@ -241,7 +241,9 @@ class RiftNativeWaveTests(unittest.TestCase):
         self.assertEqual(fight.rift_wave_state["actor_id_pool"], [])
         self.assertEqual(set(fight.rift_monsters), {-200, -201})
         self.assertEqual([opcode for opcode, _ in result.packets[:2]], [12608, 13091])
-        self.assertIn(12053, [opcode for opcode, _ in result.packets])
+        self.assertNotIn(12053, [opcode for opcode, _ in result.packets])
+        self.assertTrue(runtime.native_initial_timeline_restore_pending)
+        self.assertEqual(fight.native_rift_birth_fence["ack_turn"], before_turn)
         import struct
         from wakfu_server.combat_native_action_ids import NATIVE_ACTION_PACKETS
 
@@ -267,14 +269,24 @@ class RiftNativeWaveTests(unittest.TestCase):
             actor_id_pool=[-201],
         )
         paused = RuntimeMessages(second)
-        paused.awaiting_ack = 1
+        from wakfu_server.combat_timeline_snapshot import current_wire_turn
+
+        end_packets = paused.end_turn(1, 1, current_wire_turn(second))
         paused.pending = [(12053, b"obsolete-roster")]
-        finish_accepted_action(second, paused, (), initialize_actor=lambda *a: [])
+        staged = finish_accepted_action(
+            second, paused, end_packets, initialize_actor=lambda *a: []
+        )
+        staged_codes = [opcode for opcode, _ in staged.packets]
+        self.assertLess(staged_codes.index(13091), staged_codes.index(12502))
+        self.assertNotIn(12053, staged_codes)
         self.assertTrue(paused.pending)
         self.assertNotIn((12053, b"obsolete-roster"), paused.pending)
         self.assertTrue(any(opcode == 12053 for opcode, _ in paused.pending))
+        released = paused.acknowledge_turn(struct.pack(">i", paused.awaiting_ack))
+        self.assertTrue(any(opcode == 12053 for opcode, _ in released))
+        self.assertIsNone(second.native_rift_birth_fence)
 
-    def test_native_history_capacity_closes_without_claiming_victory_or_spawning(self):
+    def test_unregistered_history_cannot_release_or_consume_native_capacity(self):
         from wakfu_server.combat_runtime_messages import RuntimeMessages
         from wakfu_server.rift_dispatch_combat import finish_accepted_action
 
@@ -301,20 +313,19 @@ class RiftNativeWaveTests(unittest.TestCase):
             seed="test",
             actor_id_pool=[-201],
         )
-        # Historical actors remain addressable by owned effects; do not reuse IDs.
+        # A dead-looking Actor is not registered native history. It must not
+        # silently release presentation capacity or manufacture a defeat.
         for identity in range(-1000, -1125, -1):
             actor = Actor(identity, 1, (3, 3, 0), 1, 0, 0, 0, 1)
             actor.hp = 0
             fight.actors[identity] = actor
         runtime = RuntimeMessages(fight)
-        result = finish_accepted_action(
-            fight, runtime, (), initialize_actor=lambda *a: []
-        )
-        self.assertEqual((fight.phase, fight.winner), ("finished", 1))
-        self.assertEqual(fight.rift_wave_state["outcome"], "capacity_exhausted")
-        self.assertIsNone(fight.rift_wave_state["pending_wave"])
+        with self.assertRaisesRegex(ValueError, "registration"):
+            finish_accepted_action(fight, runtime, (), initialize_actor=lambda *a: [])
+        self.assertEqual((fight.phase, fight.winner), ("active", None))
+        self.assertNotIn("outcome", fight.rift_wave_state)
+        self.assertIsNotNone(fight.rift_wave_state["pending_wave"])
         self.assertEqual(fight.rift_wave_state["actor_id_pool"], [-201])
-        self.assertEqual(result.packets, ())
 
 
 if __name__ == "__main__":

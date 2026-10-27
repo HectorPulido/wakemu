@@ -1010,6 +1010,54 @@ class NativeOracleTests(unittest.TestCase):
         self.assertIsNone(private.turn_start_provider)
         self.assertIsNone(private.turn_end_provider)
 
+    def test_fork_missing_optional_pa_helper_falls_back_without_hiding_import_errors(
+        self,
+    ):
+        import builtins
+
+        runtime = SimpleNamespace(
+            fight=None,
+            pending=[(13078, b"pending")],
+            awaiting_ack=7,
+            turn_start_provider=None,
+            turn_end_provider=None,
+            stats_serializer=None,
+            runtime_stats_serializer=None,
+        )
+        oracle = NativeOracle.__new__(NativeOracle)
+        oracle.runtime = runtime
+        original_import = builtins.__import__
+
+        def import_with(error):
+            def guarded(name, *args, **kwargs):
+                if name == "wakfu_server.combat_preview_copy":
+                    raise error
+                return original_import(name, *args, **kwargs)
+
+            return guarded
+
+        missing = ModuleNotFoundError(
+            "Optional helper absent", name="wakfu_server.combat_preview_copy"
+        )
+        with patch("builtins.__import__", side_effect=import_with(missing)):
+            private = oracle.fork(runtime=runtime)
+        self.assertIsNot(private, runtime)
+        self.assertIsNot(private.pending, runtime.pending)
+        private.pending.clear()
+        self.assertEqual(runtime.pending, [(13078, b"pending")])
+        self.assertEqual(private.awaiting_ack, 7)
+        self.assertIsNone(private.turn_start_provider)
+        self.assertIsNone(private.turn_end_provider)
+        for error in (
+            ModuleNotFoundError("Broken dependency", name="helper_dependency"),
+            ImportError("Broken helper export"),
+        ):
+            with self.subTest(error=type(error).__name__):
+                with patch("builtins.__import__", side_effect=import_with(error)):
+                    with self.assertRaises(type(error)) as caught:
+                        oracle.fork(runtime=runtime)
+                self.assertIs(caught.exception, error)
+
     def test_npc_native_oracle_matches_existing_native_spell_preview(self):
         from wakfu_server.combat_tactical_ai import NativeProvider
         from wakfu_server.spells import default_deck

@@ -506,9 +506,9 @@ class OrdinaryDamageEvents(OrdinaryHealingEvents):
             raise ValueError("Missing native eXt actor or fbd PV event target")
         from .combat_native_actor_lookup import native_actor, detached_authority
 
-        caster = native_actor(self.preview, invocation.caster_id)
-        if caster is None:
-            raise ValueError("Missing actual native eXt source PV")
+        from .combat_damage_source import native_damage_source
+
+        caster = native_damage_source(self.preview, invocation.caster_id)
         actual_location = native_facing(caster, target)
         from .combat_area_damage_guard import area_damage_has_no_resources
 

@@ -59,6 +59,7 @@ class NativeParameterMaximumHandler:
             allocate_uid,
             context,
         )
+        self.event_lifecycle = None
 
     def __call__(self, effect, values, invocation):
         family = effect["effect_class"]
@@ -89,6 +90,50 @@ class NativeParameterMaximumHandler:
         current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(
             actor, stat
         )
+        uid = self.allocate_uid()
+        from .combat_maximum_characteristic_events import (
+            MAXIMUM_EVENTS,
+            capture_source,
+            notify,
+            notify_intent,
+        )
+
+        event_source = (
+            capture_source(self.event_lifecycle, effect, invocation, uid)
+            if stat in MAXIMUM_EVENTS
+            else None
+        )
+        if notify_intent(
+            self.event_lifecycle,
+            self.fight,
+            actor,
+            stat,
+            effect=effect,
+            invocation=invocation,
+            uid=uid,
+            value=amount,
+        ):
+            # L2 reactions precede the actual setter, and can invalidate it or
+            # change PA. Read the resulting authority/snapshot exactly as it
+            # now exists; never apply a transition calculated before callbacks.
+            if (
+                self.fight.actors.get(invocation.target_id) is not actor
+                or invocation.caster_id not in self.fight.actors
+            ):
+                return False
+            ctx = self.context(effect, invocation)
+            if (
+                not isinstance(ctx, StatExecutionContext)
+                or ctx.source_guards_verified is not True
+                or type(ctx.executable) is not bool
+                or type(ctx.retained) is not bool
+            ):
+                raise ValueError("Unverified native eWU guards after L2")
+            if not ctx.executable:
+                return False
+            current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(
+                actor, stat
+            )
         after, updated_raw, updated, stored = transition(
             family=family,
             removing=False,
@@ -102,7 +147,6 @@ class NativeParameterMaximumHandler:
             high=high,
             expandable=row["expandable"],
         )
-        uid = self.allocate_uid()
         payload = owned_effect_payload(
             uid=uid,
             base_uid=invocation.base_uid,
@@ -151,7 +195,25 @@ class NativeParameterMaximumHandler:
                 state_uid=invocation.state_uid,
                 timer=None if ctx.timer is None else dict(vars(ctx.timer)),
             )
+            if event_source is not None:
+                self.fight.owned_stat_effects[uid][
+                    "maximum_event_source"
+                ] = event_source
         self.packets.append((13497, packet))
+        if event_source is not None:
+            if ctx.retained:
+                self.event_lifecycle.register_applied(effect, invocation, uid)
+            notify(
+                self.event_lifecycle,
+                self.fight,
+                actor,
+                stat,
+                maximum,
+                effect=effect,
+                invocation=invocation,
+                uid=uid,
+                value=stored,
+            )
         return True
 
 
@@ -160,6 +222,9 @@ def remove_parameter_maximum(handler, uid):
     actor = handler.fight.actors[entry["target_id"]]
     stat = entry["stat_id"]
     current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(actor, stat)
+    from .combat_maximum_characteristic_events import inverse_source, notify
+
+    event_source = inverse_source(handler, entry)
     row = native_actor_catalog()["characteristics"][str(stat)]
     after, updated_raw, updated, _ = transition(
         family=entry["effect_class"],
@@ -200,3 +265,16 @@ def remove_parameter_maximum(handler, uid):
         notify_resource_pa(handler.fight, actor, stat, maximum=True)
     del handler.fight.owned_stat_effects[uid]
     handler.packets.append((13560, packet))
+    if event_source is not None:
+        effect, invocation = event_source
+        notify(
+            handler.event_lifecycle,
+            handler.fight,
+            actor,
+            stat,
+            maximum,
+            effect=effect,
+            invocation=invocation,
+            uid=uid,
+            value=entry["actual"],
+        )

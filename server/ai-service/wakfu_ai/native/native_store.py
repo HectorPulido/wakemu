@@ -13,11 +13,30 @@ def load_authorities(runtime, store, monsters, *, viewer_id):
 
     fight = runtime.fight
     registrations = getattr(fight, "native_summon_registrations", {})
+    from wakfu_server.combat_companions import (
+        registered_companion_ids,
+        registered_source,
+    )
+
+    companion_ids = registered_companion_ids(fight)
+    companions = {}
     characters, descriptors, decks, excluded = {}, {}, {}, {}
     with connection(store) as db:
         db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         for identity, actor in sorted(fight.actors.items()):
             if identity in registrations:
+                continue
+            if identity in companion_ids:
+                source = fight.native_companion_sources[str(identity)]
+                if (
+                    registered_source(fight, actor, source) is None
+                    or type(source.get("native_actor_type")) is not int
+                    or source["native_actor_type"] != 5
+                    or source.get("level") != actor.effective_level
+                    or getattr(actor, "native_companion_source", None) != source
+                ):
+                    raise ValueError("Missing admitted native companion source")
+                companions[identity] = deepcopy(source)
                 continue
             if actor.controlled:
                 if type(actor.owner_id) is not int or actor.owner_id <= 0:
@@ -69,4 +88,5 @@ def load_authorities(runtime, store, monsters, *, viewer_id):
         excluded_decks=excluded,
         viewer_id=viewer_id,
         registrations=deepcopy(registrations),
+        companions=companions,
     )

@@ -101,6 +101,17 @@ def _source(rule):
     from wakfu_server import native_catalog
     from wakfu_server.paths import DATA_ROOT
 
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(
+        rule["catalog_revision"],
+        (
+            "native-map-objects.json",
+            "native-interactive-states.json",
+            f"combat-maps/{rule['map_id']}.json",
+        ),
+    )
+    current_revision = native_catalog.release()
     original = native_catalog.record(
         DATA_ROOT / "native-map-objects.json", "$", str(rule["object_id"])
     )
@@ -110,10 +121,10 @@ def _source(rule):
     with native_catalog._database().connection() as db:
         terrain = db.execute(
             "SELECT sha256 FROM native_catalog_documents WHERE revision=%s AND path=%s",
-            (rule["catalog_revision"], f"combat-maps/{rule['map_id']}.json"),
+            (current_revision, f"combat-maps/{rule['map_id']}.json"),
         ).fetchone()
     if (
-        rule["catalog_revision"] != native_catalog.release()
+        current_revision != native_catalog.release()
         or original is None
         or original.get("type") != "GenericActivableInteractiveElement"
         or original.get("map_id") != rule["map_id"]

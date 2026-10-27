@@ -3,6 +3,13 @@
 Native eZR.l/m(null) and child selectors are unchanged. Only an admitted
 retained subscription can acquire its attested movement manager as caster.
 """
+
+from .combat_encounter_source_revision import source_revision_matches
+
+SOURCE_DEPENDENCIES = (
+    "combat-state-definitions.json",
+    "native-retained-effect-metadata.json",
+)
 from copy import deepcopy
 from functools import lru_cache
 
@@ -102,7 +109,7 @@ def freeze_movement_binding(fight, *, roles):
     if frozen is not None and (
         frozen["map_id"] != roles.map_id
         or frozen["monster_references"] != list(roles.monster_references)
-        or frozen["catalog_revision"] != native_catalog.release()
+        or not source_revision_matches(frozen["catalog_revision"], SOURCE_DEPENDENCIES)
     ):
         raise ValueError("Committed movement binding differs from admission or catalog")
     fight.native_encounter_movement_binding = frozen
@@ -129,7 +136,7 @@ def movement_caster(fight, source, *, entry, original, definition, effect):
     ):
         return None
     from .combat_external_movement_recipient import committed_movement_actor
-    from .combat_encounter_roles import frozen_roles
+    from wakfu_server.combat_encounter_roles import frozen_roles
 
     participant = committed_movement_actor(fight, context)
     roles = frozen_roles(fight)

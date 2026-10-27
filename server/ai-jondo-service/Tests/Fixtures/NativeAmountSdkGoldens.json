@@ -1,0 +1,1441 @@
+{
+  "scope": "STAGED FULLnativeHealthGeometry/versionedsourceBindingKnown. ActualsmallindexedleafANDfullbook effectclosures, level83qualified1533; externalstatecatalog intentionallyunknown, no native runtime or actionqualification.",
+  "revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+  "worldOracleSourceSha256": {
+    "server/wakfu_server/items/equipment_damage.py": "c8bb1823115d2213d678fe91925d78210175dc7250f1df5ccbd6e70a68b8dac5",
+    "server/wakfu_server/combat/combat_damage_parameters.py": "7a771ff351e4963ba2dfc6675a9c5702db9fb79ebdcc973593a5c49bc0bb1895",
+    "server/wakfu_server/combat/combat_damage_healing.py": "5da5f90206104e970d0a6df0eff569d5dc381ba172755c75282c544f05053454",
+    "server/wakfu_server/combat/combat_stat_effects.py": "4f1534773e40b89354a654f27123b63ae8f4901eaaf2b5e4a03c88aac53fb569"
+  },
+  "effects": {
+    "107737": {
+      "level": 100,
+      "roots": [
+        107737
+      ],
+      "semantic": [
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "ally",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                -1,
+                0
+              ],
+              [
+                0,
+                -1
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 107737,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 24,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            17
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        },
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "enemy",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                -1,
+                0
+              ],
+              [
+                0,
+                -1
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 107737,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 24,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            17
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        },
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "self",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                -1,
+                0
+              ],
+              [
+                0,
+                -1
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 107737,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 24,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            17
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        }
+      ],
+      "unknown": [],
+      "summary": {
+        "damage": 0,
+        "heal": 0,
+        "removal": 0,
+        "buff": 0,
+        "utility": 0,
+        "summons": false,
+        "element": "physical",
+        "hurtsAllies": false
+      },
+      "support": {
+        "version": 1,
+        "aimKinds": [
+          "ally",
+          "self"
+        ],
+        "intents": [
+          "heal"
+        ],
+        "castAnchorRequired": false,
+        "effects": [
+          {
+            "kind": "heal",
+            "benefit": "beneficial",
+            "amount": 0,
+            "nativeBase": {
+              "version": 1,
+              "kind": 0,
+              "value": 24,
+              "sourceBindingKnown": true
+            },
+            "nativeCoefficientMask": 3,
+            "nativeDamageFlags": [
+              17
+            ],
+            "nativeLocalization": false,
+            "nativeHealing": {
+              "version": 1,
+              "element": 6
+            },
+            "nativeReference": 107737,
+            "targets": [
+              "ally",
+              "enemy",
+              "self"
+            ],
+            "probability": 100.0,
+            "conditional": false,
+            "confidence": "known",
+            "fromState": false,
+            "triggered": false,
+            "inArea": true,
+            "fixedCells": [],
+            "nativeHealthGeometry": {
+              "version": 1,
+              "nativeInArea": true,
+              "nativeAreaCenterOnCaster": false,
+              "nativeAreaUseTargetRadius": true,
+              "fixedCells": [
+                [
+                  -1,
+                  0
+                ],
+                [
+                  0,
+                  -1
+                ],
+                [
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  0
+                ]
+              ]
+            }
+          }
+        ],
+        "summons": [],
+        "unknown": [],
+        "facts": {
+          "leadership": null,
+          "summonCount": null,
+          "summonCountsByBreed": null,
+          "summonCountsComplete": false,
+          "ownedLiving": []
+        },
+        "candidateCells": []
+      }
+    },
+    "167897": {
+      "level": 100,
+      "roots": [
+        167897
+      ],
+      "semantic": [
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "ally",
+          "element": "physical",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 167897,
+          "nativeBase": {
+            "version": 1,
+            "kind": 4,
+            "value": 30,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 2,
+          "nativeDamageFlags": [],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 1
+          }
+        }
+      ],
+      "unknown": [],
+      "summary": {
+        "damage": 0,
+        "heal": 0,
+        "removal": 0,
+        "buff": 0,
+        "utility": 0,
+        "summons": false,
+        "element": "physical",
+        "hurtsAllies": false
+      },
+      "support": {
+        "version": 1,
+        "aimKinds": [
+          "ally"
+        ],
+        "intents": [
+          "heal"
+        ],
+        "castAnchorRequired": false,
+        "effects": [
+          {
+            "kind": "heal",
+            "benefit": "beneficial",
+            "amount": 0,
+            "nativeBase": {
+              "version": 1,
+              "kind": 4,
+              "value": 30,
+              "sourceBindingKnown": true
+            },
+            "nativeCoefficientMask": 2,
+            "nativeDamageFlags": [],
+            "nativeLocalization": false,
+            "nativeHealing": {
+              "version": 1,
+              "element": 1
+            },
+            "nativeReference": 167897,
+            "targets": [
+              "ally"
+            ],
+            "probability": 100.0,
+            "conditional": false,
+            "confidence": "known",
+            "fromState": false,
+            "triggered": false,
+            "inArea": true,
+            "fixedCells": [],
+            "nativeHealthGeometry": {
+              "version": 1,
+              "nativeInArea": true,
+              "nativeAreaCenterOnCaster": false,
+              "nativeAreaUseTargetRadius": true,
+              "fixedCells": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        ],
+        "summons": [],
+        "unknown": [],
+        "facts": {
+          "leadership": null,
+          "summonCount": null,
+          "summonCountsByBreed": null,
+          "summonCountsComplete": false,
+          "ownedLiving": []
+        },
+        "candidateCells": []
+      }
+    },
+    "371791": {
+      "level": 100,
+      "roots": [
+        371791
+      ],
+      "semantic": [
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "ally",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 371791,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 36,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            22
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        },
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "enemy",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 371791,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 36,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            22
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        },
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "self",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 371791,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 36,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            22
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        }
+      ],
+      "unknown": [],
+      "summary": {
+        "damage": 0,
+        "heal": 0,
+        "removal": 0,
+        "buff": 0,
+        "utility": 0,
+        "summons": false,
+        "element": "physical",
+        "hurtsAllies": false
+      },
+      "support": {
+        "version": 1,
+        "aimKinds": [
+          "ally",
+          "self"
+        ],
+        "intents": [
+          "heal"
+        ],
+        "castAnchorRequired": false,
+        "effects": [
+          {
+            "kind": "heal",
+            "benefit": "beneficial",
+            "amount": 0,
+            "nativeBase": {
+              "version": 1,
+              "kind": 0,
+              "value": 36,
+              "sourceBindingKnown": true
+            },
+            "nativeCoefficientMask": 3,
+            "nativeDamageFlags": [
+              22
+            ],
+            "nativeLocalization": false,
+            "nativeHealing": {
+              "version": 1,
+              "element": 6
+            },
+            "nativeReference": 371791,
+            "targets": [
+              "ally",
+              "enemy",
+              "self"
+            ],
+            "probability": 100.0,
+            "conditional": false,
+            "confidence": "known",
+            "fromState": false,
+            "triggered": false,
+            "inArea": true,
+            "fixedCells": [],
+            "nativeHealthGeometry": {
+              "version": 1,
+              "nativeInArea": true,
+              "nativeAreaCenterOnCaster": false,
+              "nativeAreaUseTargetRadius": true,
+              "fixedCells": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        ],
+        "summons": [],
+        "unknown": [],
+        "facts": {
+          "leadership": null,
+          "summonCount": null,
+          "summonCountsByBreed": null,
+          "summonCountsComplete": false,
+          "ownedLiving": []
+        },
+        "candidateCells": []
+      }
+    }
+  },
+  "bookProjections": {
+    "1415": {
+      "level": 100,
+      "roots": [
+        143554
+      ],
+      "semantic": [
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "ally",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": true,
+          "nativeInArea": true,
+          "confidence": "conditional",
+          "nativeReference": 371791,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 36,
+            "sourceBindingKnown": false
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            22
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        },
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "enemy",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": true,
+          "nativeInArea": true,
+          "confidence": "conditional",
+          "nativeReference": 371791,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 36,
+            "sourceBindingKnown": false
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            22
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        },
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "self",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": true,
+          "nativeInArea": true,
+          "confidence": "conditional",
+          "nativeReference": 371791,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 36,
+            "sourceBindingKnown": false
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            22
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        }
+      ],
+      "unknown": [
+        "conditional_effect:371791",
+        "native_source_binding_unproven:371791",
+        "unsupported_semantic_family:330",
+        "unsupported_semantic_family:430",
+        "unsupported_semantic_family:999"
+      ],
+      "summary": {
+        "damage": 0,
+        "heal": 0,
+        "removal": 0,
+        "buff": 0,
+        "utility": 1,
+        "summons": false,
+        "element": "physical",
+        "hurtsAllies": false
+      },
+      "support": {
+        "version": 1,
+        "aimKinds": [
+          "ally",
+          "self"
+        ],
+        "intents": [
+          "heal"
+        ],
+        "castAnchorRequired": false,
+        "effects": [
+          {
+            "kind": "heal",
+            "benefit": "beneficial",
+            "amount": 0,
+            "nativeBase": {
+              "version": 1,
+              "kind": 0,
+              "value": 36,
+              "sourceBindingKnown": false
+            },
+            "nativeCoefficientMask": 3,
+            "nativeDamageFlags": [
+              22
+            ],
+            "nativeLocalization": false,
+            "nativeHealing": {
+              "version": 1,
+              "element": 6
+            },
+            "nativeReference": 371791,
+            "targets": [
+              "ally",
+              "enemy",
+              "self"
+            ],
+            "probability": 100.0,
+            "conditional": true,
+            "confidence": "conditional",
+            "fromState": false,
+            "triggered": false,
+            "inArea": true,
+            "fixedCells": [],
+            "nativeHealthGeometry": {
+              "version": 1,
+              "nativeInArea": true,
+              "nativeAreaCenterOnCaster": false,
+              "nativeAreaUseTargetRadius": true,
+              "fixedCells": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        ],
+        "summons": [],
+        "unknown": [
+          "native_source_binding_unproven:371791"
+        ],
+        "facts": {
+          "leadership": null,
+          "summonCount": null,
+          "summonCountsByBreed": null,
+          "summonCountsComplete": false,
+          "ownedLiving": []
+        },
+        "candidateCells": []
+      }
+    },
+    "1535": {
+      "level": 100,
+      "roots": [
+        166893
+      ],
+      "semantic": [
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "ally",
+          "element": "physical",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": true,
+          "nativeInArea": true,
+          "confidence": "conditional",
+          "nativeReference": 167897,
+          "nativeBase": {
+            "version": 1,
+            "kind": 4,
+            "value": 30,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 2,
+          "nativeDamageFlags": [],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 1
+          }
+        }
+      ],
+      "unknown": [
+        "conditional_effect:167897",
+        "unsupported_semantic_family:196",
+        "unsupported_semantic_family:304",
+        "unsupported_semantic_family:330"
+      ],
+      "summary": {
+        "damage": 0,
+        "heal": 0,
+        "removal": 0,
+        "buff": 0,
+        "utility": 1,
+        "summons": false,
+        "element": "physical",
+        "hurtsAllies": false
+      },
+      "support": {
+        "version": 1,
+        "aimKinds": [
+          "ally"
+        ],
+        "intents": [
+          "heal"
+        ],
+        "castAnchorRequired": false,
+        "effects": [
+          {
+            "kind": "heal",
+            "benefit": "beneficial",
+            "amount": 0,
+            "nativeBase": {
+              "version": 1,
+              "kind": 4,
+              "value": 30,
+              "sourceBindingKnown": true
+            },
+            "nativeCoefficientMask": 2,
+            "nativeDamageFlags": [],
+            "nativeLocalization": false,
+            "nativeHealing": {
+              "version": 1,
+              "element": 1
+            },
+            "nativeReference": 167897,
+            "targets": [
+              "ally"
+            ],
+            "probability": 100.0,
+            "conditional": true,
+            "confidence": "conditional",
+            "fromState": false,
+            "triggered": false,
+            "inArea": true,
+            "fixedCells": [],
+            "nativeHealthGeometry": {
+              "version": 1,
+              "nativeInArea": true,
+              "nativeAreaCenterOnCaster": false,
+              "nativeAreaUseTargetRadius": true,
+              "fixedCells": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        ],
+        "summons": [],
+        "unknown": [
+          "Unknown native state"
+        ],
+        "facts": {
+          "leadership": null,
+          "summonCount": null,
+          "summonCountsByBreed": null,
+          "summonCountsComplete": false,
+          "ownedLiving": []
+        },
+        "candidateCells": []
+      }
+    },
+    "4085": {
+      "level": 100,
+      "roots": [
+        108774,
+        107737
+      ],
+      "semantic": [
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "ally",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                -1,
+                0
+              ],
+              [
+                0,
+                -1
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 107737,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 24,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            17
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        },
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "enemy",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                -1,
+                0
+              ],
+              [
+                0,
+                -1
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 107737,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 24,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            17
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        },
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "self",
+          "element": "light",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                -1,
+                0
+              ],
+              [
+                0,
+                -1
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 107737,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 24,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            17
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 6
+          }
+        }
+      ],
+      "unknown": [],
+      "summary": {
+        "damage": 0,
+        "heal": 0,
+        "removal": 0,
+        "buff": 0,
+        "utility": 0,
+        "summons": false,
+        "element": "physical",
+        "hurtsAllies": false
+      },
+      "support": {
+        "version": 1,
+        "aimKinds": [
+          "ally",
+          "self"
+        ],
+        "intents": [
+          "heal"
+        ],
+        "castAnchorRequired": false,
+        "effects": [
+          {
+            "kind": "heal",
+            "benefit": "beneficial",
+            "amount": 0,
+            "nativeBase": {
+              "version": 1,
+              "kind": 0,
+              "value": 24,
+              "sourceBindingKnown": true
+            },
+            "nativeCoefficientMask": 3,
+            "nativeDamageFlags": [
+              17
+            ],
+            "nativeLocalization": false,
+            "nativeHealing": {
+              "version": 1,
+              "element": 6
+            },
+            "nativeReference": 107737,
+            "targets": [
+              "ally",
+              "enemy",
+              "self"
+            ],
+            "probability": 100.0,
+            "conditional": false,
+            "confidence": "known",
+            "fromState": false,
+            "triggered": false,
+            "inArea": true,
+            "fixedCells": [],
+            "nativeHealthGeometry": {
+              "version": 1,
+              "nativeInArea": true,
+              "nativeAreaCenterOnCaster": false,
+              "nativeAreaUseTargetRadius": true,
+              "fixedCells": [
+                [
+                  -1,
+                  0
+                ],
+                [
+                  0,
+                  -1
+                ],
+                [
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  0
+                ]
+              ]
+            }
+          }
+        ],
+        "summons": [],
+        "unknown": [],
+        "facts": {
+          "leadership": null,
+          "summonCount": null,
+          "summonCountsByBreed": null,
+          "summonCountsComplete": false,
+          "ownedLiving": []
+        },
+        "candidateCells": []
+      }
+    },
+    "1533": {
+      "level": 83,
+      "roots": [
+        367641,
+        367662
+      ],
+      "semantic": [
+        {
+          "kind": "damage",
+          "amount": 23,
+          "target": "enemy",
+          "element": "water",
+          "zoneRadius": 0,
+          "nativeAreaCenterOnCaster": false,
+          "nativeAreaUseTargetRadius": true,
+          "fixedCells": [
+            [
+              0,
+              0
+            ]
+          ],
+          "probability": 100.0,
+          "conditional": false,
+          "nativeInArea": true,
+          "confidence": "known",
+          "nativeReference": 166936,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 23,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            22
+          ],
+          "nativeLocalization": true
+        },
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "ally",
+          "element": "water",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": true,
+          "nativeInArea": true,
+          "confidence": "conditional",
+          "nativeReference": 166935,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 14,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            22
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 4
+          },
+          "nativeHealthEligibility": {
+            "version": 1,
+            "targetNotCarried": true
+          }
+        },
+        {
+          "kind": "heal",
+          "amount": 0,
+          "target": "self",
+          "element": "water",
+          "zoneRadius": 0,
+          "fixedCells": [],
+          "nativeHealthGeometry": {
+            "version": 1,
+            "nativeInArea": true,
+            "nativeAreaCenterOnCaster": false,
+            "nativeAreaUseTargetRadius": true,
+            "fixedCells": [
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "probability": 100.0,
+          "conditional": true,
+          "nativeInArea": true,
+          "confidence": "conditional",
+          "nativeReference": 166935,
+          "nativeBase": {
+            "version": 1,
+            "kind": 0,
+            "value": 14,
+            "sourceBindingKnown": true
+          },
+          "nativeCoefficientMask": 3,
+          "nativeDamageFlags": [
+            22
+          ],
+          "nativeLocalization": false,
+          "nativeHealing": {
+            "version": 1,
+            "element": 4
+          },
+          "nativeHealthEligibility": {
+            "version": 1,
+            "targetNotCarried": true
+          }
+        }
+      ],
+      "unknown": [
+        "conditional_effect:166935",
+        "unsupported_semantic_family:175",
+        "unsupported_semantic_family:330",
+        "unsupported_semantic_family:400"
+      ],
+      "summary": {
+        "damage": 23,
+        "heal": 0,
+        "removal": 0,
+        "buff": 0,
+        "utility": 0,
+        "summons": false,
+        "element": "water",
+        "hurtsAllies": false
+      },
+      "support": {
+        "version": 1,
+        "aimKinds": [
+          "ally",
+          "self"
+        ],
+        "intents": [
+          "heal"
+        ],
+        "castAnchorRequired": false,
+        "effects": [
+          {
+            "kind": "heal",
+            "benefit": "beneficial",
+            "amount": 0,
+            "nativeBase": {
+              "version": 1,
+              "kind": 0,
+              "value": 14,
+              "sourceBindingKnown": true
+            },
+            "nativeCoefficientMask": 3,
+            "nativeDamageFlags": [
+              22
+            ],
+            "nativeLocalization": false,
+            "nativeHealing": {
+              "version": 1,
+              "element": 4
+            },
+            "nativeReference": 166935,
+            "targets": [
+              "ally",
+              "self"
+            ],
+            "probability": 100.0,
+            "conditional": true,
+            "confidence": "conditional",
+            "fromState": false,
+            "triggered": false,
+            "inArea": true,
+            "fixedCells": [],
+            "nativeHealthGeometry": {
+              "version": 1,
+              "nativeInArea": true,
+              "nativeAreaCenterOnCaster": false,
+              "nativeAreaUseTargetRadius": true,
+              "fixedCells": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            "nativeHealthEligibility": {
+              "version": 1,
+              "targetNotCarried": true
+            }
+          }
+        ],
+        "summons": [],
+        "unknown": [],
+        "facts": {
+          "leadership": null,
+          "summonCount": null,
+          "summonCountsByBreed": null,
+          "summonCountsComplete": false,
+          "ownedLiving": []
+        },
+        "candidateCells": []
+      }
+    }
+  }
+}

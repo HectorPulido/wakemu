@@ -29,6 +29,11 @@ def freeze_terrain(fight):
     fight.walkable = ImmutableTerrainSet(fight.walkable)
     if fight.edges is not None:
         fight.edges = ImmutableTerrainSet(fight.edges)
+    qi = getattr(fight, "native_qi_snapshot", None)
+    if isinstance(qi, dict):
+        from .combat_qi_snapshot import NativeQISnapshot
+
+        qi["cell_masks"] = NativeQISnapshot(qi).masks
 
 
 def source_snapshot(fight):

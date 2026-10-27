@@ -62,7 +62,13 @@ class RiftDispatchLifecycleTests(unittest.TestCase):
                 ref=ref, level=level, id=uid, **kwargs
             ),
         )
-        with patch.dict(sys.modules, {"wakfu_server.monsters": fake}):
+        # This unit isolates reservation/species handling. Physical placement
+        # has a separate native-QI lifecycle component, rather than a fallback
+        # for this deliberately incomplete source fixture.
+        with patch.dict(sys.modules, {"wakfu_server.monsters": fake}), patch(
+            "wakfu_server.rift_reinforcement_placement.select_positions",
+            return_value=tuple((i, 0, 0) for i in range(1, 5)),
+        ):
             members = next_roster(fight, dict(completed_wave=1))
         self.assertEqual(len(members), 4)
         self.assertEqual(len(fight.rift_wave_state["actor_id_pool"]), 4)

@@ -16,18 +16,20 @@ def execute_steps(fight, actor, path, *, on_rails, callback):
     previous_base = previous_ap = previous_mp = 0
     for index in range(1, len(path) + 1):
         base = movement_cost(fight, actor, path[:index])[0] if on_rails else index
-        ap, mp = movement_tackle_cost(fight, actor, path[:index])
+        departures = []
+        ap, mp = movement_tackle_cost(fight, actor, path[:index], capture=departures)
         schedule.append(
             (
                 base - previous_base + mp - previous_mp,
                 ap - previous_ap,
                 mp - previous_mp,
+                departures[-1] if departures else None,
             )
         )
         previous_base, previous_ap, previous_mp = base, ap, mp
 
     executed, total_mp, total_ap, total_tackle = [], 0, 0, 0
-    for index, (cell, (mp, ap, tackle)) in enumerate(zip(path, schedule)):
+    for index, (cell, (mp, ap, tackle, departure)) in enumerate(zip(path, schedule)):
         if actor.mp < mp or actor.ap < ap or actor.hp <= 0 or fight.phase != "active":
             break
         before = actor.position
@@ -75,7 +77,10 @@ def execute_steps(fight, actor, path, *, on_rails, callback):
             ap_paid=ap_before - ap_after,
             mp_paid=mp_before - mp_after,
         ):
-            callback(fight, actor, before, cell)
+            from .combat_equipment_tackle_events import committed_tackle_departure
+
+            with committed_tackle_departure(fight, departure):
+                callback(fight, actor, before, cell)
         if actor.position != cell:
             break
     if not executed:

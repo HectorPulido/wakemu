@@ -223,6 +223,12 @@ class NativeEffectRuntimeFactory:
         from .combat_resource_loss_handler import NativeResourceLossHandler
         from .combat_orientation_effect import NativeOrientationHandler
         from .combat_armor import NativeArmorHandler
+        from .combat_summon_handler import NativeSummonHandler
+        from .combat_displacement import (
+            NativeDisplacementHandler,
+            FAMILIES as DISPLACEMENT_FAMILIES,
+        )
+        from .combat_carry_handler import NativeCarryHandler
         from .combat_maximum_resource import NativePercentageHPHandler
         from .combat_set_current_characteristic import (
             NativeSetCurrentCharacteristicHandler,
@@ -249,6 +255,7 @@ class NativeEffectRuntimeFactory:
             # the handler map. This typed route is validated separately at
             # initialization and requires its group callbacks/context.
             330: EffectDispatcher,
+            912: EffectDispatcher,
             999: EffectDispatcher,
             1020: EffectDispatcher,
             844: EffectDispatcher,
@@ -276,6 +283,14 @@ class NativeEffectRuntimeFactory:
         )
         if self.displacement_authority is not None:
             handlers[1013] = NativeArmorHandler
+            handlers.update(
+                {family: NativeDisplacementHandler for family in DISPLACEMENT_FAMILIES}
+            )
+        if self.summon_authority is not None:
+            handlers[307] = NativeSummonHandler
+        # The actual executor always constructs these runners; their live
+        # operations still require the retained context and carry authority.
+        handlers.update({333: NativeCarryHandler, 334: NativeCarryHandler})
         rows = self.characteristic_registry.get("effects", self.characteristic_registry)
         if isinstance(rows, dict):
             for raw_family, row in rows.items():
@@ -302,7 +317,7 @@ class NativeEffectRuntimeFactory:
                 contract,
                 handler_type,
                 self,
-                inline=(family in (330, 844, 913, 999, 1020, 1047)),
+                inline=(family in (330, 844, 912, 913, 999, 1020, 1047)),
             )
         manifest = FactoryOperationRoutes.create(self, routes)
         return manifest, NativeFactoryEquipmentCapability(self, manifest)
@@ -354,6 +369,7 @@ class NativeEffectRuntimeFactory:
         allocate = preview.allocate_effect_uid
         dispel = None
         state_cleanup = None
+        container_cleanup = {}
         order_hooks = None
         retention = None
         if (
@@ -561,10 +577,39 @@ class NativeEffectRuntimeFactory:
             rng=rng,
         )
         healing.retention = retention
+
+        def undead_damage(effect, invocation, amount, runner):
+            from .combat_undead_healing import apply_undead_healing
+
+            return apply_undead_healing(
+                healing,
+                damage,
+                effect,
+                invocation,
+                amount,
+                runner,
+                actor_authority=self.summon_authority,
+            )
+
+        healing.undead_damage = undead_damage
+
         stat = NativeStatHandler(
             preview,
             packets,
             self.characteristic_registry,
+            action_id=self.action_id,
+            allocate_uid=allocate,
+            context=contextual("stat"),
+            rng=rng,
+        )
+        from .combat_resource_fill import (
+            NativeResourceFillHandler,
+            FAMILIES as RESOURCE_FILL_FAMILIES,
+        )
+
+        resource_fill = NativeResourceFillHandler(
+            preview,
+            packets,
             action_id=self.action_id,
             allocate_uid=allocate,
             context=contextual("stat"),
@@ -596,6 +641,7 @@ class NativeEffectRuntimeFactory:
             retention.stat_handler = stat
         handlers = {effect_class: damage for effect_class in DAMAGE_FAMILIES}
         handlers.update({48: loss, 55: loss})
+        handlers.update({family: resource_fill for family in RESOURCE_FILL_FAMILIES})
         handlers[635] = random_earth
         handlers[636] = random_earth
         from .combat_spell_cost_effect import NativeSpellCostHandler
@@ -783,6 +829,7 @@ class NativeEffectRuntimeFactory:
             action_id=self.action_id,
             allocate_uid=allocate,
             context=contextual("stat"),
+            rng=rng,
             probability=lambda chance, invocation: provider.probability(
                 preview, plan, chance, invocation
             ),
@@ -1625,12 +1672,17 @@ class NativeEffectRuntimeFactory:
         from .combat_team_repeat import native_team_repeat_count
         from .combat_encounter_effect_recipient import rebind_original_boss_recipient
 
+        from .combat_condition_cell_batch import (
+            NativeConditionContextSource,
+            native_cell_batch_factory,
+        )
+
         dispatcher = EffectDispatcher(
             self.effects,
             handlers,
             resolve=resolver,
-            condition_context=lambda invocation: provider.condition(
-                preview, plan, self.effects[str(invocation.reference)], invocation
+            condition_context=NativeConditionContextSource(
+                provider.condition, preview, plan, self.effects
             ),
             probability_accepts=lambda probability, invocation: provider.probability(
                 preview, plan, probability, invocation
@@ -1646,7 +1698,13 @@ class NativeEffectRuntimeFactory:
             invocation_reconstruction=lambda effect, invocation, ancestors: rebind_original_boss_recipient(
                 dispatcher, effect, invocation, ancestors
             ),
-            pt_preflight=native_pt_preflight,
+            pt_preflight=lambda effect, invocation: native_pt_preflight(
+                effect,
+                invocation,
+                fight=preview,
+                candidates=lambda: candidates(effect, invocation),
+                native_context=lambda: target_contexts(effect, invocation),
+            ),
             transfer_probability=transfer_probability,
             transfer_skip_second=transfer_skip_second,
             random_child_level=lambda parameters: random_child_level(parameters, rng),
@@ -1673,6 +1731,12 @@ class NativeEffectRuntimeFactory:
             else lambda effect, values, invocation, children: self.relative_group_children(
                 preview, plan, effect, values, invocation, children
             ),
+        )
+        # Rift reconstruction shares this exact transaction source. Native
+        # group_random remains its scalar rounding callback, not a Random API.
+        dispatcher.rift_artifact_rng = self.transaction_rng
+        dispatcher.native_condition_cell_batch_factory = native_cell_batch_factory(
+            provider, preview, plan, dispatcher
         )
         if self.displacement_authority is not None:
             from .combat_carry_release import execute_carry_release
@@ -1844,7 +1908,10 @@ class NativeEffectRuntimeFactory:
                     spatial_qi.event_lifecycle = healing.event_lifecycle
                     target_aura.event_lifecycle = healing.event_lifecycle
                     stat.event_lifecycle = healing.event_lifecycle
+                    resource_fill.event_lifecycle = healing.event_lifecycle
                     maximum.event_lifecycle = healing.event_lifecycle
+                    parameter_maximum.event_lifecycle = healing.event_lifecycle
+                    reduction.event_lifecycle = healing.event_lifecycle
                     caster_hp_maximum.event_lifecycle = healing.event_lifecycle
                     hp_maximum_reduction.event_lifecycle = healing.event_lifecycle
                     characteristic_swap.event_lifecycle = healing.event_lifecycle
@@ -2000,6 +2067,10 @@ class NativeEffectRuntimeFactory:
                         return dispel.prepare(effect, values, invocation)
                     if effect["effect_class"] == 982 and state_cleanup is not None:
                         return state_cleanup.prepare(effect, values, invocation)
+                    if effect["effect_class"] in container_cleanup:
+                        return container_cleanup[effect["effect_class"]].prepare(
+                            effect, values, invocation
+                        )
                     if (
                         effect["effect_class"] in (327, 328, 342)
                         and order_hooks is not None
@@ -2068,6 +2139,8 @@ class NativeEffectRuntimeFactory:
                         return characteristic_swap.prepare(effect, values, invocation)
                     if effect["effect_class"] == 21:
                         return hp_maximum_reduction.prepare(effect, values, invocation)
+                    if effect["effect_class"] in (56, 57, 192):
+                        return reduction.prepare(effect, values, invocation)
                     if effect["effect_class"] in (20, 31, 41, 191, 991):
                         return maximum.prepare(effect, values, invocation)
                     if (
@@ -2113,6 +2186,8 @@ class NativeEffectRuntimeFactory:
                         return movement_link.prepare(effect, values, invocation)
                     if effect["effect_class"] in (48, 55):
                         return loss.prepare(effect, values, invocation)
+                    if effect["effect_class"] in RESOURCE_FILL_FAMILIES:
+                        return resource_fill.prepare(effect, values, invocation)
                     current_row = stat.registry.get(str(effect["effect_class"]))
                     if current_row is not None and current_row["runner"] in (
                         "eWQ",
@@ -2238,6 +2313,17 @@ class NativeEffectRuntimeFactory:
                 event_lifecycle=healing.event_lifecycle,
             )
             handlers[982] = state_cleanup
+            from .combat_container_cleanup import NativeContainerCleanupHandler
+
+            for family in (1031, 1033):
+                container_cleanup[family] = NativeContainerCleanupHandler(
+                    retention,
+                    family=family,
+                    allocate_uid=allocate,
+                    rng=rng,
+                    event_lifecycle=healing.event_lifecycle,
+                )
+                handlers[family] = container_cleanup[family]
             from .combat_native_order_hooks import NativeOrderHookHandler
 
             order_hooks = NativeOrderHookHandler(
@@ -2269,11 +2355,23 @@ class NativeEffectRuntimeFactory:
             ),
             area_affiliation=self.contexts.area_affiliation,
         )
+        from .rift_native_gameplay import (
+            apply_artifact_collection,
+            artifact_contact_eligible,
+        )
+
+        dispatcher.native_area_events.artifact_collected = (
+            lambda **contact: apply_artifact_collection(dispatcher, **contact)
+        )
+        dispatcher.native_area_events.artifact_contact_eligible = (
+            lambda **contact: artifact_contact_eligible(preview, **contact)
+        )
         carrying.area_events = dispatcher.native_area_events
         import os
 
         if os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1") == "1":
             stat.area_events = dispatcher.native_area_events
+            resource_fill.area_events = dispatcher.native_area_events
             if self.displacement_authority is not None:
                 displacement.area_events = dispatcher.native_area_events
             if retention is not None:
@@ -2329,4 +2427,10 @@ class NativeEffectRuntimeFactory:
             set_current_families=SET_CURRENT_FAMILIES,
         )
         dispatcher.operation_support_for_family = dispatcher.operation_contracts.get
+        if getattr(preview, "native_spirit_scene_admission", None) is not None:
+            from .combat_encounter_objective_spirit import deliver_spirit_early_defeat
+
+            dispatcher.native_scene_root_observer = lambda: deliver_spirit_early_defeat(
+                dispatcher
+            )
         return dispatcher, packets

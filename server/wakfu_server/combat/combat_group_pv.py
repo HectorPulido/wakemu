@@ -42,16 +42,12 @@ def group_pa(fight, identity, characteristic):
         if contract in ("faY", "faZ", "faN", "faX", "faU", "fbb", "faP"):
             return None
         if contract == "fbc":
-            # registered_area_pv already verifies the actual fbc.rMB/eRF
-            # population. Missing PC entries are native null, not zero PA.
-            values = pv.native_characteristics
-            if not isinstance(values, dict):
-                raise ValueError("Missing native trap characteristic population")
-            if characteristic not in values:
-                return None
-            # A present trap PA needs its actual maximum as well as current;
-            # the existing trap component does not publish that pair here.
-            raise ValueError("Missing native trap PA maximum authority")
+            from .combat_effect_area import native_effect_areas
+            from .combat_trap_area import trap_pa_pair
+
+            return trap_pa_pair(
+                row, native_effect_areas()[str(row["reference"])], characteristic
+            )
         if contract == "fbd":
             from .combat_effect_area import native_effect_areas
             from .combat_wall_area import wall_damage_snapshot

@@ -87,7 +87,7 @@ class StateLedgerTests(unittest.TestCase):
         before = ledger.entries
         for options in [
             dict(reference=999999, level=20, caster_id=7, uid=106),
-            dict(reference=3442, level=-1, caster_id=7, uid=106),
+            dict(reference=3442, level=-32769, caster_id=7, uid=106),
             dict(reference=3442, level=20, caster_id=7, uid=105),
         ]:
             with self.assertRaises(ValueError):

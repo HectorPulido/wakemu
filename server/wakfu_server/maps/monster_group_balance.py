@@ -10,8 +10,10 @@ def reproduction_factor(size):
     return 2.0 if size < 4 else 1.2 if size == 4 else 0.8
 
 
-def choose_transition(reference, stages, configuration, members, draw, choose):
-    """Sample adjacent ordinary stages with reversible, composition-aware odds.
+def choose_transition(
+    reference, stages, configuration, members, draw, choose, *, source_level=None
+):
+    """Sample same or higher ordinary stages with composition-aware odds.
 
     High stages have declining target mass and stronger crowding pressure.
     Targets are soft: even a crowded stage retains nonzero probability.
@@ -50,6 +52,12 @@ def choose_transition(reference, stages, configuration, members, draw, choose):
             if candidate["reference"] in initial_refs
         ]
     current = next(c for c in tiers[rank]["candidates"] if c["reference"] == reference)
+    if source_level is not None and (type(source_level) is not int or source_level < 0):
+        raise ValueError("Invalid maturation source level")
+    minimum_level = max(
+        current["min_level"],
+        source_level if source_level is not None else current["min_level"],
+    )
     if current.get("boss_classification") in SPECIAL:
         return None
     up_bosses = (
@@ -58,6 +66,7 @@ def choose_transition(reference, stages, configuration, members, draw, choose):
             for c in tiers[rank + 1]["candidates"]
             if c.get("boss_classification") in {"boss", "ultimate_boss", "raid_boss"}
             and publication_viable(c["reference"], c["min_level"])
+            and c["min_level"] >= minimum_level
         ]
         if rank + 1 < len(tiers)
         else []
@@ -81,9 +90,13 @@ def choose_transition(reference, stages, configuration, members, draw, choose):
     total = sum(raw.values())
     options = []
     for target in active:
-        if not _neighboring(rank, target, active):
+        if target < rank or not _neighboring(rank, target, active):
             continue
-        candidates = ordinary[target]
+        candidates = [
+            candidate
+            for candidate in ordinary[target]
+            if candidate["min_level"] >= minimum_level
+        ]
         if not candidates:
             continue
         expected = size * raw[target] / total
@@ -102,18 +115,25 @@ def choose_transition(reference, stages, configuration, members, draw, choose):
     return None if selected["reference"] == reference else selected
 
 
-def valid_transition(reference, target, stages):
-    """Receipt/prepared authorization mirrors ordinary adjacency and rare bosses."""
+def valid_transition(reference, target, stages, *, allow_regression=False):
+    """Authorize monotone maturation; historical receipts opt into old rules."""
     source, destination = stages.get(reference), stages.get(target)
     if source is None or destination is None or source[0] is not destination[0]:
         return False
     family, rank = source
     target_rank = destination[1]
+    if target_rank < rank and not allow_regression:
+        return False
     candidate = next(
         c
         for c in family["tiers"][target_rank]["candidates"]
         if c["reference"] == target
     )
+    source_candidate = next(
+        c for c in family["tiers"][rank]["candidates"] if c["reference"] == reference
+    )
+    if candidate["min_level"] < source_candidate["min_level"] and not allow_regression:
+        return False
     from .monster_family_stages import initial_candidates, publication_viable
 
     if not publication_viable(candidate["reference"], candidate["min_level"]):

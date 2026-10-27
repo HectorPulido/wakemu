@@ -6,6 +6,7 @@ COPY protocol_codec.py ./
 COPY wakfu_server ./wakfu_server
 COPY migrations ./migrations
 COPY tools/migrate_postgres.py ./tools/migrate_postgres.py
+COPY tools/publish_compiled_combat_catalog.py ./tools/publish_compiled_combat_catalog.py
 COPY admin-service/service.py ./service.py
 COPY admin-service/static ./static
 ENV PYTHONUNBUFFERED=1

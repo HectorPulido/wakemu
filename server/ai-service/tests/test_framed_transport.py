@@ -17,12 +17,57 @@ from wakfu_ai.context.context_store import ContextStore
 from wakfu_ai.context.native_context import encode
 from wakfu_ai.http import server as http
 from wakfu_ai.native.native_deadline import bounded
-from wakfu_ai.transport.framed import FramedClient, encode_frame, read_frame
+from wakfu_ai.transport.framed import (
+    FramedClient,
+    _request_frame,
+    encode_frame,
+    read_frame,
+)
 from wakfu_ai.transport.framed_context import FramedContextTransport
 from wakfu_ai.transport.framed_server import FramedServer, _processing_deadline
 
 
 class FramedTransportTests(unittest.TestCase):
+    def test_request_payload_is_encoded_once_with_identical_wire_and_metrics(self):
+        payload = dict(data='á\\"\n' * 10000, values=[None, True, 2**80, -1.25])
+        expected = encode_frame(
+            dict(id=11, endpoint="/v3/context/continue", payload=payload)
+        )
+        frame, size = _request_frame(
+            11, "/v3/context/continue", payload, maximum=len(expected) - 4
+        )
+        self.assertEqual(frame, expected)
+        self.assertEqual(
+            size,
+            len(json.dumps(payload, separators=(",", ":"), allow_nan=False).encode()),
+        )
+        with self.assertRaisesRegex(ValueError, "frame size"):
+            _request_frame(
+                11, "/v3/context/continue", payload, maximum=len(expected) - 5
+            )
+        with self.assertRaises(ValueError):
+            _request_frame(1, "/v3/decide", dict(value=float("nan")), maximum=1024)
+        server = self.serve(dispatcher=lambda endpoint, value: (200, value))
+        transport = FramedContextTransport(*server.server_address)
+        self.addCleanup(transport.close)
+        dumps = json.dumps
+        encoded_payloads = []
+
+        def counted(value, *args, **kwargs):
+            if value is payload:
+                encoded_payloads.append(value)
+            return dumps(value, *args, **kwargs)
+
+        with patch("wakfu_ai.transport.framed.json.dumps", side_effect=counted):
+            self.assertEqual(
+                transport.request("/v3/context/continue", payload), payload
+            )
+            self.assertEqual(transport.request("/v3/decide", payload), payload)
+        self.assertEqual(len(encoded_payloads), 2)
+        self.assertEqual(transport.metrics["sentBytes"], size * 2)
+        self.assertEqual(transport.metrics["receivedBytes"], size * 2)
+        self.assertEqual(transport.metrics["tcpOpens"], 1)
+
     def test_only_catalog_sealing_can_extend_processing_budget(self):
         channel = FramedClient("127.0.0.1", 1, timeout=120)
         self.assertEqual(channel.timeout, 120)

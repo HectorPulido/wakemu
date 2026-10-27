@@ -113,4 +113,8 @@ def require_owned_entitlement(store, account_id, generation, character):
             (quantity + account_quantity(saved, (32864,)) + 2**31) % 2**32
         ) - 2**31
         if quantity < 1:
-            raise ValueError("Ranch entry requires the owned Emerald Biome item")
+            raise ValueError(
+                "Para entrar en el merkalugar necesitas Bioma Esmeralda (32864) "
+                "de tu cuenta. Revisa el inventario de misión de cuenta. "
+                "No se consume al entrar."
+            )

@@ -73,6 +73,133 @@ class StagedPartyPublicationRecoveryTests(unittest.TestCase):
             ),
         )
 
+    def test_default_configuration_stages_real_sources_until_last_owner_returns(self):
+        # Production previously defaulted this flag to zero, creating a cycle:
+        # neither replacement source could be retained before the other arrived.
+        for setting in (None, "0"):
+            with self.subTest(setting=setting), patch.dict(os.environ):
+                if setting is None:
+                    os.environ.pop("WAKFU_NATIVE_PARTY_STAGED_RECOVERY", None)
+                else:
+                    os.environ["WAKFU_NATIVE_PARTY_STAGED_RECOVERY"] = setting
+                fixture, first, source1, second, source2 = self.fixture(active=True)
+                shared = fixture.shared
+                original = shared.fight, shared.runtime, shared.ack
+                self.takeover(fixture, first, source1)
+                self.assertEqual(shared.participants[1], first)
+                self.assertFalse(shared.connected)
+                self.assertEqual((shared.fight, shared.runtime, shared.ack), original)
+                self.assertTrue(publication_recovery_waiting(shared))
+                self.takeover(fixture, second, source2)
+                self.assertEqual(shared.connected, {1, 2})
+                self.assertFalse(publication_recovery_waiting(shared))
+                require_current_publication(shared.fight)
+
+    def test_progress_token_tracks_real_publication_changes_and_staged_disconnect(self):
+        from wakfu_server.combat_instance_publication_recovery import (
+            publication_recovery_token,
+        )
+        from test_native_recovery_instance_publication_hooks import frames
+
+        fixture, first, source1, _second, _source2 = self.fixture()
+        shared = fixture.shared
+        before = publication_recovery_token(shared)
+        self.takeover(fixture, first, source1)
+        staged = publication_recovery_token(shared)
+        self.assertNotEqual(before, staged)
+        self.assertEqual(staged, publication_recovery_token(shared))
+        source1[0].invalidate()
+        invalid = publication_recovery_token(shared)
+        self.assertNotEqual(staged, invalid)
+        source1[0].after_write(frames(2, instance=first.instance_id), source1[1])
+        self.assertNotEqual(invalid, publication_recovery_token(shared))
+        fixture.live.remove(first)
+        before = publication_recovery_token(shared)
+        fixture.registry.disconnect(first)
+        self.assertNotEqual(before, publication_recovery_token(shared))
+
+    def test_explicit_pending_abort_preserves_cohort_until_all_health_exits_commit(
+        self,
+    ):
+        fixture, first, source1, _second, _source2 = self.fixture(active=True)
+        shared = fixture.shared
+        self.takeover(fixture, first, source1)
+        original = shared.fight, shared.runtime, shared.ack
+        pending = deepcopy(shared.runtime.pending)
+        observed = []
+
+        def failed_persist(candidate):
+            observed.append(candidate)
+            self.assertIs(fixture.registry.lookup(99), shared)
+            raise RuntimeError("durable abort failed")
+
+        with self.assertRaisesRegex(RuntimeError, "durable abort failed"):
+            fixture.registry.abort_pending_publication_recovery(
+                first, persist=failed_persist
+            )
+        self.assertEqual(observed, [shared])
+        self.assertIs(fixture.registry.lookup(99), shared)
+        self.assertEqual((shared.fight, shared.runtime, shared.ack), original)
+        self.assertEqual(shared.runtime.pending, pending)
+        self.assertTrue(publication_recovery_waiting(shared))
+        exits = {
+            owner.character_id: {"character": {"id": owner.character_id}}
+            for owner in shared.participants.values()
+        }
+        result = fixture.registry.abort_pending_publication_recovery(
+            first, persist=lambda candidate: exits
+        )
+        self.assertIs(result["shared"], shared)
+        self.assertIs(result["exits"], exits)
+        self.assertNotIn(99, fixture.registry.fights)
+        self.assertNotIn(first.character_id, fixture.registry.by_character)
+        self.assertNotIn(fixture.two.character_id, fixture.registry.by_character)
+        self.assertFalse(set(shared.fight.actors) & set(fixture.registry.by_actor))
+        self.assertEqual((shared.fight, shared.runtime, shared.ack), original)
+        self.assertEqual(shared.runtime.pending, pending)
+        self.assertIsNone(shared.fight.winner)
+
+    def test_pending_abort_accepts_complete_idempotent_health_receipts(self):
+        fixture, first, source1, _second, _source2 = self.fixture()
+        shared = fixture.shared
+        self.takeover(fixture, first, source1)
+        exits = {
+            owner.character_id: {"applied": False}
+            for owner in shared.participants.values()
+        }
+        result = fixture.registry.abort_pending_publication_recovery(
+            first, persist=lambda candidate: exits
+        )
+        self.assertIs(result["exits"], exits)
+        self.assertNotIn(99, fixture.registry.fights)
+
+    def test_pending_abort_rejects_foreign_live_cohort_and_incomplete_durable_exits(
+        self,
+    ):
+        for kind in ("foreign", "connected", "duel", "incomplete"):
+            with self.subTest(kind=kind):
+                fixture, first, source1, _second, _source2 = self.fixture()
+                shared = fixture.shared
+                self.takeover(fixture, first, source1)
+                requester = first
+                if kind == "foreign":
+                    requester = Session(1, 10, "foreign-replaced-generation", 1134, 0)
+                    fixture.live.add(requester)
+                elif kind == "connected":
+                    shared.connected.add(2)
+                elif kind == "duel":
+                    shared.is_duel = True
+                persisted = []
+                with self.assertRaises(ValueError):
+                    fixture.registry.abort_pending_publication_recovery(
+                        requester,
+                        persist=lambda candidate: persisted.append(candidate) or {},
+                    )
+                self.assertEqual(len(persisted), 1 if kind == "incomplete" else 0)
+                self.assertIs(fixture.registry.lookup(99), shared)
+                self.assertEqual(shared.participants[1], first)
+                self.assertTrue(publication_recovery_waiting(shared))
+
     def test_all_owners_reattach_durably_before_each_gets_its_own_bootstrap(self):
         fixture, first, source1, second, source2 = self.fixture(active=True)
         shared = fixture.shared

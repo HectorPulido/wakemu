@@ -1,12 +1,19 @@
 """Isolate shared NPC preparation failures from the owner's transport."""
 from .combat_effective_control import effective_server_controlled
 from .combat_automatic_npc_turn import requires_automatic_npc_turn_end
+from .combat_background_work import NATIVE_WORK
 import time
 import uuid
 
 
 def run_shared_npc_attempt(shared, operation, failed, *, clock=time.monotonic):
-    with shared.lock:
+    # Check the stable executor before loading and hashing the AI SDK. A job
+    # remains registered while queued as well as while its turn claim is live.
+    if NATIVE_WORK.status(("native-ai", id(shared))) == "duplicate":
+        return False
+    if not shared.lock.acquire(blocking=False):
+        return False
+    try:
         actor = shared.fight.current
         runtime = shared.runtime
         if (
@@ -19,6 +26,7 @@ def run_shared_npc_attempt(shared, operation, failed, *, clock=time.monotonic):
             or runtime is None
             or runtime.awaiting_ack is not None
             or runtime.pending
+            or getattr(shared, "native_ai_turn_claim", None) is not None
         ):
             return False
         identity = (actor.id, shared.fight.turn_id)
@@ -31,6 +39,8 @@ def run_shared_npc_attempt(shared, operation, failed, *, clock=time.monotonic):
         # codec. A primitive token preserves identity without an opaque object.
         claim = uuid.uuid4().hex
         shared.native_npc_retry_claim = claim
+    finally:
+        shared.lock.release()
     try:
         operation()
     except (EOFError, OSError, MemoryError):

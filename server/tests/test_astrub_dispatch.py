@@ -1,13 +1,18 @@
 """Exercise the actual console dispatcher with real SQL ownership transitions."""
 import ast
 from copy import deepcopy
+from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
+import time
 
 from postgres_case import PostgresCase
 from wakfu_server.haven_bag import HavenBagSession
 from wakfu_server.haven_ranch import RanchSession, destination
+from wakfu_server.ecology_admin_jobs import COMMANDS as ASYNC_ECOLOGY_COMMANDS
+from wakfu_server.combat_shared import Registry
+import test_combat_admin_recovery as recovery_fixture
 
 
 class AstrubDispatcherTests(PostgresCase):
@@ -18,20 +23,48 @@ class AstrubDispatcherTests(PostgresCase):
         self.generation = self.store.begin_session(self.account)
         self.store.select_character(self.account, self.generation, self.saved["id"])
 
-    def dispatcher(self, scene=None, fight=None, combat_session=None):
+    def dispatcher(
+        self, scene=None, fight=None, combat_session=None, *, complete=False
+    ):
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"
+        source_tree = ast.parse(source.read_text())
+        extra_helpers = (
+            {"complete_test_fight", "refresh_shared_combat", "attach_command_combat"}
+            if complete
+            else set()
+        )
+        helpers = [
+            deepcopy(node)
+            for node in ast.walk(source_tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name
+            in (
+                {
+                    "deferred_native_combat_attachment",
+                    "submit_ecology_admin_command",
+                    "ecology_admin_coordination",
+                    "deliver_rift_transition",
+                    "emergency_exit_current_combat",
+                    "recover_aborted_publication_cohort",
+                }
+                | extra_helpers
+            )
+        ]
+        self.assertEqual(len(helpers), 6 + len(extra_helpers))
         function = deepcopy(
             next(
                 node
-                for node in ast.walk(ast.parse(source.read_text()))
+                for node in ast.walk(source_tree)
                 if isinstance(node, ast.FunctionDef)
                 and node.name == "execute_test_command"
             )
         )
         # Production nonlocals are explicit mutable globals in this isolated harness.
-        for index, node in enumerate(function.body):
-            if isinstance(node, ast.Nonlocal):
-                function.body[index] = ast.Global(names=node.names)
+        for extracted in (*helpers, function):
+            extracted.decorator_list = []
+            for index, node in enumerate(extracted.body):
+                if isinstance(node, ast.Nonlocal):
+                    extracted.body[index] = ast.Global(names=node.names)
         function.decorator_list = []
         bag = HavenBagSession(self.saved) if scene else None
         ranch = (
@@ -60,7 +93,40 @@ class AstrubDispatcherTests(PostgresCase):
             generation=self.generation,
             STORE=self.store,
             COMBAT_TEST=False,
+            COMBAT_SESSIONS=SimpleNamespace(
+                lookup_character=lambda unused: None,
+                registry=Registry(lambda unused: True),
+            ),
+            CHECKPOINT_WRITER=SimpleNamespace(flush_fight=lambda *args, **kwargs: True),
+            publication_recovery_shared=None,
+            publication_recovery_attempt_token=None,
+            publication_recovery_notice_token=None,
+            checkpoint_id=None,
+            checkpoint_revision=None,
+            checkpoint_terminal=False,
+            pending_terminal_world_recovery=None,
+            TEST_MONSTERS=(),
+            TEST_MONSTERS_BY_ID={},
+            TEST_GROUP_KEY=None,
+            fight_started_at=None,
+            placement_deadline=Mock(),
+            refresh_owned_character=lambda saved: saved,
+            attach_combat_return_position=Mock(),
+            EXTERNAL_FIGHT_MARKERS=SimpleNamespace(remove=lambda unused: None),
+            publish_full_abandon_group=Mock(),
+            loaded=True,
+            contextmanager=contextmanager,
+            ASYNC_ECOLOGY_COMMANDS=ASYNC_ECOLOGY_COMMANDS,
             COMBAT_GROUPS=None,
+            time=time,
+            COMBAT_TEST_WP=None,
+            DUNGEON_ROOM_RUNTIME_AVAILABLE=False,
+            custom_task_cards=Mock(),
+            drain_shared_combat=Mock(),
+            checkpoint_fight=Mock(),
+            information=lambda answer: (674, answer),
+            send_batch=lambda *args: None,
+            combat_return_bootstrap=lambda: (),
             WORLD=world,
             POSITIONS=positions,
             HAVEN_BAG_EXTERIORS=exteriors,
@@ -91,7 +157,9 @@ class AstrubDispatcherTests(PostgresCase):
             send=lambda connection, service, opcode, body: sent.append((opcode, body)),
             wire=SimpleNamespace(chat=lambda actor, answer: answer),
         )
-        tree = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
+        tree = ast.fix_missing_locations(
+            ast.Module(body=[*helpers, function], type_ignores=[])
+        )
         exec(compile(tree, str(source), "exec"), namespace)
         return namespace, sent, actor
 
@@ -111,6 +179,18 @@ class AstrubDispatcherTests(PostgresCase):
         )
         namespace["POSITIONS"].account_barrier.assert_not_called()
         namespace["join_world"].assert_called_once()
+        created = self.store.create_character(
+            self.account, "After Actual Astrub", selection_generation=self.generation
+        )
+        selected = self.store.select_character(
+            self.account, self.generation, created["id"]
+        )
+        self.assertEqual(selected["id"], created["id"])
+        self.assertTrue(
+            self.store.current_character_session(
+                self.account, self.generation, created["id"]
+            )
+        )
 
     def test_public_arrival(self):
         namespace, sent, actor = self.dispatcher()
@@ -144,18 +224,37 @@ class AstrubDispatcherTests(PostgresCase):
         self.assertIn(13256, [opcode for opcode, _ in sent])
         namespace["owned_native_bootstrap"].assert_not_called()
 
-    def test_fight_and_shared_combat_cannot_escape(self):
-        for fight, shared in ((object(), None), (None, object())):
-            with self.subTest(shared=shared is not None):
-                namespace, sent, actor = self.dispatcher("ranch", fight, shared)
-                with self.assertRaisesRegex(ValueError, "Termina el combate"):
-                    namespace["execute_test_command"]("!astrub")
-                self.assertIs(namespace["character"], actor)
-                self.assertIsNotNone(namespace["ranch_session"])
-                self.assertFalse(namespace["ranch_session"].closed)
-                namespace["HAVEN_BAG_EXTERIORS"].discard.assert_not_called()
-                namespace["POSITIONS"].attach.assert_not_called()
-                self.assertEqual(
-                    self.store.character(self.account, self.saved["id"])["map_id"],
-                    self.saved["map_id"],
-                )
+    def test_live_rift_escape_uses_real_cancellation_and_allows_repeated_astrub(self):
+        fixture = recovery_fixture.CombatAdminRecoveryTests.fixture(self)
+        self.account, self.generation, identity = fixture["owners"][0]
+        self.saved = self.store.character(self.account, identity)
+        shared = fixture["shared"]
+        shared.fight.phase = "active"
+        shared.fight.winner = None
+        namespace, sent, actor = self.dispatcher(
+            fight=shared.fight, combat_session=fixture["sessions"][0]
+        )
+        namespace["fight_messages"] = shared.runtime
+        namespace["COMBAT_SESSIONS"] = SimpleNamespace(
+            lookup_character=fixture["registry"].lookup_character,
+            registry=fixture["registry"],
+        )
+        namespace["POSITIONS"] = fixture["positions"]
+        result = namespace["execute_test_command"]("!astrub")
+        self.assertIn("message", result)
+        self.assertIsNone(namespace["fight"])
+        self.assertIsNone(namespace["combat_session"])
+        self.assertFalse(fixture["registry"].fights)
+        self.assertEqual(
+            (namespace["character"]["map_id"], namespace["character"]["instance_id"]),
+            (527, 0),
+        )
+        for member in (identity, *fixture["heroes"]):
+            saved = self.store.character(self.account, member)
+            self.assertEqual((saved["map_id"], saved["instance_id"]), (527, 0))
+            self.assertEqual(saved["hp"], fixture["expected"][member])
+        namespace["execute_test_command"]("!astrub")
+        generation = self.store.begin_session(self.account, ttl=10000)
+        self.store.select_character(self.account, generation, fixture["heroes"][0])
+        created = self.store.create_character(self.account, "After Escape")
+        self.assertGreater(created["id"], 0)

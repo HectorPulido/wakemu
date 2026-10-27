@@ -174,8 +174,17 @@ def populate(db, event, groups, *, now_ms):
             return ()
     from wakfu_server import native_catalog
 
-    if profile["catalog_revision"] != native_catalog.release():
-        raise ValueError("Environmental population native catalog revision changed")
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(
+        profile["catalog_revision"],
+        (
+            "monsters.json",
+            "monster-encyclopedia.json",
+            "territory-map-cells.json",
+            "territory-protector-bonuses.json",
+        ),
+    )
     # An event never refills defeated/depleted originals.
     if (
         db.execute(

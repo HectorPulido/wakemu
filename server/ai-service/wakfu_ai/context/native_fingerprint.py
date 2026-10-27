@@ -8,11 +8,17 @@ lossless graph remains the transport format; this is only a local guard.
 import hashlib
 import inspect
 import pickle
+import json
 from datetime import date, datetime
 from decimal import Decimal
 from collections import deque
 
-from .native_context import _instance_fields, _LOCK_TYPES, _lock_fields
+from .native_context import (
+    _instance_fields,
+    _LOCK_TYPES,
+    _lock_fields,
+    _static_catalog_descriptor,
+)
 from ..native.native_deadline import check
 
 
@@ -28,6 +34,17 @@ class _CompletePickler(pickle.Pickler):
         if value is _record:
             return NotImplemented
         kind = type(value)
+        static_descriptor = _static_catalog_descriptor(value)
+        if static_descriptor is not None:
+            return _record, (
+                "staticCatalog",
+                json.dumps(
+                    static_descriptor,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                ),
+            )
         if isinstance(value, _LOCK_TYPES):
             return (
                 _record,

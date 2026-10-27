@@ -243,7 +243,7 @@ def loaded_level_cap(
     Learned but inactive characters and other accounts never raise this cap.
     The controller may itself be an active hero during inventory actions.
     """
-    from wakfu_server.characters import heroes
+    from wakfu_server import heroes
     from wakfu_server.builds import effective_sheet_level
 
     anchor = db.execute(
@@ -298,7 +298,7 @@ def controlled_count(db, owner_ids):
 
 
 def _fence(store, db, account_id, generation, character_id):
-    from wakfu_server.characters import heroes
+    from wakfu_server import heroes
 
     db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
     store.lock_character(db, account_id, generation, character_id)
@@ -313,7 +313,7 @@ def _fence(store, db, account_id, generation, character_id):
 
 def add_to_party(store, account_id, generation, character_id, body):
     """cnX12555 carries the account-owned companion identity as one i64."""
-    from wakfu_server.characters import heroes
+    from wakfu_server import heroes
 
     if not isinstance(body, bytes) or len(body) != 8:
         raise ValueError("Invalid native companion party request")
@@ -410,7 +410,7 @@ def select_main(db, account_id, main_character_id):
     ).fetchall()
     if all(row["owner_character_id"] == main_character_id for row in previous):
         return
-    from wakfu_server.characters.heroes import _idle
+    from wakfu_server.heroes import _idle
 
     _idle(
         db,

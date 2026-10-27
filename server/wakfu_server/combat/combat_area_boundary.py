@@ -10,6 +10,8 @@ def adopt_fight(destination, candidate):
     from .combat_pointer_qi_commit import prepare_pointer_commit
 
     pointer_binding = prepare_pointer_commit(candidate)
+    if destination is candidate:
+        return
     if pointer_binding is not None:
         pointer_binding.stage(destination)
     # Main and serializers retain this Fight reference. Preserve existing actor

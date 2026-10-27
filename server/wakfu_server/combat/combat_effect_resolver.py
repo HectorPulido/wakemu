@@ -212,6 +212,14 @@ class NativeEffectResolver:
             if self.direct_target_policies is None
             else self.direct_target_policies.get(str(invocation.reference))
         )
+        from .rift_ko_cleanup import cleanup_population
+
+        ko_population = cleanup_population(
+            effect, invocation, actors, direct_policy=policy
+        )
+        ko_cleanup = ko_population is not None
+        if ko_cleanup:
+            actors = ko_population
         if type(invocation.wakemu_fresh_child_selection) is not bool:
             raise UnknownEffectResolution("Invalid server fresh-child selection policy")
         if type(invocation.wakemu_rebound_child_selection) is not bool:
@@ -310,26 +318,38 @@ class NativeEffectResolver:
                 )
             )
         )
-        # eYg transmits a chosen PV to point enemy leaves. A relationship
-        # filter does not override native Qe.a(PV, aZX=false) -> g(PV).
-        # Keep controller/group, typed-Qq and nonpoint area reconstruction
-        # separate: those branches deliberately select a new population.
+        if ko_cleanup:
+            # Explicit scoped server reconstruction; never reinterpret8192 or
+            # change the ordinary native chosen-PV contract.
+            server_fresh_selection = True
+        # eYg transmits its chosen PV to leaf runners. Native
+        # Qe.a(PV, aZX=false) -> g(PV) does not enumerate a leaf's area again.
+        # Keep actor groups and explicit relationship/Qq reconstruction separate.
         if (
             direct
+            and not ko_cleanup
             and invocation.native_explicit_target
             and policy is not None
             and len(policy) == 3
             and policy[0] == effect["effect_class"]
             and policy[1] is False
             and policy[2] is False
-            and effect.get("area_class") == "anD"
             and native_group_route(effect) is None
             and isinstance(selector, dict)
             and selector.get("class") == "fcE"
             and type(selector.get("mask")) is int
-            and selector["mask"] & 8
-            and not selector["mask"]
-            & ~(1 | 2 | 4 | 8 | 16 | 32 | 128 | 256 | 8192 | 16384)
+            and (
+                (
+                    effect.get("area_class") == "anD"
+                    and selector["mask"] & 8
+                    and not selector["mask"]
+                    & ~(1 | 2 | 4 | 8 | 16 | 32 | 128 | 256 | 8192 | 16384)
+                )
+                or (
+                    selector["mask"] == 1
+                    and effect.get("area_class") not in (None, "anA", "anD")
+                )
+            )
         ):
             server_fresh_selection = False
         preserve_recipient = getattr(self, "preserve_explicit_recipient", None)

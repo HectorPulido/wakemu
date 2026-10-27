@@ -13,7 +13,7 @@ def state_packet(
 ):
     if (
         type(level) is not int
-        or not 0 <= level <= 32767
+        or not -32768 <= level <= 32767
         or type(state_id) is not int
         or not 0 < state_id <= 32767
         or not 0 < uid < (1 << 63)

@@ -122,7 +122,14 @@ class RiftDispatchTests(unittest.TestCase):
 
     def _start_hydration(self, *, pending=None, visible_generation="current"):
         instance_id = (1 << 58) + 1
-        rows = [{"id": 3, "account_id": 2, "generation": "current"}]
+        rows = [
+            {
+                "id": 3,
+                "account_id": 2,
+                "generation": "current",
+                "selected_character_id": 3,
+            }
+        ]
         db, store, record = Mock(), Mock(), Mock()
         db.execute.return_value.fetchall.return_value = rows
         store.connection = lambda: nullcontext(db)

@@ -138,7 +138,18 @@ def initial_npc_actor_effects(fight, actor_id, *, now_milliseconds=None):
             )
         return actor_effects()
     actor = fight.actors[actor_id]
-    if actor.controlled or receipt.get("initialized") is not True:
+    if actor.controlled:
+        from .combat_companions import registered_source
+
+        companion_source = getattr(fight, "native_companion_sources", {}).get(
+            str(actor_id)
+        )
+        if (
+            companion_source is None
+            or registered_source(fight, actor, companion_source) is None
+        ):
+            raise ValueError("Missing ordinary native constructor proof")
+    if receipt.get("initialized") is not True:
         raise ValueError("Missing ordinary native constructor proof")
     from .combat_summon_initial_states import initial_state_plan
     from dataclasses import asdict

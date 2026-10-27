@@ -115,6 +115,10 @@ class NativeResourceLossHandler:
         if not isinstance(props, frozenset):
             raise ValueError("Missing native eVZ target property snapshot")
         executable = context.executable
+        from .combat_artifact_assignment import automatic_pickup_toll
+
+        if automatic_pickup_toll(effect, invocation):
+            executable = False
         if stat == 3 and 4 in props:  # eWR/eVZ.fMy: ffe.sdB IMMOBILIZED.
             executable = False
         for actor in (target,) if area_source is not None else (source, target):

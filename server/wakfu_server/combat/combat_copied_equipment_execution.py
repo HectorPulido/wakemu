@@ -94,11 +94,13 @@ def equipment_initializer(factory):
         if metadata.is_summon is not True or metadata.native_in_play is not True:
             raise ValueError("Missing native PJ registered fight context")
         definitions = equipment_effect_definitions(plan)
+        from .combat_static_catalogs import DefinitionOverlay
+
         nested = copy(factory)
-        nested.effects = dict(factory.effects, **definitions)
+        nested.effects = DefinitionOverlay(factory.effects, definitions)
         nested.state_catalog = dict(
             factory.state_catalog,
-            effects=dict(factory.state_catalog["effects"], **definitions),
+            effects=DefinitionOverlay(factory.state_catalog["effects"], definitions),
         )
         container = dict(plan["native_retained_container"])
         hp_before, maximum_before = actor.hp, actor.max_hp

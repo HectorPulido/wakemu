@@ -7,7 +7,14 @@ from wakfu_server.paths import DATA_ROOT
 
 @lru_cache(maxsize=1)
 def native_direct_target_policies():
-    metadata = protocol_catalog.load(DATA_ROOT / "native-direct-target-policies.json")
+    from wakfu_server.combat_published_catalogs import compilation_mode
+    from wakfu_server.native_catalog_document import load_published_document
+
+    metadata = (
+        protocol_catalog.load(DATA_ROOT / "native-direct-target-policies.json")
+        if compilation_mode()
+        else load_published_document("native-direct-target-policies.json")
+    )
     if metadata.get("schema") != 1 or metadata.get("source_count") != len(
         metadata.get("effects", {})
     ):

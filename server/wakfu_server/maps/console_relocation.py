@@ -10,9 +10,9 @@ def relocate(
     selected ownership, location, membership and absence of active combat again
     inside the same transaction as the move. It grants no dungeon rewards.
     """
-    # Public maps, bags, ranches and rifts retain their existing caller-owned
-    # lifecycle. Do not acquire a dungeon movement barrier for those contexts.
+    # Rift cancellation shares its native full-cohort custody and publication.
     known_dungeon = False
+    known_rift = False
     if source.get("instance_id", 0) > 0:
         with store.connection() as db:
             known_dungeon = (
@@ -22,6 +22,22 @@ def relocate(
                 ).fetchone()
                 is not None
             )
+            known_rift = (
+                db.execute(
+                    "SELECT 1 FROM rift_instances WHERE instance_id=%s",
+                    (source["instance_id"],),
+                ).fetchone()
+                is not None
+            )
+    if known_rift:
+        from .rift_exit import relocate as relocate_rift
+
+        result = relocate_rift(
+            store, positions, account_id, generation, character_id, source, destination
+        )
+        if result is None:
+            raise ValueError("Rift relocation source disappeared")
+        return store.character(account_id, character_id)
     if not known_dungeon:
         if source.get("instance_id", 0) > 0 and positions is not None:
             from wakfu_server.haven_world_travel import owned_scope

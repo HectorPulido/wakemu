@@ -23,10 +23,21 @@ def movement_stats_snapshot(stats, previous=None, *, position_owned=True):
                 characteristics_only_snapshot(payload)  # Validate before slicing.
                 count = struct.unpack_from(">H", payload, table)[0]
                 end = table + 2 + count * 17
-                suffix = payload[end:]
+                if len(payload) <= end or payload[end] not in (0, 1):
+                    raise ValueError("Missing native fighter property snapshot")
+                property_end = end + 1
+                if payload[end]:
+                    if len(payload) < property_end + 2:
+                        raise ValueError("Truncated native fighter properties")
+                    property_count = struct.unpack_from(">H", payload, property_end)[0]
+                    property_end += 2 + property_count * 2
+                    if property_end > len(payload):
+                        raise ValueError("Truncated native fighter property counters")
+                # The companion26 owns complete properties, including changes.
+                suffix = payload[property_end:]
                 if payload[0] == 3:
                     # Player snapshots repeat PCs after AI control and breed.
-                    public_table = end + 4
+                    public_table = property_end + 3
                     if len(payload) < public_table + 2:
                         raise ValueError(
                             "Truncated native player public characteristics"
@@ -37,7 +48,7 @@ def movement_stats_snapshot(stats, previous=None, *, position_owned=True):
                         raise ValueError(
                             "Truncated native player public characteristics"
                         )
-                    suffix = payload[end:public_table] + payload[public_end:]
+                    suffix = payload[property_end:public_table] + payload[public_end:]
                 spatial = b"" if position_owned else payload[position : position + 20]
                 return (
                     payload[:position]
@@ -51,6 +62,18 @@ def movement_stats_snapshot(stats, previous=None, *, position_owned=True):
         return projected
     # Preserve custom serializer adapters and already partial native snapshots.
     return stats
+
+
+def movement_stats_snapshots(stats, previous=None, *, actor, position_owned=True):
+    """Publish owned PCs and complete live properties without replaying movement."""
+    projected = movement_stats_snapshot(stats, previous, position_owned=position_owned)
+    if projected is not stats and projected[0] == 40:
+        from .combat_characteristic_snapshot import (
+            characteristics_and_properties_snapshots,
+        )
+
+        return characteristics_and_properties_snapshots(stats, actor)
+    return (projected,)
 
 
 # Native actor directions use the eight adjacent planar cell vectors. This is
@@ -199,19 +222,21 @@ def apply_client(
         direction,
         on_rails=event.get("on_rails") is True,
     )
-    refresh = (
-        12873,
-        actor_state(
-            12873, fight.id, actor_id, movement_stats_snapshot(stats, previous_stats)
-        ),
-    )
+    refreshes = [
+        (12873, actor_state(12873, fight.id, actor_id, snapshot))
+        for snapshot in movement_stats_snapshots(
+            stats,
+            previous_stats,
+            actor=actor if _step_callback is not None else candidate,
+        )
+    ]
     if _step_callback is None:
         event = fight.move(owner_id, actor_id, path)
         set_registered_direction(fight, actor, direction)
     runtime.action_id += 1
     from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
 
-    final = [] if actor_id in hidden_snapshot_actor_ids(fight) else [refresh]
+    final = [] if actor_id in hidden_snapshot_actor_ids(fight) else refreshes
     return [animation, runtime._flush(), *final], event
 
 
@@ -272,19 +297,21 @@ def apply_ai(
         direction,
         on_rails=prepared_event.get("on_rails") is True,
     )
-    refresh = (
-        12873,
-        actor_state(
-            12873, fight.id, actor.id, movement_stats_snapshot(stats, previous_stats)
-        ),
-    )
+    refreshes = [
+        (12873, actor_state(12873, fight.id, actor.id, snapshot))
+        for snapshot in movement_stats_snapshots(
+            stats,
+            previous_stats,
+            actor=actor if _step_callback is not None else candidate,
+        )
+    ]
     if _step_callback is None:
         result["event"] = fight.server_move(actor.id, path)
         set_registered_direction(fight, actor, direction)
     runtime.action_id += 1
     from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
 
-    final = [] if actor.id in hidden_snapshot_actor_ids(fight) else [refresh]
+    final = [] if actor.id in hidden_snapshot_actor_ids(fight) else refreshes
     return [animation, runtime._flush(), *final], result
 
 
@@ -339,6 +366,7 @@ def _with_areas(runtime, provider, operation):
             previous = runtime.fight.actors.get(identity)
             actor = candidate.fight.actors[identity]
             stats = state["state"]
+            snapshots = (stats,)
             if previous is not None and previous.position == actor.position:
                 serialize = runtime.runtime_stats_serializer
                 baseline = (
@@ -346,9 +374,12 @@ def _with_areas(runtime, provider, operation):
                     if serialize is not None
                     else runtime.stats_serializer(previous)
                 )
-                stats = movement_stats_snapshot(stats, baseline, position_owned=False)
-            projected_changes.append(
-                (opcode, actor_state(opcode, candidate.fight.id, identity, stats))
+                snapshots = movement_stats_snapshots(
+                    stats, baseline, actor=actor, position_owned=False
+                )
+            projected_changes.extend(
+                (opcode, actor_state(opcode, candidate.fight.id, identity, snapshot))
+                for snapshot in snapshots
             )
         changed_stats = projected_changes
         if callbacks:

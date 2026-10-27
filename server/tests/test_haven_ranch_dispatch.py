@@ -1,5 +1,6 @@
 """Execute the Ranch branches copied directly from the production dispatcher AST."""
 import ast
+from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
 import struct
@@ -154,7 +155,7 @@ class RanchDispatcherTests(unittest.TestCase):
         ranch_session=None,
         bag_session=None,
         fight=None,
-        spectator_session=None
+        spectator_session=None,
     ):
         branch = _branch(
             lambda text: text.startswith("loaded and (opcode in (12380, 13982)")
@@ -346,6 +347,44 @@ class RanchDispatcherTests(unittest.TestCase):
         self.assertFalse(
             any(opcode in (13256, 13864, 13974) for opcode, _ in self.sent)
         )
+
+    def test_missing_owned_biome_explains_native_rejection_without_transition(self):
+        from wakfu_server.haven_ranch_authority import require_owned_entitlement
+
+        @contextmanager
+        def connection():
+            yield object()
+
+        saved = dict(self.outside, account_is_admin=False, inventory_items=[])
+        store = SimpleNamespace(
+            connection=connection,
+            character=lambda account, actor, db: saved,
+        )
+        self.globals["validate_ranch_entitlement"] = lambda: require_owned_entitlement(
+            store, 2, "lease", self.actor
+        )
+        source = dict(id=36028, type="RanchEntrance", map_id=9, x=-9, y=5, z=4)
+        with (
+            patch("wakfu_server.inventory_items._lease"),
+            patch("wakfu_server.environment_interactions._guard"),
+            patch(
+                "wakfu_server.haven_ranch_authority.world_static.objects",
+                return_value=[source],
+            ),
+        ):
+            state = self._dispatch(12870, struct.pack(">qHH", 36028, 35, 0))
+        self.assertEqual(state["character"], self.actor)
+        self.assertIsNone(state["ranch_session"])
+        self.assertEqual(len(self.sent), 1)
+        self.assertEqual(self.sent[0][0], 349)
+        payload = self.sent[0][1]
+        self.assertEqual(struct.unpack(">hh", payload[:4]), (4, len(payload[4:])))
+        text = payload[4:].decode("utf-8")
+        self.assertIn("Bioma Esmeralda (32864)", text)
+        self.assertIn("inventario de misión de cuenta", text)
+        self.assertIn("No se consume", text)
+        self.assertNotIn("cancel", self.events)
+        self.assertEqual(saved["inventory_items"], [])
 
     def test_actual_entitlement_supplier_uses_current_actor_and_generation(self):
         function = next(

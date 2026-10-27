@@ -1,11 +1,12 @@
 import hashlib
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from wakfu_server import native_catalog
 from wakfu_server.equipment import RULES, validate_sheet
-from wakfu_server.items import empty_equipment_effects
+from wakfu_server import empty_equipment_effects
 from wakfu_server.wire import proto_field
 
 
@@ -16,7 +17,7 @@ class EmptyEquipmentEffectsTests(unittest.TestCase):
     def tearDown(self):
         empty_equipment_effects.definitions.cache_clear()
 
-    def test_all_626_original_empty_templates_match_pinned_hash_release_and_rules(self):
+    def test_626_templates_document_identity_release_independence_and_tamper(self):
         path = Path(empty_equipment_effects.__file__).with_name(
             "native_empty_equipment_effects.json"
         )
@@ -24,9 +25,37 @@ class EmptyEquipmentEffectsTests(unittest.TestCase):
         self.assertEqual(
             empty_equipment_effects.SOURCE_SHA256, hashlib.sha256(raw).hexdigest()
         )
-        self.assertEqual(
-            empty_equipment_effects.CATALOG_REVISION, native_catalog.release()
+        manifests = (
+            Path(__file__).resolve().parents[1] / "data" / "installation" / "catalogs"
         )
+        old = json.loads((manifests / "manifest.json").read_bytes())
+        new = json.loads((manifests / "manifest-rift-cell-groups-v1.json").read_bytes())
+
+        def hashes(manifest):
+            release = next(
+                row
+                for row in manifest["releases"]
+                if row["revision"] == manifest["active_revision"]
+            )
+            return {row["path"]: row["sha256"] for row in release["documents"]}
+
+        old_hashes, new_hashes = hashes(old), hashes(new)
+        self.assertNotEqual(old["active_revision"], new["active_revision"])
+        self.assertEqual(
+            {
+                name
+                for name in old_hashes.keys() | new_hashes.keys()
+                if old_hashes.get(name) != new_hashes.get(name)
+            },
+            {"native-class-cell-group-metadata.json"},
+        )
+        for manifest, published in ((old, old_hashes), (new, new_hashes)):
+            empty_equipment_effects.definitions.cache_clear()
+            with patch.object(
+                native_catalog, "release", return_value=manifest["active_revision"]
+            ), patch.object(native_catalog, "document_hashes", return_value=published):
+                self.assertEqual(len(empty_equipment_effects.definitions()), 626)
+        empty_equipment_effects.definitions.cache_clear()
 
         rows = empty_equipment_effects.definitions()
         self.assertEqual(626, len(rows))
@@ -61,8 +90,10 @@ class EmptyEquipmentEffectsTests(unittest.TestCase):
                 )
 
         self.assertIsNone(empty_equipment_effects.template(999999999))
+        self._assert_hash_and_rule_conflicts_fail_closed()
 
-    def test_hash_release_and_rule_conflicts_fail_closed(self):
+    def _assert_hash_and_rule_conflicts_fail_closed(self):
+        empty_equipment_effects.definitions.cache_clear()
         original_read_bytes = Path.read_bytes
         target = Path(empty_equipment_effects.__file__).with_name(
             "native_empty_equipment_effects.json"
@@ -80,10 +111,15 @@ class EmptyEquipmentEffectsTests(unittest.TestCase):
                 empty_equipment_effects.definitions()
         empty_equipment_effects.definitions.cache_clear()
 
-        with patch.object(native_catalog, "release", return_value="unrelated-release"):
-            with self.assertRaisesRegex(ValueError, "another native release"):
-                empty_equipment_effects.definitions()
-        empty_equipment_effects.definitions.cache_clear()
+        for published in ({}, {empty_equipment_effects.RULES_DOCUMENT: "0" * 64}):
+            with patch.object(
+                native_catalog, "document_hashes", return_value=published
+            ):
+                with self.assertRaisesRegex(
+                    ValueError, "conflict with published native rules"
+                ):
+                    empty_equipment_effects.definitions()
+            empty_equipment_effects.definitions.cache_clear()
 
         reference = next(iter(empty_equipment_effects.definitions()))
         mismatched = dict(

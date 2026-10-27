@@ -24,8 +24,47 @@ def connected_action_source(
     """Select a hero's own build, or its verified summoner's build context."""
     connected_cast_source(characters, decks, main_character_id, account_id)
     actor = fight.actors.get(actor_id)
-    if actor is None or not actor.controlled or actor.owner_id != account_id:
+    if actor is None:
         raise ValueError("Action actor is not controlled by the connected account")
+    controller_book = getattr(fight, "native_controller_action_books", {}).get(actor_id)
+    if (
+        not actor.controlled
+        or actor.owner_id != account_id
+        or controller_book is not None
+    ):
+        from .combat_effective_control import require_effective_owner
+        from .combat_controller_registry import current_native_controller
+
+        require_effective_owner(fight, actor, account_id)
+        controller_id = current_native_controller(fight, actor_id)
+        controller = fight.actors.get(controller_id)
+        if (
+            controller is None
+            or not controller.controlled
+            or controller.owner_id != account_id
+        ):
+            raise ValueError("Action actor lacks its actual current human controller")
+        if controller_book is not None:
+            if (
+                not isinstance(controller_book, dict)
+                or controller_book.get("producer") != "eWD207.eZd.fQM.actual"
+                or controller_book.get("controller_id") != controller_id
+                or type(controller_book.get("running_uid")) is not int
+                or not isinstance(controller_book.get("actions"), tuple)
+            ):
+                raise ValueError(
+                    "Action actor lacks its actual published controller book"
+                )
+        else:
+            from .combat_encounter_scene_helpers import controlled_scene_helper
+
+            if not controlled_scene_helper(
+                fight, actor, character_id=controller_id, account_id=account_id
+            ):
+                raise ValueError(
+                    "Action NPC lacks a source-qualified current controller"
+                )
+        return connected_cast_source(characters, decks, controller_id, account_id)
     from .combat_companions import registered_source
 
     companion = getattr(fight, "native_companion_sources", {}).get(str(actor_id))

@@ -19,6 +19,8 @@ ACQUISITION_STACKS = STACKS
 class EquippedTransferError(ValueError):
     """An ownership transfer requires removing a selected equipment unit."""
 
+    feedback_kind = "equipped_item"
+
 
 def decode(body):
     if len(body) not in (27, 37):

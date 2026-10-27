@@ -60,8 +60,11 @@ def fixture(
     first_character_id=7001,
     first_account_id=9001,
     first_monster_id=-2001,
+    player_count=6,
+    owner_accounts=None,
+    ready=True,
 ):
-    """Return a fully initialized 6v6-like native encounter and all sources.
+    """Return a bounded native multi-owner encounter and all owned sources.
 
     Five reference 5462 actors exercise generic walking without an implied
     attack. The final reference 5525 owns catalogued native spell 7962 at level
@@ -86,17 +89,22 @@ def fixture(
     from wakfu_server.spells import default_deck
 
     if (
-        len(monster_references) != 6
+        not 1 <= len(monster_references) <= 12
+        or type(player_count) is not int
+        or not 1 <= player_count <= 6
+        or (owner_accounts is not None and len(owner_accounts) != player_count)
         or type(map_id) is not int
         or type(monster_level) is not int
         or len(pc_position) != 3
         or any(type(value) is not int for value in pc_position)
     ):
         raise ValueError(
-            "The native roster fixture requires six monsters and a valid origin"
+            "The native roster fixture requires bounded rosters and a valid origin"
         )
 
-    monster_positions = _connected_monster_positions(map_id, pc_position, 6)
+    monster_positions = _connected_monster_positions(
+        map_id, pc_position, len(monster_references)
+    )
     monsters = {
         first_monster_id
         - index: owned_instance(
@@ -114,19 +122,34 @@ def fixture(
             zip(monster_references, monster_positions)
         )
     }
-    arena = local_arena(map_id, 0, tuple(pc_position), monster_positions)
+    arena = local_arena(
+        map_id,
+        0,
+        tuple(pc_position),
+        monster_positions,
+        relocate_monsters=(len(monster_references) == 6),
+    )
     pc_slots = set(arena["placement_cells"][0])
-    if tuple(pc_position) not in pc_slots or len(pc_slots) < 6:
-        raise ValueError("Official placement did not supply six player slots")
-    pc_positions = (tuple(pc_position), *sorted(pc_slots - {tuple(pc_position)})[:5])
-    if len(set(pc_positions + tuple(monster_positions))) != 12:
+    if tuple(pc_position) not in pc_slots or len(pc_slots) < player_count:
+        raise ValueError("Official placement did not supply the requested player slots")
+    pc_positions = (
+        tuple(pc_position),
+        *sorted(pc_slots - {tuple(pc_position)})[: player_count - 1],
+    )
+    if len(set(pc_positions + tuple(monster_positions))) != player_count + len(
+        monster_references
+    ):
         raise ValueError("Official placement produced overlapping roster coordinates")
 
     characters = {}
     actors = []
     for index, position in enumerate(pc_positions):
         character_id = first_character_id + index
-        account_id = first_account_id + index
+        account_id = (
+            first_account_id + index
+            if owner_accounts is None
+            else owner_accounts[index]
+        )
         character = {
             "id": character_id,
             "account_id": account_id,
@@ -248,8 +271,11 @@ def fixture(
         terrain_instance_id=-300,
         leaders={0: next(iter(characters)), 1: next(iter(monsters))},
     )
-    for character in characters.values():
-        fight.ready(character["account_id"])
+    if ready:
+        for account_id in dict.fromkeys(
+            character["account_id"] for character in characters.values()
+        ):
+            fight.ready(account_id)
 
     runtime = RuntimeMessages(fight)
     decks = {

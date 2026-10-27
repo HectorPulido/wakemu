@@ -1,0 +1,44 @@
+{
+  "activated": false,
+  "added_profile_ids": [
+    2887,
+    5852
+  ],
+  "candidate_manifest": "catalogs/manifest-spirit-abomination-morphs-v1.json",
+  "candidate_manifest_sha256": "911f81b82778ff7983c794fae0a60ca0008f788a6b4b2ea47e3e693397e5b27f",
+  "candidate_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+  "changed_documents": [
+    {
+      "path": "native-class-morph-profiles.json",
+      "record_count": 17,
+      "sha256": "d1f59595cf34619e7ad3f4151d0cf5316ab7973098f2f0516742e05d1a8ba3b2",
+      "source_bytes": 9262
+    },
+    {
+      "path": "native-class-morph933-effect-closure.json",
+      "record_count": 1351,
+      "sha256": "726a2892ae1037105c749019309d9a1f3f1d7af333c195c86466d06c9678fb71",
+      "source_bytes": 2401697
+    },
+    {
+      "path": "native-class-morph933-level-zero.json",
+      "record_count": 350,
+      "sha256": "b235526034e7b43e919c502cef1adff8b9d96cbdb7f7a9bcfda6bdc1961df930",
+      "source_bytes": 48852
+    },
+    {
+      "path": "native-class-morph933-casting-roots.json",
+      "record_count": 137,
+      "sha256": "b656a27d6647ba0949a3be7679e66266be0213b9b4a005cf2ab9d3226f0deb69",
+      "source_bytes": 11198
+    }
+  ],
+  "database_staged": false,
+  "parent_manifest_sha256": "a6c941c100178c4c8db38ab963b17ec48202e2efe918f300afb019d6038c8472",
+  "parent_revision": "25c7188c63110ff8fa404c3b0ff7bd3d0c41076ddb5843866ede693b62ca7aba",
+  "preserved_old_chunk_files": true,
+  "public_selector_changed": false,
+  "reused_unchanged_chunks": true,
+  "schema": "wakemu-encounter-morph-catalog-release-v1",
+  "unchanged_documents": 7487
+}

@@ -283,6 +283,7 @@ def refresh_stale_decision(original, fresh):
             fresh["configuration"],
             draw=refreshed["draw"],
             members=fresh["expected_members"],
+            source_level=parent["level"],
             **choice,
         )
         refreshed["grown"] = (
@@ -886,6 +887,7 @@ class Worker:
         wander_interval=None,
         interactive_prepare=None,
         growth_prepare=None,
+        proposal_validator=None,
     ):
         if (
             not domains
@@ -899,9 +901,12 @@ class Worker:
             raise ValueError("Invalid interactive ecology planner")
         if growth_prepare is not None and not callable(growth_prepare):
             raise ValueError("Invalid reserved growth planner")
+        if proposal_validator is not None and not callable(proposal_validator):
+            raise ValueError("Invalid ecology proposal validator")
         self.repository, self.client, self.domains = repository, client, dict(domains)
         self.growth_prepare = growth_prepare
         self.interactive_prepare = interactive_prepare
+        self.proposal_validator = proposal_validator
         self.interval, self.clock = interval, clock
         self.stop = threading.Event()
         self.lock = threading.Lock()
@@ -1153,7 +1158,13 @@ class Worker:
     def deliver(self, rows):
         self.repository.assert_owner()
         batch = []
+        rejected = []
         for row in rows[:MAX_PROPOSALS]:
+            if self.proposal_validator is not None and not self.proposal_validator(
+                self.repository.store, row
+            ):
+                rejected.append({"id": row["id"], "status": "stale"})
+                continue
             try:
                 json_bytes(
                     {"schema_version": SCHEMA_VERSION, "proposals": batch + [row]}
@@ -1163,8 +1174,11 @@ class Worker:
                     raise
                 break
             batch.append(row)
+        if rejected:
+            self.repository.acknowledge(rejected)
+            self.counters["stale"] += len(rejected)
         if not batch:
-            return
+            return rejected or None
         try:
             results = self.client.apply(batch)
         except Exception:
@@ -1186,7 +1200,7 @@ class Worker:
                 if row["status"] == "deferred"
                 else "delivered"
             ] += 1
-        return results
+        return rejected + results
 
     def run(self):
         while not self.stop.is_set():
@@ -1342,6 +1356,9 @@ def main():
         interactive_prepare=importlib.import_module(
             "wakfu_server.ecology_planting_intents"
         ).prepare_intents,
+        proposal_validator=importlib.import_module(
+            "wakfu_server.monster_home_delivery"
+        ).validate_proposal,
     )
     Handler.worker, Handler.token = worker, token
     server = ThreadingHTTPServer(

@@ -3,8 +3,7 @@ import copy
 
 
 def _apply_team_roles(character, members, selected_arena):
-    from .combat_encounter_roles import (
-        ORDINARY_POLICY,
+    from wakfu_server.combat_encounter_roles import (
         role_assignment,
         roles_from_record,
     )
@@ -18,6 +17,29 @@ def _apply_team_roles(character, members, selected_arena):
         )
         return selected_arena
     roles = role_assignment(character["map_id"], references)
+    return apply_role_assignment(selected_arena, roles)
+
+
+def apply_role_assignment(selected_arena, roles):
+    """Project one reviewed role record onto the existing native surfaces."""
+    from wakfu_server.combat_encounter_roles import (
+        EncounterRoles,
+        ORDINARY_POLICY,
+        roles_from_record,
+    )
+
+    if (
+        not isinstance(roles, EncounterRoles)
+        or roles_from_record(roles.record(), map_id=selected_arena["map_id"]) != roles
+    ):
+        raise ValueError("Reviewed role assignment for this native arena required")
+    prior = selected_arena.get("native_encounter_roles")
+    if prior is not None:
+        if roles_from_record(prior, map_id=selected_arena["map_id"]) != roles:
+            raise ValueError(
+                "Selected native arena already has another role assignment"
+            )
+        return selected_arena
     if roles.policy == ORDINARY_POLICY:
         # Scoped ordinary encounters also need optional policy admission before
         # Ready. Their existing team flags, wire and geometry remain untouched.
@@ -96,10 +118,19 @@ def prepare_encounter_scene(character, members, selected_arena, *, layout=None):
     if layout is None:
         layout = resolve_layout(character, members)
     if layout is None:
-        return (
+        result = (
             _apply_team_roles(character, members, selected_arena)
             if members
             else selected_arena
+        )
+        from .combat_emiw_scene_policy import prepare_emiw_border
+        from .combat_security_scene_policy import prepare_security_glyphs
+        from .combat_adapted_light_scene import prepare_adapted_light
+
+        return prepare_adapted_light(
+            character,
+            members,
+            prepare_security_glyphs(character, members, prepare_emiw_border(result)),
         )
     if (
         character.get("map_id") != layout["map_id"]
@@ -256,7 +287,7 @@ def prepare_encounter_scene(character, members, selected_arena, *, layout=None):
             if (
                 not isinstance(glyph, dict)
                 or not {"reference", "cell"} <= glyph.keys()
-                or set(glyph) - {"reference", "cell", "level"}
+                or set(glyph) - {"reference", "cell", "level", "activation"}
                 or type(glyph["reference"]) is not int
                 or glyph["reference"] <= 0
                 or not isinstance(glyph["cell"], (list, tuple))
@@ -267,13 +298,18 @@ def prepare_encounter_scene(character, members, selected_arena, *, layout=None):
                 or glyph.get("level", 0) < 0
             ):
                 raise ValueError("Invalid declared initial glyph placement")
+            from .combat_scene_area_activation import validate_scene_activation
+
+            validate_scene_activation(
+                glyph.get("activation"), reference=glyph["reference"]
+            )
             identity = (glyph["reference"], tuple(glyph["cell"]))
             if identity in seen:
                 raise ValueError("Duplicate declared initial glyph")
             seen.add(identity)
         result.update({key: copy.deepcopy(layout[key]) for key in glyph_keys})
         result["native_initial_glyphs"] = [
-            dict(glyph, cell=list(glyph["cell"])) for glyph in glyphs
+            dict(copy.deepcopy(glyph), cell=list(glyph["cell"])) for glyph in glyphs
         ]
     return _apply_team_roles(character, members, result)
 
@@ -284,7 +320,7 @@ def scene_player_position(character, arena):
     if relocation is None:
         return original
     scene = arena.get("native_encounter_scene_layout")
-    from .combat_encounter_roles import roles_from_record
+    from wakfu_server.combat_encounter_roles import roles_from_record
 
     record = arena.get("native_encounter_roles")
     player_team = 0 if record is None else roles_from_record(record).player_team

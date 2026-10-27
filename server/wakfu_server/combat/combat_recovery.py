@@ -16,7 +16,10 @@ def timeline(
     if len(excluded_actor_ids) != len(set(excluded_actor_ids)):
         raise ValueError("Invalid initial recovery actor projection")
     excluded = set(excluded_actor_ids)
-    actors = list(fight.actors.values())
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    hidden = hidden_snapshot_actor_ids(fight)
+    actors = [actor for actor in fight.actors.values() if actor.id not in hidden]
     if excluded:
         registrations = getattr(fight, "native_summon_registrations", {})
         deliveries = getattr(fight, "native_summon_creation_deliveries", {})
@@ -141,9 +144,11 @@ def timeline(
     )
     out += struct.pack(">b", projected_turn_index)
     removed = getattr(fight, "native_timeline_removed", None)
-    if not isinstance(removed, list) or len(removed) > 127:
+    if not isinstance(removed, list):
         raise ValueError("Missing authoritative native removal statuses")
-    removed = [row for row in removed if row["actor_id"] not in excluded]
+    # OUT_OF_PLAY history stays in Fight for sources/rewards, but cannot be
+    # serialized as live roster or removal state for an absent participant.
+    removed = [row for row in removed if row["actor_id"] not in excluded | hidden]
     if len(removed) > 127:
         raise ValueError("Invalid projected native removal statuses")
     out += struct.pack(">b", len(removed))

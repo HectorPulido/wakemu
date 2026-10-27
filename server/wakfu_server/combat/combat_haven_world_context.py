@@ -84,7 +84,7 @@ def bind_placement(fight, context):
     """Attach the verified scope to live ordinary NPC actors, never source rows."""
     if context is None:
         return None
-    from .combat_encounter_roles import assigned_roles
+    from wakfu_server.combat_encounter_roles import assigned_roles
 
     roles = assigned_roles(fight)
     if (

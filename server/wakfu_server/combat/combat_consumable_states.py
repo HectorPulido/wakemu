@@ -200,7 +200,7 @@ def _entry_health(fight, character, actor):
     if actor.hp != expected:
         raise ValueError("Consumable entry health violates native HP bounds")
     from .combat_actor import actual_actor_stats
-    from .combat_characteristic_snapshot import characteristics_only_snapshot
+    from .combat_characteristic_snapshot import characteristics_and_properties_snapshots
     from .combat_wire import actor_state
 
     stats = actual_actor_stats(
@@ -211,13 +211,12 @@ def _entry_health(fight, character, actor):
         wp_maximum=actor.effect_maxima[4],
         fight=fight,
     )
-    return (
+    return tuple(
         (
             12873,
-            actor_state(
-                12873, fight.id, actor.id, characteristics_only_snapshot(stats)
-            ),
-        ),
+            actor_state(12873, fight.id, actor.id, snapshot),
+        )
+        for snapshot in characteristics_and_properties_snapshots(stats, actor)
     )
 
 

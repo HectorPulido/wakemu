@@ -55,6 +55,39 @@ def state_level_domain(effect, profile, parent_level, state_catalog):
         level_from_state(effect, parameters, parent_level, level)
         for level in range(maximum + 1)
     )
+    # A state carrier can now retain a signed negative grade. For the native
+    # unit affine form, negative inputs either remain ineligible for every
+    # child, hit SP(-1), or produce the finite nonnegative prefix below the
+    # constant. No scan over the 32,768 negative input grades is necessary.
+    from .combat_state_level_group import float_parameter
+
+    factor = (
+        float_parameter(effect["parameters"], 8, parent_level)
+        if len(parameters) >= 9
+        else 1.0
+    )
+    constant = parameters[9] if len(parameters) >= 10 else 0
+    effects = state_catalog.get("effects")
+    if (
+        factor != 1.0
+        or type(constant) is not int
+        or not 0 <= constant <= 32767
+        or not isinstance(effects, Mapping)
+    ):
+        raise UnknownDynamicLevel("Signed native844 needs an affine child-domain proof")
+    for child_id in effect.get("children", ()):
+        child = effects.get(str(child_id))
+        if (
+            not isinstance(child, Mapping)
+            or type(child.get("minimum_level")) is not int
+            or child["minimum_level"] < 0
+        ):
+            raise UnknownDynamicLevel(
+                "Signed native844 children need a negative-level proof"
+            )
+    # Exact float32 integer addition on this bounded interval cannot overflow
+    # or wrap positive. SP(-1) uses the already included parent level.
+    levels.update(range(constant))
     return NativeStateLevelDomain(mode, state_id, maximum, tuple(sorted(levels)))
 
 

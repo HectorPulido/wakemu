@@ -47,9 +47,11 @@ def plan_state_application(requested_level, maximum_level, existing):
 
     The caller must filter existing instances to the requested state ID and
     preserve their native iteration order. Levels use Java signed short addition."""
-    if any(
-        type(n) is not int or not 0 <= n <= 32767
-        for n in (requested_level, maximum_level)
+    if (
+        type(requested_level) is not int
+        or not -32768 <= requested_level <= 32767
+        or type(maximum_level) is not int
+        or not 0 <= maximum_level <= 32767
     ):
         raise ValueError("Invalid requested state level or maximum")
     level, removals = requested_level, []

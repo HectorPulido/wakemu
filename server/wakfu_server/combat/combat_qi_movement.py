@@ -16,12 +16,18 @@ def movement_blocked_cells(fight, actor, cells):
         return _legacy_footprint_blocked_cells(fight, actor, cells)
 
     from .combat_qi_fight import current_registry
+    from .combat_pointer_qi_registry import registered_obstacle, registered_population
 
     registry = current_registry(fight)
-    qi = registry.snapshot()
+    qi, population = registered_population(registry)
     override = getattr(fight, "native_qi_movement_override", None)
     ignored = getattr(fight, "native_qi_ignored_slots", None)
     own_slot = getattr(actor, "native_obstacle_id", None)
+    own_row = (
+        registered_obstacle(registry, own_slot)
+        if type(own_slot) is int and 0 <= own_slot <= 126
+        else None
+    )
     if (
         type(override) is not bool
         or not isinstance(ignored, (tuple, list))
@@ -29,17 +35,12 @@ def movement_blocked_cells(fight, actor, cells):
         or type(own_slot) is not int
         or not -1 <= own_slot <= 126
         or own_slot >= 0
-        and (
-            registry.slots[own_slot] is None
-            or registry.slots[own_slot]["identity"] != ["actor", actor.id]
-        )
+        and (own_row is None or own_row["identity"] != ["actor", actor.id])
     ):
         raise ValueError("Missing actual native QI movement flags")
 
     radius = (
-        registry.slots[own_slot]["radius"]
-        if own_slot >= 0
-        else getattr(actor, "physical_radius", None)
+        own_row["radius"] if own_slot >= 0 else getattr(actor, "physical_radius", None)
     )
     if radius is None:
         radius = 0  # Legacy unregistered point-actor fixtures.
@@ -80,9 +81,9 @@ def movement_blocked_cells(fight, actor, cells):
                 if not override and any(
                     slot != own_slot
                     and slot not in ignored
-                    and registry.slots[slot] is not None
-                    and registry.slots[slot]["movement_blocking"]
-                    for slot in (qi.U(x, y) or ())
+                    and (row := registered_obstacle(registry, slot)) is not None
+                    and row["movement_blocking"]
+                    for slot in population(x, y)
                 ):
                     blocked.add(cell)
                     break

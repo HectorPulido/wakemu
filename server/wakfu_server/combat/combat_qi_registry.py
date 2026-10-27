@@ -5,7 +5,7 @@ This module does not infer a complete QI population from a fighter roster.
 """
 from copy import deepcopy
 
-from .combat_qi_snapshot import NativeQISnapshot, RegisteredObstacle
+from .combat_qi_snapshot import NativeQISnapshot, RegisteredObstacle, ImmutableQIMasks
 
 
 def _copy_byte_topology(topology):
@@ -47,6 +47,50 @@ def _copy_byte_topology(topology):
     return copied
 
 
+def _copy_slots(slots):
+    """Detach ordinary scalar descriptors; custom graphs retain deepcopy."""
+    rows = list(slots)
+    fields = {"identity", "position", "radius", "indexed", "movement_blocking"}
+    for row in rows:
+        if row is None:
+            continue
+        if (
+            type(row) is not dict
+            or row.keys() != fields
+            or type(row["identity"]) not in (list, tuple)
+            or len(row["identity"]) != 2
+            or type(row["identity"][0]) is not str
+            or type(row["identity"][1]) is not int
+            or type(row["position"]) not in (list, tuple)
+            or len(row["position"]) != 2
+            or any(type(value) is not int for value in row["position"])
+            or type(row["radius"]) is not int
+            or type(row["indexed"]) is not bool
+            or type(row["movement_blocking"]) is not bool
+        ):
+            return deepcopy(rows)
+    memo = {}
+    for index, row in enumerate(rows):
+        if row is None:
+            continue
+        previous = memo.get(id(row))
+        if previous is not None:
+            rows[index] = previous
+            continue
+        detached = row.copy()
+        memo[id(row)] = detached
+        for field in ("identity", "position"):
+            value = row[field]
+            if type(value) is list:
+                copied = memo.get(id(value))
+                if copied is None:
+                    copied = value.copy()
+                    memo[id(value)] = copied
+                detached[field] = copied
+        rows[index] = detached
+    return rows
+
+
 class NativeQIRegistry:
     def __init__(self, arena, slots, *, touched_cells=None, byte_topology=None):
         if not isinstance(arena, dict):
@@ -68,7 +112,7 @@ class NativeQIRegistry:
             self.touched_cells.add(tuple(cell))
         if not isinstance(slots, (list, tuple)) or len(slots) != 127:
             raise ValueError("Missing complete native QI slot population")
-        self.slots = deepcopy(list(slots))
+        self.slots = _copy_slots(slots)
         self.byte_topology = _copy_byte_topology(byte_topology)
         if byte_topology is not None and not isinstance(byte_topology, dict):
             raise ValueError("Missing native QL byte topology checkpoint")
@@ -81,7 +125,7 @@ class NativeQIRegistry:
             if identity in identities:
                 raise ValueError("Duplicate native QK slot identity")
             identities.add(identity)
-        self.snapshot()
+        self._query_membership(None)
 
     def capture_fresh_cell_topology(self, registration_order):
         """Only fresh QI creation may supply the original registration order."""
@@ -137,10 +181,110 @@ class NativeQIRegistry:
 
         state = self.byte_topology.get(f"{x},{y}")
         order = () if state is None else NativeTroveByteSet(state).order()
-        occupancy = self.snapshot().U(x, y)
+        occupancy = self._query_membership((x, y))
         if frozenset(order) != (frozenset() if occupancy is None else occupancy):
             raise ValueError("Native QL topology disagrees with registered occupancy")
         return order
+
+    def _query_membership(self, query):
+        """Revalidate the entire live population, materializing one cell only.
+
+        No earlier validation or checkpoint equality is treated as a proof.
+        The temporary covered-column dict preserves snapshot's touched-update
+        order; publish it only after every obstacle has passed all guards.
+        """
+        if (
+            type(self) is not NativeQIRegistry
+            or type(self.terrain) is not NativeQISnapshot
+            or type(self.touched_cells) is not set
+            or "snapshot" in self.__dict__
+            or any(name in self.terrain.__dict__ for name in ("aK", "_int32"))
+        ):
+            snapshot = self.snapshot()
+            return None if query is None else snapshot.U(*query)
+        # Match snapshot's descriptor construction before terrain validation.
+        obstacles = [
+            RegisteredObstacle(slot, *row["position"], row["radius"])
+            for slot, row in enumerate(self.slots)
+            if row is not None and row["indexed"]
+        ]
+        terrain = self.terrain
+        values = (terrain.x, terrain.y, terrain.width, terrain.height)
+        if any(
+            type(value) is not int or not -(1 << 31) <= value < (1 << 31)
+            for value in values
+        ):
+            raise ValueError("Missing serialized native QI rectangle")
+        masks = terrain.masks
+        if (
+            terrain.width < 1
+            or terrain.height < 1
+            or terrain.width * terrain.height > 32767
+            or not isinstance(masks, (list, tuple))
+            or len(masks) != terrain.width * terrain.height
+        ):
+            raise ValueError("Missing serialized native QI signed-short masks")
+        ImmutableQIMasks(masks)
+        covered, members, seen = {}, set(), set()
+        inside = NativeQISnapshot.aK
+        for obstacle in obstacles:
+            if (
+                not isinstance(obstacle, RegisteredObstacle)
+                or any(
+                    type(value) is not int
+                    for value in (
+                        obstacle.obstacle_id,
+                        obstacle.x,
+                        obstacle.y,
+                        obstacle.radius,
+                    )
+                )
+                or not 0 <= obstacle.obstacle_id <= 126
+                or not -128 <= obstacle.radius <= 127
+                or any(
+                    not -(1 << 31) <= value < (1 << 31)
+                    for value in (obstacle.x, obstacle.y)
+                )
+                or obstacle.obstacle_id in seen
+            ):
+                raise ValueError("Invalid native registered QK obstacle")
+            radius = max(0, obstacle.radius)
+            if radius == 0 and not inside(terrain, obstacle.x, obstacle.y):
+                raise ValueError(
+                    "Native radius-zero obstacle is outside QI registration bounds"
+                )
+            if (
+                any(
+                    not -(1 << 31) <= endpoint < (1 << 31)
+                    for endpoint in (
+                        obstacle.x - radius,
+                        obstacle.x + radius,
+                        obstacle.y - radius,
+                        obstacle.y + radius,
+                    )
+                )
+                or obstacle.x + radius == (1 << 31) - 1
+                or obstacle.y + radius == (1 << 31) - 1
+            ):
+                raise ValueError(
+                    "Native QK footprint exceeds proven terminating int32 domain"
+                )
+            seen.add(obstacle.obstacle_id)
+            if radius == 0:
+                cell = (obstacle.x, obstacle.y)
+                covered[cell] = None
+                if query == cell:
+                    members.add(obstacle.obstacle_id)
+                continue
+            for x in range(obstacle.x - radius, obstacle.x + radius + 1):
+                for y in range(obstacle.y - radius, obstacle.y + radius + 1):
+                    if inside(terrain, x, y):
+                        cell = (x, y)
+                        covered[cell] = None
+                        if query == cell:
+                            members.add(obstacle.obstacle_id)
+        self.touched_cells.update(covered)
+        return frozenset(members)
 
     def serialized_byte_topology(self):
         return deepcopy(self.byte_topology)

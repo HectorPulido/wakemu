@@ -19,6 +19,24 @@ REGIONS = {
 }
 
 
+def _has_population_capacity(db, map_id, instance_id, members):
+    """Check the live map budget while the caller holds its population lock."""
+    from .monster_population_capacity import has_capacity, snapshot as capacity_snapshot
+    from .monster_reproduction import validate_policy
+
+    row = db.execute(
+        "SELECT value FROM settings WHERE name='monster_reproduction'"
+    ).fetchone()
+    policy = validate_policy(None if row is None else row["value"])
+    return has_capacity(
+        capacity_snapshot(db, map_id, instance_id),
+        add_members=members,
+        add_groups=1,
+        max_members=policy["max_zone_members"],
+        max_groups=policy["max_zone_groups"],
+    )
+
+
 def seed_zone(store, groups, map_id, instance_id, region_id, plan, *, locate=surface):
     """Caller supplies geometry-vetted startup plan; no network publication."""
     for value, maximum in ((map_id, 2**31), (region_id, 2**31)):
@@ -109,6 +127,8 @@ def seed_zone(store, groups, map_id, instance_id, region_id, plan, *, locate=sur
         )
         if current + len(plan) > region["monster_capacity"]:
             raise ValueError("Initial monster plan exceeds existing regional capacity")
+        if not _has_population_capacity(db, map_id, instance_id, len(plan)):
+            raise ValueError("Initial monster population has no map capacity")
         occupied = {
             tuple(member[key] for key in ("x", "y", "z"))
             for group in db.execute(
@@ -422,6 +442,8 @@ def apply_prepared(store, groups, proposal):
             _scope_digest(_scope_state(db, map_id, instance_id))
             != proposal["scope_digest"]
         ):
+            return "stale"
+        if not _has_population_capacity(db, map_id, instance_id, len(plan["members"])):
             return "stale"
         from .npc_actor_identity import allocate_block
 

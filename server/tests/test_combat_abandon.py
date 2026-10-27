@@ -61,6 +61,74 @@ def setup_abandon_state(store):
 
 
 class AbandonTests(PostgresCase):
+    def test_earned_scene_abandonment_restores_book_after_durable_abort(self):
+        from unittest.mock import patch
+
+        store, account, generation, character, fight, runtime = setup_abandon_state(
+            self.store
+        )
+        actor = fight.actors[character["id"]]
+        fight.native_abomination_quest_grant = dict(
+            status="granted",
+            source=dict(participant_id=character["id"]),
+            carrier_uid=41,
+        )
+        actions = []
+
+        def factory(*, action_id):
+            actions.append(action_id)
+            return "native-runtime"
+
+        runtime.expiration_runtime_factory = factory
+
+        def cleanup(candidate, native_factory, packets):
+            self.assertIsNot(candidate, fight)
+            self.assertEqual(native_factory, "native-runtime")
+            candidate.native_abomination_quest_grant["status"] = "cleaned"
+
+        with patch(
+            "wakfu_server.combat_abomination_scene.cleanup", side_effect=cleanup
+        ):
+            result = combat_abandon.prepare(
+                store, account, generation, character, runtime, b""
+            )
+        self.assertTrue(result["applied"])
+        self.assertIs(runtime.fight, fight)
+        self.assertIs(fight.actors[character["id"]], actor)
+        self.assertEqual(fight.native_abomination_quest_grant["status"], "cleaned")
+        self.assertEqual(actions, [1])
+
+    def test_earned_scene_abandonment_failure_keeps_original_book_and_counters(self):
+        from unittest.mock import patch
+
+        store, account, generation, character, fight, runtime = setup_abandon_state(
+            self.store
+        )
+        fight.native_abomination_quest_grant = dict(
+            status="granted",
+            source=dict(participant_id=character["id"]),
+            carrier_uid=41,
+        )
+        runtime.expiration_runtime_factory = lambda **kwargs: "native-runtime"
+
+        def cleanup(candidate, native_factory, packets):
+            candidate.native_abomination_quest_grant["status"] = "cleaned"
+
+        with patch(
+            "wakfu_server.combat_abomination_scene.cleanup", side_effect=cleanup
+        ), patch(
+            "wakfu_server.combat_abandon.combat_health.persist_owned",
+            side_effect=ValueError("settlement rejected"),
+        ):
+            with self.assertRaisesRegex(ValueError, "settlement rejected"):
+                combat_abandon.prepare(
+                    store, account, generation, character, runtime, b""
+                )
+        self.assertIs(runtime.fight, fight)
+        self.assertEqual(fight.native_abomination_quest_grant["status"], "granted")
+        self.assertEqual(fight.phase, "placement")
+        self.assertEqual(runtime.action_id, 0)
+
     def test_committed_abort_publishes_one_spectator_terminal_without_npc_settlement(
         self,
     ):

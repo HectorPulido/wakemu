@@ -1,4 +1,4 @@
-"""Declared neutral point faY constructors, independent of effect315.
+"""Declared neutral area constructors, independent of effect315.
 
 The scene policy supplies positions and original prototype references. Native
 bcT definitions still own geometry, properties, effects and event masks. Entity
@@ -9,6 +9,86 @@ import struct
 from .combat_obstacle_condition import footprint
 
 SOURCE = "buK.cvb.myK.fec.fbm.null_owner.faY"
+TRAP_SOURCE = "buK.cvb.myK.fec.fbm.null_owner.fbc"
+
+
+def validate_environment_prototype(definition, *, level):
+    """Validate the actual subtype selected by buK's initial area carrier."""
+    if definition.get("type") != "TRAP":
+        validate_glyph_prototype(definition, level=level)
+        return
+    from .combat_trap_area import trap_constructor
+
+    trap_constructor(definition)
+    maximum = definition.get("maximum_level")
+    if (
+        definition.get("native_shape_class") != "anD"
+        or definition.get("shape_parameters") != []
+        or definition.get("native_shape_description") != "point"
+        or definition.get("native_hour_contract") is not False
+        or definition.get("raw_bdf") != 0
+        or definition.get("raw_bdg") != []
+        or 12 in definition.get("native_area_properties", ())
+        or type(definition.get("raw_bde")) is not int
+        or type(maximum) is not int
+        or type(level) is not int
+        or not 0 <= level <= maximum
+    ):
+        raise ValueError("Unsupported native neutral fbc prototype")
+
+
+def validate_glyph_prototype(definition, *, level):
+    """Admit native isotropic glyphs without changing the point contract.
+
+    Directed shapes need a separate source for their orientation. The scene
+    codec retains the native null-owner direction -1, so only published point,
+    circle and cross forms whose geometry is independent of facing are admitted.
+    """
+    if definition.get("native_shape_class") == "anD":
+        validate_point_prototype(definition, level=level)
+        return
+    shape, parameters = (
+        definition.get(key) for key in ("native_shape_class", "shape_parameters")
+    )
+    description = definition.get("native_shape_description")
+    maximum = definition.get("maximum_level")
+    if (
+        definition.get("type") != "GLYPH"
+        or definition.get("native_class") != "bcT"
+        or shape not in ("anu", "anw")
+        or not isinstance(parameters, list)
+        or len(parameters) != 1
+        or type(parameters[0]) is not int
+        or not 0 <= parameters[0] < (1 << 31)
+        or description
+        != (
+            f"circle-{parameters[0]}"
+            if shape == "anu"
+            else f"cross-h{parameters[0]}b{parameters[0]}-g{parameters[0]}d{parameters[0]}"
+        )
+        or definition.get("raw_bdh") != []
+        or definition.get("raw_bdf") != 0
+        or definition.get("raw_bdg") != []
+        or definition.get("native_type_id") != 0
+        or definition.get("native_container_type") != 3
+        or definition.get("native_hour_contract") is not False
+        or 12 in definition.get("native_area_properties", ())
+        or type(maximum) is not int
+        or type(level) is not int
+        or not 0 <= level <= maximum
+        or type(definition.get("raw_bde")) is not int
+    ):
+        raise ValueError("Unsupported native neutral faY prototype")
+
+
+def glyph_cells(source, definition):
+    """Return complete native geometry, never clipped to the arena or actors."""
+    from .combat_effect_area_geometry import registered_area_cells
+
+    validate_environment_prototype(definition, level=source.get("level", 0))
+    return registered_area_cells(
+        definition, tuple(source["cell"]), -1, reference=(0, 0, 0)
+    )
 
 
 def validate_point_prototype(definition, *, level):
@@ -56,10 +136,14 @@ def prepare_declared_glyphs(fight, arena, terrain_identity, definitions):
         raise ValueError("Missing declared native glyph constructor authority")
     occupied = set()
     layout = arena.get("native_encounter_scene_layout", {})
-    from .combat_encounter_roles import assigned_roles
+    from wakfu_server.combat_encounter_roles import assigned_roles
+    from .combat_environment_participant_footprints import verified_participant_cells
 
     roles = assigned_roles(fight)
-    for actor in fight.actors.values():
+    initial_occupied = verified_participant_cells(fight, arena)
+    if initial_occupied is not None:
+        occupied.update(initial_occupied)
+    for actor in () if initial_occupied is not None else fight.actors.values():
         if actor.hp <= 0:
             continue
         if actor.physical_radius is not None:
@@ -88,6 +172,7 @@ def prepare_declared_glyphs(fight, arena, terrain_identity, definitions):
             "reference",
             "cell",
             "level",
+            "activation",
         }:
             raise ValueError("Invalid declared native glyph fields")
         reference, raw_cell = declaration.get("reference"), declaration.get("cell")
@@ -108,7 +193,13 @@ def prepare_declared_glyphs(fight, arena, terrain_identity, definitions):
         ):
             raise ValueError("Declared native glyph cell is unavailable")
         definition = definitions.get(str(reference), {})
-        validate_point_prototype(definition, level=level)
+        validate_environment_prototype(definition, level=level)
+        from .combat_scene_area_activation import validate_scene_activation
+
+        activation = declaration.get("activation")
+        validate_scene_activation(activation, reference=reference)
+        if activation is not None and (definition["type"] != "TRAP" or not source_url):
+            raise ValueError("Missing declared scene trap activation provenance")
         identity = terrain_identity - index - 1
         if identity in fight.actors or identity in fight.native_effect_areas:
             raise ValueError("Declared native glyph PV identity collision")
@@ -120,11 +211,13 @@ def prepare_declared_glyphs(fight, arena, terrain_identity, definitions):
                 cell=cell,
                 level=level,
                 policy=policy,
-                source=SOURCE,
+                source=TRAP_SOURCE if definition["type"] == "TRAP" else SOURCE,
                 authority=authority,
                 source_url=source_url,
             )
         )
+        if activation is not None:
+            result[-1]["activation"] = dict(activation)
     return result
 
 
@@ -161,6 +254,18 @@ def point_glyph_row(source, definition):
     )
 
 
+def glyph_row(source, definition):
+    """Keep the subtype constructor and install its full native shape."""
+    row = point_glyph_row(source, definition)
+    row["native_cells_xy"] = glyph_cells(source, definition)
+    if definition["type"] == "TRAP":
+        from .combat_trap_area import install_trap_characteristics
+
+        row["native_area_contract"] = "fbc"
+        install_trap_characteristics(row, definition)
+    return row
+
+
 def point_glyph_section(source, *, cell, visual_owner):
     """Native fec/myK faY appearance; authoritative ownership stays neutral."""
     return struct.pack(
@@ -173,3 +278,11 @@ def point_glyph_section(source, *, cell, visual_owner):
         -1,
         -1,
     ) + struct.pack(">Biihb", 0, 0, 0, 0, -1)
+
+
+def environment_section(source, *, cell, visual_owner):
+    """fec header plus the actual subtype appearance (fbc has no suffix)."""
+    section = point_glyph_section(source, cell=cell, visual_owner=visual_owner)
+    if source.get("source") == TRAP_SOURCE:
+        return section[: struct.calcsize(">qqiihqhib")]
+    return section
