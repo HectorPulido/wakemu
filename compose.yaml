@@ -85,7 +85,7 @@ services:
       # Source edits remain isolated until the next tested image is deployed.
       - ${WAKFU_WORLD_DATA_DIR:-./.local-state/wakemu/world}:/data
       - ./.database/secrets:/run/secrets:ro
-      - ./server/ai-service:/app/ai-service:ro
+      - /Users/hectorpulido/Documents/wakfu-experiment/.runtime/brumas-free-20261028/prepared/source/server/ai-service:/app/ai-service:ro
     networks: [isolated, client-access]
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18081/health',timeout=2)"]

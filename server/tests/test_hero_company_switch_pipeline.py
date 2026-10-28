@@ -77,6 +77,7 @@ class HeroCompanySwitchPipelineTests(PostgresCase):
             chest_opening=None,
             npc_dialogue_session=None,
             active_private_session=lambda: None,
+            is_dungeon_run=lambda _instance: False,
             PLANTINGS=SimpleNamespace(cancel=lambda *args: None),
             HARVESTS=SimpleNamespace(cancel=lambda *args, **kwargs: None),
             cancel_flora=lambda: None,

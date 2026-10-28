@@ -5,7 +5,10 @@ from .combat_native_death_status import native_is_dead
 def registered_summon_counts(fight, owner_id, records, ordinary, ordinary_view):
     from .combat_global_pv_collections import _collections
     from .combat_trove_long_map import NativeTroveLongMap
-    from .combat_ordinary_authority import OrdinaryActorAuthority
+    from .combat_ordinary_authority import (
+        OrdinaryActorAuthority,
+        _immutable_property_catalog,
+    )
 
     if not hasattr(fight, "native_global_pv_collections"):
         return None
@@ -16,6 +19,21 @@ def registered_summon_counts(fight, owner_id, records, ordinary, ordinary_view):
     ) - set(state["retired_fighters"]):
         raise ValueError("Missing complete actual fdt count population")
     histogram = {}
+    population = None
+
+    def ordinary_population():
+        nonlocal population
+        # This synchronous count walk has no effect/callback boundary. Share
+        # only its roster proof; every actor still validates identity, carry,
+        # life and controller state. Nothing survives this one count query.
+        # A supplied catalog can run arbitrary callbacks while reading actor
+        # properties; preserve its fresh per-actor roster checks unchanged.
+        if ordinary.catalog is not _immutable_property_catalog():
+            return None
+        if population is None:
+            population = ordinary._creation_population(ordinary_view)
+        return population
+
     for identity in identities:
         status = state["fighter_status"].get(str(identity))
         if status not in ("IN_PLAY", "OFF_PLAY", "OUT_OF_PLAY"):
@@ -27,7 +45,7 @@ def registered_summon_counts(fight, owner_id, records, ordinary, ordinary_view):
         if record is None:
             if type(ordinary) is OrdinaryActorAuthority:
                 is_fighter, is_summon = ordinary.summon_count_flags(
-                    ordinary_view, actor
+                    ordinary_view, actor, _population=ordinary_population
                 )
             else:
                 # Custom/unknown providers retain their existing full contract.

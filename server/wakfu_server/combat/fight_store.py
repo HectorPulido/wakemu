@@ -547,6 +547,7 @@ def recover_finished_return(
                 id=fight_id,
                 phase="finished",
                 actors=actors,
+                native_fight_model=checkpoint_state.get("native_fight_model"),
             )
             from .combat_consumable_states import restore_checkpoint_projection
 

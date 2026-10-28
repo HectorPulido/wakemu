@@ -111,7 +111,9 @@ class ReplaySourceBatchTests(unittest.TestCase):
             ),
             (),
         )
-        self.assertEqual(reader.reads[-1], "74")
+        self.assertEqual(
+            reader.reads[-1], "1"
+        )  # Only the explicit private reads above decode again.
         self.assertEqual(len(reader.batches), 1)
 
     def test_scalar_removal_prefetch_only_uses_actual_owned_recipient(self):

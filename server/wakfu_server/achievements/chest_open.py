@@ -130,9 +130,17 @@ def _native_source(rule):
             )
 
 
-def _artifact(character, reference):
+def _artifact(db, character, reference):
     if reference is None:
         return []
+    from wakfu_server.exploration_secrets import ITEM_REFS, account_quantity, load
+
+    if reference in ITEM_REFS:
+        # The caller has reloaded and locked this owner. Re-read the policy in
+        # the same transaction instead of trusting an earlier login projection.
+        current = dict(character, exploration_secrets=load(db))
+        if account_quantity(current, (reference,)) > 0:
+            return [reference]
     # These are reloaded owned inventories, not a packet-supplied artifact flag.
     for key, owner_key, owner in (
         ("quest_items", "character_id", character["id"]),
@@ -319,7 +327,7 @@ def claim(
         if not criterion_ok:
             raise ValueError("Native chest original criterion failed")
         _native_source(rule)
-        artifacts = _artifact(actual, rule["artifact_reference"])
+        artifacts = _artifact(db, actual, rule["artifact_reference"])
         direct_emote = _direct_emote(db, rule)
         if not direct_emote and not _eligible(rule, qualified, before, actual, now_ms):
             raise ValueError("Native chest achievement eligibility failed")

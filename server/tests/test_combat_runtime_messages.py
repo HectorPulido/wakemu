@@ -170,9 +170,10 @@ class RuntimeMessageTests(unittest.TestCase):
         self.assertEqual(len(action_transitions), 2)
         self.assertLess(opcodes.index(12514), opcodes.index(12053))
         self.assertLess(opcodes.index(12053), action_transitions[-1])
-        self.assertNotIn(13337, opcodes)
+        self.assertEqual(opcodes.count(13337), 1)
         self.assertEqual(opcodes.count(13482), 1)
-        self.assertLess(action_transitions[-1], opcodes.index(13482))
+        self.assertLess(action_transitions[-1], opcodes.index(13337))
+        self.assertLess(opcodes.index(13337), opcodes.index(13482))
         recovery_body = next(body for opcode, body in packets if opcode == 12053)
         envelope_size = struct.unpack_from(">h", recovery_body, 4)[0]
         envelope = recovery_body[6 : 6 + envelope_size]
@@ -180,8 +181,9 @@ class RuntimeMessageTests(unittest.TestCase):
         restored_round, restored_turn, restored_phase, _ = struct.unpack_from(
             ">hiBq", state
         )
-        # Initial SU waits in BEGINNING; the single13482 enters turn1 once.
-        self.assertEqual((restored_round, restored_turn, restored_phase), (1, 0, 4))
+        # Initial SU waits in BETWEEN; preparation selects its first member
+        # before the single13482 enters turn1 once.
+        self.assertEqual((restored_round, restored_turn, restored_phase), (1, 0, 2))
         cursor = struct.calcsize(">hiBq")
         member_count = struct.unpack_from(">b", state, cursor)[0]
         cursor += 1
@@ -339,6 +341,11 @@ class RuntimeMessageTests(unittest.TestCase):
                     self.assertLess(opcodes.index(12053), action_indices[1])
                     self.assertLess(action_indices[1], opcodes.index(12613))
                     self.assertLess(action_indices[1], opcodes.index(13827))
+                    self.assertEqual(opcodes.count(13337), 1)
+                    self.assertEqual(opcodes.count(13482), 1)
+                    self.assertLess(action_indices[1], opcodes.index(13337))
+                    self.assertLess(opcodes.index(13337), opcodes.index(12613))
+                    self.assertLess(opcodes.index(12613), opcodes.index(13482))
                     self.assertNotIn(13477, opcodes)
                     recovery_body = next(
                         body for opcode, body in packets if opcode == 12053
@@ -389,7 +396,8 @@ class RuntimeMessageTests(unittest.TestCase):
                     self.assertEqual(set(progress), set(restored_order))
                     cursor += 1 + progress_count * struct.calcsize(">qh")
                     self.assertEqual(
-                        state[cursor], restored_order.index(fight.current.id)
+                        struct.unpack_from(">b", state, cursor)[0],
+                        restored_order.index(fight.current.id) - 1,
                     )
                     cursor += 1
                     removed_count = struct.unpack_from(">b", state, cursor)[0]

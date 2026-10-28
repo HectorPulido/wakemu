@@ -138,3 +138,17 @@ def account_quantity(character, references):
         narrowed = ((reference + 2**31) % 2**32) - 2**31
         total += quantities.get(narrowed, 0)
     return ((total + 2**31) % 2**32) - 2**31
+
+
+def projected_transport_access(character, reference, quantity):
+    """Projected exploration powers authorize travel without spending an item."""
+    if reference not in ITEM_REFS:
+        return False
+    if type(quantity) is not int or quantity <= 0:
+        raise ValueError("Invalid exploration transport quantity")
+    state = character.get("exploration_secrets")
+    if state is not None and not isinstance(state, dict):
+        raise ValueError("Invalid owned exploration account items")
+    available = account_quantity(character, (reference,))
+    selected = () if state is None else state["account_item_refs"]
+    return reference in selected and available >= quantity

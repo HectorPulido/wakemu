@@ -146,6 +146,24 @@ class ChestRewardTransactionTests(PostgresCase):
 
         original = treasure_chests.definition(self.store, 1207, 31733)
         with self.store.connection() as db:
+            # The production selector requires a separately attested original
+            # object. Keep the synthetic binding fixture connected to that
+            # positive identity even when this isolated schema omitted the seed.
+            db.execute(
+                "INSERT INTO achievement_chest_source_attestations "
+                "(map_id,object_id,native_definition,original_name_en,object_kind,"
+                "object_family,native_action,native_parameter,native_payload_hex,"
+                "catalog_revision,source_sha256,native_direction,native_approach_mask,"
+                "native_center_blocked,native_physical_sha256) VALUES "
+                "(1207,31733,353,'Gemlockitup','gemlock','LootChest',22,0,%s,%s,%s,"
+                "0,0,FALSE,%s) ON CONFLICT(map_id,object_id,native_definition) DO NOTHING",
+                (
+                    original["native_payload_hex"],
+                    "b3963fc05f1d8ec1eb9afc268fab0350f4de120144d67f7eee470747750b2450",
+                    "ef6d7a2986f5c69c57a928c6854ecf8a7775ad20b539af63e4d989216ee63553",
+                    "b" * 64,
+                ),
+            )
             db.execute(
                 "INSERT INTO achievement_chest_bindings "
                 "(binding_id,map_id,object_id,definition_id,objective_id,native_definition,native_action,"
@@ -160,6 +178,15 @@ class ChestRewardTransactionTests(PostgresCase):
                     original["native_geometry_sha256"],
                     "a" * 64,
                 ),
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) n FROM achievement_chest_bindings b "
+                    "JOIN achievement_chest_source_attestations s "
+                    "USING(map_id,object_id,native_definition) "
+                    "WHERE b.map_id=1207 AND b.object_id=31733"
+                ).fetchone()["n"],
+                1,
             )
             db.execute("INSERT INTO achievement_chest_approaches VALUES(1,-116,-29,0)")
             db.execute(
@@ -252,6 +279,79 @@ class ChestRewardTransactionTests(PostgresCase):
                 ).fetchone()["n"],
                 0,
             )
+
+    def test_all_projected_artifacts_pass_real_open_and_current_policy_still_fences(
+        self,
+    ):
+        from wakfu_server.achievements import chest_open
+        from wakfu_server.exploration_secrets import ITEM_REFS, SETTING
+
+        account, generation, character = self.owner("Artifacts")
+        self.configure()
+        initial = self.snapshot(account, character["id"])
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name=%s",
+                (Jsonb(dict(version=1, unlock_all=True)), SETTING),
+            )
+            for reference in ITEM_REFS:
+                with self.subTest(reference=reference), db.transaction(
+                    force_rollback=True
+                ):
+                    db.execute(
+                        "UPDATE achievement_chest_bindings SET artifact_reference=%s WHERE binding_id=1",
+                        (reference,),
+                    )
+                    result = chest_open.claim(
+                        db,
+                        self.store,
+                        account,
+                        generation,
+                        character,
+                        struct.pack(">qHH", 31733, 22, 0),
+                        loaded=True,
+                        is_hero=False,
+                    )
+                    self.assertIsNotNone(result)
+                    receipt = db.execute(
+                        "SELECT event_payload FROM character_achievement_chest_opens "
+                        "WHERE character_id=%s AND binding_id=1",
+                        (character["id"],),
+                    ).fetchone()
+                    self.assertEqual(receipt["event_payload"]["artifacts"], [reference])
+                    self.assertEqual(
+                        db.execute(
+                            "SELECT count(*) n FROM account_quest_items "
+                            "WHERE account_id=%s AND reference=ANY(%s)",
+                            (account, list(ITEM_REFS)),
+                        ).fetchone()["n"],
+                        0,
+                    )
+            stale = self.store.character(account, character["id"], db)
+            self.assertEqual(
+                stale["exploration_secrets"]["account_item_refs"], ITEM_REFS
+            )
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name=%s",
+                (Jsonb(dict(version=1, unlock_all=False)), SETTING),
+            )
+            db.execute(
+                "UPDATE achievement_chest_bindings SET artifact_reference=%s WHERE binding_id=1",
+                (ITEM_REFS[0],),
+            )
+        with self.store.connection() as db:
+            with self.assertRaisesRegex(ValueError, "owned artifact"):
+                chest_open.claim(
+                    db,
+                    self.store,
+                    account,
+                    generation,
+                    stale,
+                    struct.pack(">qHH", 31733, 22, 0),
+                    loaded=True,
+                    is_hero=False,
+                )
+        self.assertEqual(initial, self.snapshot(account, character["id"]))
 
     def test_gate_and_authenticated_facts_fail_closed_and_mutation_failure_rolls_back_whole_open(
         self,

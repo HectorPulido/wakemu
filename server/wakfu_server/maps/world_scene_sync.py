@@ -39,7 +39,7 @@ def _chunk_snapshots(map_id, selected_chunk, entrances):
             "payload_hex": (
                 world_static._DUNGEON_ENTRY_STATE
                 if row["id"] in entrances
-                else world_static._DYNAMIC_STATES[(map_id, row["id"])]
+                else world_static.dynamic_state(map_id, row["id"])
             ).hex(),
         }
         for row in world_static.objects(map_id)

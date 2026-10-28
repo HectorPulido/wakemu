@@ -61,7 +61,16 @@ class SpellTransactionTests(unittest.TestCase):
         self.fight.ready(3)
         # The synthetic owned terrain and its patched native LOS columns use
         # this explicit test map identity; real server fixtures use map1134.
-        self.character = dict(id=7, breed=15, level=1, map_id=999999)
+        self.character = dict(
+            id=7,
+            breed=15,
+            level=1,
+            map_id=999999,
+            instance_id=0,
+            x=0,
+            y=0,
+            z=0,
+        )
         self.body = struct.pack(">qqiih", 7, (7 << 32) | 6266, 1, 0, 0)
         # This transaction fixture owns a compact native Vz terrain domain;
         # the shared Sf program, QI population and target selectors still run.
@@ -829,8 +838,16 @@ class SpellTransactionTests(unittest.TestCase):
         build_player_snapshot(
             character, caster, wp_current=6, wp_maximum=6, running_effects=()
         ).install(caster)
-        monster = dict(id=-7, ref=1740)
         target = self.fight.actors[-7]
+        monster = dict(
+            id=-7,
+            ref=1740,
+            map_id=self.character["map_id"],
+            instance_id=self.character["instance_id"],
+            x=target.position[0],
+            y=target.position[1],
+            z=target.position[2],
+        )
         target.effective_level = 15
         build_npc_snapshot(
             monster, target, wp_current=4, wp_maximum=4, running_effects=()

@@ -729,6 +729,13 @@ class CombatSessionAdapter:
                     candidate, "native_companion_sources", {}
                 ).values()
             )
+            from .combat_reconnect_world_actors import ordinary_npc_appearances
+
+            # Claimed groups are absent from exploration snapshots. The native
+            # fight constructor resolves existing world identities before it
+            # reads fighter stats, so joining owners need the same appearances
+            # as a reconnecting owner before receiving their 12847 bootstrap.
+            world_actors += ordinary_npc_appearances(candidate, prior_shared)
             from wakfu_server import health
 
             regeneration = tuple(

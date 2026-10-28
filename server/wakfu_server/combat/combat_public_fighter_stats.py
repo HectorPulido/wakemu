@@ -31,10 +31,21 @@ def public_player_fighter_stats(stats, *, actor_id, fight_id):
         r.take(6)  # Remaining native fight properties.
         for _ in range(r.number("H")):
             r.take(17)  # Native characteristic identity and four signed ints.
-        r.take(1)  # Native AI control flag.
+        # rK contains a nullable complete PB snapshot before breed/AI control.
+        # Ordinary live actors include counters even when legacy fixtures do not.
+        present = r.number("B")
+        if present not in (0, 1):
+            raise ValueError("Invalid native fighter property section")
+        if present:
+            identities = set()
+            for _ in range(r.number("H")):
+                identity, _count = struct.unpack(">bb", r.take(2))
+                if identity in identities:
+                    raise ValueError("Duplicate native fighter property counter")
+                identities.add(identity)
         r.take(2)  # Breed.
-        if r.number("B") != 0:
-            raise ValueError("Unmodeled native fighter cosmetic sections")
+        if r.number("B") not in (0, 1):
+            raise ValueError("Invalid native fighter AI control flag")
         for _ in range(r.number("H")):
             r.take(17)
         identity, linked, account, linked_account, level = struct.unpack(

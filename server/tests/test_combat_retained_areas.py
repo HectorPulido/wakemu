@@ -2,6 +2,7 @@ import unittest
 from dataclasses import asdict
 from types import SimpleNamespace
 from wakfu_server.combat_effect_area_codec import area_payload
+from wakfu_server.combat_state_ledger import StateLedger
 from wakfu_server.combat_retained_effects import (
     RetainedEffect,
     NativeRetainedEffectView,
@@ -42,7 +43,7 @@ class NativeRetainedAreaTests(unittest.TestCase):
         record = RetainedEffect(
             902, None, 315, 123, manager_id=7, container_present=False
         )
-        actor = SimpleNamespace(state_ledger=SimpleNamespace(entries=()))
+        actor = SimpleNamespace(id=7, state_ledger=StateLedger(7))
         fight = SimpleNamespace(
             id=12,
             actors={7: actor},

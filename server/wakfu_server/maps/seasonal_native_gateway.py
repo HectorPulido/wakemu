@@ -11,7 +11,19 @@ _ENTRY_MAPS = frozenset(source_map for source_map, _, _ in _REVIEWED)
 
 
 def binding(map_id, source_id):
-    from wakfu_server import generic_transports, dungeon_instances
+    from wakfu_server import (
+        generic_transports,
+        dungeon_instances,
+        exploration_transport,
+        travel_mists,
+    )
+
+    mist = travel_mists.binding(map_id, source_id)
+    if mist is not None:
+        return mist
+    artifact = exploration_transport.binding(map_id, source_id)
+    if artifact is not None:
+        return artifact
 
     if map_id not in _ENTRY_MAPS:
         return None
@@ -86,7 +98,7 @@ def appearance(row, current_binding):
 
     source = current_binding["source"]
     if (
-        row["type"] != "Teleporter"
+        row["type"] != source.get("native_type", "Teleporter")
         or row["id"] != source["id"]
         or row["map_id"] != source["map_id"]
         or any(row[axis] != source[axis] for axis in ("x", "y", "z"))
@@ -99,7 +111,7 @@ def appearance(row, current_binding):
     marker = struct.pack(">H", len(native)) + native
     if parts[1].count(marker) != 1:
         raise ValueError("Native seasonal parameter binding changed")
-    parameters = b"{1;desc.mru.entrer}"
+    parameters = current_binding.get("activation_parameters", b"{1;desc.mru.entrer}")
     parts[1] = parts[1].replace(marker, struct.pack(">H", len(parameters)) + parameters)
     state = _parts(world_static._DUNGEON_ENTRY_STATE)
     if set(state) != {2}:
@@ -107,13 +119,8 @@ def appearance(row, current_binding):
     return _encode_parts({**parts, **state})
 
 
-def attachment(row, scope):
-    """Replace the first native attachment, keeping the original scene UID."""
-    if scope.get("instance_id", 0) != 0:
-        return None
-    current = binding(scope.get("map_id"), row["id"])
-    if current is None:
-        return None
+def projected_attachment(row, current):
+    """Encode an explicitly bound original activation with unchanged geometry."""
     blob = appearance(row, current)
     coordinates = tuple(row[key] for key in ("x", "y", "z"))
     if any(
@@ -131,6 +138,19 @@ def attachment(row, scope):
     )
 
 
+def attachment(row, scope):
+    """Replace the first native attachment, keeping the original scene UID."""
+    if scope.get("instance_id", 0) != 0:
+        return None
+    from wakfu_server import exploration_artifact_actions
+
+    artifact = exploration_artifact_actions.attachment(row, scope)
+    if artifact is not None:
+        return artifact
+    current = binding(scope.get("map_id"), row["id"])
+    return None if current is None else projected_attachment(row, current)
+
+
 def activation(character, body):
     """Translate only the qualified owned native ACTIVATE request's route."""
     if not isinstance(body, bytes) or len(body) != 12:
@@ -139,12 +159,20 @@ def activation(character, body):
     current = binding(character["map_id"], source_id)
     if current is None:
         return None
-    if character.get("instance_id", 0) != 0 or action != 0 or padding != 0:
+    if character.get("instance_id", 0) != 0 or padding != 0:
         raise ValueError("Invalid native seasonal gateway activation")
-    destination = current["destination"]
+    if current["route_key"] in ("travel_mist", "exploration_artifact"):
+        from wakfu_server import exploration_transport
+
+        destination, request = exploration_transport.request(current, action)
+    else:
+        if action != 0:
+            raise ValueError("Invalid native seasonal gateway activation")
+        destination = current["destination"]
+        request = struct.pack(">qiBi", source_id, destination["destination_id"], 0, 2)
     return dict(
         route_key=current["route_key"],
         source_id=source_id,
         destination_map_id=destination["map_id"],
-        body=struct.pack(">qiBi", source_id, destination["destination_id"], 0, 2),
+        body=request,
     )

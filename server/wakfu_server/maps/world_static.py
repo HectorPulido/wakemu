@@ -54,6 +54,25 @@ def objects(map_id):
     return tuple(dict(row) for row in _MAPS.get(map_id, {}).values())
 
 
+def dynamic_state(map_id, identity):
+    """Keep unlocked exploration activations stable across native state replays."""
+    from wakfu_server import (
+        generic_transports,
+        exploration_artifact_actions,
+        exploration_transport,
+        travel_mists,
+    )
+
+    source = generic_transports.source(map_id, identity)
+    if (
+        travel_mists.recognizes(source)
+        or exploration_transport.recognizes(source)
+        or exploration_artifact_actions.projection_required(map_id, identity)
+    ):
+        return _DUNGEON_ENTRY_STATE
+    return _DYNAMIC_STATES[(map_id, identity)]
+
+
 def snapshots(map_id, *, position=None):
     """Hydrate evidenced installed objects on every map load and replay."""
     if position is not None:
@@ -74,7 +93,7 @@ def snapshots(map_id, *, position=None):
             "payload_hex": (
                 _DUNGEON_ENTRY_STATE
                 if row["id"] in entrances
-                else _DYNAMIC_STATES[(map_id, row["id"])]
+                else dynamic_state(map_id, row["id"])
             ).hex(),
         }
         for row in rows

@@ -101,8 +101,16 @@ class OtherBreedRecoveryUsageTests(unittest.TestCase):
         self.assertTrue(all(batch == batches[0] for batch in batches))
         opcodes = [opcode for opcode, _ in batches[0]]
         self.assertEqual(opcodes.count(13482), 1)
-        self.assertLess(opcodes.index(12053), opcodes.index(12514))
-        self.assertLess(opcodes.index(12514), opcodes.index(13482))
+        self.assertEqual(opcodes.count(13337), 1)
+        self.assertNotIn(12514, opcodes)
+        self.assertLess(opcodes.index(12053), opcodes.index(13337))
+        self.assertLess(opcodes.index(13337), opcodes.index(13482))
+        timeline = recovery_fixture.decoded_timeline(
+            next(body for opcode, body in batches[0] if opcode == 12053)
+        )
+        self.assertEqual(timeline["phase"], 2)
+        self.assertEqual(timeline["turn"], fight.turn_id - 1)
+        self.assertEqual(timeline["current"], fight.current.id)
         self.assertEqual(fight.native_spell_usage, before)
         fight = shared.fight
         actor = fight.current

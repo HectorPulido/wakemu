@@ -58,7 +58,7 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
             native_catalog.read_text(DATA_ROOT / "effect-characteristic-registry.json")
         )
 
-    def setUp(self):
+    def setUp(self, *, effects=None):
         actors = [
             Actor(7, 0, (0, 0, 0), 60, 6, 3, 10, 1, 3, True),
             Actor(8, 0, (0, 1, 0), 40, 6, 3, 8, 1),
@@ -101,7 +101,7 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
             }
             actor.effect_frozen = frozenset()
             actor.physical_radius = 0
-        self.effects = dict(self.spells["effects"])
+        self.effects = dict(self.spells["effects"]) if effects is None else effects
         self.contexts = NativeRuntimeContexts(
             # This fixture authoritatively scopes transmitted actor targets.
             actor_candidates=lambda p, plan, e, i: (p.actors[i.target_id],)
@@ -192,6 +192,7 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
             action_id=1,
             contexts=overrides.get("contexts", self.contexts),
             displacement_authority=overrides.get("displacement_authority"),
+            compiled_effects=overrides.get("compiled_effects"),
         )
 
     def cast_context(self, request, fight):

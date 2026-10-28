@@ -492,11 +492,22 @@ class RuntimeMessages:
             # Reentering ACTION during an ongoing fight repeats ckv.eDR's649
             # shortcut insertion. Only initial placement needs that transition.
             packets.append(self._flush())
-            # Recovery restores BEGINNING rather than ON. Publish the original
-            # native begin action once so fyS per-turn/target counters reset;
-            # server callbacks above have already committed and are not rerun.
+            # Recovery restores BETWEEN immediately before the successor.
+            # Preparation advances the native cursor and hands off its selected
+            # fighter/controller; begin resets native per-turn counters once.
+            # Server callbacks above have already committed and are not rerun.
             packets.extend(
                 [
+                    (
+                        13337,
+                        self._prefix()
+                        + struct.pack(
+                            ">qq",
+                            actor.id,
+                            current_turn_duration(self.fight, self.duration),
+                        ),
+                    ),
+                    self._flush(),
                     (
                         13482,
                         self._prefix()
@@ -653,18 +664,29 @@ class RuntimeMessages:
                 raise ValueError(
                     "Initial timeline restore changed its native action barrier"
                 )
+            # Prepare the baseline's actual current actor before newborns are
+            # inserted. Tc insertion preserves the selected occurrence, but
+            # cannot preserve an unprepared *next* actor: an insertion directly
+            # before it would otherwise become the next actor itself.
+            preparation_end = flush_index + 3
+            if (
+                preparation_end > len(turn_packets)
+                or turn_packets[flush_index + 1][0] != 13337
+                or turn_packets[flush_index + 2][0] != 13420
+            ):
+                raise ValueError("Initial timeline restore omitted native preparation")
             # Restore the baseline and ACTION controller before publishing
             # initialization. Native ckv.eDR replays every non-owner controlled
             # actor's retained649 on ACTION, even if its shortcut already exists.
             # Publishing grants before this barrier therefore inserts them twice.
-            # Keep both phase transitions, SU-before-307 and ACTION-before-BEGIN;
+            # Keep SU/ACTION/preparation before307 and actual begin afterward;
             # no grant, callback, clock or spellbook is removed or regenerated.
-            packets.extend(turn_packets[recovery_index : flush_index + 1])
+            packets.extend(turn_packets[recovery_index:preparation_end])
             if initialization_packets:
                 packets.extend(initialization_packets)
                 packets.append(self._flush())
             packets.extend(turn_packets[:recovery_index])
-            packets.extend(turn_packets[flush_index + 1 :])
+            packets.extend(turn_packets[preparation_end:])
         else:
             if initialization_packets:
                 packets.extend(initialization_packets)
@@ -961,6 +983,15 @@ class RuntimeMessages:
         if len(pending_begins) > 1:
             raise ValueError("Duplicate unpublished native turn begin")
         first_begin = self.awaiting_ack is not None and bool(pending_begins)
+        pending_preparations = [
+            packet
+            for packet in self.pending
+            if packet[0] == 13337
+            and len(packet[1]) == 28
+            and struct.unpack_from(">q", packet[1], 12)[0] == self.fight.current.id
+        ]
+        if len(pending_preparations) > 1:
+            raise ValueError("Duplicate unpublished native turn preparation")
         packet = recovery_packet(
             self.fight, body, deadline_ms=deadline_ms, new_turn=first_begin
         )
@@ -1002,9 +1033,19 @@ class RuntimeMessages:
         # phase would replay nonowner649 over their already present shortcuts.
         packets.append(self._flush())
         if first_begin:
-            # aUN/buH.bp requires the original global ACTION phase installed
-            # before the restored SU enters its native fighter turn.
-            packets.extend([*pending_begins, self._flush()])
+            # Preserve the original preparation if it was already pending.
+            # Older pending snapshots may contain only begin; its replacement
+            # still needs the native selected-fighter/controller handoff.
+            preparations = pending_preparations or [
+                (
+                    13337,
+                    self._prefix()
+                    + struct.pack(">qq", self.fight.current.id, duration),
+                )
+            ]
+            packets.extend(
+                [*preparations, self._flush(), *pending_begins, self._flush()]
+            )
         self.native_timeline_removal_delivery_count = len(
             getattr(self.fight, "native_timeline_removed", ())
         )

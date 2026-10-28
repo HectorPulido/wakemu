@@ -2,6 +2,7 @@ from copy import deepcopy
 from dataclasses import replace
 import unittest
 import test_combat_effect_runtime as fixture_module
+from _runtime_adapter_fixture import runtime_fixture
 from wakfu_server.combat_runtime_adapter import (
     NativeServerRuntimeAdapter,
     NativeActorAuthority,
@@ -16,8 +17,7 @@ class ServerAdapterTests(unittest.TestCase):
         fixture_module.NativeRuntimeFactoryTests.setUpClass()
 
     def setUp(self):
-        self.fixture = fixture_module.NativeRuntimeFactoryTests()
-        self.fixture.setUp()
+        self.fixture = runtime_fixture()
         self.preview = deepcopy(self.fixture.fight)
         self.preview.native_effect_uid_next = 200
         c = self.fixture.contexts
@@ -63,14 +63,14 @@ class ServerAdapterTests(unittest.TestCase):
         context = self.adapter.condition(self.preview, {}, None, invocation)
         self.assertTrue(evaluate_condition("IsTargetCellFree()", context))
         with patch(
-            "wakfu_server.combat_effect_area_targets.area_targets",
+            "wakfu_server.combat_effect_area_targets.area_targets_at_cell",
             return_value=(NativeAreaTarget(999, cell, 1, 7),),
         ):
             context = self.adapter.condition(self.preview, {}, None, invocation)
             self.assertTrue(evaluate_condition("IsTargetCellFree()", context))
             self.assertFalse(evaluate_condition("IsTargetCellFree(true)", context))
         with patch(
-            "wakfu_server.combat_effect_area_targets.area_targets",
+            "wakfu_server.combat_effect_area_targets.area_targets_at_cell",
             return_value=(
                 NativeAreaTarget(999, cell, 1, 7, native_movement_blocking=True),
             ),
@@ -170,7 +170,9 @@ class ServerAdapterTests(unittest.TestCase):
 
     def test_real_damage_uses_complete_roster_and_preview_uid(self):
         runtime = self.fixture.factory(contexts=self.adapter.contexts())
-        dispatcher, packets = runtime(self.preview, {})
+        dispatcher, packets = runtime(
+            self.preview, {"spell_id": 6266, "evaluation_level": 1}
+        )
         dispatcher.execute(EffectInvocation(339526, 1, 7, -7, (1, 0, 0)))
         self.assertLess(self.preview.actors[-7].hp, 20)
         self.assertEqual(self.preview.actors[7].hp, 60)
@@ -197,14 +199,14 @@ class ServerAdapterTests(unittest.TestCase):
     def test_equal_aliases_share_projection_only_within_one_condition(self):
         from unittest.mock import patch
         from wakfu_server.combat_retained_runtime import (
-            native_retained_condition_effects,
+            _native_retained_condition_population,
         )
 
         actor = self.preview.actors[7]
         invocation = EffectInvocation(339526, 1, 7, 7, actor.position)
         with patch(
-            "wakfu_server.combat_retained_runtime.native_retained_condition_effects",
-            wraps=native_retained_condition_effects,
+            "wakfu_server.combat_retained_runtime._native_retained_condition_population",
+            wraps=_native_retained_condition_population,
         ) as retained:
             first = self.adapter.condition(self.preview, {}, None, invocation)
             self.assertIs(first.actors["caster"], first.actors["target"])
@@ -221,13 +223,13 @@ class ServerAdapterTests(unittest.TestCase):
             condition_actor_selection_scope,
         )
         from wakfu_server.combat_retained_runtime import (
-            native_retained_condition_effects,
+            _native_retained_condition_population,
         )
 
         invocation = EffectInvocation(339526, 1, 7, None, (1, 0, 0))
         with patch(
-            "wakfu_server.combat_retained_runtime.native_retained_condition_effects",
-            wraps=native_retained_condition_effects,
+            "wakfu_server.combat_retained_runtime._native_retained_condition_population",
+            wraps=_native_retained_condition_population,
         ) as retained:
             with condition_actor_selection_scope():
                 first = self.adapter.condition(self.preview, {}, None, invocation)
@@ -567,6 +569,7 @@ class ServerAdapterTests(unittest.TestCase):
             id=901,
             position=(2, 3, 0),
             native_running_effect_manager=True,
+            native_fight_affiliation=0,
             native_fight_properties=frozenset(),
             state_ledger=ledger,
         )
@@ -685,7 +688,7 @@ class ServerAdapterTests(unittest.TestCase):
         )
         self.fixture.effects["339526"] = effect
         dispatcher, packets = self.fixture.factory(contexts=self.adapter.contexts())(
-            self.preview, {}
+            self.preview, {"spell_id": 6266, "evaluation_level": 1}
         )
         with self.assertRaisesRegex(ValueError, "Unaudited"):
             dispatcher.execute(EffectInvocation(339526, 1, 7, -7, (1, 0, 0)))
