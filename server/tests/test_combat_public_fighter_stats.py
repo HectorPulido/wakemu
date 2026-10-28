@@ -6,6 +6,27 @@ from wakfu_server.combat_public_fighter_stats import public_player_fighter_stats
 
 
 class PublicFighterStatsTests(unittest.TestCase):
+    def test_live_property_counters_and_ai_control_preserve_exact_groups(self):
+        for counts in ({}, {0: 1, 40: 2}, {-128: -2, 127: 1}):
+            for controlled in (False, True):
+                with self.subTest(counts=counts, controlled=controlled):
+                    stats = actor_stats(
+                        CombatActorTests().character(),
+                        123,
+                        wp=6,
+                        fight_property_counts=counts,
+                        native_controlled_by_ai=controlled,
+                    )
+                    self.assertEqual(
+                        public_player_fighter_stats(stats, actor_id=7, fight_id=123),
+                        b"\x02" + stats[9:],
+                    )
+                    for end in range(len(stats)):
+                        with self.assertRaises(ValueError):
+                            public_player_fighter_stats(
+                                stats[:end], actor_id=7, fight_id=123
+                            )
+
     def test_public_projection_preserves_owned_groups_and_identity_without_xp(self):
         stats = actor_stats(CombatActorTests().character(), 123, team=1, wp=6)
         public = public_player_fighter_stats(stats, actor_id=7, fight_id=123)

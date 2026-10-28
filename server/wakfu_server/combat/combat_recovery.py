@@ -108,14 +108,16 @@ def timeline(
         or not 0 < fight.turn_id < 2**31
     ):
         raise ValueError("Invalid live native timeline counters")
-    # SU.eE enters ON_FIGHTER_TURN from BEGINNING_FIGHTER_TURN and
-    # increments its global turn once. A restored ongoing turn must not replay
-    # that boundary. Tc/SY progress belongs to end-turn and stays unchanged.
+    # A new turn must run both native preparation (SU.eD) and begin (SU.eE).
+    # Restore BETWEEN with the cursor immediately before the owned successor:
+    # eD validates the next identity, advances Tc.bin and notifies the selected
+    # fighter/controller. eE then increments the global turn exactly once.
+    # An ongoing recovery keeps ON and must replay neither boundary.
     out = struct.pack(
         ">hiBq",
         round_number,
         fight.turn_id - int(new_turn),
-        4 if new_turn else 1,
+        2 if new_turn else 1,
         deadline_ms,
     )
     next_order = getattr(fight, "native_base_turn_order", None)
@@ -142,7 +144,7 @@ def timeline(
     projected_turn_index = sum(
         1 for identity in fight.order[: fight.turn_index] if identity not in excluded
     )
-    out += struct.pack(">b", projected_turn_index)
+    out += struct.pack(">b", projected_turn_index - int(new_turn))
     removed = getattr(fight, "native_timeline_removed", None)
     if not isinstance(removed, list):
         raise ValueError("Missing authoritative native removal statuses")

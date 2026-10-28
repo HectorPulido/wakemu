@@ -107,6 +107,7 @@ class HeroSwitchDispatchTests(unittest.TestCase):
             "chest_opening": None,
             "npc_dialogue_session": None,
             "active_private_session": lambda: None,
+            "is_dungeon_run": lambda _instance: False,
             "PLANTINGS": types.SimpleNamespace(cancel=lambda *_args: None),
             "HARVESTS": types.SimpleNamespace(cancel=lambda *_args, **_kwargs: None),
             "cancel_flora": lambda: None,

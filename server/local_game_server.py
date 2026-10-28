@@ -938,6 +938,9 @@ def submit_ecology_admin_command(
             elapsed_ms=completed.get("elapsed_ms"),
             worker_pid=completed.get("worker_pid"),
             error_type=completed.get("error_type"),
+            error_code=completed.get("error_code"),
+            reason=completed.get("reason"),
+            traceback=completed.get("traceback"),
             added=completed.get("added", 0),
             removed=completed.get("removed", 0),
         )
@@ -3805,6 +3808,40 @@ def session(raw, peer, service, context):
             packet = account_packet(db, account_id)
         send(connection, service, *packet)
 
+    def publish_public_transport(destination_route, saved, *, generic_route):
+        """Publish one committed native public transition through its usual path."""
+        nonlocal character, position, movement_state
+        cancel_crafting()
+        WORLD.leave(character["id"], generation)
+        prior_inventory = character
+        character = saved
+        POSITIONS.attach(account_id, generation, character)
+        position = {key: character[key] for key in ("x", "y", "z")}
+        movement_state = Movement(position)
+        messages = (
+            owned_native_bootstrap(character, direction=destination_route["direction"])
+            if generic_route
+            else transports.bootstrap(character, destination_route)
+        )
+        for message_id, message_body in messages:
+            send(connection, service, message_id, message_body)
+        if destination_route.get("item_payment") is not None:
+            publish_entry_inventory(prior_inventory)
+        # Publish heavy dynamic entities once, after map-ready.
+        join_world(
+            generation,
+            connection,
+            character,
+            defer_scene_snapshot=character["map_id"] != 9,
+        )
+        mark_static_sync_pending()
+        record(
+            event="map_transition",
+            actor_id=character["id"],
+            map_id=character["map_id"],
+            position=position,
+        )
+
     def execute_objectives_travel(
         action, *, resolve_destination=None, related_accounts=(), defer_receipt=False
     ):
@@ -3980,12 +4017,7 @@ def session(raw, peer, service, context):
                             map_id=target["entry_map_id"],
                             instance_id=0,
                         ),
-                        criterion_evaluator=lambda expression, member, destination: seasonal_transport.evaluate(
-                            expression,
-                            member,
-                            destination,
-                            now_ms=int(STORE.clock() * 1000),
-                        ),
+                        criterion_evaluator=seasonal_transport.evaluator(STORE, actor),
                         allow_item_payment=True,
                     )
                     if (
@@ -4583,13 +4615,143 @@ def session(raw, peer, service, context):
     flora_ticket = None
     flora_retry_body = None
     environment_ticket = None
+    pending_artifact_action = None
     environment_seat = None
     environment_scene_identity = None
     environment_scene_states = {}
     last_environment_refresh = 0.0
 
+    def cancel_artifact_action(reason):
+        nonlocal pending_artifact_action
+        if pending_artifact_action is not None:
+            record(
+                event="exploration_artifact_cancelled",
+                actor_id=pending_artifact_action["owner"][2],
+                reason=reason,
+            )
+            pending_artifact_action = None
+
+    def artifact_owner_identity(owner):
+        return (
+            account_id,
+            generation,
+            owner["id"],
+            owner["map_id"],
+            owner.get("instance_id", 0),
+            owner["x"],
+            owner["y"],
+            owner["z"],
+        )
+
+    def artifact_failure_message(error):
+        messages = {
+            "hammer_unavailable": "El martillo todavía no puede despejar estas rocas.",
+            "position": "Acércate al punto de uso del artefacto.",
+        }
+        return messages.get(
+            getattr(error, "public_code", None),
+            "No se pudo usar el artefacto. Inténtalo de nuevo.",
+        )
+
+    def artifact_position_allowed(owner):
+        """Bind zero-mask native branches to accepted owned movement only."""
+        if owner["map_id"] != character["map_id"] or owner.get(
+            "instance_id", 0
+        ) != character.get("instance_id", 0):
+            return False
+        current = tuple(owner[key] for key in ("x", "y", "z"))
+        approved = tuple(movement_state.approved)
+        return (
+            current in approved
+            if approved
+            else current == tuple(character[key] for key in ("x", "y", "z"))
+        )
+
+    def admit_artifact_action(route, request_body, owner):
+        """Publish admitted native scripts and retain only a delayed transition."""
+        nonlocal pending_artifact_action
+        for visual in route.get("script_packets", ()):
+            if visual["broadcast"]:
+                WORLD.broadcast(generation, owner["id"], *visual["packet"])
+            else:
+                send(connection, service, *visual["packet"])
+        delay_ms = route["delay_ms"]
+        if delay_ms == 0:
+            return False
+        pending_artifact_action = dict(
+            owner=artifact_owner_identity(owner),
+            body=bytes(request_body),
+            route=route,
+            due_at=time.monotonic() + delay_ms / 1000,
+        )
+        record(
+            event="exploration_artifact_waiting",
+            actor_id=owner["id"],
+            object_id=route["interactive_element_id"],
+            delay_ms=delay_ms,
+        )
+        return True
+
+    def complete_artifact_action():
+        """Revalidate delayed native travel on idle without blocking the reader."""
+        nonlocal pending_artifact_action
+        pending = pending_artifact_action
+        if pending is None:
+            return
+        if (
+            not loaded
+            or character is None
+            or artifact_owner_identity(character) != pending["owner"]
+            or environment_blocked()
+            or environment_ticket is not None
+        ):
+            cancel_artifact_action("Owner, source or occupation changed")
+            return
+        if time.monotonic() < pending["due_at"]:
+            return
+        from wakfu_server import exploration_artifact_actions, teleporter_approach
+        from wakfu_server.position_buffer import PositionOwnerBusy
+
+        try:
+            if not STORE.current_character_session(
+                account_id, generation, character["id"]
+            ):
+                raise ValueError("Exploration action session expired")
+            flush_positions(
+                account_id=account_id,
+                generation=generation,
+                character_id=character["id"],
+            )
+            route = pending["route"]
+            saved = exploration_artifact_actions.transition(
+                STORE,
+                account_id,
+                generation,
+                character["id"],
+                pending["body"],
+                expected_plan=route,
+                source_allowed=teleporter_approach.callback(
+                    movement_state,
+                    map_id=character["map_id"],
+                    instance_id=character.get("instance_id", 0),
+                ),
+                position_allowed=artifact_position_allowed,
+                blocked=environment_blocked(),
+            )
+        except PositionOwnerBusy:
+            return
+        except ValueError as error:
+            cancel_artifact_action(str(error))
+            from wakfu_server.ecology_feedback import information
+
+            send(connection, service, *information(artifact_failure_message(error)))
+            return
+        pending_artifact_action = None
+        publish_public_transport(route, saved, generic_route=True)
+
     def cancel_environment(*, publish=True):
         nonlocal environment_ticket, environment_seat, paid_container_ticket
+        cancel_artifact_action("Environment action cancelled")
         if paid_container_ticket is not None:
             from wakfu_server.paid_containers import cancel
 
@@ -7023,7 +7185,8 @@ def session(raw, peer, service, context):
                 peers = tuple(
                     peer
                     for lease, peer, owner in WORLD.players.values()
-                    if (owner["map_id"], owner.get("instance_id", 0))
+                    if not getattr(peer, "is_bot_peer", False)
+                    and (owner["map_id"], owner.get("instance_id", 0))
                     == (shared.map_id, shared.instance_id)
                     and (owner["id"], lease) not in exclusions
                 )
@@ -8615,6 +8778,7 @@ def session(raw, peer, service, context):
             ):
                 cancel_environment()
             complete_environment_occupation()
+            complete_artifact_action()
             if (
                 flora_retry_body is not None
                 and flora_ticket is not None
@@ -9134,6 +9298,9 @@ def session(raw, peer, service, context):
                             ),
                         )
                         continue
+                artifact_action_request = False
+                if pending_artifact_action is not None and opcode == 12870:
+                    cancel_artifact_action("Another interactive action started")
                 if loaded and character is not None and opcode == 12870:
                     from wakfu_server.phoenix_points import (
                         recognizes as phoenix_activation,
@@ -9162,9 +9329,26 @@ def session(raw, peer, service, context):
                                 reason=reason,
                             )
                         continue
+                    from wakfu_server import exploration_artifact_actions
                     from wakfu_server.seasonal_native_gateway import activation
 
+                    artifact_action_request = exploration_artifact_actions.recognizes(
+                        character, body
+                    ) or (
+                        len(body) == 12
+                        and exploration_artifact_actions.projection_required(
+                            character["map_id"], struct.unpack_from(">q", body)[0]
+                        )
+                    )
                     try:
+                        artifact_body = exploration_artifact_actions.activation(
+                            character, body
+                        )
+                        if artifact_body is not None:
+                            body = artifact_body
+                        artifact_action_request = (
+                            exploration_artifact_actions.recognizes(character, body)
+                        )
                         gateway = activation(character, body)
                     except ValueError as error:
                         record(
@@ -9175,7 +9359,15 @@ def session(raw, peer, service, context):
                         )
                         from wakfu_server.ecology_feedback import information
 
-                        send(connection, service, *information(str(error)))
+                        send(
+                            connection,
+                            service,
+                            *information(
+                                artifact_failure_message(error)
+                                if artifact_action_request
+                                else str(error)
+                            ),
+                        )
                         continue
                     if gateway is not None:
                         record(
@@ -9260,6 +9452,7 @@ def session(raw, peer, service, context):
                     environment_ticket is not None
                     or environment_seat is not None
                     or paid_container_ticket is not None
+                    or pending_artifact_action is not None
                 ) and opcode in (
                     12117,
                     13520,
@@ -15738,11 +15931,49 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             reason=str(error),
                         )
-                elif opcode == 12296 and loaded:
+                elif loaded and (opcode == 12296 or artifact_action_request):
                     from wakfu_server import generic_transports, teleporter_approach
 
                     generic_route = False
                     try:
+                        if artifact_action_request:
+                            from wakfu_server import exploration_artifact_actions
+
+                            if environment_blocked() or environment_ticket is not None:
+                                raise ValueError(
+                                    "Exploration action is blocked by the current activity"
+                                )
+                            if not STORE.current_character_session(
+                                account_id, generation, character["id"]
+                            ):
+                                raise ValueError("Exploration action session expired")
+                            flush_positions(
+                                account_id=account_id,
+                                generation=generation,
+                                character_id=character["id"],
+                            )
+                            destination_route = exploration_artifact_actions.admit(
+                                STORE,
+                                account_id,
+                                generation,
+                                character["id"],
+                                body,
+                                source_allowed=teleporter_approach.callback(
+                                    movement_state,
+                                    map_id=character["map_id"],
+                                    instance_id=character.get("instance_id", 0),
+                                ),
+                                position_allowed=artifact_position_allowed,
+                                blocked=environment_blocked(),
+                            )
+                            artifact_owner = dict(
+                                character, **destination_route["origin"]
+                            )
+                            if admit_artifact_action(
+                                destination_route, body, artifact_owner
+                            ):
+                                continue
+                            generic_route = True
                         if (1 << 58) < character.get("instance_id", 0) < (1 << 59):
                             from wakfu_server import rift_exit
 
@@ -15786,7 +16017,8 @@ def session(raw, peer, service, context):
                                 deliver_rift_transition()
                                 continue
                         if (
-                            DUNGEON_TRANSITION_OUTBOX_AVAILABLE
+                            not artifact_action_request
+                            and DUNGEON_TRANSITION_OUTBOX_AVAILABLE
                             and DUNGEON_ROOM_RUNTIME_AVAILABLE
                         ):
                             from wakfu_server import (
@@ -15985,7 +16217,7 @@ def session(raw, peer, service, context):
                             and route["interactive_element_id"] == identity
                             for route in transports.CATALOG["routes"]
                         )
-                        if (
+                        if not artifact_action_request and (
                             not verified_tutorial
                             and identity is not None
                             and generic_transports.source(character["map_id"], identity)
@@ -16001,18 +16233,31 @@ def session(raw, peer, service, context):
                                     map_id=character["map_id"],
                                     instance_id=character.get("instance_id", 0),
                                 ),
-                                criterion_evaluator=lambda criterion, actor, destination_map: seasonal_transport.evaluate(
-                                    criterion,
-                                    actor,
-                                    destination_map,
-                                    now_ms=int(STORE.clock() * 1000),
+                                criterion_evaluator=seasonal_transport.evaluator(
+                                    STORE, character
                                 ),
                                 allow_item_payment=True,
                             )
                             generic_route = True
-                        else:
+                        elif not artifact_action_request:
                             destination_route = transports.resolve(character, body)
-                        if destination_route.get("item_payment") is not None:
+                        if artifact_action_request:
+                            saved = exploration_artifact_actions.transition(
+                                STORE,
+                                account_id,
+                                generation,
+                                character["id"],
+                                body,
+                                expected_plan=destination_route,
+                                source_allowed=teleporter_approach.callback(
+                                    movement_state,
+                                    map_id=character["map_id"],
+                                    instance_id=character.get("instance_id", 0),
+                                ),
+                                position_allowed=artifact_position_allowed,
+                                blocked=environment_blocked(),
+                            )
+                        elif destination_route.get("item_payment") is not None:
                             from wakfu_server import seasonal_transport
 
                             saved = seasonal_transport.transition(
@@ -16042,7 +16287,11 @@ def session(raw, peer, service, context):
                         send(
                             connection,
                             service,
-                            *information(failure_message("transport", error)),
+                            *information(
+                                artifact_failure_message(error)
+                                if artifact_action_request
+                                else failure_message("transport", error)
+                            ),
                         )
                         send(
                             connection,
@@ -16063,37 +16312,8 @@ def session(raw, peer, service, context):
                             ),
                         )
                     else:
-                        cancel_crafting()
-                        WORLD.leave(character["id"], generation)
-                        prior_inventory = character
-                        character = saved
-                        POSITIONS.attach(account_id, generation, character)
-                        position = {key: character[key] for key in ("x", "y", "z")}
-                        movement_state = Movement(position)
-                        messages = (
-                            owned_native_bootstrap(
-                                character, direction=destination_route["direction"]
-                            )
-                            if generic_route
-                            else transports.bootstrap(character, destination_route)
-                        )
-                        for message_id, message_body in messages:
-                            send(connection, service, message_id, message_body)
-                        if destination_route.get("item_payment") is not None:
-                            publish_entry_inventory(prior_inventory)
-                        # Publish heavy dynamic entities once, after map-ready.
-                        join_world(
-                            generation,
-                            connection,
-                            character,
-                            defer_scene_snapshot=character["map_id"] != 9,
-                        )
-                        mark_static_sync_pending()
-                        record(
-                            event="map_transition",
-                            actor_id=character["id"],
-                            map_id=character["map_id"],
-                            position=position,
+                        publish_public_transport(
+                            destination_route, saved, generic_route=generic_route
                         )
                 elif opcode == 12962 and generation:
                     from wakfu_server.tutorials import update as update_tutorials
@@ -18493,6 +18713,29 @@ def session(raw, peer, service, context):
                             raise ValueError(
                                 "Native hero switch completion belongs to a replaced session"
                             )
+                        if is_dungeon_run(character.get("instance_id", 0)):
+                            from wakfu_server import dungeon_context
+
+                            # The same native scene now belongs to the new main.
+                            # Publish its actual context under that actor's scope
+                            # before later combat admission consumes the receipt.
+                            with STORE.connection() as db:
+                                fighting = db.execute(
+                                    "SELECT EXISTS(SELECT 1 FROM combat_fights f "
+                                    "JOIN dungeon_room_encounters e ON e.fight_id=f.id "
+                                    "WHERE e.instance_id=%s AND e.status='active' "
+                                    "AND f.status IN ('placement','active')) AS fighting",
+                                    (character["instance_id"],),
+                                ).fetchone()["fighting"]
+                            send(
+                                connection,
+                                service,
+                                *dungeon_context.update_packet(
+                                    STORE,
+                                    character["instance_id"],
+                                    fight_in_progress=fighting,
+                                ),
+                            )
                         send(
                             connection,
                             service,
@@ -19566,7 +19809,9 @@ def session(raw, peer, service, context):
             )
 
         if service == "world" and (
-            environment_ticket is not None or environment_seat is not None
+            environment_ticket is not None
+            or environment_seat is not None
+            or pending_artifact_action is not None
         ):
             logout_barrier(
                 "environment_occupation", lambda: cancel_environment(publish=False)

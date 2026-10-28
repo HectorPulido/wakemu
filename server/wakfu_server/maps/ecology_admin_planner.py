@@ -32,7 +32,9 @@ def _prepare(revision, map_id, region_id):
 
     region = REGIONS.get((map_id, region_id))
     if region is None or region.get("monster_capacity", 0) <= 0:
-        raise ValueError("No native monster habitat for administrative population")
+        from .ecology_admin_errors import EcologyAdminFailure
+
+        raise EcologyAdminFailure("no_monster_habitat")
     allowed = {row["family_id"] for row in region["monster_families"]}
     candidates, all_candidates = {}, {}
     for family in CATALOG["families"]:

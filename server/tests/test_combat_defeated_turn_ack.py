@@ -1,6 +1,7 @@
 """A lethal current-actor action must finish presentation before successor AI."""
 import struct
 import unittest
+from unittest.mock import patch
 
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_shared import Registry, Session
@@ -81,6 +82,29 @@ class DefeatedTurnAckTests(unittest.TestCase):
         self.shared.ack.received.add(1)
         self.registry.arm_ack(99, 7)
         self.assertEqual(self.shared.ack.received, {1})
+
+    def test_stale_dead_summon_input_rejects_before_live_controller_lookup(self):
+        def lethal(fight, runtime):
+            fight.apply_damage(115, 115, 20)
+            return []
+
+        self.registry.execute(99, self.owner, 115, lethal)
+        self.acknowledge(1)
+        self.registry.drain(99, self.owner)
+        before = (self.shared.sequence, self.shared.fight.turn_id)
+        # Retired summons keep their historical actor object. Their live QI
+        # and controller authority is no longer an action admission source.
+        with patch(
+            "wakfu_server.combat_effective_control.effective_input_owner",
+            side_effect=AssertionError("Dead actor reached live control lookup"),
+        ):
+            with self.assertRaisesRegex(ValueError, "Foreign/dead combat actor"):
+                self.registry.execute(
+                    99, self.owner, 115, lambda fight, runtime: self.fail("Executed")
+                )
+        self.assertEqual(before, (self.shared.sequence, self.shared.fight.turn_id))
+        self.assertFalse(self.shared.outboxes[1])
+        self.assertEqual(self.shared.fight.current.id, -200)
 
     def test_conflicting_pending_ack_rolls_back_action(self):
         self.shared.runtime.awaiting_ack = 7

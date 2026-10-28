@@ -166,8 +166,8 @@ class OrdinaryActorAuthority:
             result[identity] = source
         return result
 
-    def _creation_facts(self, preview, actor):
-        """Fresh ordinary identity/life facts shared by full and GF queries."""
+    def _creation_population(self, preview):
+        """Validate the common ordinary roster without querying one actor."""
         withdrawn = {
             identity
             for identity, candidate in preview.actors.items()
@@ -188,6 +188,13 @@ class OrdinaryActorAuthority:
             raise ValueError(
                 "Ordinary authority roster changed: summons/wrapped actors need native registration"
             )
+        return withdrawn, monsters
+
+    def _creation_facts(self, preview, actor, *, _population=None):
+        """Fresh ordinary identity/life facts shared by full and GF queries."""
+        withdrawn, monsters = (
+            self._creation_population(preview) if _population is None else _population
+        )
         if preview.actors.get(actor.id) is not actor:
             raise ValueError("Ordinary actor must belong to current preview")
         if actor.id in withdrawn:
@@ -232,7 +239,7 @@ class OrdinaryActorAuthority:
             current_native_controller(preview, actor.id)
         return player, source, carrying, properties, life
 
-    def summon_count_flags(self, preview, actor):
+    def summon_count_flags(self, preview, actor, *, _population=None):
         """Project native eGj/dTE only; this grants no spell or item authority.
 
         GF does not inspect another ordinary fighter's spellbook, cosmetics or
@@ -248,7 +255,11 @@ class OrdinaryActorAuthority:
             return construction.targeting.get("is_eGj"), construction.targeting.get(
                 "dTE"
             )
-        self._creation_facts(preview, actor)
+        self._creation_facts(
+            preview,
+            actor,
+            _population=None if _population is None else _population(),
+        )
         # These are the same exact biB/bjo/bje constructor facts used below.
         return True, False
 

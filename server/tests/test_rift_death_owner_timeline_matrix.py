@@ -175,7 +175,11 @@ class RiftDeathOwnerTimelineMatrixTests(unittest.TestCase):
                         for opcode, body in batches[0][0].packets
                         if opcode == 12727
                     ]
-                    self.assertEqual(deaths, [(uid, 0) for uid in victims if uid > 0])
+                    expected_deaths = [(uid, 0) for uid in victims if uid > 0]
+                    expected_deaths.extend(
+                        (uid, state) for uid in victims if uid < 0 for state in (0, 2)
+                    )
+                    self.assertEqual(deaths, expected_deaths)
                     with self.assertRaisesRegex(ValueError, "Stale server"):
                         registry.execute_server(
                             733, -200, damage, expected_sequence=initial_sequence

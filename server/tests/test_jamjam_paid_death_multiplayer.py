@@ -36,6 +36,7 @@ from wakfu_server.combat_summon_spellbook import actor_action_book
 from wakfu_server.combat_summon_stats import registered_summon_stats
 from wakfu_server.combat_terrain import local_arena
 from wakfu_server.combat_timeline_snapshot import current_wire_turn
+import test_combat_shared_timeline_recovery as timeline_fixture
 from wakfu_server.equipment_stats import effective_character
 from wakfu_server.health import maximum
 from wakfu_server.spells import encode_deck
@@ -48,6 +49,12 @@ class JamjamPaidDeathMultiplayerTests(unittest.TestCase):
     def test_natural_invocation_paid_lethal_damage_three_owner_death_and_next_turn(
         self,
     ):
+        self._run_native_scenario("paid")
+
+    def test_natural_current_jamjam_nova_self_death_publishes_successor(self):
+        self._run_native_scenario("nova")
+
+    def _run_native_scenario(self, mode):
         def trace(message):
             if os.environ.get("WAKFU_JAMJAM_TEST_TRACE") == "1":
                 print(message, flush=True)
@@ -70,7 +77,7 @@ class JamjamPaidDeathMultiplayerTests(unittest.TestCase):
         character.update(sex=0, instance_id=0, x=-8, y=-7, z=-1)
         characters = {7: character}
         monsters = {-7: dict(monster, level=8)}
-        decks = {7: encode_deck([7307, 7317])}
+        decks = {7: encode_deck([7307, 7317, 7323] if mode == "nova" else [7307, 7317])}
         positions = ((-9, -6, -1), (-8, -8, -1))
         summon_cell = (-8, -6, -1)
         for cell in (*positions, summon_cell):
@@ -285,10 +292,14 @@ class JamjamPaidDeathMultiplayerTests(unittest.TestCase):
                 end_turn()
             self.fail("Native timeline did not reach actor " + str(identity))
 
-        def cast(identity, reference, target):
+        def cast(identity, reference, target, *, auto_ack=True, check_ap=True):
             trace("cast " + str(reference) + " by " + str(identity))
-            source = characters[identity]
-            before_ap = shared.fight.actors[identity].ap
+            actor = shared.fight.actors[identity]
+            controller = (
+                identity if identity in characters else actor.native_controller_id
+            )
+            source = characters[controller]
+            before_ap = actor.ap
             owner = next(s for s in sessions if s.account_id == source["account_id"])
 
             def operation(preview, runtime):
@@ -318,7 +329,7 @@ class JamjamPaidDeathMultiplayerTests(unittest.TestCase):
                     monsters,
                     preview,
                     owner.account_id,
-                    decks[identity],
+                    decks[controller],
                     action_id=runtime.action_id + 1,
                     line_of_sight=los,
                     critical=False,
@@ -330,9 +341,12 @@ class JamjamPaidDeathMultiplayerTests(unittest.TestCase):
                 return Transition(runtime.fight, runtime, packets)
 
             registry.execute(fight.id, owner, identity, operation)
-            self.assertLess(shared.fight.actors[identity].ap, before_ap)
-            acknowledge()
-            return drain()
+            if check_ap:
+                self.assertLess(shared.fight.actors[identity].ap, before_ap)
+            if auto_ack:
+                acknowledge()
+                return drain()
+            return None
 
         turn(7)
         before_ids = set(shared.fight.actors)
@@ -351,6 +365,158 @@ class JamjamPaidDeathMultiplayerTests(unittest.TestCase):
         self.assertEqual(actor.hp, actor.max_hp)
         self.assertTrue(actor_action_book(actor)["actions"])
         slot = actor.native_obstacle_id
+        if mode == "nova":
+            # Prefund the owner through a real Osamodas spell, then let the
+            # newly summoned actor receive its natural server-controlled turn.
+            turn(7)
+            owner_wp_before_prefund = shared.fight.actors[7].effect_stats[4]
+            owner_wp_maximum = shared.fight.actors[7].effect_maxima[4]
+            cast(7, 7323, shared.fight.actors[7].position, check_ap=False)
+            self.assertLess(shared.fight.actors[7].effect_stats[4], owner_wp_maximum)
+            self.assertGreaterEqual(owner_wp_before_prefund, 0)
+            predecessor_id = shared.fight.current.id
+            self.assertEqual(predecessor_id, 7)
+            turn(jamjam)
+            self.assertEqual(shared.fight.current.id, jamjam)
+            self.assertEqual(shared.fight.current.native_controller_id, 7)
+            # Drop the predecessor turn's completed packets so the next drain
+            # isolates Nova's own death and ACK-gated successor publication.
+            drain()
+            owner_wp = shared.fight.actors[7].effect_stats[4]
+            owner_hp = shared.fight.actors[7].hp
+            owner_ap = shared.fight.actors[7].ap
+            owner_mp = shared.fight.actors[7].mp
+            preserved = {
+                identity: (
+                    shared.fight.actors[identity].hp,
+                    shared.fight.actors[identity].ap,
+                    shared.fight.actors[identity].mp,
+                    tuple(sorted(shared.fight.actors[identity].effect_stats.items())),
+                )
+                for identity in (8, 9, -7)
+            }
+            cast(
+                jamjam,
+                7355,
+                shared.fight.actors[7].position,
+                auto_ack=False,
+                check_ap=False,
+            )
+            packets = drain()
+            self.assertIn(jamjam, retired_summon_ids(shared.fight))
+            self.assertEqual(shared.fight.actors[jamjam].native_obstacle_id, -1)
+            self.assertNotIn(jamjam, shared.fight.order)
+            self.assertIsNone(current_registry(shared.fight).slots[slot])
+            self.assertEqual(shared.fight.actors[7].hp, owner_hp)
+            self.assertEqual(
+                shared.fight.actors[7].effect_stats[4],
+                min(owner_wp + 3, shared.fight.actors[7].effect_maxima[4]),
+            )
+            # Native spell diagnostics identify all 7355 resource costs as
+            # zero; the only resource change is Nova's real owner WP effect.
+            self.assertEqual(shared.fight.actors[7].mp, owner_mp)
+            for identity, state in preserved.items():
+                actor = shared.fight.actors[identity]
+                self.assertEqual(
+                    (
+                        actor.hp,
+                        actor.ap,
+                        actor.mp,
+                        tuple(sorted(actor.effect_stats.items())),
+                    ),
+                    state,
+                )
+            self.assertEqual(shared.fight.actors[7].ap, owner_ap)
+            self.assertEqual(shared.fight.phase, "active")
+            self.assertNotEqual(shared.fight.current.id, jamjam)
+            for account, frames in packets.items():
+                opcodes = [opcode for opcode, _ in frames]
+                death_states = [
+                    struct.unpack_from(">qB", body, len(body) - 9)[1]
+                    for opcode, body in frames
+                    if opcode == 12727
+                    and struct.unpack_from(">qB", body, len(body) - 9)[0] == jamjam
+                ]
+                self.assertEqual(death_states, [2], (account, death_states))
+                self.assertIn(12502, opcodes)
+            # The state-2 death and final 12502 reach all owners first.
+            # The first two real ACKs cannot publish the successor; only the
+            # final owner ACK releases 12053/13337/13482.
+            for account, frames in packets.items():
+                opcodes = [opcode for opcode, _ in frames]
+                self.assertIn(12502, opcodes, (account, opcodes))
+                self.assertFalse(
+                    any(op in opcodes for op in (12053, 13337, 13482)),
+                    (account, opcodes),
+                )
+                death_index = next(
+                    i
+                    for i, (opcode, body) in enumerate(frames)
+                    if opcode == 12727
+                    and struct.unpack_from(">qB", body, len(body) - 9)[0] == jamjam
+                )
+                end_index = next(
+                    i for i, (opcode, _) in enumerate(frames) if opcode == 12502
+                )
+                self.assertLess(death_index, end_index, (account, opcodes))
+            counter = shared.runtime.awaiting_ack
+            self.assertIsNotNone(counter)
+            partial_ack_results = []
+            successor_frames = {session.account_id: [] for session in sessions}
+            for index, session in enumerate(sessions):
+
+                def release(preview, runtime, body):
+                    return Transition(preview, runtime, runtime.acknowledge_turn(body))
+
+                result = registry.acknowledge(
+                    fight.id, session, struct.pack(">i", counter), release
+                )
+                partial_ack_results.append(result)
+                newly_queued = drain()
+                for account, frames in newly_queued.items():
+                    successor_frames[account].extend(frames)
+                if index < len(sessions) - 1:
+                    self.assertFalse(
+                        any(
+                            op in [opcode for opcode, _ in frames]
+                            for frames in newly_queued.values()
+                            for op in (12053, 13337, 13482)
+                        ),
+                        newly_queued,
+                    )
+            self.assertEqual(partial_ack_results, [False, False, True])
+            self.assertIsNone(shared.runtime.awaiting_ack)
+            for account, frames in successor_frames.items():
+                opcodes = [opcode for opcode, _ in frames]
+                self.assertEqual(opcodes.count(12053), 1, (account, opcodes))
+                self.assertEqual(opcodes.count(13337), 1, (account, opcodes))
+                self.assertEqual(opcodes.count(13482), 1, (account, opcodes))
+                timeline_packet = next(
+                    body for opcode, body in frames if opcode == 12053
+                )
+                decoded = timeline_fixture.decoded_timeline(timeline_packet)
+                self.assertEqual(decoded["phase"], 2, (account, decoded))
+                self.assertEqual(decoded["current"], shared.fight.current.id)
+                self.assertLess(opcodes.index(12053), opcodes.index(13337))
+                self.assertLess(opcodes.index(13337), opcodes.index(13482))
+            successor = shared.fight.current.id
+            self.assertNotEqual(successor, jamjam)
+            turn(8)
+            owner_eight_hp = shared.fight.actors[8].hp
+            action_packets = cast(8, 4589, shared.fight.actors[8].position)
+            self.assertEqual(shared.fight.actors[8].hp, owner_eight_hp)
+            self.assertTrue(action_packets)
+            end_turn()
+            self.assertNotEqual(shared.fight.current.id, 8)
+            self.proof = dict(
+                mode="nova",
+                jamjam=jamjam,
+                successor=shared.fight.current.id,
+                owner_wp_before=owner_wp,
+                owner_wp_after=shared.fight.actors[7].effect_stats[4],
+                owners=sorted(packets),
+            )
+            return
         # A lawful controlled turn proves a real summoned timeline entry.
         turn(jamjam)
         self.assertEqual(shared.fight.current.native_controller_id, 7)

@@ -27,7 +27,7 @@ class TurnBoundaryContextTests(unittest.TestCase):
             phase="active",
             turn_id=12,
             native_start_event_delivered=True,
-            actors={7: actor, 8: object()},
+            actors={7: actor, 8: SimpleNamespace(id=8)},
         )
         events = []
 

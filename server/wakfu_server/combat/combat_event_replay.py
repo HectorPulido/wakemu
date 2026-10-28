@@ -5,6 +5,7 @@ an actual source running effect. This module never invents an event ID.
 """
 from dataclasses import dataclass, asdict, replace
 from contextvars import ContextVar
+from contextlib import contextmanager
 from concurrent.futures import CancelledError
 from .combat_effect_dispatch import EffectInvocation
 from .combat_native_events import (
@@ -30,6 +31,16 @@ _SUBSCRIPTION_LOCK = RLock()
 _SUBSCRIPTION_MISS = object()
 _SUBSCRIPTION_FALSE = MappingProxyType({"subscription": False})
 _SUBSCRIPTION_TRUE = MappingProxyType({"subscription": True})
+_GROUP_SUBSCRIPTION_FLAGS = {
+    (global_flag, reverse_flag): MappingProxyType(
+        dict(
+            event_global_subscription=global_flag,
+            event_reverse_subscription=reverse_flag,
+        )
+    )
+    for global_flag in (False, True)
+    for reverse_flag in (False, True)
+}
 
 
 def _subscription_key(descriptor, reference):
@@ -42,13 +53,20 @@ def _subscription_key(descriptor, reference):
     )
 
 
-def _subscription_get(key):
+def _subscription_value_get(key):
     with _SUBSCRIPTION_LOCK:
         cached = _SUBSCRIPTION_CACHE.get(key)
         if cached is None:
             return _SUBSCRIPTION_MISS
         _SUBSCRIPTION_CACHE.move_to_end(key)
         value = cached[0]
+    return value
+
+
+def _subscription_get(key):
+    value = _subscription_value_get(key)
+    if value is _SUBSCRIPTION_MISS:
+        return value
     return (
         None
         if value is None
@@ -57,7 +75,6 @@ def _subscription_get(key):
 
 
 def _subscription_put(key, row):
-    global _SUBSCRIPTION_BYTES
     if row is None:
         value = None
     elif type(row) is dict and type(row.get("subscription")) is bool:
@@ -66,6 +83,11 @@ def _subscription_put(key, row):
         # Preserve legacy malformed-row errors/truthiness at its consumption
         # position; never retain a mutable value as a static boolean.
         return
+    _subscription_value_put(key, value)
+
+
+def _subscription_value_put(key, value):
+    global _SUBSCRIPTION_BYTES
     size = getsizeof(key) + sum(map(getsizeof, key)) + getsizeof(value) + 256
     if size > _SUBSCRIPTION_MAX_BYTES:
         return
@@ -393,6 +415,51 @@ class NativeEventReplay:
     def __init__(self, dispatcher, retention):
         self.dispatcher, self.retention = dispatcher, retention
         self.history = NativeTriggerHistory()
+        self._read_pass = None
+
+    @contextmanager
+    def read_pass(self):
+        """Share a complete view only across adjacent callback-free deliveries.
+
+        The ordinary global iterator owns this scope. Removals and potential
+        activations invalidate it before any gameplay callback. Nothing is
+        retained on Fight, across phases, or across a nested replay scope.
+        """
+        previous = self._read_pass
+        if previous is not None:
+            previous["view"] = None
+        current = {
+            "retention": self.retention,
+            "fight": self.retention.fight,
+            "view": None,
+        }
+        self._read_pass = current
+        try:
+            yield
+        finally:
+            current["view"] = None
+            if previous is not None:
+                previous["view"] = None
+            self._read_pass = previous
+
+    def invalidate_read_pass(self):
+        if self._read_pass is not None:
+            self._read_pass["view"] = None
+
+    def _current_view(self):
+        current = self._read_pass
+        if current is None:
+            return self.retention.view()
+        if (
+            current["retention"] is not self.retention
+            or current["fight"] is not self.retention.fight
+        ):
+            # A changed service/preview cannot inherit a previous read scope.
+            current["view"] = None
+            return self.retention.view()
+        if current["view"] is None:
+            current["view"] = self.retention.view()
+        return current["view"]
 
     def __call__(self, source, *, authority, eligible_uids=None):
         if not isinstance(
@@ -409,9 +476,45 @@ class NativeEventReplay:
             authority.condition_context
         ):
             raise ValueError("Native clone callbacks required")
-        view = self.retention.view()
+        view = self._current_view()
+        from wakfu_server.combat_published_catalogs import static_catalog_descriptor
+
+        group_metadata = self.retention.metadata["effects"]
+        group_descriptor = static_catalog_descriptor(group_metadata)
+        if (
+            group_descriptor is not None
+            and group_metadata.representation != "native_json"
+        ):
+            group_descriptor = None
+
+        def group_key(reference):
+            return _subscription_key(group_descriptor, reference) + ("group_flags",)
+
+        def group_cached(reference):
+            if group_descriptor is None:
+                return _SUBSCRIPTION_MISS
+            return _subscription_value_get(group_key(reference))
+
+        def group_definition(reference):
+            cached = group_cached(reference)
+            if cached is not _SUBSCRIPTION_MISS:
+                return _GROUP_SUBSCRIPTION_FLAGS[cached], None
+            definition = group_metadata[reference]
+            # Invalid rows retain their original indexing/error order below.
+            if group_descriptor is not None and type(definition) is dict:
+                flags = tuple(
+                    definition.get(field)
+                    for field in (
+                        "event_global_subscription",
+                        "event_reverse_subscription",
+                    )
+                )
+                if all(type(flag) is bool for flag in flags):
+                    _subscription_value_put(group_key(reference), flags)
+            return definition, definition
+
         _prefetch_replay_bytes(
-            self.retention.metadata["effects"],
+            group_metadata,
             (
                 str(row["invocation"]["reference"])
                 for entry in view.entries
@@ -423,6 +526,8 @@ class NativeEventReplay:
                     )
                 )
                 is not None
+                and group_cached(str(row["invocation"]["reference"]))
+                is _SUBSCRIPTION_MISS
             ),
         )
         if source.channel in (4, 40, 41):
@@ -575,9 +680,8 @@ class NativeEventReplay:
                             remove.append(entry.uid)
                             applied_scalar_removal = True
                 continue
-            definition = self.retention.metadata["effects"][
-                str(row["invocation"]["reference"])
-            ]
+            reference = str(row["invocation"]["reference"])
+            definition, complete_definition = group_definition(reference)
             action = subscription_selection(
                 masks=row["native_subscription_masks"],
                 event_ids=source.event_ids,
@@ -595,7 +699,14 @@ class NativeEventReplay:
             if action == "remove":
                 remove.append(entry.uid)
             elif action == "activate":
+                if complete_definition is None:
+                    complete_definition = group_metadata[reference]
+                definition = complete_definition
                 queued.append((entry, row, definition))
+        if remove or queued:
+            # Even a denied, exhausted or already removed listener can reach
+            # authority callbacks. Later managers must see their current state.
+            self.invalidate_read_pass()
         # Native eZX.a removes queued listeners before sorting/activating survivors.
         if remove:
             self.retention.removal(view).remove(remove)

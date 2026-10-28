@@ -74,6 +74,10 @@ def _scopes(db, character, global_scope, *, genesis=False):
         region_id = region_at(map_id, character["x"], character["y"])
         if (map_id, region_id) not in REGIONS:
             raise ValueError("No native ecology region at this location")
+        if genesis and REGIONS[map_id, region_id].get("monster_capacity", 0) <= 0:
+            from .ecology_admin_errors import EcologyAdminFailure
+
+            raise EcologyAdminFailure("no_monster_habitat")
         return [(map_id, instance_id, region_id)]
     if genesis:
         return [

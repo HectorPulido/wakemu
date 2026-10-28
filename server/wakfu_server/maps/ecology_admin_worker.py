@@ -139,18 +139,31 @@ class PreparationProcess:
             )
             if not isinstance(error_type, str) or not error_type.isidentifier():
                 error_type = "UnknownError"
+            from .ecology_admin_errors import (
+                EcologyPreparationFailure,
+                public_failure,
+            )
+            from wakfu_server.request_diagnostics import redact
+
+            code = response.get("error_code") if isinstance(response, dict) else None
+            reason = response.get("reason") if isinstance(response, dict) else None
+            frames = response.get("traceback") if isinstance(response, dict) else None
+            details = dict(
+                error_type=error_type,
+                error_code=code if public_failure(code) is not None else None,
+                reason=redact(reason if isinstance(reason, str) else ""),
+                traceback=redact(frames[-32:] if isinstance(frames, list) else []),
+            )
             if len(self.failures) < 64:
                 self.failures.append(
                     dict(
                         domain=domain,
                         map_id=map_id,
                         region_id=region_id,
-                        error_type=error_type,
+                        **details,
                     )
                 )
-            raise ValueError(
-                f"Administrative native habitat preparation failed ({error_type})"
-            )
+            raise EcologyPreparationFailure(details)
         from wakfu_server import native_catalog
 
         if response.get("revision") != native_catalog.release():
@@ -198,7 +211,9 @@ def main():
                 )
                 packed = encode(response)
             except Exception as error:
-                packed = encode(dict(ok=False, error_type=type(error).__name__))
+                from .ecology_admin_errors import failure_details
+
+                packed = encode(dict(ok=False, **failure_details(error)))
             destination.write(packed)
             destination.flush()
 

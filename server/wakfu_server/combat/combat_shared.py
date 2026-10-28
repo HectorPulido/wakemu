@@ -1003,8 +1003,8 @@ class Registry:
 
                 if (
                     actor is None
-                    or effective_input_owner(shared.fight, actor) != session.account_id
                     or actor.hp <= 0
+                    or effective_input_owner(shared.fight, actor) != session.account_id
                 ):
                     raise ValueError("Foreign/dead combat actor")
                 if require_turn and (

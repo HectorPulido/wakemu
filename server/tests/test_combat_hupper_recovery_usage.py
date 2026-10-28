@@ -145,13 +145,14 @@ class HupperRecoveryUsageTests(unittest.TestCase):
             opcodes = [opcode for opcode, _ in first]
             self.assertEqual(opcodes.count(12053), 1)
             self.assertEqual(opcodes.count(13482), 1)
-            self.assertNotIn(13337, opcodes)
-            self.assertLess(opcodes.index(12053), opcodes.index(12514))
-            self.assertLess(opcodes.index(12514), opcodes.index(13482))
+            self.assertEqual(opcodes.count(13337), 1)
+            self.assertNotIn(12514, opcodes)
+            self.assertLess(opcodes.index(12053), opcodes.index(13337))
+            self.assertLess(opcodes.index(13337), opcodes.index(13482))
             timeline = recovery_fixture.decoded_timeline(
                 next(body for opcode, body in first if opcode == 12053)
             )
-            self.assertEqual(timeline["phase"], 4)
+            self.assertEqual(timeline["phase"], 2)
             self.assertEqual(timeline["turn"], shared.fight.turn_id - 1)
             self.assertEqual(timeline["current"], actor.id)
             self.assertEqual(shared.fight.turn_id, before_turn)

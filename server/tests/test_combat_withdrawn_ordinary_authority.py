@@ -204,6 +204,7 @@ class WithdrawnOrdinaryAuthorityTests(unittest.TestCase):
         from types import SimpleNamespace
 
         from wakfu_server.combat_pve_departure import retired_pve_actor_ids
+        from wakfu_server.combat_actor import actor_effects
         from wakfu_server.combat_reconnect_snapshot import owned_snapshot
         from wakfu_server.combat_runtime_messages import RuntimeMessages
         from wakfu_server.combat_wire import arena, decode_bootstrap
@@ -229,7 +230,7 @@ class WithdrawnOrdinaryAuthorityTests(unittest.TestCase):
             fight,
             shared,
             SimpleNamespace(account_id=4),
-            actor_payload=lambda *_args: (b"stats", b"effects"),
+            actor_payload=lambda *_args: (b"stats", actor_effects()),
         )
 
         bootstrap = decode_bootstrap(

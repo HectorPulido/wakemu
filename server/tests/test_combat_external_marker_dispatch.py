@@ -121,14 +121,53 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         import threading
         from contextlib import nullcontext
         from wakfu_server.performance_profiler import PROFILER
+        from wakfu_server.bots.runtime import BotPeer
+        from wakfu_server.combat_external_markers import MarkerPublications
+
+        # Bots share the World registry but have no native client scene. Keep
+        # one ahead of a native recipient to reproduce the production crash.
+        bot_peer = BotPeer("marker-regression-buyer")
+        native_scope = (2, "native-generation", 99, 1134, 0)
+        native_peer = SimpleNamespace(
+            write_lock=threading.RLock(),
+            native_instance_scope=lambda: native_scope,
+            marker_publications=MarkerPublications(),
+        )
+        native_batches = []
+
+        def deliver_native(packets):
+            packets = tuple(packets)
+            native_batches.append(packets)
+            data = b"".join(
+                struct.pack(">IH", len(body) + 6, opcode) + body
+                for opcode, body in packets
+            )
+            native_peer.marker_publications.after_write(data, native_scope)
 
         class WorldCapture:
             lock = threading.RLock()
-            players = {}
+            players = {
+                70: (
+                    "bot-generation",
+                    bot_peer,
+                    {"id": 70, "map_id": 1134, "instance_id": 0},
+                ),
+                99: (
+                    "native-generation",
+                    native_peer,
+                    {"id": 99, "map_id": 1134, "instance_id": 0},
+                ),
+            }
+
+            @staticmethod
+            def _send_batch(peer, packets):
+                self.assertIs(peer, native_peer)
+                deliver_native(packets)
 
             @staticmethod
             def emit_location_batch(map_id, instance_id, packets, *, exclude_sessions):
                 batches.append((map_id, instance_id, tuple(packets), exclude_sessions))
+                deliver_native(packets)
 
         observer = SimpleNamespace(character_id=88, generation="observer-generation")
 
@@ -180,6 +219,14 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         self.assertEqual([opcode for opcode, _body in batches[-1][2]], [12233])
         self.assertEqual(batches[-1][2][0][1], struct.pack(">i", 53))
         self.assertEqual(batches[-1][3], excluded)
+        self.assertEqual(
+            native_peer.marker_publications.snapshot(native_scope), {53: 2}
+        )
+        namespace["publish_external_marker"](shared)
+        self.assertEqual(len(batches), 2)
+        self.assertEqual(
+            native_peer.marker_publications.snapshot(native_scope), {53: 2}
+        )
 
         shared.fight.phase = "finished"
         shared.settlement_ready = False
@@ -192,6 +239,9 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         self.assertEqual(len(batches), 3)
         self.assertEqual([opcode for opcode, _body in batches[-1][2]], [12238])
         self.assertEqual(marker.snapshots(1134, 0), ())
+        self.assertEqual(native_peer.marker_publications.snapshot(native_scope), {})
+        namespace["publish_external_marker"](shared)
+        self.assertEqual(len(batches), 3)
 
         # A committed surrender has no reward settlement. It still removes
         # the public marker immediately and must not publish a corpse.
@@ -209,6 +259,10 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         shared.runtime.abandon_owner = (1, 17)
         namespace["publish_external_marker"](shared)
         self.assertEqual(len(batches), before_abort + 1)
+        self.assertFalse(bot_peer.closed)
+        self.assertFalse(hasattr(bot_peer, "native_instance_scope"))
+        self.assertFalse(hasattr(bot_peer, "marker_publications"))
+        self.assertTrue(native_batches)
         self.assertEqual([opcode for opcode, _body in batches[-1][2]], [12238])
         self.assertEqual(batches[-1][3], excluded)
         self.assertEqual(marker.world_snapshots(1134, 0), ())

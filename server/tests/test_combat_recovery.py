@@ -32,7 +32,7 @@ class RecoveryTests(unittest.TestCase):
         opcodes = [x[0] for x in packets]
         self.assertEqual(opcodes.count(12053), 1)
         self.assertEqual(opcodes.count(13482), 1)
-        self.assertNotIn(13337, opcodes)
+        self.assertEqual(opcodes.count(13337), 1)
         self.assertNotIn(12514, opcodes)
         self.assertLess(opcodes.index(12053), opcodes.index(13482))
         self.assertEqual(opcodes[-2:], [13482, 13420])
@@ -45,7 +45,7 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(raw[15:], state)
         self.assertEqual(
             struct.unpack_from(">hiBq", state),
-            (f.current.turn_count, f.turn_id - 1, 4, 31000),
+            (f.current.turn_count, f.turn_id - 1, 2, 31000),
         )
         count = state[15]
         native_order = list(struct.unpack_from(">" + str(count) + "q", state, 16))
@@ -66,6 +66,37 @@ class RecoveryTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 r.recover(owner, struct.pack(">i", identity), now_ms=1000)
         self.assertEqual(r.awaiting_ack, 4)
+
+    def test_restored_new_turn_prepares_each_cursor_without_advancing_gameplay(self):
+        f, _ = self.state()
+
+        def cursor(state):
+            offset = 15
+            for _ in range(2):
+                count = state[offset]
+                offset += 1 + count * 8
+            count = state[offset]
+            offset += 1 + count * 10
+            return struct.unpack_from(">b", state, offset)[0]
+
+        for index, identity in enumerate(f.order):
+            with self.subTest(index=index, identity=identity):
+                f.turn_index = index
+                before = (f.turn_id, dict(f.native_timeline_member_counters))
+                starting = timeline(f, deadline_ms=123_456, new_turn=True)
+                ongoing = timeline(f, deadline_ms=123_456)
+                self.assertEqual(cursor(starting), index - 1)
+                self.assertEqual(cursor(ongoing), index)
+                self.assertEqual(
+                    struct.unpack_from(">hiBq", starting),
+                    (f.native_timeline_round, f.turn_id - 1, 2, 123_456),
+                )
+                self.assertEqual(
+                    struct.unpack_from(">hiBq", ongoing),
+                    (f.native_timeline_round, f.turn_id, 1, 123_456),
+                )
+                self.assertEqual(f.current.id, identity)
+                self.assertEqual(before, (f.turn_id, f.native_timeline_member_counters))
 
     def test_shared_withdrawal_is_not_fabricated_as_a_native_death(self):
         from wakfu_server.combat_pve_withdraw import plan
@@ -208,8 +239,8 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual([opcode for opcode, _ in end_packets], [12502, 13420])
         self.assertEqual(runtime.awaiting_ack, previous_turn)
         pending_opcodes = [opcode for opcode, _ in runtime.pending]
-        self.assertEqual(pending_opcodes, [12053, 13420, 13482, 13420])
-        self.assertNotIn(13337, pending_opcodes)
+        self.assertEqual(pending_opcodes, [12053, 13420, 13337, 13420, 13482, 13420])
+        self.assertEqual(pending_opcodes.count(13337), 1)
         self.assertEqual(pending_opcodes.count(13482), 1)
 
         with self.assertRaisesRegex(ValueError, "Invalid or stale turn"):
@@ -218,7 +249,7 @@ class RecoveryTests(unittest.TestCase):
         acknowledged = runtime.acknowledge_turn(struct.pack(">i", previous_turn))
         self.assertEqual(
             [opcode for opcode, _ in acknowledged],
-            [12053, 13420, 13482, 13420],
+            [12053, 13420, 13337, 13420, 13482, 13420],
         )
         self.assertEqual(runtime.awaiting_ack, None)
         self.assertEqual(fight.current.id, 6)

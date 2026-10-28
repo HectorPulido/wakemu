@@ -43,17 +43,24 @@ def resolve(
     )
     if destination is None:
         raise ValueError("Unknown native teleporter destination")
-    if destination["criterion"].strip():
+    from wakfu_server import exploration_secrets, exploration_transport, travel_mists
+
+    # Unlock only reviewed exploration travel; retain the immutable catalog so
+    # unrelated story transports keep their native access rules and prices.
+    mist = travel_mists.recognizes(source)
+    mission_free = mist or exploration_transport.projected_access(source, character)
+    criterion = "" if mission_free else destination["criterion"]
+    item_price = 0 if mist else destination["cyW"]
+    if item_price > 0 and exploration_secrets.projected_transport_access(
+        character, destination["item_reference"], item_price
+    ):
+        item_price = 0
+    if criterion.strip():
         if criterion_evaluator is None:
             raise ValueError("Unsupported native teleporter access criterion")
-        if (
-            criterion_evaluator(
-                destination["criterion"], character, destination["map_id"]
-            )
-            is not True
-        ):
+        if criterion_evaluator(criterion, character, destination["map_id"]) is not True:
             raise ValueError("Native teleporter access criterion is not met")
-    if destination["cyW"] > 0 and destination["item_reference"] > 0:
+    if item_price > 0 and destination["item_reference"] > 0:
         if allow_item_payment is not True:
             raise ValueError("Native teleporter requires item transaction")
     if destination["cyX"] != 0:
@@ -76,11 +83,11 @@ def resolve(
         },
         "direction": destination["direction"],
         "native_definition_id": source["definition_id"],
-        "criterion": destination["criterion"],
+        "criterion": criterion,
     }
-    if destination["cyW"] > 0 and destination["item_reference"] > 0:
+    if item_price > 0 and destination["item_reference"] > 0:
         result["item_payment"] = dict(
-            reference=destination["item_reference"], quantity=destination["cyW"]
+            reference=destination["item_reference"], quantity=item_price
         )
     return result
 

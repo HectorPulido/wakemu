@@ -24,15 +24,14 @@ from wakfu_server.combat_conditions import ConditionActor, ConditionContext
 from wakfu_server.combat_healing_effect import direct_healing
 from wakfu_server.combat_effect_removal import _identity_fields
 from wakfu_server import native_catalog
+from wakfu_server.paths import DATA_ROOT
 
 
 class NativeEventReplayTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.fixture = json.loads(
-            native_catalog.read_text(
-                Path(__file__).parents[1] / "protocol/native-event-replay-fixture.json"
-            )
+            native_catalog.read_text(DATA_ROOT / "native-event-replay-fixture.json")
         )
 
     def setUp(self):

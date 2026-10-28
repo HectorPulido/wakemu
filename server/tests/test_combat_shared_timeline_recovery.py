@@ -36,7 +36,7 @@ def decoded_timeline(body):
             raise AssertionError("Unexpected removed-turn modifications")
         removed.append((identity, progress, position))
     return dict(
-        current=order[index],
+        current=order[index + int(phase == 2)],
         order=order,
         following=following,
         round=round_number,
@@ -260,9 +260,10 @@ class SharedTimelineRecoveryTests(unittest.TestCase):
             self.assertEqual(opcodes.count(12053), 1)
             self.assertEqual(opcodes.count(13482), 1)
             self.assertNotIn(12514, opcodes)
-            self.assertNotIn(13337, opcodes)
+            self.assertEqual(opcodes.count(13337), 1)
             self.assertNotIn(13477, opcodes)
-            self.assertLess(opcodes.index(12053), opcodes.index(13482))
+            self.assertLess(opcodes.index(12053), opcodes.index(13337))
+            self.assertLess(opcodes.index(13337), opcodes.index(13482))
             retired = next(body for opcode, body in packets if opcode == 13726)
             self.assertEqual(struct.unpack_from(">q", retired, 12)[0], 911)
             timeline = decoded_timeline(

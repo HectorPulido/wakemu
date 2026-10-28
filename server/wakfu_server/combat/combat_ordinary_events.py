@@ -388,27 +388,58 @@ class OrdinaryHealingEvents:
             return tuple(outcomes)
         if hasattr(self.preview, "native_global_pv_collections"):
             from .combat_global_pv_collections import global_pv_iterator
+            from .combat_event_replay import NativeEventReplay
+            from .combat_retained_runtime import NativeRetainedRuntime
+            from .combat_ordinary_authority import (
+                OrdinaryActorAuthority,
+                _immutable_property_catalog,
+            )
+            from .combat_summon import RegisteredSummonAuthority
+            from .combat_npc_spellbook import ordinary_npc_spellbook
+            from contextlib import nullcontext
+
+            authority = self.adapter.actor_authority
+            if type(authority) is RegisteredSummonAuthority:
+                authority = authority.ordinary
+            pure_reads = (
+                type(self.replay) is NativeEventReplay
+                and type(self.replay.retention) is NativeRetainedRuntime
+                and type(authority) is OrdinaryActorAuthority
+                and authority.catalog is _immutable_property_catalog()
+                and (
+                    authority.npc_spellbook is None
+                    or authority.npc_spellbook is ordinary_npc_spellbook
+                )
+            )
+            read_pass = self.replay.read_pass() if pure_reads else nullcontext()
 
             # Native m(caster) constructs its iterator after local delivery.
             # Visit every eligible PV, not a cached set of matching listeners:
             # earlier reactions can register subscriptions on later managers.
-            for identity in global_pv_iterator(
-                self.preview, caster_id=invocation.caster_id
-            ):
-                recipient = verify_recipient(identity)
-                if (
-                    getattr(recipient, "native_is_area", False)
-                    and not recipient.native_running_effect_manager
+            with read_pass:
+                for identity in global_pv_iterator(
+                    self.preview, caster_id=invocation.caster_id
                 ):
-                    continue  # Qq forwards to its actual nullable Qf.
-                outcomes.append(
-                    self.replay(
-                        replace(
-                            base, channel=global_channel, manager_actor_id=identity
-                        ),
-                        authority=self.authority,
+                    # Area lookup refreshes live geometry, unlike the audited
+                    # ordinary fighter authority. Never carry a view across it.
+                    if pure_reads and identity not in self.preview.actors:
+                        self.replay.invalidate_read_pass()
+                    recipient = verify_recipient(identity)
+                    if (
+                        getattr(recipient, "native_is_area", False)
+                        and not recipient.native_running_effect_manager
+                    ):
+                        continue  # Qq forwards to its actual nullable Qf.
+                    outcomes.append(
+                        self.replay(
+                            replace(
+                                base, channel=global_channel, manager_actor_id=identity
+                            ),
+                            authority=self.authority,
+                        )
                     )
-                )
+                    if pure_reads and getattr(recipient, "native_is_area", False):
+                        self.replay.invalidate_read_pass()
             if channel == 3:
                 self._finish_finisher_cleanup(uid)
             return tuple(outcomes)

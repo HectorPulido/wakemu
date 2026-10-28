@@ -32,7 +32,11 @@ def job_message(result):
     if status == "cancelled":
         return f"Ecología #{handle} interrumpida porque cambió la sesión o el personaje seleccionado. {counts} Las zonas ya completadas se conservan."
     if status == "failed":
-        return f"Ecología #{handle} no pudo terminar. {counts} Las zonas ya completadas se conservan; revisa la consola del servidor."
+        from .ecology_admin_errors import public_failure
+
+        cause = public_failure(result.get("error_code"))
+        explanation = cause or "Revisa la consola del servidor."
+        return f"Ecología #{handle} no pudo terminar. {explanation} {counts} Las zonas ya completadas se conservan."
     skipped = len(result.get("failures", ()))
     message = f"Ecología #{handle} terminada: {counts}" + (
         f" {skipped} zonas no pudieron completarse; revisa la consola del servidor."
@@ -250,7 +254,9 @@ class EcologyAdminJobs:
         except EcologyAdminCancelled:
             result["status"] = "cancelled"
         except Exception as error:
-            result["error_type"] = type(error).__name__
+            from .ecology_admin_errors import failure_details
+
+            result.update(failure_details(error))
             if self.closed:
                 result["status"] = "cancelled"
         result["worker_pid"] = getattr(self.preparer, "pid", None)

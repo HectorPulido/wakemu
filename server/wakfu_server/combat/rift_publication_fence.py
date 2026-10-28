@@ -63,6 +63,8 @@ def _refresh_pending_timeline(runtime):
     pending.extend(
         (
             runtime._flush(),
+            (13337, runtime._prefix() + struct.pack(">qq", actor.id, duration)),
+            runtime._flush(),
             (13482, runtime._prefix() + struct.pack(">qq", actor.id, duration)),
             runtime._flush(),
         )

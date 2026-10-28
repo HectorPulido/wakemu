@@ -61,6 +61,9 @@ class HeroPendingDungeonReconnectTests(PostgresCase):
             "record": Mock(),
             "join_world": join_world,
             "active_private_session": lambda: None,
+            # This fixture isolates pending-switch ownership. Native context
+            # republication is exercised by test_hero_switch_instance_publication.
+            "is_dungeon_run": lambda _instance: False,
             "rich_inventory_packet": lambda actor: (13220, b"inventory"),
             "publish_custom_task_cards": Mock(),
             "deliver_custom_task_rewards": Mock(),
