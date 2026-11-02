@@ -716,6 +716,10 @@ def wander_location(
             members = list(group["members"])
             if not members or any(m["id"] in excluded_ids for m in members):
                 continue
+            from .combat_fixed_actor_placement import world_placement
+
+            if any(world_placement(member) is not None for member in members):
+                continue
             if rng.random() >= move_probability:
                 continue
             others = {

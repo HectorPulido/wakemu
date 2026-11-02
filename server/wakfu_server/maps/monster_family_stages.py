@@ -93,7 +93,7 @@ def publication_viable(reference, min_level):
 
 
 @lru_cache(maxsize=None)
-def _initial_references(family_id):
+def _initial_references(family_id, eligible_references=None):
     """Immutable process/release-pinned pool; no repeated native action scan."""
     from .monsters import REFERENCES
     from .monster_collect import _actions
@@ -102,13 +102,6 @@ def _initial_references(family_id):
     family = FAMILIES.get(family_id)
     if family is None or not family["tiers"]:
         return ()
-    candidates = tuple(
-        candidate["reference"]
-        for candidate in family["tiers"][0]["candidates"]
-        if candidate["boss_classification"] == "regular"
-        and _valid_name(REFERENCES[candidate["reference"]].get("name"))
-        and publication_viable(candidate["reference"], candidate["min_level"])
-    )
     seeds = {
         seed["item_reference"]
         for seed in SEEDS.values()
@@ -120,25 +113,44 @@ def _initial_references(family_id):
         if action["csP"] in seeds
         and action["clT"].strip() in ("", 'not IsDead("target")')
     }
-    preferred = tuple(reference for reference in candidates if reference in fertile)
-    return preferred or candidates
+    fallback = ()
+    for tier in family["tiers"]:
+        candidates = tuple(
+            candidate["reference"]
+            for candidate in tier["candidates"]
+            if candidate["boss_classification"] == "regular"
+            and (
+                eligible_references is None
+                or candidate["reference"] in eligible_references
+            )
+            and _valid_name(REFERENCES[candidate["reference"]].get("name"))
+            and publication_viable(candidate["reference"], candidate["min_level"])
+        )
+        if not fallback:
+            fallback = candidates
+        preferred = tuple(reference for reference in candidates if reference in fertile)
+        if preferred:
+            return preferred
+    return fallback
 
 
 def initial_candidates(family_id, *, eligible_references=None):
     """Return fresh native initial rows, preferring native seed producers.
 
     Non-harvestable tutorial forms are excluded when farming forms exist.
-    Explicit planting eligibility is intersected without modifying the cache.
+    Apply explicit planting eligibility before choosing the earliest viable band.
     """
-    references = _initial_references(family_id)
-    if eligible_references is not None:
-        references = tuple(ref for ref in references if ref in eligible_references)
+    eligible = (
+        None if eligible_references is None else tuple(sorted(eligible_references))
+    )
+    references = _initial_references(family_id, eligible)
     family = FAMILIES.get(family_id)
     if family is None or not family["tiers"]:
         return []
     allowed = set(references)
     return [
         dict(candidate)
-        for candidate in family["tiers"][0]["candidates"]
+        for tier in family["tiers"]
+        for candidate in tier["candidates"]
         if candidate["reference"] in allowed
     ]

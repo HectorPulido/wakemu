@@ -1,0 +1,1374 @@
+{
+  "source": "Exact normalized346/347 legacy hashes and source-qualified350 typed nodes; native revision sealed per declaration.",
+  "legacy": [
+    {
+      "policy": "wakemu-crow-original-scripted-phase-v1",
+      "map_id": 363,
+      "layout_policy": "wakemu.crow.observed_native_aerial_platform.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_platform_layout",
+      "actor_reference": 1988,
+      "initial_state": 7325,
+      "spell_reference": 7501,
+      "source_effect_path": [
+        332478,
+        332536,
+        332565
+      ],
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "f22de4ebcf0ab66daf93c5c6ce8bf904bdfe81d53baceee081b4388a54b97ca8",
+      "authority": "authorized_wakemu_native_content_reconstruction"
+    },
+    {
+      "policy": "wakemu-crow-original-scripted-phase-v1",
+      "map_id": 363,
+      "layout_policy": "wakemu.crow.observed_native_aerial_platform.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_platform_layout",
+      "actor_reference": 1988,
+      "initial_state": 7325,
+      "spell_reference": 7502,
+      "source_effect_path": [
+        332478,
+        332536,
+        332566,
+        332567
+      ],
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "54ec297cf71883954e88bc748ed7564876e466acaed91d2c10f0290ca3bfd1dd",
+      "authority": "authorized_wakemu_native_content_reconstruction"
+    },
+    {
+      "policy": "wakemu-crow-original-scripted-phase-v1",
+      "map_id": 363,
+      "layout_policy": "wakemu.crow.observed_native_aerial_platform.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_platform_layout",
+      "actor_reference": 1988,
+      "initial_state": 7325,
+      "spell_reference": 7508,
+      "source_effect_path": [
+        332478,
+        332536,
+        332566,
+        332725
+      ],
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "46f220554219a0cb7b08a93374309a8cdc01c203827d133467e027e8be1da034",
+      "authority": "authorized_wakemu_native_content_reconstruction"
+    },
+    {
+      "policy": "wakemu-rushu-original-scripted-pacts-v1",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7292,
+      "source_effect_path": [
+        324322,
+        324323
+      ],
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "e37dcba4acfb019b27ee1f0a507e21de0e140a69ad5f93b213867524e931c77c",
+      "authority": "authorized_wakemu_native_content_reconstruction"
+    },
+    {
+      "policy": "wakemu-rushu-original-scripted-pacts-v1",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7293,
+      "source_effect_path": [
+        324322,
+        324324
+      ],
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "0b06c0946d470d3411e8f88cd03efe85b103a6c7a464d04f1a066df87fc6bd21",
+      "authority": "authorized_wakemu_native_content_reconstruction"
+    },
+    {
+      "policy": "wakemu-rushu-original-scripted-pacts-v1",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7294,
+      "source_effect_path": [
+        324322,
+        324325
+      ],
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "4da1ba650a7164791d7ed873e312de863b3fdf273c5c78a65f4ee3e06c1ee441",
+      "authority": "authorized_wakemu_native_content_reconstruction"
+    },
+    {
+      "policy": "wakemu-rushu-original-scripted-pacts-v1",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7295,
+      "source_effect_path": [
+        324322,
+        324326
+      ],
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "e215331596f13bc2324d218804da6020e7ddf3c9898156f6c18e74443106162b",
+      "authority": "authorized_wakemu_native_content_reconstruction"
+    }
+  ],
+  "typed": [
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v1",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7272,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "7ff6d9fff6f930588eeedc899620d04cbd7e56e3066b19e0c96bf9cc6cfa0ad2",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324350
+        ],
+        [
+          6,
+          "effect",
+          324353
+        ],
+        [
+          7,
+          "effect",
+          324354
+        ],
+        [
+          8,
+          "area",
+          1650
+        ],
+        [
+          9,
+          "effect",
+          318814
+        ],
+        [
+          10,
+          "effect",
+          318816
+        ],
+        [
+          11,
+          "effect",
+          318817
+        ],
+        [
+          12,
+          "state",
+          6998
+        ],
+        [
+          13,
+          "effect",
+          319310
+        ],
+        [
+          14,
+          "effect",
+          325709
+        ],
+        [
+          15,
+          "effect",
+          325710
+        ],
+        [
+          16,
+          "effect",
+          325711
+        ],
+        [
+          17,
+          "spell",
+          7272
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v1",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7274,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "99fd1a6d04cf6b1aba1a2f8c0ed7499671ded85d280a3ca301b2d7882e11f861",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324356
+        ],
+        [
+          6,
+          "effect",
+          324359
+        ],
+        [
+          7,
+          "effect",
+          324360
+        ],
+        [
+          8,
+          "area",
+          1652
+        ],
+        [
+          9,
+          "effect",
+          319081
+        ],
+        [
+          10,
+          "effect",
+          319084
+        ],
+        [
+          11,
+          "effect",
+          319085
+        ],
+        [
+          12,
+          "state",
+          7011
+        ],
+        [
+          13,
+          "effect",
+          318894
+        ],
+        [
+          14,
+          "effect",
+          318895
+        ],
+        [
+          15,
+          "effect",
+          324493
+        ],
+        [
+          16,
+          "spell",
+          7274
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v1",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7277,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "73b95d264a64fb10678d60b9a19b699cb3798e6d82c6bb1f70f8ac130002d608",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324372
+        ],
+        [
+          6,
+          "effect",
+          324374
+        ],
+        [
+          7,
+          "effect",
+          324375
+        ],
+        [
+          8,
+          "area",
+          1655
+        ],
+        [
+          9,
+          "effect",
+          319102
+        ],
+        [
+          10,
+          "effect",
+          319105
+        ],
+        [
+          11,
+          "effect",
+          319106
+        ],
+        [
+          12,
+          "state",
+          7014
+        ],
+        [
+          13,
+          "effect",
+          318956
+        ],
+        [
+          14,
+          "effect",
+          318957
+        ],
+        [
+          15,
+          "effect",
+          318958
+        ],
+        [
+          16,
+          "spell",
+          7277
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v1",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7278,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "e5840b71e16cd145bb19500b24c0400150f2c26c306fb9c44447295da43c9bcc",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324377
+        ],
+        [
+          6,
+          "effect",
+          324379
+        ],
+        [
+          7,
+          "effect",
+          324380
+        ],
+        [
+          8,
+          "area",
+          1656
+        ],
+        [
+          9,
+          "effect",
+          319109
+        ],
+        [
+          10,
+          "effect",
+          319112
+        ],
+        [
+          11,
+          "effect",
+          319113
+        ],
+        [
+          12,
+          "state",
+          7015
+        ],
+        [
+          13,
+          "effect",
+          318967
+        ],
+        [
+          14,
+          "effect",
+          318968
+        ],
+        [
+          15,
+          "effect",
+          318969
+        ],
+        [
+          16,
+          "spell",
+          7278
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v1",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7279,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "fed6efbdceea1cf4c3f9c9b99ce0c63e4d2a390a1f55cc7f215235fa0e1a20b9",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324382
+        ],
+        [
+          6,
+          "effect",
+          324384
+        ],
+        [
+          7,
+          "effect",
+          324385
+        ],
+        [
+          8,
+          "area",
+          1657
+        ],
+        [
+          9,
+          "effect",
+          319116
+        ],
+        [
+          10,
+          "effect",
+          319119
+        ],
+        [
+          11,
+          "effect",
+          319120
+        ],
+        [
+          12,
+          "state",
+          7016
+        ],
+        [
+          13,
+          "effect",
+          318978
+        ],
+        [
+          14,
+          "effect",
+          318979
+        ],
+        [
+          15,
+          "effect",
+          318980
+        ],
+        [
+          16,
+          "spell",
+          7279
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v1",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7284,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "0d111c98b2c52514f03a70173ff1169bf800b43292cbd31a67b36d6e62605407",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324407
+        ],
+        [
+          6,
+          "effect",
+          324409
+        ],
+        [
+          7,
+          "effect",
+          324410
+        ],
+        [
+          8,
+          "area",
+          1662
+        ],
+        [
+          9,
+          "effect",
+          319151
+        ],
+        [
+          10,
+          "effect",
+          319154
+        ],
+        [
+          11,
+          "effect",
+          319155
+        ],
+        [
+          12,
+          "state",
+          7021
+        ],
+        [
+          13,
+          "effect",
+          319033
+        ],
+        [
+          14,
+          "effect",
+          319034
+        ],
+        [
+          15,
+          "effect",
+          319035
+        ],
+        [
+          16,
+          "spell",
+          7284
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v2",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7275,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "0d1155d74d5dddbff0ec2f5ceff1efb1fc510f1434e2f6a774b41b33c15186ac",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324362
+        ],
+        [
+          6,
+          "effect",
+          324364
+        ],
+        [
+          7,
+          "effect",
+          324365
+        ],
+        [
+          8,
+          "area",
+          1653
+        ],
+        [
+          9,
+          "effect",
+          319088
+        ],
+        [
+          10,
+          "effect",
+          319091
+        ],
+        [
+          11,
+          "effect",
+          319092
+        ],
+        [
+          12,
+          "state",
+          7012
+        ],
+        [
+          13,
+          "effect",
+          318934
+        ],
+        [
+          14,
+          "effect",
+          318935
+        ],
+        [
+          15,
+          "effect",
+          318936
+        ],
+        [
+          16,
+          "spell",
+          7275
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v2",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7276,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "85d13b642a78e619764e3c6ec0686a9cda6abef0c85dce7f60604c30d28d5b47",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324367
+        ],
+        [
+          6,
+          "effect",
+          324369
+        ],
+        [
+          7,
+          "effect",
+          324370
+        ],
+        [
+          8,
+          "area",
+          1654
+        ],
+        [
+          9,
+          "effect",
+          319095
+        ],
+        [
+          10,
+          "effect",
+          319098
+        ],
+        [
+          11,
+          "effect",
+          319099
+        ],
+        [
+          12,
+          "state",
+          7013
+        ],
+        [
+          13,
+          "effect",
+          318945
+        ],
+        [
+          14,
+          "effect",
+          318946
+        ],
+        [
+          15,
+          "effect",
+          318947
+        ],
+        [
+          16,
+          "spell",
+          7276
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v2",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7280,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "f3a2bd79e4d8cb9890598857cd8f85b1bd79287fa275af5d067667b604c7d456",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324387
+        ],
+        [
+          6,
+          "effect",
+          324389
+        ],
+        [
+          7,
+          "effect",
+          324390
+        ],
+        [
+          8,
+          "area",
+          1658
+        ],
+        [
+          9,
+          "effect",
+          319123
+        ],
+        [
+          10,
+          "effect",
+          319126
+        ],
+        [
+          11,
+          "effect",
+          319127
+        ],
+        [
+          12,
+          "state",
+          7017
+        ],
+        [
+          13,
+          "effect",
+          318989
+        ],
+        [
+          14,
+          "effect",
+          318990
+        ],
+        [
+          15,
+          "effect",
+          318991
+        ],
+        [
+          16,
+          "spell",
+          7280
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v2",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7281,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "3e25a84159b1f19a4d804e6ebe771e8d3c36d06bb06f06d8da21b7ae347c3a53",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324392
+        ],
+        [
+          6,
+          "effect",
+          324394
+        ],
+        [
+          7,
+          "effect",
+          324395
+        ],
+        [
+          8,
+          "area",
+          1659
+        ],
+        [
+          9,
+          "effect",
+          319130
+        ],
+        [
+          10,
+          "effect",
+          319133
+        ],
+        [
+          11,
+          "effect",
+          319134
+        ],
+        [
+          12,
+          "state",
+          7018
+        ],
+        [
+          13,
+          "effect",
+          319000
+        ],
+        [
+          14,
+          "effect",
+          319001
+        ],
+        [
+          15,
+          "effect",
+          319339
+        ],
+        [
+          16,
+          "effect",
+          319341
+        ],
+        [
+          17,
+          "spell",
+          7281
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v2",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7282,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "1390de4844ea2f34e06a7f369b63fc8a5a56c11d51f9bb2e7843fab2f095a002",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324397
+        ],
+        [
+          6,
+          "effect",
+          324399
+        ],
+        [
+          7,
+          "effect",
+          324400
+        ],
+        [
+          8,
+          "area",
+          1660
+        ],
+        [
+          9,
+          "effect",
+          319137
+        ],
+        [
+          10,
+          "effect",
+          319140
+        ],
+        [
+          11,
+          "effect",
+          319141
+        ],
+        [
+          12,
+          "state",
+          7019
+        ],
+        [
+          13,
+          "effect",
+          319011
+        ],
+        [
+          14,
+          "effect",
+          319012
+        ],
+        [
+          15,
+          "effect",
+          319013
+        ],
+        [
+          16,
+          "effect",
+          319342
+        ],
+        [
+          17,
+          "spell",
+          7282
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v2",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7287,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "bf1c7fe58b716f205eacfdc3b1d31e2122ce4461ee3e1be3595dcb91ab62a82f",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324422
+        ],
+        [
+          6,
+          "effect",
+          324424
+        ],
+        [
+          7,
+          "effect",
+          324425
+        ],
+        [
+          8,
+          "area",
+          1665
+        ],
+        [
+          9,
+          "effect",
+          319172
+        ],
+        [
+          10,
+          "effect",
+          319175
+        ],
+        [
+          11,
+          "effect",
+          319176
+        ],
+        [
+          12,
+          "state",
+          7024
+        ],
+        [
+          13,
+          "effect",
+          319066
+        ],
+        [
+          14,
+          "effect",
+          319067
+        ],
+        [
+          15,
+          "effect",
+          319068
+        ],
+        [
+          16,
+          "spell",
+          7287
+        ]
+      ]
+    },
+    {
+      "policy": "wakemu-rushu-native-vestige-callbacks-v2",
+      "map_id": 1332,
+      "layout_policy": "wakemu.rushu.observed_schematic_native_floor_translation.v1",
+      "layout_authority": "reconstructed_world_coordinates_from_observed_relative_schematic",
+      "actor_reference": 5306,
+      "initial_state": 7000,
+      "spell_reference": 7288,
+      "source_effect_path": null,
+      "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_closure_sha256": "b1e95e43af02b337429d1a96568cfd60ee0c4e0d38b35b4ba91d11689fac6c75",
+      "authority": "authorized_wakemu_native_content_reconstruction",
+      "source_nodes": [
+        [
+          1,
+          "state",
+          7000
+        ],
+        [
+          2,
+          "effect",
+          324322
+        ],
+        [
+          3,
+          "effect",
+          324346
+        ],
+        [
+          4,
+          "effect",
+          324349
+        ],
+        [
+          5,
+          "effect",
+          324427
+        ],
+        [
+          6,
+          "effect",
+          324429
+        ],
+        [
+          7,
+          "effect",
+          324430
+        ],
+        [
+          8,
+          "area",
+          1666
+        ],
+        [
+          9,
+          "effect",
+          319179
+        ],
+        [
+          10,
+          "effect",
+          319182
+        ],
+        [
+          11,
+          "effect",
+          319183
+        ],
+        [
+          12,
+          "state",
+          7025
+        ],
+        [
+          13,
+          "effect",
+          319077
+        ],
+        [
+          14,
+          "effect",
+          319078
+        ],
+        [
+          15,
+          "effect",
+          319079
+        ],
+        [
+          16,
+          "spell",
+          7288
+        ]
+      ]
+    }
+  ]
+}

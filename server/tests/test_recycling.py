@@ -613,15 +613,26 @@ class RecyclingAuthorityTests(PostgresCase):
 
     def test_product_full_bag_failure_rolls_back_source_and_receipt(self):
         owner = self.player()
-        source = self.add_item(owner, 27083, slot=0, kind=1)
+        source = self.add_item(owner, 16163, quantity=9999, slot=0, kind=1)
         for slot in range(30):
             self.add_item(owner, 30000, slot=slot, kind=0)
-        with self.assertRaisesRegex(ValueError, "cannot hold recycling products"):
+        containers = self.fetchall(
+            "SELECT kind,capacity FROM inventory_containers WHERE character_id=%s ORDER BY kind",
+            (owner["character"]["id"],),
+        )
+        for container in containers:
+            kind, bag_capacity = container["kind"], container["capacity"]
+            if kind == 0:
+                continue  # The base inventory was filled above.
+            start = 1 if kind == 1 else 0
+            for slot in range(start, bag_capacity):
+                self.add_item(owner, 30000, slot=slot, kind=kind)
+        with self.assertRaisesRegex(ValueError, "no supported ordinary bag space"):
             self.request(
                 owner, source["uid"], rng=lambda: self.fail("Fixed yield draws none")
             )
         self.assertEqual(
-            1,
+            9999,
             self.fetchone(
                 "SELECT quantity FROM inventory_items WHERE uid=%s", (source["uid"],)
             )["quantity"],

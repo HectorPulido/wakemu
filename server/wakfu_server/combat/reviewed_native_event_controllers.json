@@ -1,0 +1,144 @@
+{
+  "schema": "wakemu-reviewed-native-event-admission-v1",
+  "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+  "enabled_monsters": {
+    "4400": {
+      "min_level": 203,
+      "max_level": 208,
+      "spell_ids": [],
+      "initial_state_triples": [
+        4611,
+        1,
+        1,
+        5595,
+        1,
+        1,
+        7998,
+        1,
+        1
+      ],
+      "event_controller": {
+        "schema": "native-event-only-npc-v1",
+        "descriptor": {
+          "reference": 4400,
+          "native_class": "aMb",
+          "raw_csd": [],
+          "raw_cle": [
+            4611,
+            1,
+            1,
+            5595,
+            1,
+            1,
+            7998,
+            1,
+            1
+          ],
+          "min_level": 203,
+          "max_level": 208,
+          "raw_profile_sha256": "1f36b5ec1667c420d894f960af0070b0bc075c9af4724866b24819f323f284d0"
+        },
+        "descriptor_sha256": "02a50d0fcbba13e1a99e645f4249e3ee8c7301c3748aa56b1015cdc72f305da7",
+        "callback_roots": [
+          {
+            "state_id": 4926,
+            "effect_id": 217089,
+            "target_masks": [
+              null,
+              null,
+              null,
+              [
+                2
+              ],
+              null,
+              [
+                1001
+              ],
+              null
+            ]
+          }
+        ],
+        "bootstrap_links": [
+          {
+            "initial_state_id": 4611,
+            "initial_effect_id": 188123,
+            "apply_effect_id": 217093,
+            "state_id": 4926,
+            "state_level": 1
+          }
+        ]
+      }
+    },
+    "5114": {
+      "min_level": 83,
+      "max_level": 88,
+      "spell_ids": [],
+      "initial_state_triples": [
+        6177,
+        1,
+        1,
+        5595,
+        1,
+        1,
+        7998,
+        1,
+        1
+      ],
+      "event_controller": {
+        "schema": "native-event-only-npc-v1",
+        "descriptor": {
+          "reference": 5114,
+          "native_class": "aMb",
+          "raw_csd": [],
+          "raw_cle": [
+            6177,
+            1,
+            1,
+            5595,
+            1,
+            1,
+            7998,
+            1,
+            1
+          ],
+          "min_level": 83,
+          "max_level": 88,
+          "raw_profile_sha256": "477b8879c41a32b9a03d16f2b5195b656832bc4d47cbdccd3d62a0e4889ac420"
+        },
+        "descriptor_sha256": "c158093e9ac023b10850b1233eef601684b8f5f5d4407eca51deb889b16a5af2",
+        "callback_roots": [
+          {
+            "state_id": 6177,
+            "effect_id": 293116,
+            "target_masks": [
+              null,
+              null,
+              null,
+              [
+                68,
+                70
+              ],
+              null,
+              [
+                1001
+              ],
+              null
+            ]
+          }
+        ],
+        "repeat_at_round_start": [
+          {
+            "policy": "wakemu.reviewed-native-initial-state-table-start-v1",
+            "state_id": 6177,
+            "root_id": 293113,
+            "source_sha256": "7d41b37dd93ef6e16f6cbf158306b5680ac845ead537bb682b55a13fc5a015c3",
+            "metadata_sha256": "0a3378dbd13292521c4e1466b4c06911350dee574f8705b7d6ad95a03b2a87fe",
+            "authority": "Wakemu reviewed encounter scheduling; original native state program and full global subscription metadata",
+            "source_uri": "native://aMb/5114/cle/6177/fg/293113"
+          }
+        ]
+      }
+    }
+  },
+  "provenance": "Reviewed original aMb descriptors, native event roots, independent guard tests and paid Ready/counter/hatch/fragment component receipts; whole boss victory is not claimed."
+}

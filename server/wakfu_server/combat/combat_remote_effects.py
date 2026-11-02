@@ -127,8 +127,11 @@ def initial_npc_actor_effects(fight, actor_id, *, now_milliseconds=None):
 
     scaling_constructor = validates_constructor_receipt(fight, actor_id)
     receipt = getattr(fight, "native_npc_initialization_receipts", {}).get(actor_id)
+    from .combat_encounter_scene_states import validates_scene_receipt
+
+    scene_constructor = validates_scene_receipt(fight, actor_id)
     if receipt is None:
-        if scaling_constructor:
+        if scaling_constructor or scene_constructor:
             return (
                 _live_actor_effects(fight, actor_id)
                 if now_milliseconds is None

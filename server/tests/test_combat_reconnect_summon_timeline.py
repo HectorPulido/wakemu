@@ -102,6 +102,107 @@ class ReconnectSummonTimelineTests(unittest.TestCase):
                 self.assertEqual(timeline_fields(recovery[15:])[-1], 13)
                 self.assertEqual(source_snapshot(fight), before)
 
+    def test_known_original_marker_bootstraps_on_witness_and_preserves_full_resume(
+        self,
+    ):
+        from wakfu_server.combat_timeline_snapshot import counters
+
+        for pending in (True, False):
+            with self.subTest(pending=pending):
+                fight, summon, shared = fixture(True)
+                marker = (
+                    (
+                        12502,
+                        struct.pack(">iiiqii", fight.id, 40, -1, 100, -1, 0),
+                    ),
+                    (13420, struct.pack(">i", fight.id)),
+                )
+                shared.ack = SimpleNamespace(turn=12, received={1})
+                if pending:
+                    shared.runtime.awaiting_ack = 12
+                    shared.reconnect_turn_end_packets = marker
+                else:
+                    shared.reconnect_end_turn_history = (12, marker)
+
+                before = source_snapshot(fight)
+                original_counters = counters(fight)
+                original_order = tuple(fight.order)
+                original_current = fight.current.id
+                packets = owned_snapshot(
+                    fight,
+                    shared,
+                    SimpleNamespace(account_id=1, character_id=100),
+                    actor_payload=lambda *args: (b"owned-stats", b"\x00\x00"),
+                )
+
+                self.assertEqual(packets.presentation.marker_packets, marker)
+                self.assertEqual(packets.presentation.canonical_marker, pending)
+                self.assertEqual(packets.presentation.counter, 12)
+                initial = decode_bootstrap(packets[0][1])["myG"]
+                phase, initial_orders, initial_progress, index, turn = timeline_fields(
+                    initial
+                )
+                self.assertEqual((phase, turn), (1, 12))
+                self.assertEqual(initial_orders[0][index], 100)
+                self.assertIn(100, initial_orders[0])
+                self.assertNotIn(summon.id, initial_orders[0])
+
+                resume = packets.presentation.resume_packets[0][1]
+                phase, orders, progress, index, turn = timeline_fields(resume[15:])
+                self.assertEqual((phase, turn), (1, 13))
+                self.assertEqual(orders[0], original_order)
+                self.assertEqual(orders[0][index], original_current)
+                self.assertEqual(
+                    progress,
+                    {
+                        int(identity): value
+                        for identity, value in original_counters.items()
+                    },
+                )
+                self.assertEqual(counters(fight), original_counters)
+                self.assertEqual(fight.order, list(original_order))
+                self.assertEqual(fight.current.id, original_current)
+                self.assertEqual(shared.ack.received, {1})
+                self.assertEqual(source_snapshot(fight), before)
+
+    def test_unknown_historical_marker_remains_deferred_initial(self):
+        fight, summon, shared = fixture(True)
+        marker = (
+            (
+                12502,
+                struct.pack(">iiiqii", fight.id, 40, -1, 999999, -1, 0),
+            ),
+            (13420, struct.pack(">i", fight.id)),
+        )
+        shared.ack = SimpleNamespace(turn=None, received={1})
+        shared.reconnect_end_turn_history = (12, marker)
+        before = source_snapshot(fight)
+        packets = owned_snapshot(
+            fight,
+            shared,
+            SimpleNamespace(account_id=1, character_id=100),
+            actor_payload=lambda *args: (b"owned-stats", b"\x00\x00"),
+        )
+        phase, order, _, index, turn = timeline_fields(
+            decode_bootstrap(packets[0][1])["myG"]
+        )
+        self.assertEqual((phase, index, turn), (0, -1, 13))
+        self.assertNotIn(summon.id, order[0])
+        self.assertEqual(packets.presentation.marker_packets, ())
+        self.assertEqual(packets.presentation.counter, 13)
+        recovery = packets.presentation.resume_packets[0][1]
+        phase, orders, progress, index, turn = timeline_fields(recovery[15:])
+        self.assertEqual((phase, turn), (1, 13))
+        self.assertEqual(orders[0][index], fight.current.id)
+        self.assertEqual(
+            progress,
+            {
+                int(identity): value
+                for identity, value in fight.native_timeline_member_counters.items()
+            },
+        )
+        self.assertEqual(source_snapshot(fight), before)
+
     def test_birth_fence_restores_full_progress_and_actual_current_without_duplicates(
         self,
     ):

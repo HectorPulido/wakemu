@@ -2,15 +2,10 @@
 
 
 def current_policy():
-    """Read three indexed policy records, without decoding the effect catalog."""
-    from wakfu_server import native_catalog
-    from wakfu_server.paths import DATA_ROOT
+    """Share reviewed admission without changing immutable native records."""
+    from wakfu_server.combat_npc_activation_policy import current_policy as reviewed
 
-    path = DATA_ROOT / "native-npc-spell-effect-trees.json"
-    return {
-        key: native_catalog.record(path, "activation_policy", key)
-        for key in ("schema", "legacy_spell_ids", "enabled_monsters")
-    }
+    return reviewed()
 
 
 def admitted(policy, reference, minimum, maximum, *, native):
@@ -41,8 +36,6 @@ def admitted(policy, reference, minimum, maximum, *, native):
         or any(type(spell) is not int or spell <= 0 for spell in row["spell_ids"])
     ):
         raise ValueError("Invalid dungeon NPC admission record")
-    if not row["min_level"] <= minimum <= maximum <= row["max_level"]:
-        return False
     abilities = native.get("native_abilities")
     if type(abilities) is not list or any(
         not isinstance(ability, dict) or type(ability.get("spell_id")) is not int

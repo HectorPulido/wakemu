@@ -230,6 +230,9 @@ def prepare(store, account_id, generation, character, runtime, body):
         )
         if cursor.rowcount != 1:
             raise ValueError("Fight cannot be durably abandoned")
+        from .rift_runtime import abort_bound_fight
+
+        abort_bound_fight(db, runtime.fight.id)
     if earned_cleanup:
         from .combat_area_boundary import adopt_fight
 

@@ -134,18 +134,12 @@ def populate(db, event, *, now_ms):
     }
     # One scalar scan only when a new event population is created; never a
     # per-tick world snapshot or an empty-map simulation.
-    world = occupied[0]
-    with world.lock:
-        origins = tuple(
-            (c["x"], c["y"], c["z"])
-            for _, _, c in world.players.values()
-            if world.location(c) == (event["map_id"], event["world_instance_id"])
-        )
-        taken.update(
-            (c["x"], c["y"])
-            for _, _, c in world.players.values()
-            if world.location(c) == (event["map_id"], event["world_instance_id"])
-        )
+    origins = presence.try_positions(
+        occupied, event["map_id"], event["world_instance_id"]
+    )
+    if origins is None:
+        return ()
+    taken.update(point[:2] for point in origins)
     from wakfu_server.monster_population_capacity import physical_cells
 
     taken.update(

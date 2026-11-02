@@ -68,16 +68,17 @@ def validate_profile(value):
         require_ordinary_spawn(row["ref_id"])
         statistics(row["ref_id"], row["level"])
         policy = enabled.get(str(row["ref_id"]))
+        if policy is None:
+            raise ValueError("Challenge monster is not enabled")
         if (
-            policy is None
-            or not policy["min_level"] <= row["level"] <= policy["max_level"]
+            not isinstance(policy, dict)
+            or type(policy.get("min_level")) is not int
+            or type(policy.get("max_level")) is not int
+            or not 1 <= policy["min_level"] <= policy["max_level"] <= 32767
         ):
-            raise ValueError("Challenge monster is not enabled at its native level")
-        if (
-            not 1 <= row["count"] <= 12
-            or not native["min_level"] <= row["level"] <= native["max_level"]
-        ):
-            raise ValueError("Invalid challenge monster quantity or level")
+            raise ValueError("Malformed challenge monster source recommendations")
+        if not 1 <= row["count"] <= 12:
+            raise ValueError("Invalid challenge monster quantity")
         count += row["count"]
     if not 1 <= count <= 12:
         raise ValueError("Challenge exceeds native team capacity")

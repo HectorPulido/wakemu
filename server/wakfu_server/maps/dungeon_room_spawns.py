@@ -13,6 +13,7 @@ def ensure_room_group(
     select_level,
     occupied=(),
     player_slots=6,
+    fixed_actor_placements=(),
 ):
     """Replay the existing room group; defeat retries reuse its available group.
 
@@ -67,6 +68,7 @@ def ensure_room_group(
         select_level=select_level,
         occupied=occupied,
         player_slots=player_slots,
+        fixed_actor_placements=fixed_actor_placements,
     )
     groups.register_transaction(db, asset_map_id, instance_id, group_id, members)
     receipt = db.execute(

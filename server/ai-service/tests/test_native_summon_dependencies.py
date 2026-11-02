@@ -98,19 +98,83 @@ class NativeSummonDependencyTests(unittest.TestCase):
         self.assertFalse(self.check(*args, spell=9999))
         self.assertFalse(self.check(*args, level=9))
 
-    def test_out_of_scope_descriptor_and_parent_levels_are_rejected(self):
-        for change in ("parent", "summon"):
+    def test_authored_parent_and_source_registered_levels_preserve_actual_book(self):
+        for level in (0, 9, 215, 32767):
             fight, actor, monsters, policy, book = self.fixture()
-            if change == "parent":
-                fight.actors[-200].effective_level = 2
-            else:
-                actor.effective_level = 9
-                actor.native_summon_source["level"] = 9
-                fight.native_summon_registrations[901]["authority"][
-                    "native_real_level"
-                ] = 9
-            with self.subTest(change=change):
-                self.assertFalse(self.check(fight, actor, monsters, policy, book))
+            fight.actors[-200].effective_level = 215
+            actor.effective_level = level
+            actor.native_summon_source["level"] = level
+            fight.native_summon_registrations[901]["authority"][
+                "native_real_level"
+            ] = level
+            book["actions"][0]["level"] = level
+            with self.subTest(level=level):
+                self.assertTrue(
+                    self.check(fight, actor, monsters, policy, book, level=level)
+                )
+                self.assertFalse(
+                    self.check(fight, actor, monsters, policy, book, level=level + 1)
+                )
+
+    def test_actual_native_profile_book_attests_overridden_descriptor_grade(self):
+        from wakfu_server.combat_summon_spellbook import fresh_action_book
+
+        fight, actor, monsters, policy, _ = self.fixture()
+        fight.actors[-200].effective_level = 215
+        actor.effective_level = 215
+        actor.native_summon_source["level"] = 215
+        fight.native_summon_registrations[901]["authority"]["native_real_level"] = 215
+        profiles = {
+            "735": {
+                "abilities": [
+                    dict(
+                        reference=1948,
+                        casting_uid=1948,
+                        override_level=-1,
+                        maximum_level=200,
+                    )
+                ]
+            }
+        }
+        actor.native_summon_action_book = fresh_action_book(735, 215, profiles=profiles)
+        with patch(
+            "wakfu_server.combat_summon_spellbook.profile_abilities",
+            return_value=profiles,
+        ):
+            self.assertTrue(
+                registered_dependency_enabled(fight, actor, monsters, policy, 1948, 200)
+            )
+            self.assertFalse(
+                registered_dependency_enabled(fight, actor, monsters, policy, 1948, 215)
+            )
+            actor.native_summon_action_book["actions"][0]["level"] = 215
+            with self.assertRaisesRegex(
+                ValueError, "changed fresh native summon action book"
+            ):
+                registered_dependency_enabled(fight, actor, monsters, policy, 1948, 215)
+
+    def test_malformed_actor_levels_never_gain_dependency_imports(self):
+        for kind in ("parent", "summon"):
+            for level in (-1, 32768, True, 2.0):
+                fight, actor, monsters, policy, book = self.fixture()
+                if kind == "parent":
+                    fight.actors[-200].effective_level = level
+                else:
+                    actor.effective_level = level
+                    actor.native_summon_source["level"] = level
+                    fight.native_summon_registrations[901]["authority"][
+                        "native_real_level"
+                    ] = level
+                with self.subTest(kind=kind, level=level):
+                    if kind == "summon" and type(level) is not int:
+                        with self.assertRaisesRegex(
+                            ValueError, "registered summon authority"
+                        ):
+                            self.check(fight, actor, monsters, policy, book)
+                    else:
+                        self.assertFalse(
+                            self.check(fight, actor, monsters, policy, book)
+                        )
 
     def test_missing_caster_and_cyclic_chains_are_rejected(self):
         for caster in (999, 901):

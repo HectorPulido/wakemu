@@ -209,6 +209,9 @@ namespace Jondo.Unity.Server.Managers
         public sealed record Board
         {
             public Func<int, bool> Walkable { get; init; } = _ => true;
+            // Actor-specific ordinary movement; full geometry remains available to spells.
+            public Func<Fighter, int, bool> MovementAnchorAllowed { get; init; } = (_, _) => true;
+            public Func<Fighter, int, bool> MovementGoalAllowed { get; init; } = (_, _) => true;
             public Func<int, int, bool> Sees { get; init; } = (_, _) => true;
             public Func<int,int,bool> IsPortalTravel { get; init; } = (_,_)=>false;
             public IReadOnlyList<Fighter> Fighters { get; init; } = Array.Empty<Fighter>();
@@ -846,7 +849,7 @@ namespace Jondo.Unity.Server.Managers
         private static bool CanOccupy(Board board, Fighter walker, int anchor, HashSet<int> blocked)
         {
             if (!MapGeometry.IsValid(anchor)) return false;
-            if (!board.Walkable(anchor)) return false;
+            if (!board.Walkable(anchor) || !board.MovementAnchorAllowed(walker, anchor)) return false;
             foreach (var column in FootprintColumnsAt(walker, anchor))
                 if (!column.Any(board.Walkable) || column.Any(blocked.Contains)) return false;
             return true;
@@ -896,7 +899,8 @@ namespace Jondo.Unity.Server.Managers
                     queue.Enqueue(next);
                 }
             }
-            return routes;
+            return routes.Where(kv => kv.Key == monster.CellId || board.MovementGoalAllowed(monster, kv.Key))
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
         }
 
         // Wakemu: resource-bounded weighted search. Keep nondominated resource/risk
@@ -946,7 +950,8 @@ namespace Jondo.Unity.Server.Managers
                     queue.Enqueue((destination, candidate, portalUsed), RouteCost(candidate, monster));
                 }
             }
-            return labels.ToDictionary(kv => kv.Key, kv => kv.Value.Select(v => v.Route).ToList());
+            return labels.Where(kv => kv.Key == monster.CellId || board.MovementGoalAllowed(monster, kv.Key))
+                .ToDictionary(kv => kv.Key, kv => kv.Value.Select(v => v.Route).ToList());
         }
 
         private static double RouteCost(Route route, Fighter monster)

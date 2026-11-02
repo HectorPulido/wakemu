@@ -1,0 +1,1024 @@
+{
+  "native_dungeon_140": [
+    {
+      "order": 1,
+      "monsters": [
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        },
+        {
+          "name": "Kangwejator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4750,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 64,
+          "native_min_level": 61
+        },
+        {
+          "name": "Albatroz",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4751,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 60,
+          "native_min_level": 56
+        },
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        },
+        {
+          "name": "Kangwejator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4750,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 64,
+          "native_min_level": 61
+        },
+        {
+          "name": "Albatroz",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4751,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 60,
+          "native_min_level": 56
+        },
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        },
+        {
+          "name": "Kangwejator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4750,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 64,
+          "native_min_level": 61
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "order": 2,
+      "monsters": [
+        {
+          "name": "Kangwejator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4750,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 64,
+          "native_min_level": 61
+        },
+        {
+          "name": "Albatroz",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4751,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 60,
+          "native_min_level": 56
+        },
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        },
+        {
+          "name": "Kangwejator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4750,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 64,
+          "native_min_level": 61
+        },
+        {
+          "name": "Albatroz",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4751,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 60,
+          "native_min_level": 56
+        },
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        },
+        {
+          "name": "Kangwejator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4750,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 64,
+          "native_min_level": 61
+        },
+        {
+          "name": "Albatroz",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4751,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 60,
+          "native_min_level": 56
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "order": 3,
+      "monsters": [
+        {
+          "name": "Albatroz",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4751,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 60,
+          "native_min_level": 56
+        },
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        },
+        {
+          "name": "Kangwejator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4750,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 64,
+          "native_min_level": 61
+        },
+        {
+          "name": "Albatroz",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4751,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 60,
+          "native_min_level": 56
+        },
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        },
+        {
+          "name": "Kangwejator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4750,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 64,
+          "native_min_level": 61
+        },
+        {
+          "name": "Albatroz",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4751,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 60,
+          "native_min_level": 56
+        },
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "order": 4,
+      "monsters": [
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        },
+        {
+          "name": "Kangwejator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4750,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 64,
+          "native_min_level": 61
+        },
+        {
+          "name": "Albatroz",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4751,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 60,
+          "native_min_level": 56
+        },
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        },
+        {
+          "name": "Kangwejator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4750,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 64,
+          "native_min_level": 61
+        },
+        {
+          "name": "Albatroz",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4751,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 60,
+          "native_min_level": 56
+        },
+        {
+          "name": "Don Kangwejus",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4749,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 55,
+          "native_min_level": 51
+        },
+        {
+          "name": "Cangwejo Real",
+          "role": "boss",
+          "count": 1,
+          "ref_id": 4754,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 73,
+          "native_min_level": 68
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "native_dungeon_153": [
+    {
+      "order": 1,
+      "monsters": [
+        {
+          "name": "Patapikot",
+          "role": "monster",
+          "count": 2,
+          "ref_id": 4920,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 162,
+          "native_min_level": 158
+        },
+        {
+          "name": "Patator",
+          "role": "monster",
+          "count": 2,
+          "ref_id": 4921,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 164,
+          "native_min_level": 160
+        },
+        {
+          "name": "Patapatas",
+          "role": "monster",
+          "count": 2,
+          "ref_id": 4922,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 168,
+          "native_min_level": 164
+        },
+        {
+          "name": "Patapikot",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4920,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 162,
+          "native_min_level": 158
+        },
+        {
+          "name": "Patator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4921,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 164,
+          "native_min_level": 160
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "order": 2,
+      "monsters": [
+        {
+          "name": "Patator",
+          "role": "monster",
+          "count": 7,
+          "ref_id": 4921,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 164,
+          "native_min_level": 160
+        },
+        {
+          "name": "Patapatas",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4922,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 168,
+          "native_min_level": 164
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "order": 3,
+      "monsters": [
+        {
+          "name": "Patapatas",
+          "role": "monster",
+          "count": 8,
+          "ref_id": 4922,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 168,
+          "native_min_level": 164
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "order": 4,
+      "monsters": [
+        {
+          "name": "Mamapoutre",
+          "role": "boss",
+          "count": 1,
+          "ref_id": 4923,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 178,
+          "native_min_level": 173
+        },
+        {
+          "name": "Patapikot",
+          "role": "monster",
+          "count": 2,
+          "ref_id": 4920,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 162,
+          "native_min_level": 158
+        },
+        {
+          "name": "Patapatas",
+          "role": "monster",
+          "count": 2,
+          "ref_id": 4922,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 168,
+          "native_min_level": 164
+        },
+        {
+          "name": "Patapikot",
+          "role": "monster",
+          "count": 2,
+          "ref_id": 4920,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 162,
+          "native_min_level": 158
+        },
+        {
+          "name": "Patator",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4921,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 164,
+          "native_min_level": 160
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "native_dungeon_185": [
+    {
+      "order": 1,
+      "monsters": [
+        {
+          "name": "Nimbrasier",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5380,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Taponcendio",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5380,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Difunerario",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5381,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 48,
+          "native_min_level": 44
+        },
+        {
+          "name": "Bwork incinerado",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5379,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Taponcendio",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5380,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Difunerario",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5381,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 48,
+          "native_min_level": 44
+        },
+        {
+          "name": "Bwork incinerado",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5379,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Taponcendio",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5380,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "order": 2,
+      "monsters": [
+        {
+          "name": "D\u00e9fun\u00e9raire",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5381,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 48,
+          "native_min_level": 44
+        },
+        {
+          "name": "Difunerario",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5381,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 48,
+          "native_min_level": 44
+        },
+        {
+          "name": "Bwork incinerado",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5379,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Taponcendio",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5380,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Difunerario",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5381,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 48,
+          "native_min_level": 44
+        },
+        {
+          "name": "Bwork incinerado",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5379,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Taponcendio",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5380,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Difunerario",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5381,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 48,
+          "native_min_level": 44
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "order": 3,
+      "monsters": [
+        {
+          "name": "Hark Saniss, Dernier g\u00e9ant",
+          "role": "boss",
+          "count": 1,
+          "ref_id": 5382,
+          "guide_max_level": 58,
+          "guide_min_level": 53,
+          "native_max_level": 58,
+          "native_min_level": 53
+        },
+        {
+          "name": "Bwork incinerado",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5379,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Taponcendio",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5380,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Difunerario",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5381,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 48,
+          "native_min_level": 44
+        },
+        {
+          "name": "Bwork incinerado",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5379,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Taponcendio",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5380,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        },
+        {
+          "name": "Difunerario",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5381,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 48,
+          "native_min_level": 44
+        },
+        {
+          "name": "Bwork incinerado",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5379,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 44,
+          "native_min_level": 40
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "native_dungeon_27": [
+    {
+      "order": 1,
+      "monsters": [
+        {
+          "name": "Tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 12,
+          "native_min_level": 8
+        },
+        {
+          "name": "Tofona",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 14,
+          "native_min_level": 10
+        },
+        {
+          "name": "Beb\u00e9 tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 6,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 8,
+          "native_min_level": 4
+        },
+        {
+          "name": "Gorditofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 704,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 18,
+          "native_min_level": 14
+        },
+        {
+          "name": "Tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 12,
+          "native_min_level": 8
+        },
+        {
+          "name": "Tofona",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 14,
+          "native_min_level": 10
+        },
+        {
+          "name": "Beb\u00e9 tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 6,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 8,
+          "native_min_level": 4
+        },
+        {
+          "name": "Gorditofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 704,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 18,
+          "native_min_level": 14
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "order": 2,
+      "monsters": [
+        {
+          "name": "Tofona",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 14,
+          "native_min_level": 10
+        },
+        {
+          "name": "Beb\u00e9 tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 6,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 8,
+          "native_min_level": 4
+        },
+        {
+          "name": "Gorditofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 704,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 18,
+          "native_min_level": 14
+        },
+        {
+          "name": "Tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 12,
+          "native_min_level": 8
+        },
+        {
+          "name": "Tofona",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 14,
+          "native_min_level": 10
+        },
+        {
+          "name": "Beb\u00e9 tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 6,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 8,
+          "native_min_level": 4
+        },
+        {
+          "name": "Gorditofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 704,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 18,
+          "native_min_level": 14
+        },
+        {
+          "name": "Tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 12,
+          "native_min_level": 8
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "order": 3,
+      "monsters": [
+        {
+          "name": "Beb\u00e9 tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 6,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 8,
+          "native_min_level": 4
+        },
+        {
+          "name": "Gorditofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 704,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 18,
+          "native_min_level": 14
+        },
+        {
+          "name": "Tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 12,
+          "native_min_level": 8
+        },
+        {
+          "name": "Tofona",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 5,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 14,
+          "native_min_level": 10
+        },
+        {
+          "name": "Beb\u00e9 tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 6,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 8,
+          "native_min_level": 4
+        },
+        {
+          "name": "Gorditofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 704,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 18,
+          "native_min_level": 14
+        },
+        {
+          "name": "Tofu",
+          "role": "monster",
+          "count": 1,
+          "ref_id": 4,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 12,
+          "native_min_level": 8
+        },
+        {
+          "name": "Tofu Real",
+          "role": "boss",
+          "count": 1,
+          "ref_id": 1259,
+          "guide_max_level": null,
+          "guide_min_level": null,
+          "native_max_level": 28,
+          "native_min_level": 23
+        }
+      ],
+      "diagnostics": []
+    }
+  ]
+}

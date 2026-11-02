@@ -137,19 +137,37 @@ class NpcEventControllerTests(unittest.TestCase):
             with self.subTest(row=row), self.assertRaises(ValueError):
                 event_controller_record(activation(row), 3433, 200)
 
-    def test_player_summon_and_out_of_range_do_not_receive_controller(self):
-        for kind in ("player", "summon", "range"):
+    def test_player_and_summon_do_not_receive_ordinary_controller(self):
+        for kind in ("player", "summon"):
             actor, fight, native = self.sources(controlled=kind == "player")
             if kind == "summon":
                 fight.native_summon_registrations[-200] = {"actor_id": -200}
-            if kind == "range":
-                actor.effective_level = 199
             a, b, c = self.bindings(native)
             with self.subTest(kind=kind), a, b, c, patch(
                 "wakfu_server.combat_npc_attack.npc_spell_catalog",
                 return_value={"activation_policy": activation()},
             ), patch("wakfu_server.monsters.native_abilities", return_value=[]):
                 self.assertFalse(initial_ai_actors(fight, {-200: {"ref": 3433}}))
+
+    def test_recommended_species_range_does_not_suppress_event_controller(self):
+        actor, fight, native = self.sources()
+        a, b, c = self.bindings(native)
+        with a, b, c, patch(
+            "wakfu_server.combat_npc_attack.npc_spell_catalog",
+            return_value={"activation_policy": activation()},
+        ), patch("wakfu_server.monsters.native_abilities", return_value=[]):
+            for level in (1, 199, 201, 32767):
+                actor.effective_level = level
+                with self.subTest(level=level):
+                    self.assertEqual(
+                        initial_ai_actors(fight, {-200: {"ref": 3433}}), {-200}
+                    )
+                    self.assertIn(-200, initial_plans(fight, {-200: {"ref": 3433}}))
+            for level in (0, -1, 32768, True, 200.0):
+                with self.subTest(level=level):
+                    self.assertIsNone(
+                        event_controller_record(activation(), 3433, level)
+                    )
 
 
 class NativeNogordEventControllerTests(unittest.TestCase):

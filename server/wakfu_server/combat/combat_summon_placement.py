@@ -3,6 +3,9 @@
 
 def native_summon_placement(fight, actor):
     """Keep legacy movement cells; qualify other cells through actual QI.X/QK."""
+    from .combat_ground_support import require_ground_birth
+
+    require_ground_birth(fight, actor.position)
     if actor.position in fight.walkable:
         return True
     position = actor.position

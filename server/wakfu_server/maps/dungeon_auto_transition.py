@@ -5,6 +5,7 @@ transition delivery owns network hydration; this module sends no client packets.
 """
 from psycopg.types.json import Jsonb
 from wakfu_server import player_parties
+from .dungeon_transition_recovery import RecoverableDungeonDestination
 
 
 def next_anchor(result, topology):
@@ -16,13 +17,19 @@ def next_anchor(result, topology):
     order = result.get("current_room")
     rooms = [room for room in topology["rooms"] if room["order"] == order]
     if type(order) is not int or order <= 1 or len(rooms) != 1:
-        raise ValueError("Automatic dungeon destination is not a verified next room")
+        raise RecoverableDungeonDestination(
+            "destination_room",
+            "Automatic dungeon destination is not a verified next room",
+        )
     local_policy = topology.get("policy") == "local_accessible_anchor_policy"
     if local_policy:
         if topology.get("doors"):
             raise ValueError("Local room policy cannot claim native doors")
         if tuple(rooms[0]["anchor"]) not in {tuple(cell) for cell in rooms[0]["cells"]}:
-            raise ValueError("Local room anchor is not in its native accessible cells")
+            raise RecoverableDungeonDestination(
+                "room_anchor_outside_cells",
+                "Local room anchor is not in its native accessible cells",
+            )
         links = topology.get("auto_edges", ())
     else:
         if topology.get("auto_edges"):
@@ -33,9 +40,15 @@ def next_anchor(result, topology):
         for door in links
         if door["source_room"] == order - 1 and door["destination_room"] == order
     ]
-    if len(doors) != 1 or tuple(doors[0]["anchor"]) != tuple(rooms[0]["anchor"]):
-        raise ValueError(
-            "Automatic dungeon travel lacks a unique authorized forward link"
+    if len(doors) != 1:
+        raise RecoverableDungeonDestination(
+            "forward_link_ambiguous",
+            "Automatic dungeon travel lacks a unique authorized forward link",
+        )
+    if tuple(doors[0]["anchor"]) != tuple(rooms[0]["anchor"]):
+        raise RecoverableDungeonDestination(
+            "forward_anchor_mismatch",
+            "Automatic dungeon travel lacks a unique authorized forward link",
         )
     return dict(
         map_id=topology["asset_map_id"],
@@ -102,10 +115,27 @@ def advance(store, instance_id, fight_id, *, topology, in_fight):
         ):
             raise ValueError("Missing committed dungeon victory")
         result = encounter["result"]
-        destination = next_anchor(result, topology)
-        if destination is None:
+        from . import dungeon_transition_recovery as recovery
+
+        recovery_journal = None
+        destination_error = None
+        try:
+            destination = next_anchor(result, topology)
+        except RecoverableDungeonDestination as error:
+            destination = None
+            destination_error = error
+        if destination is None and destination_error is None:
             return None
         if result.get("auto_transition_revision") is not None:
+            if destination_error is not None:
+                repaired = recovery.forward_anchor(result, topology, destination_error)
+                if repaired is None:
+                    return dict(
+                        deferred=True,
+                        reason="recovery_replay_unverified",
+                        instance_id=instance_id,
+                    )
+                destination, _ = repaired
             return dict(
                 destination,
                 instance_id=instance_id,
@@ -136,12 +166,44 @@ def advance(store, instance_id, fight_id, *, topology, in_fight):
                 or member["expires_at"] <= now
                 or member["membership_generation"] != member["generation"]
                 or member["instance_id"] != instance_id
-                or member["map_id"] != destination["map_id"]
+                or member["map_id"] != topology["asset_map_id"]
                 or in_fight(member["id"]) is not False
             ):
                 return dict(
                     deferred=True, reason="members_not_ready", instance_id=instance_id
                 )
+        if destination_error is not None:
+            now = store.now()
+            if not recovery.retry_due(result, topology, now):
+                return dict(
+                    deferred=True,
+                    reason="recovery_backoff",
+                    instance_id=instance_id,
+                    recovery_waiting=True,
+                    code=destination_error.code,
+                    fight_id=fight_id,
+                    attempts=result.get("transition_recovery", {}).get("attempts", 0),
+                )
+            repaired = recovery.forward_anchor(result, topology, destination_error)
+            if repaired is None:
+                journal = recovery.failure_journal(
+                    result, topology, destination_error, now
+                )
+                db.execute(
+                    "UPDATE dungeon_room_encounters SET result=%s WHERE fight_id=%s",
+                    (Jsonb(dict(result, transition_recovery=journal)), fight_id),
+                )
+                return dict(
+                    recovery_required=True,
+                    code=destination_error.code,
+                    instance_id=instance_id,
+                    fight_id=fight_id,
+                    exit_authorized=recovery.exit_authorized(
+                        topology, run["entry_map_id"]
+                    ),
+                    attempts=journal["attempts"],
+                )
+            destination, recovery_journal = repaired
         revision = run["revision"] + 1
         db.execute(
             "UPDATE dungeon_instances SET revision=%s WHERE instance_id=%s",
@@ -189,6 +251,12 @@ def advance(store, instance_id, fight_id, *, topology, in_fight):
                 ),
             )
         saved = dict(result, auto_transition_revision=revision)
+        if recovery_journal is not None:
+            saved["transition_recovery"] = dict(
+                recovery_journal,
+                attempts=1,
+                repaired_at=recovery.journal_timestamp(now),
+            )
         db.execute(
             "UPDATE dungeon_room_encounters SET result=%s WHERE fight_id=%s",
             (Jsonb(saved), fight_id),
@@ -199,4 +267,5 @@ def advance(store, instance_id, fight_id, *, topology, in_fight):
             revision=revision,
             members=tuple(member_ids),
             replay=False,
+            recovery=recovery_journal,
         )

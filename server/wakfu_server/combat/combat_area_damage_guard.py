@@ -2,9 +2,12 @@
 
 
 def completed_wall_without_ko_pa(fight, identity):
-    """eXt.C sets1 on baG; eXt.c suppresses when this fbd has no sgM."""
+    """eXt.C sets1 on baG; eXt.c suppresses completed HP areas without sgM."""
     row = getattr(fight, "native_effect_areas", {}).get(identity)
-    if not isinstance(row, dict) or row.get("native_area_contract") != "fbd":
+    if not isinstance(row, dict) or row.get("native_area_contract") not in (
+        "fbd",
+        "faW",
+    ):
         return False
     from .combat_area_authority import area_guards
     from .combat_effect_area import native_effect_areas
@@ -12,7 +15,16 @@ def completed_wall_without_ko_pa(fight, identity):
 
     # Validate the installed fbd PA universe, rather than treating every dead
     # PV as a no-op: fighters may own the sgM knockout PA consumed by eXt.c.
-    wall_damage_snapshot(row, native_effect_areas()[str(row["reference"])])
+    definition = native_effect_areas()[str(row["reference"])]
+    if row["native_area_contract"] == "fbd":
+        wall_damage_snapshot(row, definition)
+    else:
+        from .combat_fake_fighter import verified_fake_fighter
+
+        constructor = verified_fake_fighter(row, definition)
+        characteristics = constructor["characteristic_ids"]
+        if 1 not in characteristics or 14 in characteristics:
+            return False  # No HP authority, or an actual KO_TIME_BEFORE_DEATH PA.
     return area_guards(fight, identity)["baG"]
 
 

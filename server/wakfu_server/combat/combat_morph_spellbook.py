@@ -3,16 +3,116 @@ from wakfu_server import native_catalog as protocol_catalog
 from dataclasses import replace
 from functools import lru_cache
 import json
+import hashlib
+from pathlib import Path
 from wakfu_server.paths import DATA_ROOT
 from .combat_spell_level import NativeSpellBook
 
 
+_REVIEWED_MORPH_SHA256 = (
+    "a946da7bc228938aa016df78a2a207089dcc4f7c8358e5727f4549a073110bf6"
+)
+
+
+def _morph_digest(value):
+    return hashlib.sha256(
+        json.dumps(
+            value, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
+    ).hexdigest()
+
+
 @lru_cache(maxsize=1)
-def native_morph_profiles():
+def _reviewed_morph_profiles():
+    raw = Path(__file__).with_name("reviewed_native_morph_profiles.json").read_bytes()
+    if hashlib.sha256(raw).hexdigest() != _REVIEWED_MORPH_SHA256:
+        raise ValueError("Reviewed native morphology supplement changed")
+    data = json.loads(raw)
+    if data.get("schema") != "wakemu-reviewed-native-morph-profile-supplement-v1":
+        raise ValueError("Unknown reviewed native morphology contract")
+    return data
+
+
+def _merge_reviewed_morph_profiles(document):
+    data = _reviewed_morph_profiles()
+    if protocol_catalog.release() != data["native_catalog_revision"]:
+        return document  # Other releases retain only their own native profiles.
+    if _morph_digest(document) != data["base_canonical_sha256"]:
+        raise ValueError("Reviewed morphology base native source changed")
+    profiles = dict(document["profiles"])
+    additions = data["profiles"]
+    edges = data["effect_profile_edges"]
+    if (
+        type(additions) is not dict
+        or type(edges) is not list
+        or {str(e.get("profile_id")) for e in edges} != set(additions)
+    ):
+        raise ValueError("Incomplete reviewed native morphology edges")
+    source_edges = []
+    for edge in edges:
+        source = protocol_catalog.record(
+            DATA_ROOT / "combat-state-definitions.json",
+            "effects",
+            edge["effect_reference"],
+        )
+        parameters = source.get("parameters", []) if isinstance(source, dict) else []
+        if (
+            not isinstance(source, dict)
+            or _morph_digest(source) != edge["source_effect_canonical_sha256"]
+            or source.get("effect_class") != 933
+            or len(parameters) != 2
+            or parameters != [edge["profile_id"], 0]
+        ):
+            raise ValueError("Reviewed morphology lacks its exact native933 edge")
+        key = str(edge["profile_id"])
+        profile = additions[key]
+        if profile.get("profile_id") != edge["profile_id"]:
+            raise ValueError("Reviewed morphology profile identity changed")
+        if key in profiles and profiles[key] != profile:
+            raise ValueError("Reviewed morphology conflicts with native profile")
+        profiles[key] = profile
+        source_edges.append(
+            {
+                "effect_reference": edge["effect_reference"],
+                "profile_id": edge["profile_id"],
+            }
+        )
+    seeds = dict(document["seed_identity"])
+    seeds["profile_ids"] = sorted(set(seeds["profile_ids"]) | set(map(int, additions)))
+    seeds["effect_profile_edges"] = [*seeds["effect_profile_edges"], *source_edges]
+    return dict(
+        document,
+        profiles=profiles,
+        seed_identity=seeds,
+        native_book_checks=document["native_book_checks"] + data["native_book_checks"],
+    )
+
+
+@lru_cache(maxsize=1)
+def _native_class_morph_document():
     path = DATA_ROOT / "native-class-morph-profiles.json"
     if not protocol_catalog.exists(path):
         raise ValueError("Missing scoped native transformation profile export")
     document = protocol_catalog.load(path)
+    _validate_morph_profiles(document)
+    return document
+
+
+@lru_cache(maxsize=1)
+def native_class_morph_profiles():
+    """Original class-only domain, independent of reviewed captured profiles."""
+    return _native_class_morph_document()["profiles"]
+
+
+@lru_cache(maxsize=1)
+def native_morph_profiles():
+    """All validated profiles usable by the native transformation constructor."""
+    return _validate_morph_profiles(
+        _merge_reviewed_morph_profiles(_native_class_morph_document())
+    )
+
+
+def _validate_morph_profiles(document):
     if (
         document.get("schema") != "native-class-morph-profiles-v1"
         or document.get("seed_identity", {}).get("schema")

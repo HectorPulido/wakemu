@@ -136,10 +136,29 @@ class SteamerRailsRuntimeTests(unittest.TestCase):
             ]
         )
         removed_area_ids = {row["uid"] for row in rail_areas}
-        rail_removals = {
+        removed_microbots = {
+            row["uid"]
+            for row in fight.native_effect_areas.values()
+            if row["reference"] == 978
+            and row["owner_id"] == 7
+            and tuple(row["cell"]) == cells[0]
+        }
+        self.assertEqual(len(removed_microbots), 1)
+        surviving_microbots = set(network["microbot_ids"]) - removed_microbots
+        self.assertEqual(len(surviving_microbots), 1)
+        area_removals = {
             struct.unpack(">iiiq", body)[3]
             for opcode, body in removed.packets
             if opcode == 13726 and len(body) == struct.calcsize(">iiiq")
         }
-        self.assertEqual(rail_removals, removed_area_ids)
+        # Recasting retires the selected Microbot and its dependent rails.
+        # Every removal uses the same native area-removal packet family.
+        self.assertEqual(area_removals, removed_area_ids | removed_microbots)
+        self.assertTrue(surviving_microbots.isdisjoint(area_removals))
+        self.assertEqual(
+            set(removed.fight.native_microbot_networks[7]["microbot_ids"]),
+            surviving_microbots,
+        )
+        self.assertTrue(surviving_microbots <= set(removed.fight.native_effect_areas))
+        self.assertTrue(removed_microbots.isdisjoint(removed.fight.native_effect_areas))
         self.assertEqual(len(fight.native_microbot_networks[7]["microbot_ids"]), 2)

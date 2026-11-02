@@ -130,6 +130,27 @@ class MorphSpellbookTests(unittest.TestCase):
         )
 
     def test_application_wire_mode_and_old_carrier_removes_current_book(self):
+        # Include an actual pre-application clock: status=-1, duration1,
+        # first tick at turn start, marker17 and executed=false.
+        from wakfu_server.combat_effects import _integer, _varint
+
+        clock = _integer(1, 0) + _integer(2, 1) + _integer(3, 0)
+        pending = (
+            _integer(1, 0)
+            + _integer(2, -1)
+            + b"\x1a"
+            + _varint(len(clock))
+            + clock
+            + _integer(4, 17)
+            + _integer(5, 0)
+        )
+        for timing in (None, pending):
+            with self.subTest(pre_application_timing=timing):
+                self._assert_application_and_removal(timing)
+
+    def _assert_application_and_removal(self, pre_application_timing):
+        from wakfu_server.wire import proto_fields
+
         actor = N(id=7, effective_level=50)
         fight = N(id=77, actors={7: actor}, owned_stat_effects={})
         packets, ids = [], count(501)
@@ -138,7 +159,9 @@ class MorphSpellbookTests(unittest.TestCase):
             packets,
             action_id=1,
             allocate_uid=lambda: next(ids),
-            context=lambda *args: StatExecutionContext(True, True, None, True, None),
+            context=lambda *args: StatExecutionContext(
+                True, True, None, True, pre_application_timing
+            ),
             rng=lambda: 0.5,
             profiles={"5900": self.profile()},
         )
@@ -155,6 +178,9 @@ class MorphSpellbookTests(unittest.TestCase):
         messages = {}
         _identity_fields(payload, messages=messages)
         self.assertEqual(_identity_fields(messages[8], integer_fields=(14,)), {14: 1})
+        # aVz decodes the removal onto the live eWG before bbR. eZR.f(iB)
+        # replaces rEj from TimeDatas5; an absent flag makes bbR skip PR.
+        self.assertEqual(dict(proto_fields(dict(proto_fields(payload))[90]))[40], 1)
         definition["parameters"][2] = 0
         self.assertTrue(handler(definition, {}, invocation))
         self.assertEqual(fight.native_morph_spellbooks[7]["levels"], {91: 12, 92: 12})
@@ -165,3 +191,16 @@ class MorphSpellbookTests(unittest.TestCase):
         self.assertEqual(handler.prepared, {})
         self.assertEqual(packets[0][1][12], 0)
         self.assertEqual(packets[0][1][19:], payload)
+        removed = packets[-1][1][18:-16]
+        timing = dict(proto_fields(dict(proto_fields(removed))[90]))
+        self.assertEqual(timing[8], 1)  # Notify unapplication.
+        self.assertEqual(timing[40], 1)  # Applied book must execute bbR.
+        original_timing = dict(proto_fields(dict(proto_fields(payload))[90]))
+        if pre_application_timing is not None:
+            before = dict(proto_fields(pre_application_timing))
+            self.assertEqual(original_timing[26], before[26])
+            self.assertEqual(original_timing[32], before[32])
+        self.assertEqual(
+            {tag: value for tag, value in timing.items() if tag != 8},
+            {tag: value for tag, value in original_timing.items() if tag != 8},
+        )

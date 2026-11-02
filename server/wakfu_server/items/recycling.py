@@ -207,19 +207,9 @@ def _instance_bound(db, item):
 
 
 def _equipped_uids(character):
-    from wakfu_server.wire import proto_fields
+    from .inventory_product_placement import equipped_uids
 
-    result = set()
-    for build in character.get("builds", {}).values():
-        equipment = bytes.fromhex(build["equipment"])
-        for tag, value in proto_fields(equipment):
-            if tag == 10:
-                fields = dict(proto_fields(value))
-                uid = fields.get(8)
-                if type(uid) is not int or uid <= 0:
-                    raise ValueError("Invalid owned equipment UID")
-                result.add(uid)
-    return result
+    return equipped_uids(character)
 
 
 def _guard_item(store, db, character, item, state, disabled):
@@ -312,102 +302,86 @@ def _offered_uids(db, character_id):
     }
 
 
-def _grant_products(db, character, products, *, offered_uids, equipped_uids):
-    from .inventory_elements import masks
+def _product_plan(db, character, products, *, offered_uids, equipped_uids):
+    from .inventory_move import ACQUISITION_STACKS
+    from .inventory_product_placement import plan, plain_stack
+
+    return plan(
+        character,
+        products,
+        stack_rules=ACQUISITION_STACKS,
+        mergeable=lambda item: plain_stack(item) and not _instance_bound(db, item),
+        excluded_uids=set(offered_uids) | set(equipped_uids),
+    )
+
+
+def _grant_products(
+    db, character, products, *, offered_uids, equipped_uids, placements=None
+):
     from .inventory_items import insertion
-    from .inventory_move import ACQUISITION_STACKS as STACKS
     from .inventory_uids import allocate
 
-    packets = []
-    granted = []
-    base = character["inventory_containers"][0]
-    for reference in sorted(products):
-        remaining = products[reference]
-        stack = STACKS.get(reference)
-        if stack is None or type(remaining) is not int or remaining < 0:
-            raise ValueError("Unsupported native recycling product")
-        maximum = stack["maximum"]
-        while remaining:
-            amount = min(remaining, maximum)
-            resident = next(
-                (
-                    item
-                    for item in character["inventory_items"]
-                    if item["container"] == base["uid"]
-                    and item["reference"] == reference
-                    and item["uid"] not in offered_uids
-                    and item["uid"] not in equipped_uids
-                    and stack["minimal_mergeable"]
-                    and masks(item) is None
-                    and "mount" not in item
-                    and item["quantity"] < maximum
-                    and not _instance_bound(db, item)
+    if placements is None:
+        placements = _product_plan(
+            db,
+            character,
+            products,
+            offered_uids=offered_uids,
+            equipped_uids=equipped_uids,
+        )
+    packets, granted = [], []
+    for placement in placements:
+        resident = next(
+            (
+                item
+                for item in character["inventory_items"]
+                if item["uid"] == placement["uid"]
+            ),
+            None,
+        )
+        if resident is not None:
+            item = dict(resident, quantity=placement["quantity"])
+            db.execute(
+                "UPDATE inventory_items SET quantity=%s WHERE uid=%s AND character_id=%s",
+                (item["quantity"], item["uid"], character["id"]),
+            )
+            packet = (12470, struct.pack(">qh", item["uid"], placement["added"]))
+            character["inventory_items"][
+                character["inventory_items"].index(resident)
+            ] = item
+        else:
+            item = dict(
+                uid=allocate(db),
+                character_id=character["id"],
+                reference=placement["reference"],
+                quantity=placement["quantity"],
+                container=placement["container"],
+                slot=placement["slot"],
+            )
+            db.execute(
+                "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) "
+                "VALUES(%s,%s,%s,%s,%s,%s)",
+                tuple(
+                    item[key]
+                    for key in (
+                        "uid",
+                        "character_id",
+                        "reference",
+                        "quantity",
+                        "container",
+                        "slot",
+                    )
                 ),
-                None,
             )
-            if resident is not None:
-                amount = min(remaining, maximum - resident["quantity"])
-                item = dict(resident, quantity=resident["quantity"] + amount)
-                db.execute(
-                    "UPDATE inventory_items SET quantity=%s WHERE uid=%s AND character_id=%s",
-                    (item["quantity"], item["uid"], character["id"]),
-                )
-                packet = (12470, struct.pack(">qh", item["uid"], amount))
-                index = next(
-                    i
-                    for i, value in enumerate(character["inventory_items"])
-                    if value["uid"] == item["uid"]
-                )
-                character["inventory_items"][index] = item
-            else:
-                occupied = {
-                    item["slot"]
-                    for item in character["inventory_items"]
-                    if item["container"] == base["uid"]
-                }
-                slot = next(
-                    (
-                        value
-                        for value in range(base["capacity"])
-                        if value not in occupied
-                    ),
-                    None,
-                )
-                if slot is None:
-                    raise ValueError("Base inventory full")
-                item = dict(
-                    uid=allocate(db),
-                    character_id=character["id"],
-                    reference=reference,
-                    quantity=min(remaining, maximum),
-                    container=base["uid"],
-                    slot=slot,
-                )
-                db.execute(
-                    "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) "
-                    "VALUES(%s,%s,%s,%s,%s,%s)",
-                    tuple(
-                        item[key]
-                        for key in (
-                            "uid",
-                            "character_id",
-                            "reference",
-                            "quantity",
-                            "container",
-                            "slot",
-                        )
-                    ),
-                )
-                packet = insertion(item, notification=True)
-                character["inventory_items"].append(item)
-            packets.append(packet)
-            granted.append(
-                {
-                    key: item[key]
-                    for key in ("uid", "reference", "quantity", "container", "slot")
-                }
-            )
-            remaining -= amount
+            packet = insertion(item, notification=True)
+            character["inventory_items"].append(item)
+        packets.append(packet)
+        granted.append(
+            {
+                key: item[key]
+                for key in ("uid", "reference", "quantity", "container", "slot")
+            }
+        )
     return packets, granted
 
 
@@ -531,42 +505,26 @@ def recycle(store, account_id, generation, character_id, body, *, fight=None, rn
         if recovered > 2**31 - 1 or destroyed > 2**31 - 1:
             raise ValueError("Native recycling result exceeds protocol bounds")
 
-        # Prove every granted product fits before deleting a source item. Product
-        # grants use the permanent bag only and may split across its native stacks.
-        from .inventory_move import ACQUISITION_STACKS as STACKS
-        from .inventory_elements import masks
-
-        base = character["inventory_containers"][0]
+        # Plan against the post-consumption inventory before deleting any source.
+        # The commit applies this exact plan rather than a separate capacity model.
         offered_uids = _offered_uids(db, character_id)
         equipped_uids = _equipped_uids(character)
         selected = set(uids)
-        remaining_slots = base["capacity"] - sum(
-            item["container"] == base["uid"] and item["uid"] not in selected
-            for item in character["inventory_items"]
-        )
-        for reference, amount in sorted(products.items()):
-            if amount == 0:
-                continue
-            stack = STACKS[reference]
-            maximum = stack["maximum"]
-            residents = [
+        destination_character = dict(
+            character,
+            inventory_items=[
                 item
                 for item in character["inventory_items"]
                 if item["uid"] not in selected
-                and item["container"] == base["uid"]
-                and item["reference"] == reference
-                and stack["minimal_mergeable"]
-                and item["uid"] not in offered_uids
-                and item["uid"] not in equipped_uids
-                and "mount" not in item
-                and masks(item) is None
-                and not _instance_bound(db, item)
-            ]
-            room = sum(maximum - item["quantity"] for item in residents)
-            new_stacks = math.ceil(max(0, amount - room) / maximum)
-            if new_stacks > remaining_slots:
-                raise ValueError("Base inventory cannot hold recycling products")
-            remaining_slots -= new_stacks
+            ],
+        )
+        placements = _product_plan(
+            db,
+            destination_character,
+            products,
+            offered_uids=offered_uids,
+            equipped_uids=equipped_uids,
+        )
 
         db.execute(
             "DELETE FROM inventory_items WHERE uid=ANY(%s) AND character_id=%s",
@@ -583,6 +541,7 @@ def recycle(store, account_id, generation, character_id, body, *, fight=None, rn
             products,
             offered_uids=offered_uids,
             equipped_uids=equipped_uids,
+            placements=placements,
         )
         receipt = dict(
             db.execute(

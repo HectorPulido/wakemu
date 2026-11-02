@@ -64,7 +64,7 @@ class DungeonMonsterAdmissionTests(unittest.TestCase):
         room = dict(
             order=1, diagnostics=[], monsters=[dict(ref_id=2, count=4, role="boss")]
         )
-        plan = dict(self.plan, rooms=[room])
+        plan = dict(self.plan, rooms=[room, dict(order=2, diagnostics=[], monsters=[])])
         before = copy.deepcopy(plan)
         with self.assertRaisesRegex(ValueError, "2 lacks ordinary NPC admission"):
             self.build(plan=plan)
@@ -80,7 +80,7 @@ class DungeonMonsterAdmissionTests(unittest.TestCase):
     def test_exact_grade_and_owned_book_intersection_ignore_conditional_costs(self):
         native = self.native[0]
         self.assertTrue(admitted(self.policy, 1, 1, 10, native=native))
-        self.assertFalse(admitted(self.policy, 1, 1, 11, native=native))
+        self.assertTrue(admitted(self.policy, 1, 1, 32767, native=native))
         self.policy["enabled_monsters"]["1"]["spell_ids"] = [999]
         self.assertFalse(admitted(self.policy, 1, 1, 10, native=native))
 
@@ -105,11 +105,21 @@ class DungeonMonsterAdmissionTests(unittest.TestCase):
         records = dict(
             schema="native-npc-activation-v1", legacy_spell_ids=[], enabled_monsters={}
         )
+        from wakfu_server.combat_npc_activation_policy import (
+            current_policy as indexed_policy,
+        )
+
+        indexed_policy.cache_clear()
+        self.addCleanup(indexed_policy.cache_clear)
         with patch(
             "wakfu_server.native_catalog.record",
             side_effect=lambda path, collection, key: records[key],
-        ) as reader:
+        ) as reader, patch(
+            "wakfu_server.combat_npc_activation_policy.merge_policy",
+            side_effect=lambda base: base,
+        ) as merge:
             self.assertEqual(current_policy(), records)
+            merge.assert_called_once_with(records)
             self.assertEqual(reader.call_count, 3)
             self.assertTrue(
                 all(

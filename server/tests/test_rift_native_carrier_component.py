@@ -1,4 +1,7 @@
-"""Bounded real Rift carrier graphs; synthetic arena and ordinary NPC roster.
+"""Bounded real Rift carrier graphs and ordinary NPC roster.
+
+The default arena is synthetic; native_geometry opts into original1134 terrain
+for components that also require authoritative native paid-cast admission.
 
 This is a native state/accepted-wave component, not an original boss-composition
 or complete class Ready receipt. Only catalog bytes use a hash-pinned backend;
@@ -120,7 +123,8 @@ class NativeRiftCarrierComponentTests(unittest.TestCase):
         controller_registration=False,
         native_map_id=1134,
         rift_type="ULTIMATE_INFINITE_WAVE",
-        enabled_native_types=None
+        enabled_native_types=None,
+        native_geometry=False,
     ):
         from wakfu_server.combat_actor_snapshot import (
             build_player_snapshot,
@@ -153,6 +157,12 @@ class NativeRiftCarrierComponentTests(unittest.TestCase):
         )
         roles = roles_for_catalog(catalog, policy, monster_references=(5525, 5525))
         actors, characters, snapshots = [], {}, {}
+
+        def fixture_cell(cell):
+            if native_geometry:
+                return (cell[0] - 8, cell[1] - 7, cell[2] - 1)
+            return cell
+
         aptitudes = proto_field(24, (1 << 64) - 1) + proto_field(
             34, proto_field(8, 20) + proto_field(16, 2)
         )
@@ -168,9 +178,9 @@ class NativeRiftCarrierComponentTests(unittest.TestCase):
                     real_level=100,
                     map_id=native_map_id,
                     instance_id=1,
-                    x=-index,
-                    y=0,
-                    z=0,
+                    x=fixture_cell((-index, 0, 0))[0],
+                    y=fixture_cell((-index, 0, 0))[1],
+                    z=fixture_cell((-index, 0, 0))[2],
                     hp=maximum(1, 100),
                     inventory_items=[],
                     active_build_index=0,
@@ -188,7 +198,7 @@ class NativeRiftCarrierComponentTests(unittest.TestCase):
             actor = Actor(
                 uid,
                 roles.player_team,
-                (-index, 0, 0),
+                fixture_cell((-index, 0, 0)),
                 character["hp"],
                 resources["ap"],
                 resources["mp"],
@@ -209,6 +219,7 @@ class NativeRiftCarrierComponentTests(unittest.TestCase):
             characters[uid] = character
         monsters = {}
         for uid, position in ((-200, (3, 0, 0)), (-201, (4, 0, 0))):
+            position = fixture_cell(position)
             source = owned_instance(
                 5525,
                 1,
@@ -248,6 +259,20 @@ class NativeRiftCarrierComponentTests(unittest.TestCase):
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
             if (cell[0] + dx, cell[1] + dy, 0) in cells
         }
+        arena = None
+        if native_geometry:
+            from wakfu_server.combat_terrain import local_arena
+
+            arena = local_arena(
+                native_map_id,
+                77,
+                actors[0].position,
+                [actor.position for actor in actors if not actor.controlled],
+                compact=False,
+                relocate_monsters=False,
+            )
+            cells = set(arena["validated_cells"])
+            edges = set(arena["valid_edges"])
         fight = Fight(
             77,
             actors,
@@ -270,6 +295,13 @@ class NativeRiftCarrierComponentTests(unittest.TestCase):
             height=17,
             cell_masks=[0] * (17 * 17),
         )
+        if arena is not None:
+            fight.native_qi_snapshot = {
+                key: arena[key] for key in ("x", "y", "width", "height", "cell_masks")
+            }
+            fight.native_qi_surface_provenance = dict(
+                arena["native_qi_surface_provenance"]
+            )
         for slot, actor in enumerate(fight.actors.values()):
             actor.native_obstacle_id = slot
         initialize_global_pv_collections(

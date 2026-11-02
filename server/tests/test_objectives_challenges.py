@@ -73,8 +73,17 @@ class ChallengeProfileTests(unittest.TestCase):
 
     def test_profile_rejects_monster_missing_native_activation_authority(self):
         self.record.return_value = {}
-        with self.assertRaisesRegex(ValueError, "not enabled at its native level"):
+        with self.assertRaisesRegex(ValueError, "not enabled"):
             self.invoke()
+
+    def test_profile_preserves_explicit_monster_level_outside_species_recommendation(
+        self,
+    ):
+        self.profile["roster"][0]["level"] = 215
+        self.assertEqual(self.invoke()["roster"][0]["level"], 215)
+        self.fake_modules["wakfu_server.monsters"].statistics.assert_called_once_with(
+            1, 215
+        )
 
 
 if __name__ == "__main__":

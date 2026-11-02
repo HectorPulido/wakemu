@@ -1,0 +1,487 @@
+{
+  "schema": "reviewed-native-main-completion-rules-v1",
+  "rules": [
+    {
+      "key": "native-main-completion-95-v1",
+      "definition_id": 95,
+      "map_id": 916,
+      "main_room_order": 2,
+      "qualified_native_release": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "gates": [
+        {
+          "source_id": 24822,
+          "position": [
+            -1,
+            -122,
+            8
+          ],
+          "native_object_sha256": "f6418921c5ebf79a0d33a7d94f995ab2c9cb1c67727e65af813cb5850072c342",
+          "native_state_sha256": "efb98ee22c3909a1ac3d77c65066907cdd3177ef3437b6d35bfd8a71da205ff4"
+        }
+      ],
+      "traversal_cells": [
+        [
+          -1,
+          -130,
+          8
+        ],
+        [
+          -1,
+          -129,
+          8
+        ],
+        [
+          -1,
+          -128,
+          8
+        ],
+        [
+          -1,
+          -127,
+          8
+        ],
+        [
+          -1,
+          -126,
+          8
+        ],
+        [
+          -1,
+          -125,
+          8
+        ],
+        [
+          -1,
+          -124,
+          8
+        ],
+        [
+          -1,
+          -123,
+          8
+        ],
+        [
+          -1,
+          -122,
+          8
+        ]
+      ],
+      "presentation": {
+        "scenario_id": 2288,
+        "event_id": 18801,
+        "parameters": [
+          -1
+        ],
+        "source_archive": "client/contents/scripts/scripts.jar",
+        "source_entry": "scenario/2288.lua",
+        "source_sha256": "73ae2fb165e3cfeb177306f6244afc3708ea0a1ce704d3db87f0d4406f0f2251",
+        "authority": "Original one-argument displayPath-only callback; post-completion/reconnect publisher is explicit reviewed Wakemu policy, not recovered original server scheduling"
+      },
+      "source_geometry_sha256": "c552c9405407c902b89a759cf1147b172c803437100dd79b7e1cd293ed1351d0",
+      "authority": "Consumer-backed reviewed Wakemu completion hydration; original native Door, Sm cells and original Lua displayPath; source server publisher unavailable. No reward or progress mutation."
+    },
+    {
+      "key": "native-main-completion-96-v1",
+      "definition_id": 96,
+      "map_id": 917,
+      "main_room_order": 2,
+      "qualified_native_release": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "gates": [
+        {
+          "source_id": 25009,
+          "position": [
+            -33,
+            -79,
+            0
+          ],
+          "native_object_sha256": "09984d985cc2745d86ff7c06817852c2e0fc7f8cdb2455126e53d4392b153b19",
+          "native_state_sha256": "d4287c7c30717eabd837f6686bc01af30132fe60d17a29d7231ac959fc25dd4a"
+        },
+        {
+          "source_id": 25010,
+          "position": [
+            -32,
+            -79,
+            0
+          ],
+          "native_object_sha256": "ea08bf723af817865e8899ab8c07deec792ea87479e874a3541df9edbc4b1502",
+          "native_state_sha256": "48e199abad0ed624f0e6535b04bd4a59cf3285e9da09fcce1fc37a4d3f0f4d19"
+        },
+        {
+          "source_id": 25011,
+          "position": [
+            -31,
+            -79,
+            0
+          ],
+          "native_object_sha256": "8d2b7247f0e9227bc7e815ddbba3206090e4394bc19b7cad43cbe530e8beac3e",
+          "native_state_sha256": "faaba301d16f7a0cf184d284fcdf05d2e4ec0948af149fb423e25d279f7b7a01"
+        }
+      ],
+      "traversal_cells": [
+        [
+          -33,
+          -79,
+          0
+        ],
+        [
+          -32,
+          -79,
+          0
+        ],
+        [
+          -31,
+          -79,
+          0
+        ]
+      ],
+      "presentation": {
+        "scenario_id": 2289,
+        "event_id": 18812,
+        "parameters": [
+          -1
+        ],
+        "source_archive": "client/contents/scripts/scripts.jar",
+        "source_entry": "scenario/2289.lua",
+        "source_sha256": "35a66ec3390e190a1f0e9f48d7f6f4a6c0d23369e25c8ab17a9840a947331d7a",
+        "authority": "Original one-argument displayPath-only callback; post-completion/reconnect publisher is explicit reviewed Wakemu policy, not recovered original server scheduling"
+      },
+      "source_geometry_sha256": "9391003278e07737624bc860a6f9ba2b2525d58374991f05065efcbb0be13482",
+      "authority": "Consumer-backed reviewed Wakemu completion hydration; original native Door, Sm cells and original Lua displayPath; source server publisher unavailable. No reward or progress mutation."
+    },
+    {
+      "key": "native-main-completion-127-v1",
+      "definition_id": 127,
+      "map_id": 1131,
+      "main_room_order": 2,
+      "qualified_native_release": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "gates": [
+        {
+          "source_id": 28053,
+          "position": [
+            -43,
+            -35,
+            40
+          ],
+          "native_object_sha256": "c85105cde229a43d3a314530bf0196d97c9f195e644d38b913a2238a1bb872eb",
+          "native_state_sha256": "4169c31da65d7651a59cef1fd69d8146330a2641f08bb9e687f09870a82c4c82"
+        }
+      ],
+      "traversal_cells": [
+        [
+          -64,
+          -35,
+          40
+        ],
+        [
+          -63,
+          -35,
+          40
+        ],
+        [
+          -62,
+          -35,
+          40
+        ],
+        [
+          -62,
+          -34,
+          42
+        ],
+        [
+          -61,
+          -35,
+          40
+        ],
+        [
+          -61,
+          -34,
+          40
+        ],
+        [
+          -60,
+          -35,
+          40
+        ],
+        [
+          -60,
+          -34,
+          40
+        ],
+        [
+          -59,
+          -36,
+          40
+        ],
+        [
+          -59,
+          -35,
+          40
+        ],
+        [
+          -59,
+          -34,
+          40
+        ],
+        [
+          -58,
+          -36,
+          40
+        ],
+        [
+          -58,
+          -35,
+          40
+        ],
+        [
+          -58,
+          -34,
+          40
+        ],
+        [
+          -58,
+          -33,
+          42
+        ],
+        [
+          -57,
+          -35,
+          40
+        ],
+        [
+          -57,
+          -34,
+          40
+        ],
+        [
+          -57,
+          -33,
+          40
+        ],
+        [
+          -56,
+          -35,
+          41
+        ],
+        [
+          -56,
+          -34,
+          40
+        ],
+        [
+          -56,
+          -33,
+          40
+        ],
+        [
+          -55,
+          -36,
+          42
+        ],
+        [
+          -55,
+          -35,
+          40
+        ],
+        [
+          -55,
+          -34,
+          40
+        ],
+        [
+          -55,
+          -33,
+          40
+        ],
+        [
+          -54,
+          -36,
+          40
+        ],
+        [
+          -54,
+          -35,
+          40
+        ],
+        [
+          -54,
+          -34,
+          40
+        ],
+        [
+          -54,
+          -33,
+          42
+        ],
+        [
+          -53,
+          -36,
+          40
+        ],
+        [
+          -53,
+          -35,
+          40
+        ],
+        [
+          -53,
+          -34,
+          40
+        ],
+        [
+          -53,
+          -33,
+          40
+        ],
+        [
+          -52,
+          -35,
+          40
+        ],
+        [
+          -52,
+          -34,
+          40
+        ],
+        [
+          -51,
+          -36,
+          40
+        ],
+        [
+          -51,
+          -35,
+          40
+        ],
+        [
+          -51,
+          -34,
+          42
+        ],
+        [
+          -50,
+          -37,
+          40
+        ],
+        [
+          -50,
+          -36,
+          40
+        ],
+        [
+          -50,
+          -35,
+          40
+        ],
+        [
+          -50,
+          -34,
+          40
+        ],
+        [
+          -49,
+          -36,
+          40
+        ],
+        [
+          -49,
+          -35,
+          40
+        ],
+        [
+          -49,
+          -34,
+          40
+        ],
+        [
+          -48,
+          -35,
+          40
+        ],
+        [
+          -48,
+          -34,
+          40
+        ],
+        [
+          -48,
+          -33,
+          40
+        ],
+        [
+          -47,
+          -36,
+          44
+        ],
+        [
+          -47,
+          -35,
+          42
+        ],
+        [
+          -47,
+          -34,
+          40
+        ],
+        [
+          -47,
+          -33,
+          38
+        ],
+        [
+          -46,
+          -36,
+          41
+        ],
+        [
+          -46,
+          -35,
+          40
+        ],
+        [
+          -46,
+          -34,
+          40
+        ],
+        [
+          -45,
+          -36,
+          40
+        ],
+        [
+          -45,
+          -35,
+          40
+        ],
+        [
+          -45,
+          -34,
+          39
+        ],
+        [
+          -44,
+          -35,
+          40
+        ],
+        [
+          -43,
+          -35,
+          40
+        ]
+      ],
+      "presentation": {
+        "scenario_id": 2281,
+        "event_id": 18714,
+        "parameters": [
+          -1
+        ],
+        "source_archive": "client/contents/scripts/scripts.jar",
+        "source_entry": "scenario/2281.lua",
+        "source_sha256": "3d158585f4d1434585ef45a332c31fbc670b7582f52ef972813401300699b5cd",
+        "authority": "Original one-argument displayPath-only callback; post-completion/reconnect publisher is explicit reviewed Wakemu policy, not recovered original server scheduling"
+      },
+      "source_geometry_sha256": "a98fad93931dfe211046e363f4deaf57c8ad7ba3e5e72967bb2e5e8f9aa5a0fa",
+      "authority": "Consumer-backed reviewed Wakemu completion hydration; original native Door, Sm cells and original Lua displayPath; source server publisher unavailable. No reward or progress mutation."
+    }
+  ]
+}

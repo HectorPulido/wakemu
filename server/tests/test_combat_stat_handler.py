@@ -10,6 +10,24 @@ from wakfu_server import native_catalog
 
 
 class StatHandlerTests(unittest.TestCase):
+    def test_null_visual_position_uses_native_cell_without_rebinding_actors(self):
+        from dataclasses import replace
+        from wakfu_server.combat_displacement import position_payload
+
+        for cell in ((2, -25, -2), (4, -21, -2)):
+            with self.subTest(cell=cell):
+                before = dict(self.fight.actors[7].effect_stats)
+                invocation = replace(self.invocation, cell=cell)
+                self.handler(dict(effect_class=400, parameters=[]), {}, invocation)
+                payload = bytes.fromhex(
+                    next(reversed(self.fight.owned_stat_effects.values()))["payload"]
+                )
+                messages = {}
+                fields = _identity_fields(payload, messages=messages)
+                self.assertEqual(messages[5], position_payload(cell))
+                self.assertEqual((fields[6], fields[7], fields[4]), (7, 7, 0))
+                self.assertEqual(self.fight.actors[7].effect_stats, before)
+
     def test_resource_loss_uses_native_raw_oo_overflow_and_removes_owned_delta(self):
         from wakfu_server.combat_resource_pa_notifications import RAW_SOURCE
 

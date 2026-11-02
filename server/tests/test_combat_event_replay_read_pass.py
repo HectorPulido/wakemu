@@ -33,6 +33,64 @@ class EventReplayReadPassTests(unittest.TestCase):
         result.setUp()
         return result
 
+    def test_plain_area_proof_rejects_anchored_malformed_and_custom_authority(self):
+        from test_combat_fake_fighter_area import NativeFakeFighterAreaTests
+        from wakfu_server.combat_ordinary_events import _pure_area_recipient_read
+
+        source = NativeFakeFighterAreaTests()
+        fight, handler, _, _ = source.create()
+        fight.native_retired_area_managers = {}
+        self.assertTrue(source.invoke(handler))
+        row = fight.native_effect_areas[901]
+        from wakfu_server.combat_state_ledger import StateLedger
+
+        row["state_ledger"] = StateLedger(901)
+        self.assertTrue(_pure_area_recipient_read(fight, 901))
+
+        row["native_area_contract"] = "faN"
+        self.assertFalse(_pure_area_recipient_read(fight, 901))
+        row["native_area_contract"] = "faW"
+
+        constructor = row["native_faw_constructor"]
+        saved = constructor["kind"]
+        constructor["kind"] = "callback-shaped"
+        self.assertFalse(_pure_area_recipient_read(fight, 901))
+        constructor["kind"] = saved
+
+        row["state_ledger"] = StateLedger(902)
+        self.assertFalse(_pure_area_recipient_read(fight, 901))
+        row["state_ledger"] = StateLedger(901)
+
+        # A null-Qf FAW must keep the strict fallback, even with no ledger.
+        row["native_running_effect_manager"] = False
+        row.pop("state_ledger")
+        self.assertFalse(_pure_area_recipient_read(fight, 901))
+        row["state_ledger"] = StateLedger(901)
+        self.assertFalse(_pure_area_recipient_read(fight, 901))
+        row.pop("state_ledger")
+        row["native_running_effect_manager"] = True
+
+        fight.native_retired_area_managers[901] = dict(row)
+        self.assertFalse(_pure_area_recipient_read(fight, 901))
+        fight.native_retired_area_managers.clear()
+
+        class CustomDict(dict):
+            pass
+
+        fight.native_retired_area_managers = CustomDict()
+        self.assertFalse(_pure_area_recipient_read(fight, 901))
+        fight.native_retired_area_managers = {}
+
+        import wakfu_server.combat_effect_area as area_definitions
+
+        original_getter = area_definitions.native_effect_areas
+
+        def custom_getter():
+            return original_getter()
+
+        with patch.object(area_definitions, "native_effect_areas", custom_getter):
+            self.assertFalse(_pure_area_recipient_read(fight, 901))
+
     def test_empty_complete_scans_share_once_only_inside_one_global_phase(self):
         f = self.fixture()
         empty = replace(f.source(), channel=31)
@@ -67,8 +125,8 @@ class EventReplayReadPassTests(unittest.TestCase):
                 case.events.phase(case.effect, case.inv, uid=800, value=1, channel=3),
                 ((), (), (), ()),
             )
-            # Two independent local deliveries plus one complete global scan.
-            self.assertEqual(view.call_count, 3)
+            # Adjacent callback-free local/global deliveries share one view.
+            self.assertEqual(view.call_count, 1)
         self.assertIsNone(case.events.replay._read_pass)
 
     def test_late_real_registration_denied_callback_and_removal_invalidate_first(self):
@@ -86,7 +144,7 @@ class EventReplayReadPassTests(unittest.TestCase):
                 callbacks = []
 
                 def activation(invocation, **kwargs):
-                    self.assertIsNone(f.replay._read_pass["view"])
+                    self.assertIsNone(f.replay._read_pass)
                     callbacks.append(invocation.target_id)
                     if invocation.target_id == 7:
                         # Register a real retained group through its normal
@@ -109,7 +167,7 @@ class EventReplayReadPassTests(unittest.TestCase):
                     original = f.authority
 
                     def denied(*args):
-                        self.assertIsNone(f.replay._read_pass["view"])
+                        self.assertIsNone(f.replay._read_pass)
                         callbacks.append("denied")
                         return False
 

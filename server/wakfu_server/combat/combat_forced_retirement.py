@@ -35,7 +35,11 @@ def forced_retirement_transition(fight, identity, slot):
     )
 
 
-def retired_forced_fighter_ids(fight):
+def retired_forced_fighter_ids(fight, *, pv_view=None):
+    if pv_view is None:
+        from .combat_global_pv_read_view import NativeGlobalPVReadView
+
+        pv_view = NativeGlobalPVReadView(fight)
     records = getattr(fight, "native_forced_retirements", {})
     if not isinstance(records, dict):
         raise ValueError("Malformed native forced-retirement history")
@@ -51,9 +55,13 @@ def retired_forced_fighter_ids(fight):
             or row["uid"] <= 0
             or actor.native_obstacle_id != -1
             or getattr(actor, "native_forced_retirement", None) != row
-            or not global_fighter_registered(fight, actor.id)
+            or not (
+                global_fighter_registered if pv_view is None else pv_view.registered
+            )(fight, actor.id)
             or (
-                global_fighter_guards(fight, actor.id)
+                (global_fighter_guards if pv_view is None else pv_view.guards)(
+                    fight, actor.id
+                )
                 != dict(baF=False, baG=False, baK=True)
                 and not forced_retirement_transition(fight, actor.id, -1)
             )

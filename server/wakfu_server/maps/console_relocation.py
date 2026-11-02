@@ -2,7 +2,15 @@
 
 
 def relocate(
-    store, account_id, generation, character_id, source, destination, *, positions=None
+    store,
+    account_id,
+    generation,
+    character_id,
+    source,
+    destination,
+    *,
+    positions=None,
+    fighting=None,
 ):
     """Preserve normal map CAS while ending only this company's source run.
 
@@ -33,7 +41,14 @@ def relocate(
         from .rift_exit import relocate as relocate_rift
 
         result = relocate_rift(
-            store, positions, account_id, generation, character_id, source, destination
+            store,
+            positions,
+            account_id,
+            generation,
+            character_id,
+            source,
+            destination,
+            fighting=fighting,
         )
         if result is None:
             raise ValueError("Rift relocation source disappeared")
@@ -85,7 +100,7 @@ def _relocate_dungeon(
     destination,
     *,
     db=None,
-    expected_cohort=None
+    expected_cohort=None,
 ):
     if destination.get("instance_id") != 0:
         raise ValueError("Console relocation requires an exterior destination")

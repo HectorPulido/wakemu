@@ -13,7 +13,8 @@ def build_fixture(
     *,
     allies=(),
     npc_position=(-4, -7, -1),
-    player_position=(-8, -7, -1)
+    player_position=(-8, -7, -1),
+    additional_humans=0,
 ):
     from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
     from wakfu_server.combat_bootstrap import create_placement
@@ -25,6 +26,10 @@ def build_fixture(
     from wakfu_server.spells import default_deck
     from native_supreme_paid_component_runtime import PaidComponentRuntime
 
+    if type(additional_humans) is not int or not 0 <= additional_humans <= 5:
+        raise ValueError(
+            "Additional native human owners must fit the six-player placement"
+        )
     hp = maximum(8, 200)
     character = effective_character(
         dict(
@@ -95,19 +100,70 @@ def build_fixture(
         running_effects={i: () for i in fight.actors},
         initial_effect_uid=1,
     )
-    fight.ready(character["account_id"])
-    fight, _ = prepare_server_initialization(
-        character,
-        monsters,
-        fight,
-        character["account_id"],
-        decks[7],
-        action_id=1,
-        rng=Random(17),
-        fight_start=True,
-        player_characters=characters,
-        deck_blobs=decks,
-    )
+    if additional_humans:
+        from wakfu_server.combat_actor_snapshot import build_player_snapshot
+        from wakfu_server.combat_cosmetic_conditions import (
+            initialize_fresh_player_cosmetics,
+        )
+        from wakfu_server.combat_join_registration import register_joined_fighter
+        from wakfu_server.combat_state import Actor
+
+        for index in range(1, additional_humans + 1):
+            occupied = {actor.position for actor in fight.actors.values()}
+            position = min(
+                fight.placement[0] - occupied,
+                key=lambda cell: (
+                    sum(abs(a - b) for a, b in zip(cell, player_position)),
+                    cell,
+                ),
+            )
+            peer = deepcopy(character)
+            peer.update(
+                id=7 + index,
+                account_id=3 + index,
+                x=position[0],
+                y=position[1],
+                z=position[2],
+            )
+            values = combat_resources(peer)
+            actor = Actor(
+                peer["id"],
+                0,
+                position,
+                peer["hp"],
+                values["ap"],
+                values["mp"],
+                values["initiative"],
+                peer["level"],
+                peer["account_id"],
+                True,
+                max_hp=peer["max_hp"],
+            )
+            initialize_fresh_player_cosmetics(actor, peer)
+            build_player_snapshot(
+                peer,
+                actor,
+                wp_current=values["wp"],
+                wp_maximum=values["wp"],
+                running_effects=(),
+            ).install(actor)
+            register_joined_fighter(fight, actor, position)
+            characters[peer["id"]], decks[peer["id"]] = peer, default_deck(peer)
+    for owned in characters.values():
+        fight.ready(owned["account_id"])
+    for index, (identity, owned) in enumerate(characters.items(), 1):
+        fight, _ = prepare_server_initialization(
+            owned,
+            monsters,
+            fight,
+            owned["account_id"],
+            decks[identity],
+            action_id=index,
+            rng=Random(17),
+            fight_start=index == len(characters),
+            player_characters=characters,
+            deck_blobs=decks,
+        )
     case = PaidComponentRuntime(
         fight, characters, monsters, decks, map_id=1134, seed=17
     )

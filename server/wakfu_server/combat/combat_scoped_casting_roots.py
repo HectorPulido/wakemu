@@ -10,12 +10,12 @@ def morph_casting_roots():
     source = protocol_catalog.load(
         DATA_ROOT / "native-class-morph933-casting-roots.json"
     )
-    from .combat_morph_spellbook import native_morph_profiles
+    from .combat_morph_spellbook import native_class_morph_profiles
 
     references = sorted(
         {
             action["reference"]
-            for profile in native_morph_profiles().values()
+            for profile in native_class_morph_profiles().values()
             for action in profile["abilities"]
         }
     )

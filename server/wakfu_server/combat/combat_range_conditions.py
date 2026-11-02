@@ -3,10 +3,17 @@ from dataclasses import dataclass
 from .combat_parameters import _float32
 
 
-def total_hp_percent(current, maxima):
+def total_hp_percent(current, maxima, *, known_absent=None):
     """eLB: Java int sums, then float32 ratio*100; no floor or cap."""
+    absent = frozenset() if known_absent is None else known_absent
+    if type(absent) is not frozenset or not absent <= {"HP", "VIRTUAL_HP"}:
+        raise ValueError("Invalid native total HP characteristic presence")
     total = maximum = 0
     for key in ("HP", "VIRTUAL_HP"):
+        if key in absent:
+            if key in current or key in maxima:
+                raise ValueError("Conflicting native total HP characteristic presence")
+            continue
         if key not in current or key not in maxima:
             raise ValueError("Missing native total HP characteristic snapshot")
         if type(current[key]) is not int or type(maxima[key]) is not int:

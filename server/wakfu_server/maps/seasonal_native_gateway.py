@@ -4,10 +4,14 @@ Original bBH custom actions avoid obsolete client-side flE gates. Admission
 still executes the exact configured native transport and its ordinary guards.
 """
 import struct
+import re
 
 PROTOTYPE_ID = 19825  # Original aLM: blank GenericActivableInteractiveElement39.
 _REVIEWED = frozenset(((527, 20179, 443), (472, 17452, 476)))
-_ENTRY_MAPS = frozenset(source_map for source_map, _, _ in _REVIEWED)
+_RELAXED_PREREQUISITE = re.compile(
+    r"\b(?:IsAfter|IsBefore|GetDate|HasState|IsAchievementRunning|"
+    r"IsAchievementComplete|IsAchievementObjectiveComplete)\s*\("
+)
 
 
 def binding(map_id, source_id):
@@ -25,14 +29,21 @@ def binding(map_id, source_id):
     if artifact is not None:
         return artifact
 
-    if map_id not in _ENTRY_MAPS:
+    # Check the in-memory installed route registry before reading native data.
+    if source_id not in dungeon_instances.entry_object_ids(map_id):
         return None
     source = generic_transports.source(map_id, source_id)
     if source is None:
         return None
     candidates = []
     for destination in source["destinations"]:
-        if (map_id, source_id, destination["map_id"]) not in _REVIEWED:
+        if (
+            map_id,
+            source_id,
+            destination["map_id"],
+        ) not in _REVIEWED and _RELAXED_PREREQUISITE.search(
+            destination["criterion"]
+        ) is None:
             continue
         route = dungeon_instances.route_for_entry(
             map_id, source_id, destination["destination_id"]

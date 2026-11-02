@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "policy": "source-qualified-native-encounter-world-action-v1",
+  "authority": "authorized_wakemu_native_encounter_action_reconstruction",
+  "notes": [
+    "The original server-side encounter producer is not recovered.",
+    "Preserve native CANT_BE_ATTACKED13 and the original aNq197 FightStart binding (kind2, empty script).",
+    "Native cyl12421 is completion only for these empty-script/cbH0 actions; it does not animate or emit another fight request.",
+    "An exact pinned dungeon roster may start its existing ordinary combat through its own native world action."
+  ],
+  "scopes": [
+    {
+      "route_key": "legacy-map-443-20179-955",
+      "plan_sha256": "8066ae970719020af5416aac1db608f55a11b1f732ac72248bbcb428e83a17a5",
+      "document_sha256": "b25544f8bc9e8c805cd7e54ca4009ec59c9abe89180d82ecabe1c8aa81fe2026",
+      "actions": [
+        {
+          "monster_reference": 2104,
+          "action_id": 254,
+          "native_source_sha256": "19a83c9e6371664579525c82208f5889b34dc48ae5a0cd52b92474ff3092bd0f"
+        },
+        {
+          "monster_reference": 2047,
+          "action_id": 256,
+          "native_source_sha256": "d8c56856b1b3baea87e9fce3e16ede18a1cde9dc5b51c8dc1abcf69e5b1bda53"
+        },
+        {
+          "monster_reference": 2046,
+          "action_id": 253,
+          "native_source_sha256": "3c67bd37b2dda1779c87810025d31da28bbd3dddf69d944f6cc367182a430af7"
+        },
+        {
+          "monster_reference": 2096,
+          "action_id": 660,
+          "native_source_sha256": "fef149e4ea7100cd873a11ce039af76e54cc4d428a3f5f656f7967ebf5f18f35"
+        }
+      ]
+    },
+    {
+      "route_key": "native_dungeon_131",
+      "plan_sha256": "500cd42ba8303595b3d92068891008a40b21d8df04dc301c713ec5ac973218df",
+      "document_sha256": "2aa7b3061f95da40d66144287cdfeb17ca83043bd34fe44f9e94911a180391c6",
+      "actions": [
+        {
+          "monster_reference": 4378,
+          "action_id": 908,
+          "native_source_sha256": "7ed54dc2c3d8029ced75bf73435f40b87a2a5e6033789673c223c326d5a3c487"
+        }
+      ]
+    },
+    {
+      "route_key": "native_dungeon_181",
+      "plan_sha256": "d9c09e71fdbc3ab028aa73ba2b350a51e2f89edadb119270aa24ccf7a58d9763",
+      "document_sha256": "82f29fd902a2053c5ef3ecfc75da48ef468832874bf656c12f20ab481f619b89",
+      "actions": [
+        {
+          "monster_reference": 5306,
+          "action_id": 1181,
+          "native_source_sha256": "0209d94d846855bd7cad75c5dc406964f3dcdb81b6bc8c2cca8bff30fbc72cdf"
+        }
+      ]
+    },
+    {
+      "route_key": "native_dungeon_203",
+      "plan_sha256": "d4cbf9bfd8742da2b15361a31ab7f92311ae6d46e8fec3f150d0048a02c64d13",
+      "document_sha256": "b4c68deb13c3962f8c73f681b04211b97fb8afcf866b421bb5c7118aa2ab690f",
+      "actions": [
+        {
+          "monster_reference": 5664,
+          "action_id": 1399,
+          "native_source_sha256": "eea87bc2f979ac570a3f94659ae52762afb042c11b996781bf74ab8a001636fd"
+        }
+      ]
+    }
+  ]
+}

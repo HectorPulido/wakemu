@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "rules": [
+    {
+      "key": "native-antre-oublie-gate20418-scene1648",
+      "map_id": 712,
+      "source_id": 20418,
+      "position": [
+        23,
+        -59,
+        -16
+      ],
+      "destination_room": 2,
+      "presentation": {
+        "scenario_id": 1648,
+        "event_id": 13117,
+        "parameters": [
+          2
+        ]
+      },
+      "evidence": {
+        "script_path": "scenario/1648.lua",
+        "script_sha256": "e0b712edc36a7c783f43fe5e80074597e11274bb8405fb5753dec3b53ea5f6d4",
+        "entry_function": "event_1648_13117",
+        "victory_function": "event_1648_21934",
+        "graphic": 42139,
+        "picto_position": [
+          23,
+          -59,
+          -10
+        ],
+        "alpha": 0,
+        "fade_ms": 1000
+      },
+      "compatible_configuration": {
+        "route_key": "native_dungeon_81",
+        "version": 6,
+        "canonical_sha256": "3a95f5700728b315b00fe03fa0fc7488f1251424887b504171316ac524ce6b2a",
+        "native_door_payload_sha256": "cdcf6770dbb9aba50fb1f0b54159cb77413a9786e80038994da0496dc19096e3",
+        "validated_evidence_hashes": {
+          "plan": "cf1211ed7afa397d7413ac6ef56c0076c6ebc051a462b97339ed43d5d52d70c1",
+          "topology": "719db109441cc6666de162cfccec5fd247ef84f6309e00910431844d06fe81bd",
+          "route": "1fac4a0a12dd49f517b5c28c595ad9160120cb76b3202ca9d6e0c5d02567e599"
+        },
+        "remaining_configuration": {
+          "schema_version": 1,
+          "version": 6,
+          "slug": "antre-oublie",
+          "context_policy": {
+            "route_key": "native_dungeon_81",
+            "policy_version": 6,
+            "template_id": 82,
+            "definition_id": 81,
+            "max_level": 0,
+            "min_level": 0,
+            "difficulty_level": 2,
+            "is_difficulty_available": false,
+            "can_increase_difficulty": false,
+            "is_competitive_cancelled": false,
+            "allowed_ids": [],
+            "provenance": "Source-backed two-encounter roster; explicit native-component physical reconstruction preserves native entry 1408, isolates first spawn before closed Door20418, and opens the lower second encounter after committed first victory. No original NPC placement or unlock script claim."
+          },
+          "level_policy": {
+            "mode": "native_stage_progression",
+            "provenance": "Explicit user-requested Wakemu stage progression using native integral grade bounds; increasing weighted mean where feasible, fixed-grade plateaus retained without invented stats; optional grades independently use native maximum.",
+            "optional_mode": "native_maximum"
+          },
+          "provenance": "Source-backed two-encounter roster; explicit native-component physical reconstruction preserves native entry 1408, isolates first spawn before closed Door20418, and opens the lower second encounter after committed first victory. No original NPC placement or unlock script claim.",
+          "evidence_hashes": {
+            "plan": "cf1211ed7afa397d7413ac6ef56c0076c6ebc051a462b97339ed43d5d52d70c1",
+            "topology": "719db109441cc6666de162cfccec5fd247ef84f6309e00910431844d06fe81bd",
+            "route": "1fac4a0a12dd49f517b5c28c595ad9160120cb76b3202ca9d6e0c5d02567e599"
+          }
+        },
+        "validated_route": {
+          "key": "native_dungeon_81",
+          "criterion": "",
+          "template_id": 82,
+          "entry_map_id": 711,
+          "start_map_id": 712,
+          "definition_id": 81,
+          "destination_id": 1408,
+          "entry_object_id": 20421
+        }
+      }
+    }
+  ]
+}

@@ -128,6 +128,7 @@ def room_members(
     team=1,
     player_slots=0,
     actor_id_base=None,
+    fixed_actor_placements=(),
 ):
     """Prepare actors without writes; caller registers them transactionally.
 
@@ -137,19 +138,48 @@ def room_members(
     """
     if run.get("status") != "active":
         raise ValueError("Dungeon run is not active")
-    instance_id = run.get("instance_id")
+    order = run.get("current_room")
+    matches = [room for room in run.get("rooms", ()) if room["order"] == order]
+    if len(matches) != 1 or type(order) is not int:
+        raise ValueError("Dungeon current room is absent or ambiguous")
+    return roster_members(
+        run.get("instance_id"),
+        matches[0]["monsters"],
+        asset_map_id=asset_map_id,
+        anchor=anchor,
+        geometry=geometry,
+        group_id=group_id,
+        select_level=select_level,
+        occupied=occupied,
+        team=team,
+        player_slots=player_slots,
+        actor_id_base=actor_id_base,
+        fixed_actor_placements=fixed_actor_placements,
+    )
+
+
+def roster_members(
+    instance_id,
+    roster,
+    *,
+    asset_map_id,
+    anchor,
+    geometry,
+    group_id,
+    select_level,
+    occupied=(),
+    team=1,
+    player_slots=0,
+    actor_id_base=None,
+    fixed_actor_placements=(),
+):
+    """Construct an admitted roster on real terrain independently of progression."""
     if type(instance_id) is not int or not 0 < instance_id < 2**63:
         raise ValueError("Dungeon encounter requires an owned runtime instance")
     if type(group_id) is not int or not 0 < group_id < 2**63:
         raise ValueError("Invalid dungeon encounter group identity")
     if not callable(select_level):
         raise ValueError("Authoritative dungeon grade policy required")
-    order = run.get("current_room")
-    rooms = run.get("rooms", ())
-    matches = [room for room in rooms if room["order"] == order]
-    if len(matches) != 1 or type(order) is not int:
-        raise ValueError("Dungeon current room is absent or ambiguous")
-    roster = matches[0]["monsters"]
     from wakfu_server.dungeon_monster_admission import current_policy, require
 
     admission_policy = current_policy()
@@ -178,18 +208,55 @@ def room_members(
         raise ValueError("Invalid dungeon actor identity block")
     if actor_id_base + len(expanded) - 1 >= 2**63:
         raise ValueError("Dungeon monster identity exceeds signed wire range")
-    positions = (
-        enemy_formation(
-            geometry,
-            anchor,
-            len(expanded),
-            occupied=occupied,
-            player_slots=player_slots,
-        )
-        if player_slots
-        else reachable_cells(geometry, anchor, len(expanded), occupied=occupied)
+    from wakfu_server.combat_fixed_actor_placement import member_positions
+
+    fixed = member_positions(
+        dict(fixed_actor_placements=fixed_actor_placements),
+        [dict(ref=row["ref_id"]) for row, _ in expanded],
+        room_cells=geometry["cells"],
     )
-    return tuple(
+    fixed_bodies = set()
+    if fixed:
+        from wakfu_server.combat_actor_snapshot import native_actor_catalog
+        from wakfu_server.combat_placement_footprints import covered_cells
+
+        profiles = native_actor_catalog()["npc_profiles"]
+        for index, cell in fixed.items():
+            body = covered_cells(
+                cell,
+                profiles[str(expanded[index][0]["ref_id"])]["physical_radius"],
+                geometry["cells"],
+            )
+            if body & (fixed_bodies | set(map(tuple, occupied))):
+                raise ValueError("Fixed world actors overlap reserved native cells")
+            fixed_bodies.update(body)
+    quantity = len(expanded) - len(fixed)
+    ordinary_positions = (
+        ()
+        if not quantity
+        else (
+            enemy_formation(
+                geometry,
+                anchor,
+                quantity,
+                occupied=set(map(tuple, occupied)) | fixed_bodies,
+                player_slots=player_slots,
+            )
+            if player_slots
+            else reachable_cells(
+                geometry,
+                anchor,
+                quantity,
+                occupied=set(map(tuple, occupied)) | fixed_bodies,
+            )
+        )
+    )
+    remaining = iter(ordinary_positions)
+    positions = [
+        fixed[index] if index in fixed else next(remaining)
+        for index in range(len(expanded))
+    ]
+    members = tuple(
         owned_instance(
             row["ref_id"],
             selected[id(row)],
@@ -203,3 +270,14 @@ def room_members(
         )
         for index, ((row, native), cell) in enumerate(zip(expanded, positions))
     )
+    if fixed:
+        from copy import deepcopy
+
+        declarations_by_reference = {
+            row["reference"]: row for row in fixed_actor_placements
+        }
+        for index in fixed:
+            members[index]["fixed_actor_placement"] = deepcopy(
+                declarations_by_reference[members[index]["ref"]]
+            )
+    return members

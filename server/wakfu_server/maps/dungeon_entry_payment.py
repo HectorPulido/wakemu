@@ -4,6 +4,11 @@
 class InsufficientEntranceItems(ValueError):
     """At least one participant cannot pay with carried unprotected items."""
 
+    def __init__(self, *args, reference=None, quantity=None):
+        super().__init__(*args)
+        self.reference = reference
+        self.quantity = quantity
+
 
 def _plan(db, member_ids, reference, quantity, *, lock):
     """Charge each frozen member; callers own authorization and transaction rollback.
@@ -55,7 +60,9 @@ def _plan(db, member_ids, reference, quantity, *, lock):
             )
             if row is None:
                 raise InsufficientEntranceItems(
-                    f"Every party member needs {quantity} of entrance item {reference}"
+                    f"Every party member needs {quantity} of entrance item {reference}",
+                    reference=reference,
+                    quantity=quantity,
                 )
             planned.append(
                 dict(
@@ -78,7 +85,9 @@ def _plan(db, member_ids, reference, quantity, *, lock):
             ).fetchone()
             if row is None or row["quantity"] < quantity:
                 raise InsufficientEntranceItems(
-                    f"Every party member needs {quantity} of entrance item {reference}"
+                    f"Every party member needs {quantity} of entrance item {reference}",
+                    reference=reference,
+                    quantity=quantity,
                 )
             planned.append(
                 dict(
@@ -120,7 +129,9 @@ def _plan(db, member_ids, reference, quantity, *, lock):
                 break
         if remaining:
             raise InsufficientEntranceItems(
-                f"Every party member needs {quantity} of entrance item {reference}"
+                f"Every party member needs {quantity} of entrance item {reference}",
+                reference=reference,
+                quantity=quantity,
             )
 
     return tuple(planned)

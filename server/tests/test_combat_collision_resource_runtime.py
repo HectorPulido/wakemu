@@ -36,6 +36,14 @@ class CollisionResourceRuntimeTests(unittest.TestCase):
         self.fixture = fixtures.NativeDisplacementTests()
         self.fixture.setUp()
         f = self.fixture
+        # The runtime deployment now requires the ordinary NPC's map identity
+        # when resolving its native world scope. Keep this synthetic room
+        # fixture explicit instead of relying on the older implicit default.
+        for source in (
+            *f.authority.characters.values(),
+            *f.authority.monsters.values(),
+        ):
+            source["map_id"] = 1134
         self.preview = f.preview
         self.preview.actors[8].controlled = False
         native = json.loads(
@@ -124,6 +132,124 @@ class CollisionResourceRuntimeTests(unittest.TestCase):
                 for row in self.preview.owned_stat_effects.values()
             )
         )
+
+    def test_resource_listener_death_skips_secondary_state_without_uid_or_crash(self):
+        """The real eVZ path must pass its synthetic eVR definition to the corpse gate."""
+        from wakfu_server.combat_global_pv_collections import global_fighter_guards
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+        from wakfu_server.combat_resource_pa_notifications import notify_resource_pa
+
+        if not hasattr(self.preview, "native_global_pv_collections"):
+            initialize_global_pv_collections(self.preview, tuple(self.preview.actors))
+        target = self.preview.actors[-7]
+        self.assertGreater(target.hp, 0)
+        self.assertGreater(target.ap, 0)
+        initial_uid = self.preview.native_effect_uid_next
+        initial_states = tuple(
+            (entry.uid, entry.reference, entry.level)
+            for actor in self.preview.actors.values()
+            for entry in actor.state_ledger.entries
+        )
+        lethal_notifications = []
+        gate_rng = []
+        secondary_calls = []
+        native_state_rng = self.dispatcher.native_state_handler.rng
+        self.assertTrue(callable(native_state_rng))
+        state_rng_calls = []
+
+        def counted_state_rng():
+            state_rng_calls.append(None)
+            return native_state_rng()
+
+        self.dispatcher.native_state_handler.rng = counted_state_rng
+        original_apply = self.dispatcher.native_state_handler.apply_reference
+
+        def apply_and_observe(effect, invocation, reference, level, **kwargs):
+            before_uid = self.preview.native_effect_uid_next
+            before_rng = len(state_rng_calls)
+            secondary_calls.append((effect, invocation, reference, level, dict(kwargs)))
+            result = original_apply(effect, invocation, reference, level, **kwargs)
+            gate_rng.append(
+                (
+                    before_uid,
+                    self.preview.native_effect_uid_next,
+                    before_rng,
+                    len(state_rng_calls),
+                    result,
+                )
+            )
+            return result
+
+        self.dispatcher.native_state_handler.apply_reference = apply_and_observe
+
+        def kill_from_loss_listener(fight, actor, stat, **kwargs):
+            before = kwargs.get("before_current")
+            notify_resource_pa(fight, actor, stat, **kwargs)
+            if (
+                actor is target
+                and stat == 2
+                and type(before) is int
+                and actor.ap < before
+                and actor.hp > 0
+            ):
+                lethal_notifications.append((before, actor.ap))
+                # Model a real lethal native listener at the AP setter boundary.
+                # apply_effect_damage records the causal damage/death events and
+                # performs the normal OFF_PLAY transition where that registry exists.
+                fight.apply_effect_damage(7, target.id, target.hp)
+
+        from unittest.mock import patch
+
+        with patch(
+            "wakfu_server.combat_resource_pa_notifications.notify_resource_pa",
+            kill_from_loss_listener,
+        ):
+            with self.preview.effect_resolution():
+                self.assertTrue(self.executor(7, -7))
+
+        self.assertEqual(lethal_notifications, [(6, 5)])
+        self.assertEqual((target.hp, target.effect_stats[1], target.ap), (0, 0, 5))
+        self.assertEqual(len(gate_rng), 1)
+        before_uid, after_uid, before_rng, after_rng, applied = gate_rng[0]
+        self.assertEqual(before_uid, initial_uid + 1)  # eVZ runner only.
+        self.assertEqual(after_uid, before_uid)  # no state UID on the corpse.
+        self.assertEqual(
+            after_rng, before_rng
+        )  # corpse rejection consumes no state RNG.
+        self.assertFalse(applied)
+        guards = global_fighter_guards(self.preview, target.id)
+        self.assertTrue(guards["baG"] or guards["baK"])
+        self.assertEqual(
+            tuple(
+                (entry.uid, entry.reference, entry.level)
+                for actor in self.preview.actors.values()
+                for entry in actor.state_ledger.entries
+            ),
+            initial_states,
+        )
+        self.assertNotIn(
+            5227, [entry.reference for entry in target.state_ledger.entries]
+        )
+        self.assertEqual(self.preview.native_effect_uid_next, initial_uid + 1)
+        loss_packets = [packet for packet in self.packets if packet[0] == 12613]
+        self.assertEqual(len(loss_packets), 1)
+        self.assertFalse(self.executor.handler.prepared)
+        self.assertFalse(self.executor.handler.runner_amounts)
+
+        # Counterfactual for the old resource_secondary path, which supplied
+        # no applying effect. Re-run the same actual state-handler call with
+        # the captured carrier context; the old None input crashes at bcd.
+        self.assertEqual(len(secondary_calls), 1)
+        effect, invocation, reference, level, kwargs = secondary_calls[0]
+        self.assertEqual(effect["native_definition_class"], "eVR")
+        counterfactual_uid = self.preview.native_effect_uid_next
+        counterfactual_rng = len(state_rng_calls)
+        with self.assertRaises(TypeError):
+            original_apply(None, invocation, reference, level, **kwargs)
+        self.assertEqual(self.preview.native_effect_uid_next, counterfactual_uid)
+        self.assertEqual(len(state_rng_calls), counterfactual_rng)
 
     def test_actual_push_geometry_precedes_both_losses_and_asymmetric204(self):
         from wakfu_server.combat_effect_dispatch import EffectInvocation

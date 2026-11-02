@@ -80,8 +80,7 @@ class DungeonCombatRoomArenaTests(unittest.TestCase):
         try:
             with patch.dict(sys.modules, stubs):
                 path = (
-                    Path(__file__).resolve().parents[1]
-                    / "wakfu_server/maps/dungeon_runtime.py"
+                    Path(next(iter(wakfu_server.__path__))) / "maps/dungeon_runtime.py"
                 )
                 spec = importlib.util.spec_from_file_location(
                     "_dungeon_runtime_pure_scope_test", path
@@ -108,6 +107,151 @@ class DungeonCombatRoomArenaTests(unittest.TestCase):
                 (1, 1, 0),
                 [(8, 8, 0)],
             )
+
+    def test_local_accessible_labels_share_connected_native_room_for_combat(self):
+        runtime = self.runtime()
+        left = [(x, 0, 0) for x in range(3)]
+        right = [(x, 0, 0) for x in range(3, 6)]
+        topology = {
+            "asset_map_id": MAP_ID,
+            "policy": "local_accessible_anchor_policy",
+            "rooms": [
+                {"order": 1, "anchor": left[0], "cells": left},
+                {"order": 2, "anchor": right[0], "cells": right},
+            ],
+            "doors": [],
+            "branch_routes": [],
+        }
+        geometry = {
+            "map_id": MAP_ID,
+            "cells": left + right,
+            "edges": [((x, 0, 0), (x + 1, 0, 0)) for x in range(5)],
+        }
+
+        area = runtime.combat_area_cells(topology, topology["rooms"][1], geometry)
+
+        self.assertEqual(set(left + right), set(area))
+        # The player and monster may still be standing on the adjacent logical
+        # label when a fight starts; those cells are in the same native floor.
+        self.assertIn((2, 0, 0), area)
+        self.assertIn((3, 0, 0), area)
+
+    def test_local_accessible_area_does_not_cross_disconnected_native_component(self):
+        runtime = self.runtime()
+        first = [(x, 0, 0) for x in range(3)]
+        second = [(x, 0, 0) for x in range(5, 8)]
+        topology = {
+            "asset_map_id": MAP_ID,
+            "policy": "local_accessible_anchor_policy",
+            "rooms": [
+                {"order": 1, "anchor": first[0], "cells": first},
+                {"order": 2, "anchor": second[0], "cells": second},
+            ],
+            "doors": [],
+            "branch_routes": [],
+        }
+        geometry = {
+            "map_id": MAP_ID,
+            "cells": first + second,
+            "edges": [
+                ((0, 0, 0), (1, 0, 0)),
+                ((1, 0, 0), (2, 0, 0)),
+                ((5, 0, 0), (6, 0, 0)),
+                ((6, 0, 0), (7, 0, 0)),
+            ],
+        }
+
+        area = runtime.combat_area_cells(topology, topology["rooms"][1], geometry)
+
+        self.assertEqual(set(second), set(area))
+        self.assertTrue(set(first).isdisjoint(area))
+
+    def test_omitted_door_cell_cannot_bridge_local_accessible_rooms(self):
+        runtime = self.runtime()
+        before_door = [(0, 0, 0), (1, 0, 0)]
+        after_door = [(3, 0, 0), (4, 0, 0)]
+        topology = {
+            "asset_map_id": MAP_ID,
+            "policy": "local_accessible_anchor_policy",
+            "rooms": [
+                {"order": 1, "anchor": before_door[0], "cells": before_door},
+                {"order": 2, "anchor": after_door[0], "cells": after_door},
+            ],
+            "doors": [],
+            "branch_routes": [],
+        }
+        geometry = {
+            "map_id": MAP_ID,
+            "cells": before_door + [(2, 0, 0)] + after_door,
+            "edges": [
+                ((0, 0, 0), (1, 0, 0)),
+                ((1, 0, 0), (2, 0, 0)),
+                ((2, 0, 0), (3, 0, 0)),
+                ((3, 0, 0), (4, 0, 0)),
+            ],
+        }
+
+        area = runtime.combat_area_cells(topology, topology["rooms"][1], geometry)
+
+        self.assertEqual(set(after_door), set(area))
+        self.assertNotIn((2, 0, 0), area)
+        self.assertTrue(set(before_door).isdisjoint(area))
+
+    def test_native_physical_door_policy_keeps_exact_pinned_room(self):
+        runtime = self.runtime()
+        topology = config()["topology"]
+        room = topology["rooms"][1]
+
+        area = runtime.combat_area_cells(topology, room, native_geometry())
+
+        self.assertEqual(set(room["cells"]), set(area))
+
+    def test_local_policy_cannot_override_native_door_or_branch_boundaries(self):
+        runtime = self.runtime()
+        room = {"order": 1, "anchor": (0, 0, 0), "cells": [(0, 0, 0)]}
+        geometry = {"map_id": MAP_ID, "cells": [(0, 0, 0)], "edges": []}
+        for boundary in (
+            {"doors": [{"source_room": 1, "destination_room": 2}]},
+            {"branch_routes": [{"key": "left"}]},
+        ):
+            topology = {
+                "asset_map_id": MAP_ID,
+                "policy": "local_accessible_anchor_policy",
+                "rooms": [room],
+                **boundary,
+            }
+            with self.subTest(boundary=boundary), self.assertRaisesRegex(
+                ValueError, "cannot replace native room boundaries"
+            ):
+                runtime.combat_area_cells(topology, room, geometry)
+
+    def test_local_accessible_area_accepts_production_prepared_geometry(self):
+        runtime = self.runtime()
+        from wakfu_server.combat_geometry import prepare_geometry
+
+        left = [(x, 0, 0) for x in range(3)]
+        right = [(x, 0, 0) for x in range(3, 6)]
+        topology = {
+            "asset_map_id": MAP_ID,
+            "policy": "local_accessible_anchor_policy",
+            "rooms": [
+                {"order": 1, "anchor": left[0], "cells": left},
+                {"order": 2, "anchor": right[0], "cells": right},
+            ],
+            "doors": [],
+            "branch_routes": [],
+        }
+        geometry = prepare_geometry(
+            {
+                "map_id": MAP_ID,
+                "cells": left + right,
+                "edges": [((x, 0, 0), (x + 1, 0, 0)) for x in range(5)],
+            }
+        )
+
+        area = runtime.combat_area_cells(topology, topology["rooms"][1], geometry)
+
+        self.assertEqual(set(left + right), set(area))
 
     def local_arena(self, allowed_cells=None, **kwargs):
         from wakfu_server.combat import combat_terrain

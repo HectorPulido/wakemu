@@ -61,7 +61,10 @@ class NativeKillHandler:
         ):
             raise ValueError("Invalid native eXc fight/caster")
         if invocation.target_id not in self.fight.actors:
-            if not self._no_hp_area(invocation.target_id):
+            from .combat_kill_area import operand
+
+            area = operand(self.fight, invocation.target_id)
+            if area is None and not self._no_hp_area(invocation.target_id):
                 raise ValueError(
                     "Native eXc null/nonfighter manager delivery unsupported"
                 )
@@ -195,6 +198,10 @@ class NativeKillHandler:
             if live.retained != context.retained:
                 raise ValueError("Native eXc retention changed during L2")
         if invocation.target_id not in self.fight.actors:
+            from .combat_kill_area import operand, apply
+
+            if operand(self.fight, invocation.target_id) is not None:
+                return apply(self, effect, invocation, context, uid, runner, suppress)
             if not self._no_hp_area(invocation.target_id):
                 raise ValueError("Changed native eXc area characteristic authority")
             if context.retained:

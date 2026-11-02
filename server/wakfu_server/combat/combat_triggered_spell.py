@@ -68,8 +68,13 @@ _trigger_stack = ContextVar("wakemu_triggered_spell_stack", default=())
 
 @contextmanager
 def triggered_spell_scope(request):
-    """Explicit server policy: reject recursive cycles or depth beyond 32."""
-    key = (request.caster_id, request.spell_id)
+    """Bound nested native requests, preserving target-to-target spell chains.
+
+    eYZ supplies an actual target cell to the server hook. The same caster and
+    spell may chain through distinct targets; only a repeated active request
+    is a cycle. Payment flags and producer effect IDs do not change identity.
+    """
+    key = (request.caster_id, request.spell_id, request.cell)
     stack = _trigger_stack.get()
     if key in stack or len(stack) >= 32:
         raise ValueError("Wakemu triggered-spell recursion policy rejected cycle/depth")

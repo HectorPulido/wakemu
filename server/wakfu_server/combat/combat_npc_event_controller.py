@@ -9,6 +9,97 @@ import json
 SCHEMA = "native-event-only-npc-v1"
 
 
+def _bootstrap_roots(authority, catalog, plan, roots):
+    """Qualify one local constructor-state hop, never arbitrary event closure."""
+    links = authority.get("bootstrap_links", [])
+    if type(links) is not list or len(links) > 32:
+        raise ValueError("Malformed event-only bootstrap links")
+    if not links:
+        return set()
+    from .combat_definitions import effect_profile, state_profile
+    from .combat_effect_targets import native_selector_policy
+
+    initial = {state.state_id: state.level for state in plan}
+    callbacks = authority.get("callback_roots")
+    if type(callbacks) is not list or any(
+        not isinstance(row, dict) or type(row.get("state_id")) is not int
+        for row in callbacks
+    ):
+        raise ValueError("Missing event-only bootstrap callbacks")
+    requested = {row["state_id"] for row in callbacks}
+    seen = set()
+    qualified = set()
+    for link in links:
+        if (
+            not isinstance(link, dict)
+            or set(link)
+            != {
+                "initial_state_id",
+                "initial_effect_id",
+                "apply_effect_id",
+                "state_id",
+                "state_level",
+            }
+            or any(type(value) is not int for value in link.values())
+        ):
+            raise ValueError("Malformed event-only bootstrap identity")
+        source, root = link["initial_state_id"], link["initial_effect_id"]
+        target, grade = link["state_id"], link["state_level"]
+        if (
+            source not in initial
+            or (source, root) not in roots
+            or target in initial
+            or target in seen
+            or target not in requested
+            or not 1 <= target <= 32767
+            or not 1 <= grade <= 32767
+        ):
+            raise ValueError(
+                "Event-only bootstrap must be one acyclic initial-state hop"
+            )
+        parent = catalog["effects"].get(str(root))
+        apply = catalog["effects"].get(str(link["apply_effect_id"]))
+        if not isinstance(parent, dict) or not isinstance(apply, dict):
+            raise ValueError("Missing event-only bootstrap definitions")
+        parent_policy = native_selector_policy(parent)
+        child_policy = native_selector_policy(apply)
+        if (
+            parent.get("effect_class") != 330
+            or parent.get("criteria") != ""
+            or parent.get("target_masks")
+            != [None, None, None, None, None, [1003], None]
+            or parent.get("area_native") != "point"
+            or parent_policy["relations"] != frozenset({"self"})
+            or link["apply_effect_id"] not in parent.get("children", [])
+            or apply.get("effect_class") != 304
+            or apply.get("criteria") != ""
+            or apply.get("children") != []
+            or apply.get("target_masks") != [None] * 7
+            or apply.get("area_native") != "point"
+            or not child_policy["in_area"]
+            or "self" not in child_policy["relations"]
+        ):
+            raise ValueError(
+                "Event-only bootstrap is not a guaranteed local state installation"
+            )
+        parent_values = effect_profile(parent, initial[source])
+        apply_values = effect_profile(apply, initial[source])
+        if (
+            parent_values["probability"] != 100
+            or apply_values["probability"] != 100
+            or apply_values["parameters"] != [target, grade, -1]
+        ):
+            raise ValueError(
+                "Event-only bootstrap has conditional or mismatched state values"
+            )
+        profile = state_profile(catalog, target, grade)
+        if profile["level"] != grade:
+            raise ValueError("Event-only bootstrap level differs from native state")
+        qualified.update((target, effect) for effect in profile["effects"])
+        seen.add(target)
+    return qualified
+
+
 def event_controller_record(policy, reference, level):
     """Return a reviewed empty-book admission after checking its native sources."""
     from wakfu_server.native_catalog_document import is_native_json_mapping
@@ -61,7 +152,7 @@ def event_controller_record(policy, reference, level):
         or native.get("statistics", {}).get("HP", {}).get("base", 0) <= 0
     ):
         raise ValueError("Event-only NPC lacks a living native empty-book descriptor")
-    if type(level) is not int or not row["min_level"] <= level <= row["max_level"]:
+    if type(level) is not int or not 1 <= level <= 32767:
         return None
     from .combat_summon_initial_states import initial_state_plan
     from .combat_definitions import state_profile
@@ -74,6 +165,7 @@ def event_controller_record(policy, reference, level):
         for state in plan
         for root in state_profile(catalog, state.state_id, state.level)["effects"]
     }
+    roots.update(_bootstrap_roots(authority, catalog, plan, roots))
     callbacks = authority.get("callback_roots")
     if not isinstance(callbacks, list) or not callbacks:
         raise ValueError("Event-only NPC needs a native own-turn callback")

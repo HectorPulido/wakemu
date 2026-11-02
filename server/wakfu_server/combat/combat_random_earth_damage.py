@@ -354,17 +354,15 @@ def ordinary_child_eligibility(
         from wakfu_server.combat_native_actor_lookup import native_actor
 
         actor = native_actor(fight, invocation.target_id)
-        counts = actor_authority.property_counts(fight, actor)
-        if not property_present(counts, 75):
-            return True
-        container, _ = retention.container(invocation)
-        if container.get("container_type") != 1:
-            return False
-        if not callable(special_state_container):
-            raise ValueError("Actual fyW SPECIAL state category authority required")
-        special = special_state_container(invocation)
-        if type(special) is not bool:
-            raise ValueError("Verified fyW SPECIAL state category required")
-        return special
+        from .combat_target_property_eligibility import property75_eligible
+
+        return property75_eligible(
+            fight,
+            actor,
+            invocation,
+            actor_authority=actor_authority,
+            retention=retention,
+            special_state_container=special_state_container,
+        )
 
     return eligible

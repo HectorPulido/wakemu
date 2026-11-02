@@ -15,10 +15,10 @@ def run_party_entry(store, positions, account_id, character_id, *, transition):
             (character_id, character_id),
         ).fetchall()
     accounts = sorted({account_id, *(row["account_id"] for row in members)})
-    return _run_accounts(store, positions, accounts, transition)
+    return _run_accounts(store, positions, accounts, transition, defer_rebind_busy=True)
 
 
-def _run_accounts(store, positions, accounts, transition):
+def _run_accounts(store, positions, accounts, transition, *, defer_rebind_busy=False):
     """Keep source checkpoints and committed destination rebinding in one fence."""
     if not callable(transition):
         raise ValueError("Authoritative dungeon transition callback is required")
@@ -31,7 +31,7 @@ def _run_accounts(store, positions, accounts, transition):
         # The SQL producer checks this scope against its locked final roster;
         # a concurrently joined account cannot bypass the position barrier.
         result = transition(frozenset(accounts))
-        _rebind_clean(store, positions, accounts)
+        _rebind_clean(store, positions, accounts, defer_busy=defer_rebind_busy)
         return result
 
 
@@ -47,15 +47,23 @@ def run_manual_transition(store, positions, account_id, character_id, *, transit
             (character_id,),
         ).fetchall()
     accounts = {account_id, *(row["account_id"] for row in members)}
-    return _run_accounts(store, positions, accounts, transition)
+    return _run_accounts(store, positions, accounts, transition, defer_rebind_busy=True)
 
 
-def run_account_exit(store, positions, account_id, *, transition):
+def run_account_exit(
+    store, positions, account_id, *, transition, defer_rebind_busy=False
+):
     """Fence a departing account and its heroes without moving other accounts."""
-    return _run_accounts(store, positions, (account_id,), lambda _: transition())
+    return _run_accounts(
+        store,
+        positions,
+        (account_id,),
+        lambda _: transition(),
+        defer_rebind_busy=defer_rebind_busy,
+    )
 
 
-def _rebind_clean(store, positions, accounts):
+def _rebind_clean(store, positions, accounts, *, defer_busy=False):
     for (account, generation, character_id), entry in positions._entry_snapshot():
         if account not in accounts or not positions.lease_active(
             account, generation, character_id
@@ -63,8 +71,20 @@ def _rebind_clean(store, positions, accounts):
             continue
         if entry["dirty"]:
             raise ValueError("Dungeon travel requires a clean position baseline")
-        character = store.character(account, character_id)
-        positions.attach(account, generation, character)
+        try:
+            selected = positions.rebind_selected(account, generation, character_id)
+        except PositionOwnerBusy:
+            if not defer_busy:
+                raise
+            # SQL travel and its outbox have committed. Keep the clean source
+            # intact until durable delivery can attach the destination; never
+            # replay entry/payment or discard a dirty/Redis-owned checkpoint.
+            continue
+        if selected is None:
+            # LIVE is account/generation scoped: a previous company main may
+            # still have a clean entry after the same lease selects its hero.
+            # Normal release retains Redis ACK and dirty-state protections.
+            positions.release(account, generation, character_id)
 
 
 def run_auto_transition(
@@ -113,5 +133,5 @@ def run_auto_transition(
         )
         # Travel has committed. Replace only clean, still-owned entries while
         # movement remains fenced; network hydration can safely attach again.
-        _rebind_clean(store, positions, accounts)
+        _rebind_clean(store, positions, accounts, defer_busy=True)
         return result

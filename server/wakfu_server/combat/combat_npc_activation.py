@@ -93,6 +93,8 @@ def _published_rules(policy):
 
 
 def imports_enabled(policy, monster_ref, actor_level, spell):
+    if type(actor_level) is not int or not 1 <= actor_level <= 32767:
+        return False
     if policy is None:
         return True
     rules = _published_rules(policy)
@@ -103,11 +105,7 @@ def imports_enabled(policy, monster_ref, actor_level, spell):
     )
     if record is _INVALID:
         raise ValueError("Invalid native NPC activation range")
-    return (
-        record is not None
-        and record[0] <= actor_level <= record[1]
-        and spell in record[2]
-    )
+    return record is not None and spell in record[2]
 
 
 def _clear_cache():

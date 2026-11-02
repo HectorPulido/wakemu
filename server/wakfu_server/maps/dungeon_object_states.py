@@ -27,6 +27,21 @@ def state_payload(*, visible, usable, state_id=1):
     )
 
 
+def physical_door_payload(*, opened):
+    """Encode typed bBk state without overwriting its native collision flags.
+
+    bEI decodes state first, then writes bk/bh from auxiliary flags. Closed
+    Door state therefore requires both flags true in the same field payload.
+    Teleporters and other interactive element types retain state_payload.
+    """
+    if type(opened) is not bool:
+        raise ValueError("Native Door projection requires committed boolean state")
+    closed = not opened
+    return bytes.fromhex("01020000000602") + struct.pack(
+        ">h6Bi", int(closed), closed, False, False, closed, closed, 0, 0
+    )
+
+
 def state_packet(source, *, map_id, instance_id, visible, usable, state_id=1):
     """Encode only a registered native Teleporter owned by this asset map."""
     from wakfu_server.generic_transports import source as native_source
@@ -74,18 +89,18 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
         raise ValueError("Dungeon topology belongs to another native asset")
     rooms = tuple(topology["rooms"])
     count = len(rooms)
-    _integer(unlocked_room, 1, count)
-    if completed and unlocked_room != count:
+    from wakfu_server.dungeon_optional_rooms import main_room_orders
+
+    terminal = main_room_orders(topology)[-1]
+    _integer(unlocked_room, 1, terminal)
+    if completed and unlocked_room != terminal:
         raise ValueError("Completed dungeon has an inconsistent room frontier")
-    cells = {}
+    from wakfu_server.dungeon_optional_rooms import cell_rooms
+
+    cells = cell_rooms(topology, reject_ambiguous=True)
     for expected, room in enumerate(rooms, 1):
         if type(room["order"]) is not int or room["order"] != expected:
             raise ValueError("Dungeon room order is not contiguous")
-        for cell in room["cells"]:
-            key = tuple(cell)
-            if key in cells:
-                raise ValueError("Dungeon terrain belongs to multiple rooms")
-            cells[key] = expected
     owned = {}
     for source in sources:
         if source["map_id"] != map_id or source["id"] in owned:
@@ -140,6 +155,13 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
         if cells.get(target) != end:
             raise ValueError("Dungeon door destination disagrees with native terrain")
         enabled = max(start, end) <= unlocked_room
+        if door.get("binding_kind") == "native_entry_transfer":
+            # Literal free stairs remain available after the first encounter;
+            # path selection and combat admission are separate authorities.
+            from wakfu_server.dungeon_entry_paths import validate_transfer
+
+            validate_transfer(topology, door)
+            enabled = True
         if source["id"] in availability and availability[source["id"]] != enabled:
             raise ValueError("Native object has conflicting door states")
         availability[source["id"]] = enabled
@@ -173,7 +195,7 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
         from wakfu_server import dungeon_native_flow
 
         order = dungeon_native_flow.object_room(topology, source)
-        if order not in (1, count):
+        if order not in (1, count, terminal):
             witness = topology.get("completed_exit_witness", {})
             bindings = [
                 b
@@ -186,7 +208,22 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
                 or witness.get("room_order") != order
             ):
                 raise ValueError("Unsupported exterior exit in an intermediate room")
-        availability[source["id"]] = order == 1 or completed
+        binding = next(
+            (
+                row
+                for row in topology.get("physical_exit_objects", ())
+                if row["source_id"] == source["id"]
+            ),
+            None,
+        )
+        availability[source["id"]] = (
+            dungeon_native_flow.exit_available(topology, binding, completed=completed)
+            if binding is not None
+            else order == 1 or completed
+        )
+    from wakfu_server.dungeon_optional_vote_geometry import unlocked_transports
+
+    availability.update({identity: True for identity in unlocked_transports(topology)})
     return tuple(
         state_packet(
             owned[identity],

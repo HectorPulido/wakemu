@@ -27,12 +27,42 @@ def bind_room_group(
     if instance_id == 0:
         return None
     run = db.execute(
-        "SELECT party_id,current_room,status FROM dungeon_room_runs "
-        "WHERE instance_id=%s FOR UPDATE",
+        "SELECT * FROM dungeon_room_runs " "WHERE instance_id=%s FOR UPDATE",
         (instance_id,),
     ).fetchone()
     if run is None:
         return None
+    from wakfu_server import dungeon_postboss_nodes
+
+    postboss = dungeon_postboss_nodes.group_receipt(db, group_key, lock=True)
+    if postboss is not None:
+        reconcile_aborted_encounters(db, instance_id=instance_id)
+        postboss = dungeon_postboss_nodes.group_receipt(db, group_key, lock=True)
+        return dungeon_postboss_nodes.bind(
+            db,
+            run,
+            postboss,
+            character_id,
+            fight_id,
+            player_team=player_team,
+            expected_selection_revision=expected_selection_revision,
+        )
+    from wakfu_server import dungeon_optional_encounters
+
+    optional = dungeon_optional_encounters.group_receipt(db, group_key, lock=True)
+    if optional is not None:
+        reconcile_aborted_encounters(db, instance_id=instance_id)
+        # Reconciliation may restore a receipt from active to available.
+        optional = dungeon_optional_encounters.group_receipt(db, group_key, lock=True)
+        return dungeon_optional_encounters.bind(
+            db,
+            run,
+            optional,
+            character_id,
+            fight_id,
+            player_team=player_team,
+            expected_selection_revision=expected_selection_revision,
+        )
     if run["status"] != "active":
         raise ValueError("Dungeon run is not active")
     receipt = db.execute(
@@ -56,8 +86,9 @@ def bind_room_group(
         player_team=player_team,
         expected_selection_revision=expected_selection_revision,
     )
-    from wakfu_server import dungeon_stele
+    from wakfu_server import dungeon_entry_paths, dungeon_stele
 
+    dungeon_entry_paths.commit_path(db, instance_id)
     dungeon_stele.freeze_encounter(db, instance_id, fight_id)
     return binding
 
@@ -93,6 +124,14 @@ def abort_room_encounter(db, fight_id):
         return dict(encounter["result"], replay=True)
     if encounter["status"] != "active":
         raise ValueError("Settled dungeon encounter cannot be aborted")
+    if encounter.get("encounter_scope", "main") == "postboss":
+        from wakfu_server import dungeon_postboss_nodes
+
+        return dungeon_postboss_nodes.abort(db, run, encounter)
+    if encounter.get("encounter_scope", "main") == "optional":
+        from wakfu_server import dungeon_optional_encounters
+
+        return dungeon_optional_encounters.abort(db, run, encounter)
     if (
         run is None
         or run["current_room"] != encounter["room_order"]

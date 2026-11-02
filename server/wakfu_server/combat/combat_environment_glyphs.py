@@ -6,6 +6,8 @@ from .combat_encounter_glyph_bootstrap import (
     prepare_declared_glyphs,
     validate_environment_prototype,
     TRAP_SOURCE,
+    constructor_source,
+    FAKE_FIGHTER_SOURCE,
 )
 
 POLICY = "wakemu.compact-interior-range-v1"
@@ -96,7 +98,7 @@ def verify_environment_glyph(fight, row):
         else {}
     )
     trap = definition.get("type") == "TRAP"
-    expected_source = TRAP_SOURCE if trap else SOURCE
+    expected_source = constructor_source(definition)
     expected_cells = (
         glyph_cells(original, definition)
         if declared
@@ -111,7 +113,8 @@ def verify_environment_glyph(fight, row):
         or row.get("native_environment_source") != expected_source
         or row.get("native_environment_policy") != original.get("policy")
         or row.get("reference") != original.get("reference")
-        or row.get("native_area_contract") != ("fbc" if trap else "faY")
+        or row.get("native_area_contract")
+        != {"TRAP": "fbc", "FAKE_FIGHTER": "faW"}.get(definition.get("type"), "faY")
         or row.get("owner_id") is not None
         or row.get("level") != original.get("level", 0)
         or row.get("direction") != -1
@@ -123,10 +126,22 @@ def verify_environment_glyph(fight, row):
         != expected_cells
     ):
         raise ValueError("Missing environmental area constructor authority")
+    if definition.get("type") == "FAKE_FIGHTER":
+        from .combat_fake_fighter import verified_fake_fighter
+
+        verified_fake_fighter(row, definition)
     if trap:
         from .combat_trap_area import verified_trap_characteristics
 
         verified_trap_characteristics(row, definition)
+
+
+def needs_fresh_environment_qi(fight):
+    """Typed initial QK areas install only after the fresh actor QI boundary."""
+    return not getattr(fight, "native_environment_glyphs_installed", False) and any(
+        source.get("source") == FAKE_FIGHTER_SOURCE
+        for source in getattr(fight, "native_environment_glyph_constructors", ())
+    )
 
 
 def ensure_environment_glyphs(fight):
@@ -134,6 +149,13 @@ def ensure_environment_glyphs(fight):
     from .combat_global_pv_collections import register_global_area
 
     constructors = getattr(fight, "native_environment_glyph_constructors", ())
+    if (
+        needs_fresh_environment_qi(fight)
+        and getattr(fight, "native_qi_fresh_actor_order", None) is not None
+    ):
+        # Innate states may create a factory before actor QK registration. Keep
+        # every constructor pending; the fresh-snapshot commit owns insertion.
+        return False
     for source in constructors:
         identity = source["uid"]
         existing = fight.native_effect_areas.get(identity)
@@ -148,7 +170,7 @@ def ensure_environment_glyphs(fight):
             validate_environment_prototype(definition, level=source.get("level", 0))
             if not source.get("policy", "").startswith("wakemu."):
                 raise ValueError("Missing declared native glyph placement policy")
-        expected_source = TRAP_SOURCE if definition.get("type") == "TRAP" else SOURCE
+        expected_source = constructor_source(definition)
         if source.get("source") != expected_source or (
             not declared
             and (
@@ -165,6 +187,17 @@ def ensure_environment_glyphs(fight):
         ):
             raise ValueError("Missing native environmental glyph prototype")
         row = glyph_row(source, definition)
+        if definition.get("type") == "FAKE_FIGHTER":
+            from .combat_qi_fight import register_effect_area_obstacle
+
+            constructor = row["native_faw_constructor"]
+            if constructor["obstacle"]:
+                # QI.f assigns the exact QK byte before any myK publication.
+                fight.native_effect_areas[identity] = row
+                row["native_obstacle_id"] = register_effect_area_obstacle(
+                    fight, row, constructor
+                )
+                row["native_obstacle_source"] = "QI.f(QK)"
         verify_environment_glyph(fight, row)
         fight.native_effect_areas[identity] = row
         register_global_area(fight, identity)
@@ -199,6 +232,7 @@ def environment_sections(fight, *, viewer_id=None):
                 source,
                 cell=cell,
                 visual_owner=0 if source.get("authority") else visual_owner,
+                row=row,
             )
         )
     return sections

@@ -118,11 +118,13 @@ def owned_effect_payload(
     execution_status=None,
     executed=True,
     inherit_container=True,
+    cell=None,
 ):
     """Native iN for eXE or eWQ/eWR; explicit clocks supplied as TimeDatas.
 
     eXE has no stat AdditionalDatas; stat families require BOTH stat/request.
-    No container reference or position is invented. Removal retains this exact
+    No container reference or position is invented. An explicit native cell
+    writes Qe.bft/field5; omission preserves legacy callers. Removal retains this exact
     payload so decoding cannot replace the owned UID or applied delta.
     """
     if base_uid is None:
@@ -156,6 +158,11 @@ def owned_effect_payload(
             (7, target_id),
         )
     )
+    if cell is not None:
+        from .combat_displacement import position_payload
+
+        position = position_payload(cell)
+        payload += b"\x2a" + _varint(len(position)) + position
     if inherit_container:
         from .combat_running_container import running_container_payload
 
@@ -203,6 +210,7 @@ def listener_clone_payload(
     target_id,
     value=0,
     additional_payload=None,
+    cell=None,
 ):
     """Qe.h/k copy: preserve container/clocks, replace calculated clone fields."""
     from .combat_effect_removal import _read_varint, _identity_fields
@@ -252,13 +260,20 @@ def listener_clone_payload(
             timing = b"".join(
                 raw for key, raw, _ in fields(content) if key not in (2, 5)
             )
-        elif field not in (1, 2, 4, 6, 7) and not (
-            field == 8 and additional_payload is not None
+        elif (
+            field not in (1, 2, 4, 6, 7)
+            and not (field == 8 and additional_payload is not None)
+            and not (field == 5 and cell is not None)
         ):
             preserved.append(encoded)
     if timing is None:
         raise ValueError("Missing original native listener TimeDatas")
     timing += _integer(2, execution_status) + _integer(5, 1)
+    if cell is not None:
+        from .combat_displacement import position_payload
+
+        position = position_payload(cell)
+        preserved.append(b"\x2a" + _varint(len(position)) + position)
     return (
         _integer(1, uid)
         + _integer(2, base_uid)
@@ -278,7 +293,7 @@ def listener_clone_payload(
 
 
 def null_listener_clone_payload(
-    original, *, uid, base_uid, execution_status, caster_id, target_id
+    original, *, uid, base_uid, execution_status, caster_id, target_id, cell=None
 ):
     return listener_clone_payload(
         original,
@@ -287,6 +302,7 @@ def null_listener_clone_payload(
         execution_status=execution_status,
         caster_id=caster_id,
         target_id=target_id,
+        cell=cell,
     )
 
 

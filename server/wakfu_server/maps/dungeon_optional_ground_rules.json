@@ -1,0 +1,88 @@
+{
+  "rules": [
+    {
+      "key": "native-dungeon25-archmonster-seed",
+      "action_id": 7952,
+      "native_class": "bIg",
+      "native_action_type": 34,
+      "item_reference": 11387,
+      "native_parameters": [
+        "5",
+        "5000"
+      ],
+      "use_criterion": "",
+      "action_criterion": "",
+      "route_key": "native_dungeon_25",
+      "source_order": 4,
+      "enabled": true,
+      "qualified_native_release": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "ground_authority": {
+        "map_id": 910,
+        "policy": "reviewed-wakemu-singleton-soil-reconstruction-v1",
+        "original_server_treasure_zone_recovered": false,
+        "source_sha256": "b9f35de649d4502b2e3dfa37618c66d509162ea543421301430162d035725396",
+        "native_graphic": 34796,
+        "native_texture": 4034,
+        "source_hashes": {
+          "client/contents/maps/gfx/910.jar": "17ab32bfadbbe265e1cc6b0a3cbb8fef0136948f41c47cefdfd0e0292f1ef072",
+          "client/contents/maps/data.jar": "caf937e29fcba5847a43caeb6cf564236864bc6612d4f64198032bc577ba1201",
+          "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+          ".runtime/campos-room-count-20261030/native-910-first-field-graphics.json": "17c627c554fa2eff849724edad0ecdbeabfc314d21024688059f0dc43784c484",
+          ".runtime/campos-room-count-20261030/native-exploration-910.json": "ec1544db0c51cb44824f1d5a0b9b61050012add5a51accc51ba402cf9310558e",
+          ".runtime/campos-room-count-20261030/guide-images/champs-first.png": "6d8c297756e179badd5811540ca8cd6043eba41981dc71374c12133afe6cd817",
+          ".runtime/campos-room-count-20261030/guide-images/champs-archi.png": "ca3264530776e4e5b5215980c662707864dcefb034e9abdff7b324b846e4596c"
+        },
+        "targets": [
+          {
+            "position": [
+              21,
+              51,
+              0
+            ],
+            "approach_cells": [
+              [
+                20,
+                51,
+                0
+              ],
+              [
+                21,
+                50,
+                0
+              ],
+              [
+                21,
+                52,
+                0
+              ],
+              [
+                22,
+                51,
+                0
+              ]
+            ],
+            "source_sha256": "b9f35de649d4502b2e3dfa37618c66d509162ea543421301430162d035725396",
+            "approach_policy": "original-cYt-Manhattan-distance-one-after-native-pathing"
+          }
+        ]
+      },
+      "reviewed_server_policy": {
+        "consume_units": 1,
+        "optional_slots_per_instance": 1,
+        "main_completion_required": true,
+        "native_consumption_proven": false,
+        "native_repeatability_proven": false,
+        "provenance": "Root-approved one source unit and one optional slot per instance; not an assertion of original fnE consumption or repeatability.",
+        "use_criterion_override": "Explicit user instruction: this additional encounter ignores Farmer level for action7952/item11387 only; no profession XP grant.",
+        "step_on_target_override": "Explicit server reconstruction for Farmer0 because original cMT item USE locally blocks the inventory cursor; actual accepted movement onto exact soil activates access with owned seed, without spoofed item request or profession progress."
+      },
+      "unavailable_reason": "",
+      "expiry_policy": null,
+      "native_use_criterion": "GetCraftLevel(64) >= 35",
+      "activation_methods": [
+        "native_inventory_action",
+        "step_on_target"
+      ]
+    }
+  ]
+}

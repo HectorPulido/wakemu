@@ -10,6 +10,13 @@ from .npc_dialogue import DialogueSession, catalog, interactions_enabled
 from .npc_capture_contracts import authorized_identity
 from . import npc_objective_facts, npc_protectors, npc_observed_dialogue
 
+
+def _qualified_quest(row):
+    from wakfu_server.quest_npc import qualified_placement
+
+    return qualified_placement(row, published=row.get("_quest_publication"))
+
+
 INTERACTION_REQUEST = 13222
 MIN_ID = -4503599627370495
 MAX_ID = -2251799813685248
@@ -60,6 +67,7 @@ def validate_placements(rows, native=None):
                 and not (
                     authorized_identity(row)
                     and npc_objective_facts.supported(node["criteria"])
+                    or _qualified_quest(row)
                 )
             )
         ):
@@ -90,6 +98,16 @@ def load_scene(db, map_id, instance_id):
         "WHERE npc.enabled AND npc.map_id=%s AND npc.instance_id=%s ORDER BY npc.actor_id",
         (map_id, instance_id),
     ).fetchall()
+    from wakfu_server import quest_npc
+
+    if any(row.get("provenance", "").startswith(quest_npc.PREFIX) for row in rows):
+        published = quest_npc.publication(db)
+        rows = [
+            dict(row, _quest_publication=published)
+            if row.get("provenance", "").startswith(quest_npc.PREFIX)
+            else row
+            for row in rows
+        ]
     return validate_placements(rows)
 
 
@@ -134,7 +152,7 @@ def spawn(row, native=None, language="es"):
     out += struct.pack(">qHhh", -row["actor_id"], 1, row["reference_id"], level)
     disabled_actions = (
         ()
-        if interactions_enabled()
+        if interactions_enabled() or _qualified_quest(row)
         else tuple(action["id"] for action in speaker["actions"])
     )
     out += struct.pack(">hhH", -1, -1, len(disabled_actions)) + b"".join(

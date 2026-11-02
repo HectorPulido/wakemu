@@ -258,6 +258,9 @@ def begin(
         actual = _owner(
             store, db, account_id, generation, character, rule, is_hero=is_hero
         )
+        from wakfu_server.dungeon_optional_votes import require_paid_gate
+
+        require_paid_gate(db, actual, rule, generation=generation)
         _materials(actual, rule)
         active = db.execute(
             "SELECT * FROM paid_container_attempts WHERE state='active' AND "
@@ -393,6 +396,9 @@ def finish(
         actual = _owner(
             store, db, account_id, generation, character, rule, is_hero=is_hero
         )
+        from wakfu_server.dungeon_optional_votes import require_paid_gate
+
+        require_paid_gate(db, actual, rule, generation=generation)
         if actual.get("instance_id", 0) != row["instance_id"] or any(
             actual[k] != row["origin_" + k] for k in ("x", "y", "z")
         ):

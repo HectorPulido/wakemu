@@ -9,6 +9,21 @@ from wakfu_server.combat_effect_removal import _identity_fields
 
 
 class DamageHandlerTests(unittest.TestCase):
+    def test_visual_position_preserves_native_center_and_damage_ownership(self):
+        from dataclasses import replace
+        from wakfu_server.combat_displacement import position_payload
+
+        cell = (4, -21, -2)
+        invocation = replace(self.invocation, cell=cell)
+        self.assertTrue(self.handler(self.effect, {}, invocation))
+        messages = {}
+        fields = _identity_fields(self.packets[0][1][19:], messages=messages)
+        self.assertEqual(messages[5], position_payload(cell))
+        self.assertEqual((fields[6], fields[7]), (7, (-7) & ((1 << 64) - 1)))
+        self.assertEqual(fields[4], 101)
+        self.assertEqual(self.fight.actors[-7].hp, 64)
+        self.assertEqual(self.fight.actors[-7].position, (1, 0, 0))
+
     def test_live_trigger_value_changes_application_and_wire(self):
         class Events:
             def phase(_, effect, invocation, **data):

@@ -221,13 +221,12 @@ def populate(db, event, groups, *, now_ms):
                 (event["map_id"], event["world_instance_id"]),
             ).fetchall()
         )
-    world = occupied[0]
-    with world.lock:
-        taken.update(
-            (row["x"], row["y"])
-            for _, _, row in world.players.values()
-            if world.location(row) == (event["map_id"], event["world_instance_id"])
-        )
+    positions = presence.try_positions(
+        occupied, event["map_id"], event["world_instance_id"]
+    )
+    if positions is None:
+        return ()
+    taken.update(point[:2] for point in positions)
     if random_policy is not None:
         from .environmental_random_rosters import plan
 

@@ -357,7 +357,7 @@ def build_player_snapshot(
     build_index=None,
     catalog=None,
     dev_skip_unsupported=False,
-    initialization_warnings=None
+    initialization_warnings=None,
 ):
     """bjo uses ffh/eGE.pIq; gear/aptitudes come from owned selected sheet.
 
@@ -510,8 +510,8 @@ def build_player_snapshot(
 def native_npc_creation_values(reference, level, *, catalog=None):
     """Native ffx creation at any nonnegative signed-short level, also for eHD.
 
-    World spawn policy may impose breed min/max separately; eZl creates its
-    descriptor at spell/caster level and does not impose that policy.
+    Breed min/max are population recommendations, not descriptor limits.
+    Native eZl may also create a level-zero descriptor from its spell source.
     """
     catalog = native_actor_catalog() if catalog is None else catalog
     rows = _rows(catalog)
@@ -569,7 +569,8 @@ def initialize_fight_snapshots(
     running_effects,
     initial_effect_uid,
     dev_skip_unsupported=False,
-    initialization_warnings=None
+    initialization_warnings=None,
+    scene_state_declarations=(),
 ):
     """Initialize every fresh participant atomically before placement publishes.
 
@@ -655,6 +656,21 @@ def initialize_fight_snapshots(
         install_initial_properties,
     )
 
+    from .combat_encounter_scene_states import (
+        prepare_scene_states,
+        install_scene_states,
+    )
+
+    if (
+        not scene_state_declarations
+        and getattr(fight, "native_encounter_scene", None) is not None
+    ):
+        from .combat_encounter_scene_policy import (
+            scene_state_declarations as declared_scene_states,
+        )
+
+        scene_state_declarations = declared_scene_states(fight, monsters)
+    scene_plans = prepare_scene_states(fight, monsters, scene_state_declarations)
     plans = initial_plans(fight, monsters)
     properties = initial_property_counts(monsters)
     from .combat_npc_ai_initialization import initial_ai_actors
@@ -663,8 +679,14 @@ def initialize_fight_snapshots(
     from .combat_automatic_npc_turn import initial_root_manifest, install_root_manifest
 
     root_manifest = initial_root_manifest(fight, monsters)
+    from .combat_environment_glyphs import (
+        needs_fresh_environment_qi,
+        ensure_environment_glyphs,
+    )
+
+    environment_qi_needed = needs_fresh_environment_qi(fight)
     original_fight = fight
-    if plans:
+    if plans or scene_plans or environment_qi_needed:
         from copy import deepcopy
 
         # Constructor children may reject. Never publish partial actor/state
@@ -688,10 +710,15 @@ def initialize_fight_snapshots(
             fight.actors[identity].native_resource_numeric_observers = {4: ()}
     fight.native_npc_ai_actors = ai_actors
     install_root_manifest(fight, root_manifest)
-    if plans:
+    if plans or scene_plans:
         fight.native_effect_uid_next = initial_effect_uid
+    if plans:
         initialize_ordinary_npcs(fight, monsters, plans)
+    if scene_plans:
+        install_scene_states(fight, monsters, scene_plans)
     install_fresh_actor_slots(fight, qi_registry)
+    if environment_qi_needed:
+        ensure_environment_glyphs(fight)
     from .combat_pr_completion import fresh_pr_completion_authority
 
     if existing_pr_policy is None:
@@ -699,7 +726,7 @@ def initialize_fight_snapshots(
         # observer policy. Restored fights must restore their own provenance;
         # they do not inherit this constructor choice implicitly.
         fight.native_pr_completion_authority = fresh_pr_completion_authority()
-    if not plans:
+    if not plans and not scene_plans:
         fight.native_effect_uid_next = initial_effect_uid
     if fight is not original_fight:
         from .combat_pointer_qi_commit import prepare_pointer_commit

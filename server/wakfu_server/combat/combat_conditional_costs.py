@@ -24,11 +24,17 @@ class ConditionalCostContext:
     ap_modifiers_by_category: object
 
 
-def native_modifiers(spell_id, snapshot):
-    metadata = native_catalog()["spell_categories"]
-    if str(spell_id) not in metadata:
+def native_modifiers(spell_id, snapshot, *, categories=None):
+    if categories is None:
+        metadata = native_catalog()["spell_categories"]
+        if str(spell_id) not in metadata:
+            raise UnknownCondition("Missing native spell category metadata")
+        categories = metadata[str(spell_id)]
+    if not isinstance(categories, (list, tuple)) or any(
+        type(value) is not int for value in categories
+    ):
         raise UnknownCondition("Missing native spell category metadata")
-    categories = set(metadata[str(spell_id)])
+    categories = set(categories)
     if not categories:
         return dict(ap=0, mp=0, wp=0)
     if not isinstance(snapshot, dict) or any(

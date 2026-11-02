@@ -2,6 +2,7 @@
 
 import test_dungeon_abort_binding as dungeon_fixture
 from postgres_case import PostgresCase
+from test_dungeon_instances import DungeonInstanceTests as EntryFixture
 from wakfu_server.combat_session_adapter import CombatSessionAdapter
 from wakfu_server.fight_checkpoint_store import Checkpoints
 from wakfu_server import fight_store
@@ -82,7 +83,7 @@ class InterruptedDungeonRetryTests(PostgresCase):
     )
     player = dungeon_fixture.DungeonAbortBindingTests.player
     party = dungeon_fixture.DungeonAbortBindingTests.party
-    create = dungeon_fixture.DungeonAbortBindingTests.create
+    enter = EntryFixture.enter
 
     def setUp(self):
         PostgresCase.setUp(self)
@@ -92,7 +93,7 @@ class InterruptedDungeonRetryTests(PostgresCase):
         self.store.clock = lambda: 2_000_000_000.0
         self.install_context_policy()
         self.members, self.party_id = self.party(2)
-        self.instance_id = self.create(self.members[0])["instance_id"]
+        self.instance_id = self.enter(self.members[0])["instance_id"]
         monster = SimpleNamespace(
             ref_id=1, count=1, native_min_level=1, native_max_level=5, role="monster"
         )

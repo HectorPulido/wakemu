@@ -4,14 +4,14 @@ from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from wakfu_server.combat.combat_state import Actor, Fight
-from wakfu_server.combat.combat_npc_initialization import (
+from wakfu_server.combat_state import Actor, Fight
+from wakfu_server.combat_npc_initialization import (
     constructor_stat_context,
     initial_plans,
 )
-from wakfu_server.combat.combat_summon_initialization import detached_summon_scope
-from wakfu_server.combat.combat_summon_creation import native_fresh_summon_authority
-from wakfu_server.combat.combat_actor_snapshot import initialize_fight_snapshots
+from wakfu_server.combat_summon_initialization import detached_summon_scope
+from wakfu_server.combat_summon_creation import native_fresh_summon_authority
+from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
 
 
 class NpcInitializationTests(unittest.TestCase):
@@ -41,7 +41,7 @@ class NpcInitializationTests(unittest.TestCase):
         self.assertFalse(constructor_stat_context(fight, invocation))
 
     def test_normal_npc_initialization_rebuilds_placement_without_heroes(self):
-        from wakfu_server.combat.combat_bootstrap import should_rebuild_placement
+        from wakfu_server.combat_bootstrap import should_rebuild_placement
 
         fight = SimpleNamespace()
         self.assertFalse(should_rebuild_placement(fight, []))
@@ -53,11 +53,11 @@ class NpcInitializationTests(unittest.TestCase):
 
     def test_placement_serializer_requires_complete_constructor_receipt(self):
         from dataclasses import asdict
-        from wakfu_server.combat.combat_remote_effects import (
+        from wakfu_server.combat_remote_effects import (
             active_actor_effects,
             initial_npc_actor_effects,
         )
-        from wakfu_server.combat.combat_summon_initial_states import initial_state_plan
+        from wakfu_server.combat_summon_initial_states import initial_state_plan
 
         actor = self.actor()
         fight = SimpleNamespace(phase="placement", actors={actor.id: actor})
@@ -73,7 +73,7 @@ class NpcInitializationTests(unittest.TestCase):
         )
         fight.native_npc_initialization_receipts = {actor.id: receipt}
         with patch(
-            "wakfu_server.combat.combat_remote_effects._live_actor_effects",
+            "wakfu_server.combat_remote_effects._live_actor_effects",
             return_value=b"native-retained",
         ) as serializer:
             self.assertEqual(
@@ -90,7 +90,7 @@ class NpcInitializationTests(unittest.TestCase):
                 initial_npc_actor_effects(fight, actor.id)
 
     def test_group_constructor_ignores_unread_flag17_and_preserves_normal_guards(self):
-        from wakfu_server.combat.combat_native_events import (
+        from wakfu_server.combat_native_events import (
             validate_group_registration_flags,
         )
 
@@ -106,10 +106,10 @@ class NpcInitializationTests(unittest.TestCase):
         validate_group_registration_flags([17], active=True)
 
     def test_shared_state_installer_records_actual_rejected_application(self):
-        from wakfu_server.combat.combat_summon_initialization import (
+        from wakfu_server.combat_summon_initialization import (
             install_initial_states,
         )
-        from wakfu_server.combat.combat_summon_initial_states import initial_state_plan
+        from wakfu_server.combat_summon_initial_states import initial_state_plan
 
         actor = self.actor()
         actor.team = -1
@@ -122,7 +122,7 @@ class NpcInitializationTests(unittest.TestCase):
         )
         results = []
         with detached_summon_scope(fight, actor, authority), patch(
-            "wakfu_server.combat.combat_definitions.state_profile",
+            "wakfu_server.combat_definitions.state_profile",
             return_value={"duration": -1, "realtime_duration": 0},
         ):
             install_initial_states(
@@ -183,23 +183,23 @@ class NpcInitializationTests(unittest.TestCase):
             physical_radius=0, install=lambda target: setattr(target, "hp", 7)
         )
         with patch(
-            "wakfu_server.combat.combat_actor_snapshot.build_npc_snapshot",
+            "wakfu_server.combat_actor_snapshot.build_npc_snapshot",
             return_value=snapshot,
         ), patch(
-            "wakfu_server.combat.combat_qi_fight.prepare_fresh_actor_slots",
+            "wakfu_server.combat_qi_fight.prepare_fresh_actor_slots",
             return_value=object(),
         ), patch(
-            "wakfu_server.combat.combat_qi_fight.install_fresh_actor_slots"
+            "wakfu_server.combat_qi_fight.install_fresh_actor_slots"
         ), patch(
-            "wakfu_server.combat.combat_npc_initialization.initial_plans",
+            "wakfu_server.combat_npc_initialization.initial_plans",
             return_value={},
         ), patch(
-            "wakfu_server.combat.combat_npc_initialization.initialize_ordinary_npcs"
+            "wakfu_server.combat_npc_initialization.initialize_ordinary_npcs"
         ) as constructor:
             initialize_fight_snapshots(
                 fight,
                 characters={},
-                monsters={actor.id: {"ref": 6}},
+                monsters={actor.id: {"id": actor.id, "ref": 6}},
                 wp_resources={actor.id: (0, 0)},
                 running_effects={actor.id: ()},
                 initial_effect_uid=1,
@@ -225,7 +225,7 @@ class NpcInitializationTests(unittest.TestCase):
             },
         )
         with patch(
-            "wakfu_server.combat.combat_npc_attack.npc_spell_catalog",
+            "wakfu_server.combat_npc_attack.npc_spell_catalog",
             return_value={"activation_policy": policy},
         ):
             reference, raw, plan = initial_plans(fight, monsters)[actor.id]
@@ -236,7 +236,15 @@ class NpcInitializationTests(unittest.TestCase):
                 [(5, True, True), (2, False, True)],
             )
             actor.effective_level = 10
-            self.assertEqual(initial_plans(fight, monsters), {})
+            self.assertEqual(
+                [p.level for p in initial_plans(fight, monsters)[actor.id][2]], [10, 2]
+            )
+            for invalid in (0, -1, 32768, True, 10.0):
+                actor.effective_level = invalid
+                with self.subTest(invalid=invalid), self.assertRaisesRegex(
+                    ValueError, "constructor level"
+                ):
+                    initial_plans(fight, monsters)
             actor.effective_level = 5
             policy["enabled_monsters"]["6"]["initial_state_triples"] = None
             with self.assertRaises(ValueError):
@@ -266,23 +274,23 @@ class NpcInitializationTests(unittest.TestCase):
             raise ValueError("Unsupported constructor child")
 
         with patch(
-            "wakfu_server.combat.combat_actor_snapshot.build_npc_snapshot",
+            "wakfu_server.combat_actor_snapshot.build_npc_snapshot",
             return_value=snapshot,
         ), patch(
-            "wakfu_server.combat.combat_qi_fight.prepare_fresh_actor_slots",
+            "wakfu_server.combat_qi_fight.prepare_fresh_actor_slots",
             return_value=object(),
         ), patch(
-            "wakfu_server.combat.combat_npc_initialization.initial_plans",
+            "wakfu_server.combat_npc_initialization.initial_plans",
             return_value={actor.id: object()},
         ), patch(
-            "wakfu_server.combat.combat_npc_initialization.initialize_ordinary_npcs",
+            "wakfu_server.combat_npc_initialization.initialize_ordinary_npcs",
             side_effect=reject,
         ):
             with self.assertRaisesRegex(ValueError, "Unsupported constructor child"):
                 initialize_fight_snapshots(
                     fight,
                     characters={},
-                    monsters={actor.id: {"ref": 6}},
+                    monsters={actor.id: {"id": actor.id, "ref": 6}},
                     wp_resources={actor.id: (0, 0)},
                     running_effects={actor.id: ()},
                     initial_effect_uid=1,

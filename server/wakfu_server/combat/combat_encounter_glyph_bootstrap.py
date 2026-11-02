@@ -10,10 +10,82 @@ from .combat_obstacle_condition import footprint
 
 SOURCE = "buK.cvb.myK.fec.fbm.null_owner.faY"
 TRAP_SOURCE = "buK.cvb.myK.fec.fbm.null_owner.fbc"
+FAKE_FIGHTER_SOURCE = "buK.cvb.myK.fec.fbm.null_owner.faW"
+
+
+def constructor_source(definition):
+    return {"TRAP": TRAP_SOURCE, "FAKE_FIGHTER": FAKE_FIGHTER_SOURCE}.get(
+        definition.get("type"), SOURCE
+    )
+
+
+def validate_fake_fighter_prototype(definition, *, level):
+    """Neutral point faW with no PA, Qf, activation or executable callback."""
+    from collections.abc import Mapping
+    from .combat_fake_fighter import fake_fighter_constructor
+    from .combat_effect_area_catalog import area_effect_catalog
+
+    constructor = fake_fighter_constructor(definition, level)
+    if (
+        constructor["kind"] != 0
+        or constructor["characteristic_ids"]
+        or constructor["running_effect_manager"]
+        or constructor["owner_activation"]
+        or constructor["other_activation"]
+        or definition.get("native_container_type") != 3
+        or definition.get("native_hour_contract") is not False
+        or definition.get("native_shape_class") != "anD"
+        or definition.get("native_shape_description") != "point"
+        or definition.get("shape_parameters") != []
+        or definition.get("entry_masks") != []
+        or definition.get("exit_masks") != []
+        or definition.get("native_fight_properties") != []
+        or definition.get("native_area_properties") != [8]
+        or definition.get("raw_bdf") != 0
+        or definition.get("raw_bdg") != []
+        or type(definition.get("raw_bde")) is not int
+        or definition["raw_bde"] != 1
+        or type(level) is not int
+        or level != 0
+        or type(definition.get("maximum_level")) is not int
+        or definition["maximum_level"] != 0
+    ):
+        raise ValueError("Unsupported native neutral faW marker prototype")
+    roots = definition.get("effect_ids")
+    if not isinstance(roots, (list, tuple)) or not roots:
+        raise ValueError("Missing native neutral faW marker closure")
+    effects = area_effect_catalog()["effects"]
+    for reference in roots:
+        effect = effects.get(str(reference))
+        if (
+            type(reference) is not int
+            or reference <= 0
+            or not isinstance(effect, Mapping)
+            or effect.get("effect_class") != 400
+            or effect.get("variant") != 0
+            or effect.get("native_definition_class") != "eVy"
+            or effect.get("native_execution_mode") != 2
+            or effect.get("parameter_count") != 0
+            or effect.get("parameters") not in ([], ())
+            or effect.get("children") not in ([], ())
+            or effect.get("criteria") != ""
+            or effect.get("application_flag") != "NONE"
+            or effect.get("removal_flag") != "NONE"
+            or effect.get("native_effect_flags") not in ([], ())
+            or not isinstance(effect.get("native_hmi_actions"), Mapping)
+            or set(effect["native_hmi_actions"])
+            != {"rzc", "rzd", "rze", "rzf", "rzg", "rzh"}
+            or any(effect["native_hmi_actions"].values())
+        ):
+            raise ValueError("Unsupported native neutral faW effect closure")
+    return constructor
 
 
 def validate_environment_prototype(definition, *, level):
     """Validate the actual subtype selected by buK's initial area carrier."""
+    if definition.get("type") == "FAKE_FIGHTER":
+        validate_fake_fighter_prototype(definition, level=level)
+        return
     if definition.get("type") != "TRAP":
         validate_glyph_prototype(definition, level=level)
         return
@@ -111,6 +183,51 @@ def validate_point_prototype(definition, *, level):
         or not 0 <= level <= maximum
     ):
         raise ValueError("Unsupported native neutral point faY prototype")
+
+
+def declared_environment_blockers(declarations, *, definitions=None):
+    """Reserve actual initial QK points without removing their native terrain.
+
+    Placement callers compare these XY columns to native fighter footprints.
+    Beneficial glyphs and traps do not acquire invented obstacle semantics.
+    """
+    if declarations is None:
+        return frozenset()
+    if not isinstance(declarations, (list, tuple)):
+        raise ValueError("Invalid declared native area population")
+    if not declarations:
+        return frozenset()
+    if definitions is None:
+        from .combat_effect_area import native_effect_areas
+
+        definitions = native_effect_areas()
+    blockers = set()
+    for declaration in declarations:
+        if not isinstance(declaration, dict) or set(declaration) - {
+            "reference",
+            "cell",
+            "level",
+            "activation",
+        }:
+            raise ValueError("Invalid declared native area fields")
+        reference, cell = declaration.get("reference"), declaration.get("cell")
+        if (
+            type(reference) is not int
+            or reference <= 0
+            or not isinstance(cell, (list, tuple))
+            or len(cell) != 3
+            or any(type(value) is not int for value in cell)
+        ):
+            raise ValueError("Invalid declared native area reference/cell")
+        definition = definitions.get(str(reference), {})
+        level = declaration.get("level", 0)
+        if definition.get("type") == "FAKE_FIGHTER":
+            constructor = validate_fake_fighter_prototype(definition, level=level)
+            if constructor["obstacle"]:
+                blockers.add(tuple(cell))
+        else:
+            validate_environment_prototype(definition, level=level)
+    return frozenset(blockers)
 
 
 def prepare_declared_glyphs(fight, arena, terrain_identity, definitions):
@@ -211,7 +328,7 @@ def prepare_declared_glyphs(fight, arena, terrain_identity, definitions):
                 cell=cell,
                 level=level,
                 policy=policy,
-                source=TRAP_SOURCE if definition["type"] == "TRAP" else SOURCE,
+                source=constructor_source(definition),
                 authority=authority,
                 source_url=source_url,
             )
@@ -258,6 +375,13 @@ def glyph_row(source, definition):
     """Keep the subtype constructor and install its full native shape."""
     row = point_glyph_row(source, definition)
     row["native_cells_xy"] = glyph_cells(source, definition)
+    if definition["type"] == "FAKE_FIGHTER":
+        constructor = validate_fake_fighter_prototype(
+            definition, level=source.get("level", 0)
+        )
+        row["native_area_contract"] = "faW"
+        row["native_faw_constructor"] = constructor
+        row["native_running_effect_manager"] = constructor["running_effect_manager"]
     if definition["type"] == "TRAP":
         from .combat_trap_area import install_trap_characteristics
 
@@ -280,9 +404,16 @@ def point_glyph_section(source, *, cell, visual_owner):
     ) + struct.pack(">Biihb", 0, 0, 0, 0, -1)
 
 
-def environment_section(source, *, cell, visual_owner):
+def environment_section(source, *, cell, visual_owner, row=None):
     """fec header plus the actual subtype appearance (fbc has no suffix)."""
     section = point_glyph_section(source, cell=cell, visual_owner=visual_owner)
-    if source.get("source") == TRAP_SOURCE:
-        return section[: struct.calcsize(">qqiihqhib")]
+    if source.get("source") in (TRAP_SOURCE, FAKE_FIGHTER_SOURCE):
+        section = section[: struct.calcsize(">qqiihqhib")]
+        if source.get("source") == FAKE_FIGHTER_SOURCE:
+            # Before first QI insertion the native fbm constructor owns -1.
+            # Reconnect uses the actual committed QI.f slot of the same Qq.
+            section = section[:-1] + struct.pack(
+                ">b", -1 if row is None else row["native_obstacle_id"]
+            )
+        return section
     return section

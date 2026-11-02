@@ -15,6 +15,10 @@ class PositionOwnerBusy(TimeoutError):
     """Recoverable contention; the authoritative position remains dirty."""
 
 
+class PositionBaselineChanged(ValueError):
+    """A prepared scene lost its durable baseline; reload before attaching."""
+
+
 @contextmanager
 def _recoverable_position_lock():
     """Translate row contention only after the enclosed transaction unwinds."""
@@ -45,7 +49,7 @@ class Positions:
                     dict(
                         stage=stage,
                         elapsed_ms=round((time.monotonic() - started) * 1000, 3),
-                        **details
+                        **details,
                     )
                 )
             except Exception:
@@ -85,21 +89,51 @@ class Positions:
             return list(self.entries.items())
 
     def attach(self, account_id, generation, character):
-        key = (account_id, generation, character["id"])
-        with self.account_barrier(account_id), self.store.connection(
-            timeout=0.25
-        ) as db:
+        return self._attach(
+            account_id, generation, character["id"], character=character
+        )
+
+    def rebind_selected(self, account_id, generation, character_id):
+        """Rebind a clean travel baseline only while its exact selection survives.
+
+        A company may switch its main without changing the account generation.
+        A clean position left by its former selection is obsolete, not an
+        authorization to reattach that former main after another worker's travel.
+        """
+        return self._attach(
+            account_id, generation, character_id, skip_stale_selection=True
+        )
+
+    def _attach(
+        self,
+        account_id,
+        generation,
+        character_id,
+        *,
+        character=None,
+        skip_stale_selection=False,
+    ):
+        key = (account_id, generation, character_id)
+        with _recoverable_position_lock(), self.account_barrier(
+            account_id
+        ), self.store.connection(timeout=0.25) as db:
             db.execute("SET LOCAL lock_timeout = '250ms'")
             db.execute("SET LOCAL statement_timeout = '1000ms'")
             row = db.execute(
                 "SELECT character_id FROM sessions WHERE account_id=%s AND generation=%s AND expires_at>%s FOR UPDATE",
                 (account_id, generation, self.store.now()),
             ).fetchone()
-            if row is None or row["character_id"] != character["id"]:
+            if row is None or row["character_id"] != character_id:
+                if skip_stale_selection:
+                    return None
                 raise ValueError("Invalid buffered position session")
-            saved = self.store.character(account_id, character["id"], db)
+            saved = self.store.character(account_id, character_id, db)
+            if character is None:
+                character = saved
             if any(saved[k] != character[k] for k in _KEYS):
-                raise ValueError("Buffered position baseline does not match storage")
+                raise PositionBaselineChanged(
+                    "Buffered position baseline does not match storage"
+                )
             if key in self.entries and self.entries[key]["dirty"]:
                 raise ValueError("Flush buffered position before attaching again")
             with self.lock:

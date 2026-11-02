@@ -8,6 +8,30 @@ from .combat_trigger_value_modifier import NativeRunnerAmount
 from .combat_value_transfer import apply_context_value
 
 
+def area_fight_properties(row, definition):
+    """FFE namespace1, kept distinct from the prototype FBO namespace4 set."""
+    base = definition.get("native_fight_properties", ())
+    if not isinstance(base, (tuple, list)) or any(type(p) is not int for p in base):
+        raise ValueError("Missing native faV fight-property prototype")
+    current = row.get("native_current_fight_properties")
+    if current is None:
+        return frozenset(base)
+    if (
+        row.get("native_fight_property_source") != "faV.rzt.eXc28.FFE"
+        or not isinstance(current, (tuple, list))
+        or any(type(p) is not int for p in current)
+        or frozenset(current) != frozenset(base) | {65}
+    ):
+        raise ValueError("Missing native faV FFE65 mutation authority")
+    return frozenset(current)
+
+
+def add_kill_suppression_property(row, definition):
+    values = area_fight_properties(row, definition) | {65}
+    row["native_current_fight_properties"] = tuple(sorted(values))
+    row["native_fight_property_source"] = "faV.rzt.eXc28.FFE"
+
+
 def area_properties(row, definition):
     if definition.get("type") == "ARTIFACT" or row.get("native_area_contract") == "faM":
         from .combat_artifact_area import verify_artifact_area

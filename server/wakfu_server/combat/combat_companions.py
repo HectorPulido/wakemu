@@ -113,8 +113,8 @@ def native_stats(
     if type(breed_ref) is not int or breed_ref not in COMPANION_BREEDS:
         raise ValueError("Unknown native companion breed")
     model = reference(breed_ref)
-    if type(level) is not int or not model["min_level"] <= level <= model["max_level"]:
-        raise ValueError("Companion level outside native breed")
+    if type(level) is not int or not 1 <= level <= 32767:
+        raise ValueError("Invalid companion level")
     values = native_npc_creation_values(breed_ref, level)
     from wakfu_server.equipment_resource_bonuses import from_native_values
 

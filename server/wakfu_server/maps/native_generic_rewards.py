@@ -260,11 +260,20 @@ def claim(
         token, packets, grants, consumed = uuid.uuid4(), [], [], []
         paid = False
         digest = _digest(rule)
+        from wakfu_server import dungeon_optional_votes
+
+        ballot_scope = dungeon_optional_votes.reward_scope(
+            db, actual, rule, generation=generation
+        )
         for effect in rule["effects"]:
             if effect["effect_type"] == 1 or not allowed(effect["criterion"]):
                 continue
             previous = None
-            if rule["lifecycle_mode"] == "ONCE_PER_CHARACTER_RECONSTRUCTED":
+            if ballot_scope is not None:
+                previous = (
+                    {"rule_digest": digest} if ballot_scope["granted_units"] else None
+                )
+            elif rule["lifecycle_mode"] == "ONCE_PER_CHARACTER_RECONSTRUCTED":
                 previous = db.execute(
                     "SELECT rule_digest FROM native_generic_reward_claims "
                     "WHERE character_id=%s AND policy_id=%s AND object_id=%s AND effect_reference=%s",
@@ -294,7 +303,9 @@ def claim(
                     )
                 )
                 actual = store.character(account_id, actual["id"], db)
-            if rule["lifecycle_mode"] == "ONCE_PER_CHARACTER_RECONSTRUCTED":
+            if ballot_scope is not None:
+                dungeon_optional_votes.claim_scope(db, ballot_scope, token, products)
+            elif rule["lifecycle_mode"] == "ONCE_PER_CHARACTER_RECONSTRUCTED":
                 db.execute(
                     "INSERT INTO native_generic_reward_claims "
                     "(character_id,policy_id,object_id,effect_reference,rule_digest,attempt_uuid) VALUES(%s,%s,%s,%s,%s,%s)",

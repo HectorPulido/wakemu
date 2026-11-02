@@ -305,6 +305,37 @@ class NativeDisplacementTests(unittest.TestCase):
         self.assertEqual(results[0], results[1])
         self.assertEqual(results[0][0], (5, 0, 0))
 
+    def test_single_target_flag22_preserves_native_stair_path_and_packet(self):
+        results = []
+        for flags in ([], [4], [22], [4, 22]):
+            self.setUp()
+            self.stair_fixture()
+            for source in (
+                *self.authority.characters.values(),
+                *self.authority.monsters.values(),
+            ):
+                source["map_id"] = 1134
+            effect = deepcopy(self.effects["326690"])
+            effect["native_effect_flags"] = flags
+            self.handler(effect, None, EffectInvocation(326690, 1, 7, -7, (-15, -3, 0)))
+            results.append(
+                (
+                    self.preview.actors[-7].position,
+                    tuple(self.packets),
+                    self.preview.native_effect_uid_next,
+                )
+            )
+            self.assertEqual(effect["native_effect_flags"], flags)
+        self.assertTrue(all(result == results[0] for result in results))
+        self.assertEqual(results[0][0], (-15, -4, 0))
+        effect["native_effect_flags"] = [22, 9999]
+        before = self.preview.actors[-7].position
+        with self.assertRaisesRegex(
+            ValueError, "Unhandled native displacement flags.*9999"
+        ):
+            self.handler(effect, None, EffectInvocation(326690, 1, 7, -7, (-15, -3, 0)))
+        self.assertEqual(self.preview.actors[-7].position, before)
+
     def test_do_not_uncarry_flag37_preserves_ordinary_displacement_result(self):
         results = []
         for enabled in (False, True):

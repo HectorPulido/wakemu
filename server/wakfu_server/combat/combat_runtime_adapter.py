@@ -358,7 +358,15 @@ class NativeServerRuntimeAdapter:
                     else:
                         retained_ids = frozenset(row[0] for row in retained_rows)
                         retained_actions = frozenset(row[1] for row in retained_rows)
+                from .combat_area_total_hp_conditions import area_total_hp_snapshot
+
+                hp_current, hp_maxima, hp_absent = area_total_hp_snapshot(
+                    preview, identity
+                )
                 typed = dict(
+                    characteristics=hp_current,
+                    characteristic_maxima=hp_maxima,
+                    total_hp_absent_characteristics=hp_absent,
                     # Registered faW/bcQ area PV is not a biB player.
                     is_player=False,
                     # faV.a(eHh) reports EFFECT_AREA, never a player/companion.
@@ -366,6 +374,9 @@ class NativeServerRuntimeAdapter:
                     is_native_fighter=False,
                     is_native_ehg=True,
                     is_character=False,
+                    # faV.dTE is literal false; supported area subtypes
+                    # inherit it, including HP-owning fbd walls.
+                    is_summon=False,
                     # eNZ calls eHg.dnz; every supported faV subtype
                     # inherits literal true, including a retained Qq pointer.
                     # registered_area_pv above proves the actual PV identity.
@@ -2319,11 +2330,23 @@ class NativeServerRuntimeAdapter:
             )
             return runtime_difficulty(preview, invocation.caster_id, metadata)
 
+        def external_event_caster_query():
+            from .combat_encounter_scene_external_participant import (
+                declared_external_participant,
+            )
+
+            return declared_external_participant(
+                preview,
+                invocation,
+                actor_authority=self.actor_authority,
+            )
+
         return ConditionContext(
             aliases,
             cell,
             distance,
             alignment,
+            external_event_caster_query=external_event_caster_query,
             dungeon_difficulty_query=dungeon_difficulty_query,
             random_number_query=(
                 None
@@ -2601,6 +2624,25 @@ class NativeServerRuntimeAdapter:
                 contexts[caster.id] = dict(self._actor(preview, caster).targeting)
         return contexts
 
+    def projected_targets(self, preview, plan, effect, invocation, candidates):
+        """Project the same native facts for already selected point candidates.
+
+        This creates no live cache. The NPC admission caller first applies the
+        shared native geometry and checks this exact implementation capability.
+        The normal resolver still performs its complete validation afterwards.
+        """
+        actors = tuple(
+            actor for actor in candidates if native_actor(preview, actor.id) is actor
+        )
+        contexts = {
+            actor.id: dict(self._actor(preview, actor).targeting) for actor in actors
+        }
+        if invocation.caster_id not in contexts:
+            caster = native_actor(preview, invocation.caster_id)
+            if caster is not None:
+                contexts[caster.id] = dict(self._actor(preview, caster).targeting)
+        return contexts
+
     def random(self, preview, plan):
         value = self.cast.random_fraction(preview, plan)
         if type(value) not in (int, float) or not 0 <= value < 1:
@@ -2713,3 +2755,83 @@ class NativeServerRuntimeAdapter:
                 )
             ),
         )
+
+
+_SOURCE_TARGETS = NativeServerRuntimeAdapter.targets
+_SOURCE_ACTOR_PROJECTION = NativeServerRuntimeAdapter._actor
+_SOURCE_POINT_PROJECTION = NativeServerRuntimeAdapter.projected_targets
+_PROJECTION_AUTHORITY_CALLS = {}
+
+
+def native_point_target_projection(provider):
+    """Return an exact native projection capability, otherwise use the caller.
+
+    Custom callbacks, adapters, authority subclasses and spellbook/catalog
+    providers retain the original complete native_targets invocation.
+    """
+    owner = getattr(provider, "__self__", None)
+    if (
+        type(owner) is not NativeServerRuntimeAdapter
+        or getattr(provider, "__func__", None) is not _SOURCE_TARGETS
+        or NativeServerRuntimeAdapter.targets is not _SOURCE_TARGETS
+        or NativeServerRuntimeAdapter._actor is not _SOURCE_ACTOR_PROJECTION
+        or NativeServerRuntimeAdapter.projected_targets is not _SOURCE_POINT_PROJECTION
+        or getattr(owner.targets, "__func__", None) is not _SOURCE_TARGETS
+        or getattr(owner._actor, "__func__", None) is not _SOURCE_ACTOR_PROJECTION
+        or getattr(owner.projected_targets, "__func__", None)
+        is not _SOURCE_POINT_PROJECTION
+    ):
+        return None
+    from .combat_ordinary_authority import (
+        OrdinaryActorAuthority,
+        _immutable_property_catalog,
+    )
+    from .combat_summon import RegisteredSummonAuthority
+    from .combat_npc_spellbook import ordinary_npc_spellbook
+
+    authority = owner.actor_authority
+    if type(authority) is RegisteredSummonAuthority:
+        authorities = (authority, authority.ordinary)
+    else:
+        authorities = (authority,)
+    ordinary = authorities[-1]
+    if (
+        type(ordinary) is not OrdinaryActorAuthority
+        or ordinary.catalog is not _immutable_property_catalog()
+        or (
+            ordinary.npc_spellbook is not None
+            and ordinary.npc_spellbook is not ordinary_npc_spellbook
+        )
+        or any(
+            type(getattr(ordinary, name, None)) is not dict
+            for name in (
+                "characters",
+                "monsters",
+                "decks",
+                "excluded_decks",
+                "deck_caps",
+                "deck_blobs",
+            )
+        )
+        or any(
+            type(source) is not dict
+            for sources in (ordinary.characters, ordinary.monsters)
+            for source in sources.values()
+        )
+    ):
+        return None
+    for value in authorities:
+        kind = type(value)
+        function = kind.__call__
+        expected_file = (
+            "combat_summon.py"
+            if kind is RegisteredSummonAuthority
+            else "combat_ordinary_authority.py"
+        )
+        code = getattr(function, "__code__", None)
+        if code is None or code.co_filename.rsplit("/", 1)[-1] != expected_file:
+            return None
+        original = _PROJECTION_AUTHORITY_CALLS.setdefault(kind, function)
+        if original is not function:
+            return None
+    return owner.projected_targets

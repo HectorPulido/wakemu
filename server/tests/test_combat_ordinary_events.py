@@ -36,9 +36,13 @@ class OrdinaryHealingEventTests(unittest.TestCase):
                     id=7,
                     breed=15,
                     level=self.fight.actors[7].effective_level,
+                    map_id=527,
+                    instance_id=0,
+                    account_id=3,
+                    selected_character_id=7,
                 )
             },
-            monsters={-7: dict(id=-7, ref=5525)},
+            monsters={-7: dict(id=-7, ref=5525, map_id=527, instance_id=0)},
             decks={7: [6266]},
             excluded_decks={7: []},
         )

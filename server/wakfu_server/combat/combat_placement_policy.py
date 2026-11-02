@@ -4,6 +4,42 @@ from contextlib import nullcontext
 from psycopg.pq import TransactionStatus
 from .combat_placement_cells import generate
 from .combat_wire import arena
+from .combat_topology_identity import (
+    reserve as reserve_topology,
+    valid as valid_topology,
+)
+
+
+def _placement_scene(record, *, map_id, instance_id, cells):
+    """Retain the admitted scene seal across the durable placement boundary."""
+    if record is None:
+        return None
+    from .combat_encounter_scene_policy import _verified, prepare_scene
+
+    source = _verified(record)
+    scope = source["scope"]
+    if (scope.get("map_id"), scope.get("instance_id")) != (map_id, instance_id):
+        raise ValueError("Placement scene belongs to another admitted instance")
+    # Re-run the normal source/descriptor validators; a digest alone must not
+    # authorize a malformed or changed native phase program.
+    prepared = prepare_scene(
+        source["descriptor"], scope=scope, room_cells=source["room_cells"]
+    )
+    if prepared != source:
+        raise ValueError("Placement scene differs from its admitted source")
+    selected = set(map(tuple, cells))
+    declared = set(map(tuple, source["room_cells"]))
+    if (
+        not selected <= declared
+        or source["descriptor"]["full_room_scope"]
+        and selected != declared
+        or any(
+            tuple(row["cell"]) not in selected
+            for row in source["descriptor"].get("native_initial_glyphs", ())
+        )
+    ):
+        raise ValueError("Placement scene leaves its admitted native terrain")
+    return prepared
 
 
 def _policy(value):
@@ -23,6 +59,42 @@ def _policy(value):
     if type(value["variation_enabled"]) is not bool:
         raise ValueError("Invalid placement variation policy")
     return dict(value)
+
+
+def _party_reserved_cells(record, cells, placement, player_team):
+    reserved = record.get("native_party_reserved_cells")
+    npc_cells = record.get("native_party_npc_cells")
+    if reserved is None:
+        if npc_cells is not None:
+            raise ValueError("NPC party footprint lacks a placement reservation")
+        return frozenset()
+    if (
+        record.get("native_encounter_scene_layout") is not None
+        or not isinstance(reserved, (list, tuple))
+        or len(reserved) != 6
+        or not isinstance(npc_cells, (list, tuple))
+        or not npc_cells
+        or any(
+            not isinstance(cell, (list, tuple))
+            or len(cell) != 3
+            or any(type(value) is not int for value in cell)
+            for cell in [*reserved, *npc_cells]
+        )
+    ):
+        raise ValueError("Invalid ordinary party placement reservation")
+    reserved = frozenset(map(tuple, reserved))
+    npc_cells = frozenset(map(tuple, npc_cells))
+    if (
+        len(reserved) != 6
+        or not reserved <= set(cells)
+        or not reserved <= set(placement[player_team])
+        or not npc_cells <= set(cells)
+        or reserved & npc_cells
+        or set(placement[player_team]) & npc_cells
+        or reserved & set(map(tuple, record.get("native_border_cells", ())))
+    ):
+        raise ValueError("Ordinary party reservation leaves its native player zone")
+    return reserved
 
 
 def partition_scene_helper_seeds(
@@ -112,21 +184,27 @@ def _arena(map_id, instance_id, layout):
     # Placement regenerates wire masks, so preserve the actual native Vy
     # selection rather than silently replacing every surface index with zero.
     indices = native_surface_indices(native_qi_surfaces(map_id), cells)
-    from .combat_arena_empty_gaps import restored_gap_indices
+    from .combat_arena_empty_gaps import (
+        POLICY as EMPTY_GAP_POLICY,
+        restored_gap_indices,
+    )
 
     gap_indices = restored_gap_indices(map_id, cells, layout)
-    if (
-        layout.get("native_los_gap_policy") is not None
-        and layout.get("native_encounter_scene_layout", {}).get("native_los_gap_policy")
-        != layout["native_los_gap_policy"]
-    ):
-        raise ValueError("Persisted encounter empty-gap policy changed")
+    gap_policy = layout.get("native_los_gap_policy")
+    if gap_policy is not None:
+        scene = layout.get("native_encounter_scene_layout")
+        expected_policy = (
+            EMPTY_GAP_POLICY if scene is None else scene.get("native_los_gap_policy")
+        )
+        if gap_policy != expected_policy:
+            raise ValueError("Persisted encounter empty-gap policy changed")
     result = arena(
         map_id,
         layout["wire_instance_id"],
         sorted(cells),
         placement,
         surface_indices=indices,
+        native_surfaces=native_qi_surfaces(map_id),
         border_cells=layout.get("native_border_cells", []),
         gap_surface_indices=gap_indices,
     )
@@ -200,13 +278,17 @@ def _arena(map_id, instance_id, layout):
             "native_encounter_scene_layout"
         ]
         result["participant_player_position"] = layout["participant_player_position"]
+    player_team = 0
     if "native_encounter_roles" in layout:
         from wakfu_server.combat_encounter_roles import roles_from_record
 
-        result["native_encounter_roles"] = roles_from_record(
+        roles = roles_from_record(
             layout["native_encounter_roles"],
             map_id=map_id,
-        ).record()
+        )
+        result["native_encounter_roles"] = roles.record()
+        player_team = roles.player_team
+    _party_reserved_cells(layout, cells, placement, player_team)
     for key in (
         "native_border_scope_cells",
         "native_initial_glyphs",
@@ -216,9 +298,41 @@ def _arena(map_id, instance_id, layout):
         "native_environment_participant_footprints",
         "native_los_gap_policy",
         "native_los_gap_surfaces",
+        "native_party_reserved_cells",
+        "native_party_npc_cells",
     ):
         if key in layout:
             result[key] = layout[key]
+    scene = _placement_scene(
+        layout.get("native_encounter_scene"),
+        map_id=map_id,
+        instance_id=instance_id,
+        cells=cells,
+    )
+    if scene is not None:
+        result["native_encounter_scene"] = scene
+        from .combat_encounter_scene_policy import _native_border_reference
+
+        scene_border = _native_border_reference(scene["descriptor"])
+        if scene_border is not None:
+            from .combat_battleground_border import SUPPORTED_POLICIES
+
+            if (
+                border is not None
+                or scene_reference is not None
+                or emiw_border is not None
+                or result.get("native_border_policy") not in SUPPORTED_POLICIES
+            ):
+                raise ValueError("Frozen scene border conflicts with terrain authority")
+            result["terrain_effect_id"] = scene_border
+    if layout.get("native_initial_player_relocation") is not None:
+        from .combat_initial_player_relocation import validated_destination
+
+        result.update(
+            native_initial_player_relocation=layout["native_initial_player_relocation"],
+            participant_player_position=layout["participant_player_position"],
+        )
+        validated_destination(result)
     return result
 
 
@@ -257,7 +371,42 @@ def freeze(
         if prior is not None:
             if (prior["map_id"], prior["instance_id"]) != (map_id, instance_id):
                 raise ValueError("Placement encounter scope changed")
-            return _arena(map_id, instance_id, prior["layout"])
+            layout = prior["layout"]
+            # Older placement writers retained the terrain but dropped its
+            # scene declaration. Recover that declaration from the admitted
+            # source on a placement retry, before callbacks or AI bind to it.
+            # Never overwrite a committed scene or retrofit an active fight.
+            repair_scene = (
+                fight["status"] == "placement"
+                and layout.get("native_encounter_scene") is None
+                and selected_arena.get("native_encounter_scene") is not None
+            )
+            if repair_scene:
+                scene = _placement_scene(
+                    selected_arena["native_encounter_scene"],
+                    map_id=map_id,
+                    instance_id=instance_id,
+                    cells=layout["cells"],
+                )
+                layout = dict(layout, native_encounter_scene=scene)
+            repair_topology = not valid_topology(layout.get("wire_instance_id"))
+            if repair_topology:
+                layout = dict(
+                    layout,
+                    wire_instance_id=reserve_topology(
+                        db,
+                        fight_id=fight_id,
+                        map_id=map_id,
+                        preferred=selected_arena.get("instance_id"),
+                    ),
+                )
+            result = _arena(map_id, instance_id, layout)
+            if repair_scene or repair_topology:
+                db.execute(
+                    "UPDATE fight_placement_layouts SET layout=%s WHERE fight_id=%s",
+                    (Jsonb(layout), fight_id),
+                )
+            return result
         row = db.execute(
             "SELECT value FROM settings WHERE name='fight_placement_policy'"
         ).fetchone()
@@ -288,6 +437,15 @@ def freeze(
             ):
                 raise ValueError("Reconstructed placement player origin changed")
             seeds = {0: [tuple(player_relocation[1])], 1: seeds[1]}
+        if selected_arena.get("native_initial_player_relocation") is not None:
+            from .combat_initial_player_relocation import validated_destination
+
+            if len(seeds[0]) != 1:
+                raise ValueError("Reserved-slot placement requires its admission owner")
+            destination = validated_destination(
+                selected_arena, original=next(iter(seeds[0]))
+            )
+            seeds = {0: [destination], 1: seeds[1]}
         seeds, friendly_helpers = partition_scene_helper_seeds(
             selected_arena,
             seeds,
@@ -319,7 +477,36 @@ def freeze(
         else:
             if roles is not None:
                 seeds = roles.placement_cells(seeds[0], seeds[1])
+            player_team = 0 if roles is None else roles.player_team
+            reserved = _party_reserved_cells(
+                selected_arena,
+                cells,
+                selected_arena["placement_cells"],
+                player_team,
+            )
+            if reserved:
+                if not set(map(tuple, seeds[1 - player_team])) <= set(
+                    map(tuple, selected_arena["native_party_npc_cells"])
+                ):
+                    raise ValueError("Ordinary party NPC footprint facts changed")
+                seeds = dict(seeds)
+                seeds[player_team] = sorted(
+                    set(map(tuple, seeds[player_team])) | reserved
+                )
             helper_capacity = {}
+            if reserved:
+                helper_capacity["occupied_cells"] = selected_arena[
+                    "native_party_npc_cells"
+                ]
+            from .combat_encounter_scene_policy import declared_spawn_cells
+
+            spawn_slots = declared_spawn_cells(
+                selected_arena.get("native_encounter_scene", {}).get("descriptor", {})
+            )
+            if spawn_slots:
+                helper_capacity["occupied_cells"] = set(
+                    map(tuple, helper_capacity.get("occupied_cells", ()))
+                ) | set(spawn_slots)
             if friendly_helpers:
                 player_team = 0 if roles is None else roles.player_team
                 npc_team = 1 if roles is None else roles.npc_team
@@ -363,6 +550,10 @@ def freeze(
         layout = dict(
             border=None
             if emiw_border is not None
+            or selected_arena.get("native_encounter_scene", {})
+            .get("descriptor", {})
+            .get("native_border_reference")
+            is not None
             or scene is not None
             and "terrain_effect_id" in scene
             else choose_border(db),
@@ -371,9 +562,21 @@ def freeze(
             participant_positions=relocations,
             cells=sorted(cells),
             edges=sorted(edges),
-            wire_instance_id=selected_arena["instance_id"],
+            wire_instance_id=reserve_topology(
+                db,
+                fight_id=fight_id,
+                map_id=map_id,
+                preferred=selected_arena.get("instance_id"),
+            ),
             placement={str(t): sorted(group) for t, group in placement.items()},
         )
+        if selected_arena.get("native_initial_player_relocation") is not None:
+            layout.update(
+                native_initial_player_relocation=selected_arena[
+                    "native_initial_player_relocation"
+                ],
+                participant_player_position=player_relocation,
+            )
         if scene is not None:
             layout.update(
                 native_encounter_scene_layout=scene,
@@ -410,12 +613,22 @@ def freeze(
             "native_environment_participant_footprints",
             "native_los_gap_policy",
             "native_los_gap_surfaces",
+            "native_party_reserved_cells",
+            "native_party_npc_cells",
         ):
             if key in selected_arena:
                 value = selected_arena[key]
                 layout[key] = (
                     sorted(value) if key == "native_border_scope_cells" else value
                 )
+        admitted_scene = _placement_scene(
+            selected_arena.get("native_encounter_scene"),
+            map_id=map_id,
+            instance_id=instance_id,
+            cells=cells,
+        )
+        if admitted_scene is not None:
+            layout["native_encounter_scene"] = admitted_scene
         result = _arena(map_id, instance_id, layout)
         db.execute(
             "INSERT INTO fight_placement_layouts(fight_id,map_id,instance_id,policy,layout) VALUES(%s,%s,%s,%s,%s)",

@@ -265,8 +265,8 @@ class NativeRetainedRuntime:
         live.difference_update(pending_state_uids(self.fight))
         return live
 
-    def synchronize(self):
-        live = self._live()
+    def synchronize(self, *, _manager_pass=None):
+        live = self._live(_manager_pass=_manager_pass)
         for uid in tuple(self.fight.native_retained_records):
             if uid not in live:
                 del self.fight.native_retained_records[uid]
@@ -671,7 +671,15 @@ class NativeRetainedRuntime:
             self._carrier_parents.pop()
 
     def apply_state_reference(
-        self, handler, invocation, reference, level, *, carrier_context, protected=None
+        self,
+        handler,
+        invocation,
+        reference,
+        level,
+        *,
+        carrier_context,
+        protected=None,
+        applying_effect=None,
     ):
         if handler.fight is not self.fight:
             raise ValueError("Direct native state handler belongs to another preview")
@@ -682,7 +690,7 @@ class NativeRetainedRuntime:
             self.open_state(invocation)
             try:
                 result = handler.apply_reference(
-                    None,
+                    applying_effect,
                     invocation,
                     reference,
                     level,
@@ -1660,11 +1668,111 @@ class NativeRetainedRuntime:
 
         self.normalize_owned_delivery(effect, invocation, first_packet)
 
+    def _pure_view_manager_pass(self):
+        """Share physical proofs only through this callback-free synchronize.
+
+        Custom containers keep their original read and validation order. Live
+        ledgers and PVs are never stored on the retention service or Fight.
+        """
+        from .combat_state import Actor
+        from .combat_state_ledger import StateLedger
+        from .combat_summon_initialization import detached_actors
+        from . import combat_state_managers as manager_source
+        from . import combat_retained_effects as view_source
+        from types import FunctionType
+
+        if (
+            manager_source.state_managers is not state_managers
+            or manager_source.state_manager is not state_manager
+            or view_source.state_managers is not state_managers
+            or view_source.state_manager is not state_manager
+            or getattr(self.synchronize, "__func__", None) is not _SOURCE_SYNCHRONIZE
+        ):
+            return None
+        # A replaced lookup may have observable callbacks. Its original
+        # traversal frequency remains part of the legacy fallback contract.
+        lookup = manager_source.registered_area_pv
+        if (
+            type(lookup) is not FunctionType
+            or lookup.__module__ != manager_source.__name__
+            or not lookup.__code__.co_filename.endswith("/combat_state_managers.py")
+        ):
+            return None
+        prune = manager_source.prune_retired_state_managers
+        if (
+            type(prune) is not FunctionType
+            or prune.__module__ != manager_source.__name__
+            or not prune.__code__.co_filename.endswith("/combat_state_managers.py")
+        ):
+            return None
+        getter = manager_source._dependency_module(
+            "combat_effect_area"
+        ).native_effect_areas
+        original_getter = getattr(getter, "__wrapped__", None)
+        if type(
+            original_getter
+        ) is not FunctionType or not original_getter.__code__.co_filename.endswith(
+            "/combat_effect_area.py"
+        ):
+            return None
+
+        fight = self.fight
+        if (
+            type(fight.actors) is not dict
+            or type(fight.native_retained_order) is not list
+        ):
+            return None
+        for actor in (*fight.actors.values(), *detached_actors(fight)):
+            if type(actor) is not Actor or type(actor.state_ledger) is not StateLedger:
+                return None
+        for name in (
+            "owned_stat_effects",
+            "native_owned_group_effects",
+            "native_owned_area_effects",
+            "native_owned_spatial_effects",
+            "native_owned_state_containers",
+            "native_retained_records",
+            "native_effect_areas",
+            "native_retired_area_managers",
+        ):
+            rows = getattr(fight, name, {})
+            if type(rows) is not dict or any(
+                type(row) is not dict for row in rows.values()
+            ):
+                return None
+        for rows in (
+            getattr(fight, "native_effect_areas", {}),
+            getattr(fight, "native_retired_area_managers", {}),
+        ):
+            if any(
+                "state_ledger" in row and type(row["state_ledger"]) is not StateLedger
+                for row in rows.values()
+            ):
+                return None
+        return _RetainedManagerPass(fight)
+
     def view(self):
-        self.synchronize()
-        # synchronize/prune mutates ownership and may remove retired PVs. The
-        # shared read pass starts afterwards and never crosses a callback.
-        managers = _RetainedManagerPass(self.fight)
+        managers = self._pure_view_manager_pass()
+
+        def bindings():
+            return tuple(
+                tuple((identity, id(row)) for identity, row in rows.items())
+                for rows in (
+                    self.fight.actors,
+                    getattr(self.fight, "native_effect_areas", {}),
+                    getattr(self.fight, "native_retired_area_managers", {}),
+                )
+            )
+
+        before = bindings() if managers is not None else None
+        if managers is None:
+            self.synchronize()
+        else:
+            self.synchronize(_manager_pass=managers)
+        # Pruning may remove a Qq. Such a pass must be discarded: its former
+        # target is no longer a valid PV even when its ledger was empty.
+        if managers is None or bindings() != before:
+            managers = _RetainedManagerPass(self.fight)
         records = set(self.fight.native_retained_records)
         if self._live(_manager_pass=managers) != records:
             raise ValueError(
@@ -1741,6 +1849,11 @@ class NativeRetainedRuntime:
                 else old[2](entry),
             )
         return removal
+
+
+# Preserve the original function identity even if a caller replaces the class
+# attribute with a synchronization callback during an operation.
+_SOURCE_SYNCHRONIZE = NativeRetainedRuntime.synchronize
 
 
 def remove_owned_group(fight, packets, *, action_id, uid):

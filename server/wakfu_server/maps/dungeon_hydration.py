@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from wakfu_server import dungeon_context, native_transports, party_wire
+from wakfu_server.dungeon_transition_recovery import DungeonHydrationDeferred
 
 
 _LOCATION = ("map_id", "instance_id", "x", "y", "z")
@@ -29,14 +30,14 @@ def prepare_transition(
         or event.get("session_generation") != generation
         or not store.current_session(account_id, generation)
     ):
-        raise ValueError("Stale dungeon hydration session")
+        raise DungeonHydrationDeferred("Stale dungeon hydration session")
     character = store.character(account_id, character_id)
     if any(
         type(event.get("destination_" + field)) is not int
         or character.get(field) != event["destination_" + field]
         for field in _LOCATION
     ):
-        raise ValueError("Dungeon hydration destination changed")
+        raise DungeonHydrationDeferred("Dungeon hydration destination changed")
     if character["map_id"] <= 0:
         raise ValueError("Dungeon hydration requires a valid destination")
     party_packets = ()
@@ -65,7 +66,9 @@ def prepare_transition(
                 (event.get("event_id"), character_id),
             ).fetchone()
         if character["instance_id"] != 0 or authorized is None:
-            raise ValueError("Dungeon exterior hydration is not authorized")
+            raise DungeonHydrationDeferred(
+                "Dungeon exterior hydration is not authorized"
+            )
         context = None
         if dissolved_party is not None:
             party_packets = (party_wire.removed(dissolved_party["id"], [character_id]),)

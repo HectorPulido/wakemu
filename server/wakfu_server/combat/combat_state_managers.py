@@ -150,10 +150,11 @@ def registered_area_pv(fight, identity):
         id=identity,
         position=tuple(cell),
         native_is_area=True,
-        # Verified faV.rzt contains fbo objects (namespace4). Native eMo
-        # queries ffe objects (namespace1), never the same numeric fbo IDs.
-        # area_properties and the actual constructor were validated above.
-        native_fight_properties=frozenset(),
+        # Native faV.rzt may contain FFE added by eXc in addition to prototype
+        # FBO. Preserve their separate typed namespaces in condition queries.
+        native_fight_properties=_dependency_module(
+            "combat_area_property"
+        ).area_fight_properties(row, definition),
         native_fight_affiliation=row.get("native_fight_affiliation"),
         native_running_effect_manager=row["native_running_effect_manager"],
         native_los_height=(
@@ -315,6 +316,27 @@ def _retained_manager_users(records):
     return users
 
 
+def _owned_container_state_users(fight):
+    """Index PL users only for this callback-free manager-pruning pass."""
+    users = set()
+    for collection in (
+        fight.owned_stat_effects,
+        fight.native_owned_group_effects,
+        getattr(fight, "native_owned_area_effects", {}),
+        getattr(fight, "native_owned_spatial_effects", {}),
+    ):
+        if type(collection) is not dict:
+            return None
+        for row in collection.values():
+            if type(row) is not dict:
+                return None
+            identity = row.get("state_uid")
+            if identity is not None and type(identity) is not int:
+                return None
+            users.add(identity)
+    return users
+
+
 def prune_retired_state_managers(fight):
     """Release removed Qq objects only after their actual Qf/PL users vanish."""
     retired = getattr(fight, "native_retired_area_managers", {})
@@ -376,8 +398,15 @@ def prune_retired_state_managers(fight):
             pointer_roots.add(identity)
     from .combat_native_container import owned_container_users
 
+    container_users = _owned_container_state_users(fight) if facts else set()
+
+    def container_is_owned(uid):
+        if container_users is not None and (uid is None or type(uid) is int):
+            return uid in container_users
+        return bool(owned_container_users(fight, uid))
+
     for state in facts.values():
-        if owned_container_users(fight, state.get("uid")):
+        if container_is_owned(state.get("uid")):
             pointer_roots.update(
                 value
                 for value in (state.get("target_id"), state.get("caster_id"))
@@ -416,11 +445,9 @@ def prune_retired_state_managers(fight):
             )
         ):
             continue
-        from .combat_native_container import owned_container_users
-
         if any(
             (state.get("target_id") == identity or state.get("caster_id") == identity)
-            and owned_container_users(fight, state.get("uid"))
+            and container_is_owned(state.get("uid"))
             for state in facts.values()
         ):
             continue

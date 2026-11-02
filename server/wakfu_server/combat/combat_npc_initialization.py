@@ -45,8 +45,18 @@ def initial_plans(fight, monsters):
         row = policy["enabled_monsters"].get(str(monster["ref"]))
         if row is None:
             continue
-        if not row["min_level"] <= actor.effective_level <= row["max_level"]:
-            continue
+        if (
+            not isinstance(row, dict)
+            or type(row.get("min_level")) is not int
+            or type(row.get("max_level")) is not int
+            or not 1 <= row["min_level"] <= row["max_level"] <= 32767
+        ):
+            raise ValueError("Invalid NPC initialization source recommendations")
+        if (
+            type(actor.effective_level) is not int
+            or not 1 <= actor.effective_level <= 32767
+        ):
+            raise ValueError("Invalid ordinary NPC constructor level")
         if row.get("spell_ids") == []:
             from .combat_npc_event_controller import event_controller_record
 
@@ -261,6 +271,12 @@ def initialize_ordinary_npcs(fight, monsters, plans):
             resolved_states=[asdict(item) for item in plan],
             applications=applications,
             initialized=True,
+        )
+    from .combat_npc_table_start_events import freeze_initial_listeners
+
+    for identity, receipt in receipts.items():
+        receipt["table_start_listeners"] = freeze_initial_listeners(
+            fight, fight.actors[identity], receipt["ref"], receipt
         )
     fight.native_npc_initialization_receipts = {
         **getattr(fight, "native_npc_initialization_receipts", {}),

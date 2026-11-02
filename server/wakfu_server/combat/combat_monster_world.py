@@ -42,6 +42,9 @@ def _native_actor_fields(monster):
     The marker prevents combat admission in the group registry. It is server
     metadata, not an extra native characteristic or a relaxed actor descriptor.
     """
+    from .combat_fixed_actor_placement import native_member_fields
+
+    monster = native_member_fields(monster)
     if "environmental_world_action_only" not in monster:
         return monster
     if monster["environmental_world_action_only"] is not True:
@@ -73,6 +76,11 @@ def world_actor(
     permits the positive native fighter UID while keeping the exact NPC bje
     appearance. The following saved 307 descriptor applies summon authority.
     """
+    from .combat_fixed_actor_placement import world_placement
+
+    fixed = world_placement(monster)
+    if fixed is not None and fighter is None:
+        direction = fixed["direction"]
     if type(dead) is not bool:
         raise ValueError("Native death state must be explicit")
     if (fighter is None) != (fight is None):
@@ -167,7 +175,20 @@ def world_actor(
     # Outside combat eGZ.gg is a no-op. bje.dsA and native interaction menus
     # read eHQ.DEAD (19) from rK/rN/wU world properties instead. cgN then
     # calls bje.dsq, selecting the native AnimStatiqueCadavre presentation.
-    out += b"\x01\x00\x01\x13\x01" if dead else b"\x00"
+    world_properties = []
+    if monster.get("environmental_world_action_only") is True:
+        # Original cWi.bxQ checks CANT_BE_ATTACKED13 before offering a fight.
+        # Keep the actor alive and its original aMg actions available to cXb.
+        world_properties.append(13)
+    if dead:
+        world_properties.append(19)
+    out += (
+        b"\x01"
+        + struct.pack(">H", len(world_properties))
+        + b"".join(bytes((identity, 1)) for identity in world_properties)
+        if world_properties
+        else b"\x00"
+    )
     members = tuple(members) if members is not None else (monster,)
     if (
         not members

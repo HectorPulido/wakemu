@@ -9,20 +9,88 @@ def enabled(topology):
 
 
 def _frontier(topology, unlocked_room):
-    if type(unlocked_room) is not int or not 1 <= unlocked_room <= len(
-        topology["rooms"]
+    from wakfu_server.dungeon_optional_rooms import main_room_orders
+
+    if (
+        type(unlocked_room) is not int
+        or not 1 <= unlocked_room <= main_room_orders(topology)[-1]
     ):
         raise ValueError("Invalid physical dungeon progress frontier")
     return unlocked_room
 
 
-def blocked_cells(topology, unlocked_room, *, blocked_source_ids=()):
+def _opened(topology, door, unlocked_room, *, completed=False):
+    """Keep native postboss entry paths and explicit completion gates distinct."""
+    if door.get("requires_completion") is True:
+        return completed and door["destination_room"] <= unlocked_room
+    if door["destination_room"] <= unlocked_room:
+        return True
+    if completed and topology.get("entry_path_policy") is not None:
+        from wakfu_server.dungeon_entry_paths import accessible_postboss_orders
+        from wakfu_server.dungeon_optional_rooms import main_room_orders
+
+        allowed = accessible_postboss_orders(dict(topology, _entry_main_completed=True))
+        allowed = allowed | set(main_room_orders(topology))
+        return door["source_room"] in allowed and door["destination_room"] in allowed
+    return False
+
+
+def blocked_cells(topology, unlocked_room, *, blocked_source_ids=(), completed=False):
     _frontier(topology, unlocked_room)
-    return frozenset(
-        tuple(d["position"])
-        for d in topology["physical_doors"]
-        if d["destination_room"] > unlocked_room
-        or d.get("source_id") in blocked_source_ids
+    if topology.get("_rotation_pending"):
+        blocked_source_ids = set(blocked_source_ids) | {
+            d["source_id"] for d in topology["physical_doors"]
+        }
+    from wakfu_server.dungeon_optional_rooms import main_room_orders
+
+    if type(completed) is not bool or (
+        completed and unlocked_room != main_room_orders(topology)[-1]
+    ):
+        raise ValueError("Main completion differs from its terminal room frontier")
+    from wakfu_server.combat_sn_path import NativeSnColumns
+    from wakfu_server.dungeon_native_door_collision import native_blocking_cells
+
+    # Canonical callers pass their existing run status. Preserve the136
+    # projected postboss view for its older/private entry-path callsites.
+    entry_completed = completed or (
+        topology.get("entry_path_policy") is not None
+        and topology.get("_entry_main_completed") is True
+    )
+    main_blocked = set()
+    columns = None
+    for door in topology["physical_doors"]:
+        if (
+            _opened(
+                topology,
+                door,
+                unlocked_room,
+                completed=(
+                    completed
+                    if door.get("requires_completion") is True
+                    else entry_completed
+                ),
+            )
+            and door.get("source_id") not in blocked_source_ids
+        ):
+            continue
+        if columns is None:
+            columns = NativeSnColumns.from_published(topology["asset_map_id"])
+        main_blocked.update(
+            native_blocking_cells(
+                topology["asset_map_id"],
+                door["position"],
+                columns=columns,
+                expected_source_sha256=columns.source_sha256,
+            )
+        )
+    main_blocked = frozenset(main_blocked)
+    from wakfu_server.dungeon_optional_vote_geometry import blocked_gate_cells
+    from wakfu_server.dungeon_main_completion import blocked_cells as completion_blocked
+
+    return (
+        main_blocked
+        | blocked_gate_cells(topology)
+        | completion_blocked(topology, completed=completed)
     )
 
 
@@ -36,7 +104,7 @@ def packets(
     blocked_source_ids=()
 ):
     """Door native state 0 clears collision; state 1 closes it, independent of usable."""
-    from wakfu_server.dungeon_object_states import state_payload
+    from wakfu_server.dungeon_object_states import physical_door_payload
 
     if (
         not enabled(topology)
@@ -46,21 +114,26 @@ def packets(
     ):
         raise ValueError("Physical doors require their owned dungeon instance")
     _frontier(topology, unlocked_room)
+    from wakfu_server.dungeon_optional_rooms import main_room_orders
+
     if type(completed) is not bool or (
-        completed and unlocked_room != len(topology["rooms"])
+        completed and unlocked_room != main_room_orders(topology)[-1]
     ):
         raise ValueError("Invalid physical dungeon completion state")
+    from wakfu_server.dungeon_main_completion import require_rule
+
+    if any("requires_completion" in d for d in topology["physical_doors"]):
+        require_rule(topology)
     output = []
+    opened_sources = set()
     for door in topology["physical_doors"]:
         opened = (
-            door["destination_room"] <= unlocked_room
+            _opened(topology, door, unlocked_room, completed=completed)
             and door["source_id"] not in blocked_source_ids
         )
-        # Native Door state alone can leave a closed sprite on loaded views.
-        # Hide opened gates through the native view visibility update.
-        payload = state_payload(
-            visible=not opened, usable=False, state_id=0 if opened else 1
-        )
+        if opened:
+            opened_sources.add(door["source_id"])
+        payload = physical_door_payload(opened=opened)
         output.append(
             (12344, struct.pack(">qH", door["source_id"], len(payload)) + payload)
         )
@@ -78,10 +151,19 @@ def packets(
                 usable=usable,
             )
         )
-    return tuple(output)
+    from wakfu_server.dungeon_optional_vote_geometry import gate_packets
+    from wakfu_server import dungeon_gate_presentation
+
+    return (
+        tuple(output)
+        + gate_packets(topology)
+        + dungeon_gate_presentation.packets(topology, opened_source_ids=opened_sources)
+    )
 
 
-def validate_movement(topology, request, *, unlocked_room, blocked_source_ids=()):
+def validate_movement(
+    topology, request, *, unlocked_room, blocked_source_ids=(), completed=False
+):
     """Validate actual directed native exploration edges and locked gate cells.
 
     Called only for the pinned physical-door policy; no combat graph is changed.
@@ -90,10 +172,25 @@ def validate_movement(topology, request, *, unlocked_room, blocked_source_ids=()
     if not enabled(topology):
         raise ValueError("Dungeon has no native physical walking policy")
     blocked = blocked_cells(
-        topology, unlocked_room, blocked_source_ids=blocked_source_ids
+        topology,
+        unlocked_room,
+        blocked_source_ids=blocked_source_ids,
+        completed=completed,
     )
     geometry = topology["exploration_geometry"]
     cells = set(map(tuple, geometry["cells"]))
+    if topology.get("optional_vote_access") is not None:
+        from wakfu_server.dungeon_optional_rooms import main_room_orders
+        from wakfu_server.dungeon_optional_vote_geometry import extra_cells
+
+        required = set(main_room_orders(topology))
+        allowed = {
+            tuple(c)
+            for room in topology["rooms"]
+            if room["order"] in required
+            for c in room["cells"]
+        }
+        cells.intersection_update(allowed | set(extra_cells(topology)))
     edges = {(tuple(a), tuple(b)) for a, b in geometry["edges"]}
     current = tuple(request["start_position"][k] for k in ("x", "y", "z"))
     if current not in cells or current in blocked:

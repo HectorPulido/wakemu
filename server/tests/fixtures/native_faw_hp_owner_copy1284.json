@@ -1,0 +1,57 @@
+{
+  "reference": 1284,
+  "type": "FAKE_FIGHTER",
+  "maximum_level": 0,
+  "shape_id": 1,
+  "shape_parameters": [],
+  "effect_ids": [
+    245126
+  ],
+  "properties": [],
+  "characteristics": [
+    3,
+    1
+  ],
+  "entry_masks": [
+    10001,
+    10000,
+    10008
+  ],
+  "exit_masks": [],
+  "raw_bde": -1,
+  "raw_bdf": 0,
+  "raw_bdg": [],
+  "raw_bdh": [
+    -1.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    6.0,
+    2.0
+  ],
+  "raw_bcR": false,
+  "raw_bdi": true,
+  "raw_ckz": false,
+  "raw_bcS": false,
+  "visual": [
+    "",
+    "",
+    "",
+    "-1090061181"
+  ],
+  "native_class": "bcQ",
+  "native_shape_class": "anD",
+  "native_shape_description": "point",
+  "native_type_id": 15,
+  "native_hour_contract": false,
+  "native_container_type": 3,
+  "native_fight_properties": [],
+  "native_area_properties": [
+    3,
+    1
+  ]
+}

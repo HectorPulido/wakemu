@@ -83,6 +83,7 @@ class BotsRuntime:
         "exchange.cancel",
         "exchange.offer_kamas",
         "exchange.ready",
+        "exchange.decline_quote",
     )
 
     def __init__(
@@ -259,17 +260,32 @@ class BotsRuntime:
         if current:
             with self.store.connection() as db:
                 pending = db.execute(
-                    "SELECT exchange_id FROM player_exchange_members WHERE character_id=%s",
+                    "SELECT m.exchange_id,e.revision,e.state FROM player_exchange_members m "
+                    "JOIN player_exchanges e ON e.id=m.exchange_id "
+                    "WHERE m.character_id=%s AND e.state IN ('invitation','active')",
                     (character,),
                 ).fetchall()
-            for row in pending:
-                self.exchanges.bot_command(
-                    "exchange.cancel",
-                    {"exchange_id": row["exchange_id"]},
-                    account,
-                    generation,
-                    character,
-                )
+            if pending:
+                from .bridge import BotConflict
+
+                for row in pending:
+                    if row["state"] == "active":
+                        try:
+                            self.exchanges.bot_command(
+                                "exchange.decline_quote",
+                                dict(
+                                    exchange_id=row["exchange_id"],
+                                    revision=row["revision"],
+                                    reason="worker_unavailable",
+                                ),
+                                account,
+                                generation,
+                                character,
+                            )
+                        except Exception:
+                            # A failed pause must never authorize closing the peer.
+                            pass
+                raise BotConflict("bot_has_active_exchange")
             self.positions.flush(
                 account_id=account, generation=generation, character_id=character
             )
@@ -297,6 +313,36 @@ class BotsRuntime:
                     errors.append(error)
             if errors:
                 raise errors[0]
+
+    def deactivate_idle(self):
+        """An unavailable external worker cannot cancel an active native offer."""
+        with self.lock:
+            for bot_id, lease in tuple(self.active.items()):
+                with self.store.connection() as db:
+                    member = db.execute(
+                        "SELECT m.exchange_id,e.revision FROM player_exchange_members m "
+                        "JOIN player_exchanges e ON e.id=m.exchange_id "
+                        "WHERE m.character_id=%s AND e.state IN ('invitation','active')",
+                        (lease["character_id"],),
+                    ).fetchone()
+                if member is not None:
+                    try:
+                        self.exchanges.bot_command(
+                            "exchange.decline_quote",
+                            dict(
+                                exchange_id=member["exchange_id"],
+                                revision=member["revision"],
+                                reason="worker_unavailable",
+                            ),
+                            lease["account_id"],
+                            lease["generation"],
+                            lease["character_id"],
+                        )
+                    except Exception:
+                        # Failure to publish a pause is not permission to close.
+                        pass
+                    continue
+                self._deactivate(bot_id)
 
     def deactivate_all(self):
         with self.lock:

@@ -55,7 +55,7 @@ def qualified_roots(fight, request, rule, effects):
             continue
         if "self" in policy["relations"]:
             return None
-        if mask in (9, 25, 129, 257, (1 << 50) | 9):
+        if mask in (9, 25, 129, 257, 261, (1 << 50) | 9):
             if policy["in_area"] is not True:
                 return None
             # Parse the real geometry, never turn an unknown area into a radius.

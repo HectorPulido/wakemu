@@ -41,6 +41,7 @@ def validate_bundle(bundle):
             route,
             version=config["version"],
             provenance=config["provenance"],
+            level_policy=config.get("level_policy"),
         )
         if config != expected:
             raise ValueError("Bundle contains unvalidated configuration")

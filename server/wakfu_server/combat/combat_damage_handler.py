@@ -140,6 +140,15 @@ class NativeDamageHandler:
             rng=self.rng,
         )
 
+    def native_eligibility(self, effect, invocation):
+        callback = getattr(self, "target_eligibility", None)
+        if callback is None:
+            return True  # Unsourced arithmetic components retain their legacy API.
+        allowed = callback(effect, invocation)
+        if type(allowed) is not bool:
+            raise ValueError("Missing native target execution eligibility")
+        return allowed
+
     def _context_amount(self, amount, invocation):
         from .combat_value_transfer import apply_context_value
 
@@ -260,9 +269,9 @@ class NativeDamageHandler:
             24,
             31,
         }
-        ordering_flags = unknown.intersection({8, 14})
+        ordering_flags = unknown.intersection({8, 14, 26})
         if ordering_flags:
-            # faK selects faI (8) or faF (14) before the target cap.
+            # faK selects faI (8), faF (14), or faG (26) before the target cap.
             # The resolver supplies actual PA/XY operands; eXt owns neither sort.
             # Retain the same exported identity guard used by group runners.
             from .combat_target_ordering import validate_native_target_ordering_identity
@@ -557,6 +566,7 @@ class NativeDamageHandler:
             caster_id=source.id,
             target_id=invocation.target_id,
             damage=result["value"],
+            cell=invocation.cell,
             base_uid=invocation.base_uid,
             armor_absorbed=result["armor_absorbed"],
             barrier_absorbed=result["barrier_absorbed"],
@@ -590,6 +600,26 @@ class NativeDamageHandler:
             if not callable(getattr(area_events, "wall_death", None)):
                 raise ValueError("Missing native Qq death delivery provider")
             area_events.wall_death(wall["row"], source.id)
+        if (
+            wall is not None
+            and wall["row"]["native_area_contract"] == "faW"
+            and wall["row"]["native_faw_hp_current"] <= 0
+            and self.event_lifecycle is not None
+        ):
+            area_events = getattr(self.retention, "area_events", None)
+            if not callable(getattr(area_events, "fake_fighter_death", None)):
+                raise ValueError("Missing native HP-area death delivery provider")
+            area_events.fake_fighter_death(
+                wall["row"],
+                source.id,
+                death_delivery=lambda: self.event_lifecycle.area_death(
+                    invocation.target_id,
+                    effect=effect,
+                    invocation=invocation,
+                    uid=uid,
+                    value=result["value"],
+                ),
+            )
         if wall is None and getattr(self.fight, "boss_score_profile", None) is not None:
             from wakfu_server.maps.boss_score_runtime import stage_damage
 

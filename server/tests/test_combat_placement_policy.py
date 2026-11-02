@@ -220,3 +220,121 @@ class PlacementPolicyTests(PostgresCase):
                 ('{"version":2,"pool":[48]}',),
             )
         self.assertEqual(self.call(fight_id)["terrain_effect_id"], 46)
+
+    def test_source_bound_scene_border_survives_policy_change_and_reopen(self):
+        from wakfu_server.combat_encounter_scene_policy import prepare_scene
+        from wakfu_server.combat_battleground_border import POLICY
+
+        prototype = {
+            "1297": dict(type="BATTLEGROUND_BORDER", native_class="bcF", raw_bdh=[])
+        }
+        with patch(
+            "wakfu_server.combat_effect_area.native_effect_areas",
+            return_value=prototype,
+        ):
+            self.arena["native_encounter_scene"] = prepare_scene(
+                dict(
+                    schema_version=1,
+                    full_room_scope=True,
+                    policy_id="wakemu.variant-border-test",
+                    authority="explicit-source-test",
+                    source_uri="native:test",
+                    native_border_reference=1297,
+                ),
+                scope=dict(
+                    map_id=1134,
+                    instance_id=0,
+                    group_id=1,
+                    room_order=1,
+                    policy_version=1,
+                    route_key="test",
+                    evidence_hashes={},
+                ),
+                room_cells=self.cells,
+            )
+            self.arena["native_border_policy"] = POLICY
+            self.arena["native_border_cells"] = []
+            fight_id = create(
+                self.store, self.account, self.generation, self.character["id"]
+            )
+            with patch(
+                "wakfu_server.combat_border_policy.choose",
+                side_effect=AssertionError(
+                    "random border must not replace declared source"
+                ),
+            ):
+                first = self.call(fight_id)
+            self.assertEqual(first["terrain_effect_id"], 1297)
+            with self.store.connection() as db:
+                db.execute(
+                    "UPDATE settings SET value=%s WHERE name='fight_border_policy'",
+                    ('{"version":2,"pool":[46]}',),
+                )
+            self.assertEqual(self.call(fight_id, self.reopen()), first)
+
+    def test_reserved_arrival_is_frozen_without_changing_world_origin(self):
+        from wakfu_server.combat_arena_selection import full_room_encounter
+        from wakfu_server.combat_encounter_scene_policy import prepare_scene
+        from wakfu_server.combat_encounter_scene_layout import scene_player_position
+
+        source = (0, 0, 0)
+        slots = {source, (0, 2, 0)}
+        selected = full_room_encounter(
+            dict(map_id=1134, cells=self.cells, edges=self.edges),
+            source,
+            [(7, 3, 0)],
+            reserved_cells=slots,
+        )
+        self.arena.update(
+            placement_cells=selected["placement"],
+            participant_positions=selected["participant_positions"],
+            participant_player_position=selected["participant_player_position"],
+            native_initial_player_relocation=selected[
+                "native_initial_player_relocation"
+            ],
+        )
+        self.arena["native_encounter_scene"] = prepare_scene(
+            dict(
+                schema_version=1,
+                policy_id="wakemu.reserved-test",
+                authority="fixture",
+                source_uri="native:fixture",
+                full_room_scope=True,
+                native_initial_spawn_cells=[list(c) for c in sorted(slots)],
+            ),
+            scope=dict(
+                map_id=1134,
+                instance_id=0,
+                group_id=1,
+                room_order=1,
+                policy_version=1,
+                route_key="fixture",
+                evidence_hashes={},
+            ),
+            room_cells=self.cells,
+        )
+        fight_id = create(
+            self.store, self.account, self.generation, self.character["id"]
+        )
+        before = self.store.character(self.account, self.character["id"])
+        frozen = self.call(fight_id)
+        character = dict(self.character, x=0, y=0, z=0)
+        self.assertNotEqual(scene_player_position(character, frozen), source)
+        self.assertFalse(slots & set(frozen["placement_cells"][0]))
+        self.assertFalse(slots & set(frozen["placement_cells"][1]))
+
+        def normalized(value):
+            if isinstance(value, dict):
+                return {key: normalized(item) for key, item in value.items()}
+            if isinstance(value, (set, frozenset)):
+                return sorted((normalized(item) for item in value), key=repr)
+            if isinstance(value, (list, tuple)):
+                return [normalized(item) for item in value]
+            return value
+
+        self.assertEqual(
+            normalized(self.call(fight_id, self.reopen())), normalized(frozen)
+        )
+        self.assertEqual(
+            self.store.character(self.account, self.character["id"]), before
+        )

@@ -46,6 +46,26 @@ def failure_message(action, error):
         message = rift_failure_message(error)
         if message is not None:
             return message
+    if action == "transport":
+        from wakfu_server.dungeon_entry_payment import InsufficientEntranceItems
+
+        if (
+            isinstance(error, InsufficientEntranceItems)
+            and type(error.reference) is int
+            and error.reference > 0
+            and type(error.quantity) is int
+            and 1 <= error.quantity <= 32767
+        ):
+            from wakfu_server.inventory_move import STACKS
+
+            name = STACKS.get(error.reference, {}).get("name")
+            if type(name) is not str or not name.strip():
+                name = "objeto"
+            return (
+                f"Cada integrante del grupo, incluidos los héroes, necesita "
+                f"{error.quantity} × {name} [{error.reference}] para entrar. "
+                "Consigue la cantidad necesaria para cada personaje y vuelve a usar el acceso."
+            )
     reason = str(error).casefold()
     if isinstance(error, EquipmentOwnershipError):
         return error.player_message

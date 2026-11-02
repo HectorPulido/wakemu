@@ -25,21 +25,35 @@ class HarvestInventoryTests(PostgresCase):
         with self.store.connection() as db:
             return grant(db, character, reference, quantity)
 
-    def fill_base(self, character, *, reference=12, quantity=1):
+    def fill_container(self, character, kind, *, reference=12, quantity=1):
+        container = next(
+            row for row in character["inventory_containers"] if row["kind"] == kind
+        )
         with self.store.connection() as db:
-            uid = allocate(db)
-            db.execute(
-                "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) "
-                "VALUES(%s,%s,%s,%s,%s,0)",
-                (
-                    uid,
-                    character["id"],
-                    reference,
-                    quantity,
-                    character["inventory_containers"][0]["uid"],
-                ),
-            )
-        return uid
+            occupied = {
+                row["slot"]
+                for row in db.execute(
+                    "SELECT slot FROM inventory_items WHERE container=%s",
+                    (container["uid"],),
+                )
+            }
+            inserted = []
+            for slot in range(container["capacity"]):
+                if slot in occupied:
+                    continue
+                uid = allocate(db)
+                db.execute(
+                    "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) "
+                    "VALUES(%s,%s,%s,%s,%s,%s)",
+                    (uid, character["id"], reference, quantity, container["uid"], slot),
+                )
+                inserted.append(uid)
+        return inserted
+
+    def fill_base(self, character, *, reference=12, quantity=1):
+        return self.fill_container(
+            character, 0, reference=reference, quantity=quantity
+        )[0]
 
     def shrink_base(self, character, capacity):
         with self.store.connection() as db:
@@ -61,7 +75,8 @@ class HarvestInventoryTests(PostgresCase):
     def test_full_pockets_without_target_stack_reject_without_changes(self):
         character = self.current_character()
         other_uid = self.fill_base(character)
-        self.shrink_base(character, 1)
+        for container in self.current_character()["inventory_containers"]:
+            self.fill_container(self.current_character(), container["kind"])
         before = self.current_character()["inventory_items"]
         with self.assertRaisesRegex(ValueError, "full"):
             self.grant_in_transaction(self.current_character(), 4275, 1)
@@ -71,31 +86,41 @@ class HarvestInventoryTests(PostgresCase):
     def test_full_pockets_still_merge_existing_seed_stack(self):
         character = self.current_character()
         first = self.grant_in_transaction(character, 4275, 2)
-        self.shrink_base(self.current_character(), 1)
+        current = self.current_character()
+        self.fill_container(current, 0)
+        self.fill_container(self.current_character(), 1)
         second = self.grant_in_transaction(self.current_character(), 4275, 4)
         self.assertEqual(second["item"]["uid"], first["item"]["uid"])
         self.assertEqual(second["item"]["quantity"], 6)
         self.assertEqual(
             second["packet"], (12470, struct.pack(">qh", first["item"]["uid"], 4))
         )
-        self.assertEqual(len(self.current_character()["inventory_items"]), 1)
+        self.assertEqual(len(self.current_character()["inventory_items"]), 34)
 
     def test_stack_cap_overflow_uses_new_slot_and_full_container_rejects(self):
         character = self.current_character()
         stack = self.grant_in_transaction(character, 4275, 9998)
-        self.shrink_base(self.current_character(), 2)
+        self.fill_container(self.current_character(), 0)
         split = self.grant_in_transaction(self.current_character(), 4275, 2)
-        self.assertEqual(split["packet"][0], 12471)
-        self.assertNotEqual(split["item"]["uid"], stack["item"]["uid"])
-        self.assertEqual(split["item"]["quantity"], 2)
-        self.assertEqual(split["item"]["slot"], 1)
-        items = self.current_character()["inventory_items"]
-        self.assertEqual([item["quantity"] for item in items], [9998, 2])
+        self.assertEqual(
+            split["packet"], (12470, struct.pack(">qh", stack["item"]["uid"], 1))
+        )
+        self.assertEqual(split["item"]["uid"], stack["item"]["uid"])
+        self.assertEqual(split["item"]["quantity"], 9999)
+        self.assertEqual([item["quantity"] for item in split["items"]], [9999, 1])
+        self.assertEqual([packet[0] for packet in split["packets"]], [12470, 12471])
+        self.assertEqual(split["items"][1]["slot"], 0)
+        self.assertNotEqual(split["items"][1]["container"], stack["item"]["container"])
 
         other = self.store.create_character(self.account, "Harvest Cap")
         base = self.store.character(self.account, other["id"])
         existing = self.grant_in_transaction(base, 4275, 9998)
-        self.shrink_base(base, 1)
+        for container in self.store.character(self.account, other["id"])[
+            "inventory_containers"
+        ]:
+            self.fill_container(
+                self.store.character(self.account, other["id"]), container["kind"]
+            )
         before = self.store.character(self.account, other["id"])["inventory_items"]
         with self.assertRaisesRegex(ValueError, "full"):
             self.grant_in_transaction(

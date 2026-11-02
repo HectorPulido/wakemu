@@ -12,9 +12,21 @@ from .combat_orientation import INITIAL_PLAYER_DIRECTION
 
 def should_rebuild_placement(fight, admitted_actors):
     """Refresh constructor snapshots even when no hero joined the initial fight."""
+    from .combat_encounter_glyph_bootstrap import FAKE_FIGHTER_SOURCE
+
     return bool(
         admitted_actors
         or getattr(fight, "native_npc_initialization_receipts", {})
+        or getattr(fight, "native_encounter_scene_state_receipts", {})
+        or (
+            getattr(fight, "native_environment_glyphs_installed", False)
+            and any(
+                source.get("source") == FAKE_FIGHTER_SOURCE
+                for source in getattr(
+                    fight, "native_environment_glyph_constructors", ()
+                )
+            )
+        )
         or getattr(fight, "native_npc_ai_actors", frozenset())
         or getattr(fight, "native_dungeon_scaling_receipt", None)
     )
@@ -86,10 +98,11 @@ def placement_messages(
     participants = []
     for actor in actors:
         stats, effects = actor_payloads[actor.id]
-        if actor.id in getattr(
-            fight, "native_npc_initialization_receipts", {}
-        ) or actor.id in getattr(fight, "native_dungeon_scaling_receipt", {}).get(
-            "actor_ids", ()
+        if (
+            actor.id in getattr(fight, "native_npc_initialization_receipts", {})
+            or actor.id in getattr(fight, "native_encounter_scene_state_receipts", {})
+            or actor.id
+            in getattr(fight, "native_dungeon_scaling_receipt", {}).get("actor_ids", ())
         ):
             from .combat_remote_effects import initial_npc_actor_effects
 
@@ -225,7 +238,9 @@ def create_placement(
             team=helper_member_team(arena, member),
             instance_id=member["instance_id"],
         )
-        if member != verified:
+        from .combat_fixed_actor_placement import native_member_fields
+
+        if native_member_fields(member) != verified:
             raise ValueError("Monster state differs from its verified own reference")
         if member["instance_id"] != owned_instance_id:
             raise ValueError("Fight actors belong to a different owned instance")
@@ -320,6 +335,14 @@ def create_placement(
     fight = Fight(
         fight_id, [pc, *npcs], cells, placement_cells, arena.get("valid_edges")
     )
+    if arena.get("native_encounter_scene") is not None:
+        from .combat_encounter_scene_policy import _verified
+        from .combat_fixed_actor_placement import bind_initial_directions
+
+        fixed_scene = _verified(arena["native_encounter_scene"])
+        bind_initial_directions(
+            fight, fixed_scene["descriptor"], {m["id"]: m for m in members}
+        )
     if helper_manifest is not None:
         fight.native_scene_helper_manifest = helper_manifest
     if role_record is not None:

@@ -219,6 +219,66 @@ class DefensiveFacingTests(unittest.TestCase):
         self.assertEqual(carried.direction, 0)
         self.assertEqual(fight.native_carry_pairs[carrier.id].carried_direction, 0)
 
+    def test_native_orientation_lock_preserves_facing_without_spending_action(self):
+        for counts, properties, locked in (
+            ({51: 1, 11: 1}, {51, 11}, True),
+            ({51: -1}, {51}, True),
+            ({51: 0, 11: 1}, {11}, False),
+            ({11: 1}, {11}, False),
+            ({}, set(), False),
+            (None, {51}, True),
+        ):
+            with self.subTest(counts=counts, properties=properties):
+                actor = self.actor(-9, 1, (1, -45, -16), direction=1)
+                rival = self.actor(16, 0, (-5, -53, -15))
+                actor.native_fight_property_counts = counts
+                actor.native_fight_properties = frozenset(properties)
+                fight = self.mock_fight([actor, rival])
+                runtime = SimpleNamespace(
+                    fight=fight, action_id=12, _flush=lambda: b"flush"
+                )
+
+                packets = apply(runtime, actor)
+
+                if locked:
+                    self.assertEqual(packets, [])
+                    self.assertEqual(actor.direction, 1)
+                    self.assertEqual(runtime.action_id, 12)
+                    self.assertEqual(fight.events, [])
+                else:
+                    self.assertEqual(packets[0][0], 13494)
+                    self.assertEqual(actor.direction, 7)
+                    self.assertEqual(runtime.action_id, 13)
+
+    def test_end_callback_orientation_lock_still_delivers_normal_turn_ack(self):
+        owner = Actor(7, 0, (1, 0, 0), 40, 6, 3, 1, 1, 7, True)
+        npc = Actor(-9, 1, (0, 0, 0), 40, 6, 3, 200, 1)
+        npc.direction = 3
+        npc.native_fight_property_counts = {}
+        npc.native_fight_properties = frozenset()
+        fight = Fight(
+            902,
+            [owner, npc],
+            {owner.position, npc.position},
+            {0: {owner.position}, 1: {npc.position}},
+        )
+        fight.ready(7)
+
+        def callback(original, **_kwargs):
+            candidate = deepcopy(original)
+            actor = candidate.actors[npc.id]
+            actor.native_fight_property_counts = {51: 1}
+            actor.native_fight_properties = frozenset({51})
+            return candidate, ()
+
+        runtime = RuntimeMessages(fight, turn_end_provider=callback)
+        packets = runtime.end_server_turn(npc.id, fight.turn_id)
+
+        self.assertNotIn(13494, [opcode for opcode, _ in packets])
+        self.assertIn(12502, [opcode for opcode, _ in packets])
+        self.assertEqual(runtime.fight.actors[npc.id].direction, 3)
+        self.assertIsNotNone(runtime.awaiting_ack)
+
     def test_apply_publishes_zero_cost_cardinal_packet_before_turn_ack(self):
         owner = Actor(7, 0, (1, 0, 0), 40, 6, 3, 1, 1, 7, True)
         npc = Actor(-9, 1, (0, 0, 0), 40, 6, 3, 200, 1)

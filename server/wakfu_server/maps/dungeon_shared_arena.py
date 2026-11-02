@@ -57,19 +57,25 @@ def validate(topology):
 
 def stage(topology, current_room):
     validate(topology)
-    if type(current_room) is not int or not 1 <= current_room <= len(topology["rooms"]):
+    from wakfu_server.dungeon_optional_rooms import main_room_orders
+
+    if (
+        type(current_room) is not int
+        or not 1 <= current_room <= main_room_orders(topology)[-1]
+    ):
         raise ValueError("Shared arena requires authoritative current encounter stage")
     return current_room
 
 
 def packets(topology, *, map_id, instance_id, unlocked_room, completed=False):
     from wakfu_server import dungeon_object_states, generic_transports
+    from wakfu_server.dungeon_optional_rooms import main_room_orders
 
     stage(topology, unlocked_room)
     if (
         type(completed) is not bool
         or completed
-        and unlocked_room != len(topology["rooms"])
+        and unlocked_room != main_room_orders(topology)[-1]
     ):
         raise ValueError("Shared arena completion contradicts progression")
     if map_id != topology["asset_map_id"]:

@@ -47,25 +47,25 @@ No verified native entry level; kept separately from the level-sorted list.
 
 ### Level 36
 
-- [ ] **Deathburn Dungeon** (ID 185) — Cursed Beach `!tp 1359 66 -96 -50`. 3-room dungeon. Check the 50% HP lock and phase-two summons. Check optional stele modifiers. **Notes:**
+- [x] **Deathburn Dungeon** (ID 185) — Cursed Beach `!tp 1359 66 -96 -50`. 3-room dungeon. Check the 50% HP lock and phase-two summons. Check optional stele modifiers. **Notes:**
 
 - [ ] **Neo Royal Pasturizer** (ID 209) — Amakna `!tp 1134 99 104 -4`. 3-room dungeon. Neo variant; shared entrance, check server availability.  **Notes:**
 
-- [ ] **Octopus Crew Dungeon** (ID 184) — Pirate Beach `!tp 1358 -155 32 -47`. 2-room dungeon. Check submerged invulnerability periods and arena devices. Check optional stele modifiers. **Notes:**
+- [x] **Octopus Crew Dungeon** (ID 184) — Pirate Beach `!tp 1358 -155 32 -47`. 2-room dungeon. Check submerged invulnerability periods and arena devices. Check optional stele modifiers. **Notes:** Pohl the Octopus mechanics is not working right now
 
 - [ ] **Sureberry Fields** (ID 25) — Amakna `!tp 1134 184 4 -4`. 3-room dungeon. **Notes:**
 
-- [ ] **The Hill Hazize** (ID 136) — Amakna `!tp 1134 -51 -104 50`. 4-room dungeon. **Notes:**
+- [ ] **The Hill Hazize** (ID 136) — Amakna `!tp 1134 -51 -104 50`. 4-room dungeon. **Notes:** Wrong path
 
 - [ ] **The Mineral Tower** (ID 133) — Mineral Tower Entrance `!tp 1202 -23 -7 0`. 3-player dungeon; check party limit. Check randomized boss patterns, curses and defensive spells. Check optional stele modifiers. **Notes:**
 
-- [ ] **The Royal Pasturizer** (ID 137) — Amakna `!tp 1134 99 104 -4`. 3-room dungeon. Check dung glyphs and their linked states. **Notes:**
+- [x] **The Royal Pasturizer** (ID 137) — Amakna `!tp 1134 99 104 -4`. 3-room dungeon. Check dung glyphs and their linked states. **Notes:**
 
 ### Level 51
 
 - [ ] **Bitter-Hammer Dungeon** (ID 186) — Bitter-Hammer Cavern `!tp 1364 0 -179 -26`. 3-room dungeon. **Notes:**
 
-- [ ] **Bwork Dungeon** (ID 80) — Wild Estate `!tp 711 -74 -72 -40`. 3-room dungeon. **Notes:**
+- [x] **Bwork Dungeon** (ID 80) — Wild Estate `!tp 711 -74 -72 -40`. 3-room dungeon. **Notes:**
 
 - [ ] **Cire Momore** (ID 221) — Trool Fair - Gladiatrool `!tp 346 1 1 -1`. Arcade encounter; check entry and scoring. **Notes:**
 
@@ -87,7 +87,7 @@ No verified native entry level; kept separately from the level-sorted list.
 
 - [ ] **Thalos-Kyarrelmne** (ID 225) — Trool Fair [map 337]; teleport command unavailable (entrance coordinates unverified). Arcade encounter; check entry and scoring. **Notes:**
 
-- [ ] **The Forgotten Lair** (ID 81) — Wild Estate `!tp 711 44 -127 -80`. 2-room dungeon. Check blue totems and their vulnerability glyphs. **Notes:**
+- [x] **The Forgotten Lair** (ID 81) — Wild Estate `!tp 711 44 -127 -80`. 2-room dungeon. Check blue totems and their vulnerability glyphs. **Notes:** 
 
 - [ ] **Toross** (ID 223) — Trool Fair - Gladiatrool `!tp 346 1 1 -1`. Arcade encounter; check entry and scoring. **Notes:**
 

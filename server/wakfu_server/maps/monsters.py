@@ -25,12 +25,10 @@ def _java_double_to_int(value):
 
 def statistics(ref, level):
     monster = reference(ref)
-    if (
-        type(level) is not int
-        or not monster["min_level"] <= level <= monster["max_level"]
-        or not 0 <= level < 2**15
-    ):
-        raise ValueError("Monster level outside its reference range")
+    if type(level) is not int or not 1 <= level < 2**15:
+        raise ValueError("Invalid monster level")
+    # Species bounds recommend world populations; the exact supplied level
+    # still scales the original ffC curve from its native base level.
     stats = {}
     for name, curve in monster["statistics"].items():
         growth = struct.unpack(">f", struct.pack(">f", curve["per_level"]))[0]
@@ -104,7 +102,7 @@ def owned_instance(ref, level, actor_id, *, map_id, x, y, z, team=1, instance_id
 def native_abilities(ref, level):
     """Native csd/bPD ownership and bPO maximum-level clamp; CSR is loot."""
     record = reference(ref)
-    statistics(ref, level)  # Validate requested actor level against this reference.
+    statistics(ref, level)  # Validate the actor level without a species-range gate.
     from wakfu_server.combat_native_spell_casting import catalog
 
     casting = catalog()

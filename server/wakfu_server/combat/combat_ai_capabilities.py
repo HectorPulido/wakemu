@@ -265,9 +265,12 @@ def prepare_spell_capabilities(pairs):
 def spell_capabilities(fight, monsters):
     from .combat_npc_spell import owned_spells
 
+    from .combat_ai_callback_spells import deliberate_spells
+
+    candidates = deliberate_spells(fight, owned_spells(fight, monsters), monsters)
     return [
         deepcopy(describe_spell(spell, level))
-        for spell, level in sorted(owned_spells(fight, monsters).items())
+        for spell, level in sorted(candidates.items())
     ]
 
 

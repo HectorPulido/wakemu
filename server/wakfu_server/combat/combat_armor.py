@@ -23,7 +23,18 @@ def _scaled(value, bonus):
     return max(-(1 << 31), min((1 << 31) - 1, math.floor(result)))
 
 
-def armor_amount(effect, level, source, target, *, capped_player, additional_final=0):
+def armor_amount(
+    effect,
+    level,
+    source,
+    target,
+    *,
+    capped_player,
+    additional_final=0,
+    target_stats=None,
+    target_radius=None,
+    target_has_armor=True,
+):
     raw = effect["parameters"]
     if len(raw) < 2 or len(raw) % 2:
         raise ValueError("Invalid native armor parameter pairs")
@@ -41,11 +52,13 @@ def armor_amount(effect, level, source, target, *, capped_player, additional_fin
     # consume it in armor arithmetic; retain it for the common event lifecycle.
     if flags - {3, 4, 5, 6, 17, 22, 23, 24, 29}:
         raise ValueError("Unaudited native armor flags")
-    source_stats, target_stats = source.effect_stats, target.effect_stats
+    source_stats = source.effect_stats
+    target_stats = target.effect_stats if target_stats is None else target_stats
     if (
         not isinstance(source_stats, dict)
         or not isinstance(target_stats, dict)
-        or 97 not in target_stats
+        or type(target_has_armor) is not bool
+        or (97 in target_stats) is not target_has_armor
     ):
         raise ValueError("Missing authoritative native armor snapshot")
     bonus = source_stats.get(120, 0) if mode in (1, 3) and source.id != target.id else 0
@@ -62,7 +75,9 @@ def armor_amount(effect, level, source, target, *, capped_player, additional_fin
                 source_xy=source.position[:2],
                 target_xy=target.position[:2],
                 source_radius=source.physical_radius,
-                target_radius=target.physical_radius,
+                target_radius=target.physical_radius
+                if target_radius is None
+                else target_radius,
                 source_total_hp=source.hp + source_stats.get(92, 0),
                 source_total_max_hp=source.max_hp + source.effect_maxima.get(92, 0),
             )
@@ -95,7 +110,7 @@ def armor_amount(effect, level, source, target, *, capped_player, additional_fin
         multiplied = _i32(target.effect_maxima[1] * target_stats[88])
         fraction = _float32(_float32(multiplied) / 100)
         maximum = max(-(1 << 31), min((1 << 31) - 1, math.floor(fraction + 0.5)))
-    room = max(0, _i32(maximum - target_stats[97]))
+    room = max(0, _i32(maximum - target_stats.get(97, 0)))
     return dict(requested=min(room, max(0, value)), room=room)
 
 
@@ -129,21 +144,33 @@ class NativeArmorHandler:
     def _calculate(self, effect, invocation, *, additional_final=0):
         source = registered_or_detached_actor(self.fight, invocation.caster_id)
         target = registered_or_detached_actor(self.fight, invocation.target_id)
-        if source is None or target is None:
+        area_stats = None
+        if source is None:
             raise ValueError("Missing actual native armor source/target")
+        if target is None:
+            from .combat_armor_area_characteristics import armor_area_characteristics
+
+            target, area_stats = armor_area_characteristics(
+                self.fight, invocation.target_id
+            )
         if self.fight.phase != "active" or self.fight.current is None:
             raise ValueError("Invalid native armor fight/target")
         from .combat_runner_target_life import verify_runner_target_life
 
-        verify_runner_target_life(self.fight, target, effect, invocation=invocation)
+        if area_stats is None:
+            verify_runner_target_life(self.fight, target, effect, invocation=invocation)
         self.authority(self.fight, source)
-        target_authority = self.authority(self.fight, target)
+        target_authority = (
+            self.authority(self.fight, target) if area_stats is None else None
+        )
         context = self.context(effect, invocation)
         if (
             not isinstance(context, StatExecutionContext)
             or context.source_guards_verified is not True
         ):
             raise ValueError("Unverified native armor application guards")
+        if area_stats is not None and target.native_running_effect_manager is not True:
+            context = replace(context, retained=False)
         if not context.executable:
             return context, None
         amount = armor_amount(
@@ -151,8 +178,13 @@ class NativeArmorHandler:
             invocation.level,
             source,
             target,
-            capped_player=target_authority.is_player,
+            capped_player=False
+            if target_authority is None
+            else target_authority.is_player,
             additional_final=additional_final,
+            target_stats=area_stats,
+            target_radius=0 if area_stats is not None else None,
+            target_has_armor=area_stats is None,
         )
         return context, amount
 
@@ -226,21 +258,31 @@ class NativeArmorHandler:
             )
         source = registered_or_detached_actor(self.fight, invocation.caster_id)
         target = registered_or_detached_actor(self.fight, invocation.target_id)
-        if source is None or target is None:
+        if source is None:
             raise ValueError("Missing actual native armor source/target")
-        minimum, maximum = _bounds(target, 97)
-        result = apply_current_stat(
-            family="eWQ",
-            current=_current(target, 97),
-            minimum=minimum,
-            maximum=maximum,
-            requested=amount["requested"] if runner is None else runner.value,
-            percent=False,
-            executable=True,
-            frozen=97 in target.effect_frozen,
-            source_guards_verified=True,
-            limit_policy="NORMAL",
-        )
+        absent_area_pa = target is None
+        if absent_area_pa:
+            from .combat_armor_area_characteristics import armor_area_characteristics
+
+            target, _ = armor_area_characteristics(self.fight, invocation.target_id)
+            # eWW.c/fMy: mute PR/PA only after C and L2; preserve Qe/PT/L3/L4.
+            result = {"actual": amount["requested"] if runner is None else runner.value}
+            if runner is not None:
+                runner.notification_suppressed = True
+        else:
+            minimum, maximum = _bounds(target, 97)
+            result = apply_current_stat(
+                family="eWQ",
+                current=_current(target, 97),
+                minimum=minimum,
+                maximum=maximum,
+                requested=amount["requested"] if runner is None else runner.value,
+                percent=False,
+                executable=True,
+                frozen=97 in target.effect_frozen,
+                source_guards_verified=True,
+                limit_policy="NORMAL",
+            )
         if runner is not None:
             runner.set_applied(result["actual"])
 
@@ -275,7 +317,8 @@ class NativeArmorHandler:
             return payload
 
         payload = make_payload(result["actual"])
-        _write(self.fight, source.id, target, 97, result["current"])
+        if not absent_area_pa:
+            _write(self.fight, source.id, target, 97, result["current"])
         if context.retained:
             self.fight.owned_stat_effects[uid] = dict(
                 uid=uid,
@@ -290,7 +333,11 @@ class NativeArmorHandler:
                 state_uid=invocation.state_uid,
                 timer=None if context.timer is None else dict(vars(context.timer)),
             )
-        if runner is None or not runner.notification_suppressed:
+        if context.retained and absent_area_pa:
+            self.fight.owned_stat_effects[uid]["native_absent_characteristic"] = True
+        if not absent_area_pa and (
+            runner is None or not runner.notification_suppressed
+        ):
             self.packets.append(
                 (
                     13497,
@@ -325,8 +372,10 @@ class NativeArmorHandler:
 
         final_value = result["actual"] if runner is None else runner.value
         if context.retained:
-            row = self.fight.owned_stat_effects[uid]
-            row["actual"] = final_value
-            row["payload"] = make_payload(final_value).hex()
+            # L3/L4 can release this Qe; finish its callback without restoring it.
+            row = self.fight.owned_stat_effects.get(uid)
+            if row is not None:
+                row["actual"] = final_value
+                row["payload"] = make_payload(final_value).hex()
         notify_runner_value(invocation, final_value)
         return True

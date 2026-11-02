@@ -2,7 +2,11 @@
 SOURCE = "wakemu.owned-npc-state2-qi-completion-v1"
 
 
-def retired_ordinary_qi_ids(fight):
+def retired_ordinary_qi_ids(fight, *, pv_view=None):
+    if pv_view is None:
+        from .combat_global_pv_read_view import NativeGlobalPVReadView
+
+        pv_view = NativeGlobalPVReadView(fight)
     from .combat_global_pv_collections import global_fighter_guards
     from .combat_ordinary_death import registered_ordinary_death
 
@@ -20,8 +24,17 @@ def retired_ordinary_qi_ids(fight):
             or row.get("actor_id") != actor.id
             or getattr(actor, "native_ordinary_qi_retirement", None) != row
             or actor.native_obstacle_id != -1
-            or global_fighter_guards(fight, actor.id)["baK"] is not True
-            or not registered_ordinary_death(fight, actor)
+            or (global_fighter_guards if pv_view is None else pv_view.guards)(
+                fight, actor.id
+            )["baK"]
+            is not True
+            or not registered_ordinary_death(
+                fight,
+                actor,
+                event_indices=(
+                    None if pv_view is None else pv_view.death_indices(fight, actor.id)
+                ),
+            )
         ):
             raise ValueError("Unverified ordinary QI retirement")
         result.add(actor.id)

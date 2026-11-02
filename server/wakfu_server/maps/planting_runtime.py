@@ -343,6 +343,9 @@ class Plantings:
                     (due, monster_references),
                 )
             ]
+            from wakfu_server import dungeon_resource_obstacles
+
+            dungeon_owned = dungeon_resource_obstacles.owned_uids(db)
             flora = list(
                 db.execute(
                     "SELECT p.*,t.to_stage,t.delay_ms,t.probability FROM planted_resources p "
@@ -362,6 +365,8 @@ class Plantings:
                 continue
             candidates.append((resource, definition, None))
         for row in flora:
+            if row["resource_uid"] in dungeon_owned:
+                continue
             from .resource_domains import is_fixed_resource
 
             if is_fixed_resource(row["resource_reference"]):
@@ -411,6 +416,12 @@ class Plantings:
                     (resource["resource_uid"],),
                 ).fetchone()
                 if current is None or dict(current) != resource:
+                    continue
+                # Every growth producer, including delayed Ecology proposals,
+                # shares this authority after the live resource row is locked.
+                from wakfu_server import dungeon_resource_obstacles
+
+                if dungeon_resource_obstacles.owns(db, resource["resource_uid"]):
                     continue
                 if db.execute(
                     "SELECT 1 FROM resource_harvest_occupations "
@@ -624,6 +635,10 @@ def state_packet(resource, stage):
     )
 
 
+class NoEligibleMonsterGrowth(ValueError):
+    """A native seed family currently has no publishable ordinary birth form."""
+
+
 def monster_growth_member(resource, definition, *, decision_seed=None):
     """Choose uniformly among this seed's native initial family alternatives.
 
@@ -668,7 +683,7 @@ def monster_growth_member(resource, definition, *, decision_seed=None):
             eligible.append((key, ref))
     choices = eligible or fallback
     if not choices:
-        raise ValueError(
+        raise NoEligibleMonsterGrowth(
             "Native seed family has no valid local monster growth template"
         )
     from .monster_family_stages import initial_candidates
@@ -680,7 +695,9 @@ def monster_growth_member(resource, definition, *, decision_seed=None):
         for candidate in initial_candidates(family_id, eligible_references=allowed)
     ]
     if not candidates:
-        raise ValueError("Native seed family has no eligible initial monster form")
+        raise NoEligibleMonsterGrowth(
+            "Native seed family has no eligible initial monster form"
+        )
     if decision_seed is None:
         ref = secrets.choice(candidates)["reference"]
         group_id = secrets.randbits(62) + 1

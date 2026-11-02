@@ -218,10 +218,13 @@ def prepare_npc_spell(
         {"id": actor.id} if summon_context is not None else monsters[actor.id],
         factory=factory,
         action_id=action_id,
+        monsters=monsters,
     )
 
 
-def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, action_id):
+def prepare_validated_npc_spell(
+    fight, plan, rule, descriptor, *, factory, action_id, monsters=None
+):
     """Execute an owned, validated NPC cast on a private transaction snapshot."""
     from .combat_spell_usage import consume_usage
     from .combat_geometry_snapshot import source_snapshot
@@ -235,10 +238,23 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
 
     actor = fight.current
     spell, level = plan["spell_id"], plan["evaluation_level"]
+    from .combat_npc_fusion_preflight import validate_fusion_partner
+
+    validate_fusion_partner(
+        fight,
+        plan,
+        rule["roots"],
+        getattr(factory, "effects", None),
+        monsters,
+        factory=factory,
+    )
     # Cheap native validation precedes deep copy/effect dispatch.
     source, preview = private_entry_preview(
         fight, snapshot=source_snapshot, clone=deepcopy
     )
+    from .combat_npc_consumption_preflight import validate_npc_consumption_recipients
+
+    validate_npc_consumption_recipients(preview, plan, rule["roots"], factory)
     caster = preview.actors[actor.id]
     start = len(preview.events)
     if getattr(caster, "effect_resource_raw_currents", None) is not None:

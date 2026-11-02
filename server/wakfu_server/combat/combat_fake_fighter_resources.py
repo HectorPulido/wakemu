@@ -58,9 +58,21 @@ def _hp_resources_from_parameters(definition, level, parameters=None):
     }
 
 
-def install_fake_fighter_hp(row, definition):
+def _owned_row_resources(row, definition):
+    combined = _dependency_module("combat_fake_fighter_hp_owner_copy")
+    if combined.mask(definition) is not None:
+        return combined.owned_resources(row, definition)
+    return _owned_resources_constructor(definition, row.get("level"))
+
+
+def install_fake_fighter_hp(row, definition, *, owner_stats=None):
     """Persist native constructor authority separately from mutable PA current."""
-    resources = _owned_resources_constructor(definition, row.get("level"))
+    combined = _dependency_module("combat_fake_fighter_hp_owner_copy")
+    if combined.mask(definition) is not None:
+        row["native_faw_hp_owner_copy_constructor"] = combined.constructor(
+            definition, row.get("level"), owner_stats
+        )
+    resources = _owned_row_resources(row, definition)
     row["native_faw_hp_constructor"] = {
         "source": resources["source"],
         "level": resources["level"],
@@ -83,7 +95,7 @@ def fake_fighter_hp_state(row, definition):
     """Validate actual owned PA presence, including restored JSON snapshots."""
     if row.get("native_area_contract") != "faW":
         raise ValueError("Missing actual native faW area resource owner")
-    resources = _owned_resources_constructor(definition, row.get("level"))
+    resources = _owned_row_resources(row, definition)
     return _hp_state_from_resources(row, resources)
 
 
@@ -131,9 +143,7 @@ def fake_fighter_damage_snapshot(row, definition):
         frozen=frozenset((1,)) if hp["frozen"] else frozenset(),
         current_hp=hp["current"],
         maximum_hp=hp["maximum"],
-        characteristics_source=_owned_resources_constructor(
-            definition, row.get("level")
-        )["source"],
+        characteristics_source=_owned_row_resources(row, definition)["source"],
         absent_actor_absorption_stats=(92, 97, 100),
     )
 
@@ -195,6 +205,13 @@ def _owned_resources_from_parameters(definition, level, parameters):
 
 
 def _characteristics_from_plan(row, definition, parameters, resources):
+    if (
+        _dependency_module("combat_fake_fighter_hp_owner_copy").mask(definition)
+        is not None
+    ):
+        return _characteristics_from_resources(
+            row, _owned_row_resources(row, definition)
+        )
     if parameters is None:
         if resources is None:
             return fake_fighter_characteristics(row, definition)
@@ -216,7 +233,7 @@ def fake_fighter_characteristics(row, definition):
 
     if damage_only_mask(definition) is not None:
         return characteristics(row, definition)
-    resources = _owned_resources_constructor(definition, row.get("level"))
+    resources = _owned_row_resources(row, definition)
     return _characteristics_from_resources(row, resources)
 
 

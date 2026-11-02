@@ -208,9 +208,16 @@ def use(
             _idle(db, member_id, store.now())
         pending = db.execute(
             "SELECT * FROM item_teleport_receipts WHERE account_id=%s AND generation=%s "
-            "AND character_id=%s AND delivered_at IS NULL FOR UPDATE",
+            "AND character_id=%s AND delivered_at IS NULL AND superseded_at IS NULL FOR UPDATE",
             (account_id, generation, character_id),
         ).fetchone()
+        if pending is not None:
+            from wakfu_server.travel_delivery_receipts import supersede_moved
+
+            if supersede_moved(
+                db, "item_teleport_receipts", pending, current, now=store.now()
+            ):
+                pending = None
         if pending is not None:
             if (
                 pending["source_item_uid"] != uid
@@ -303,9 +310,11 @@ def use(
 
 
 def acknowledge(store, account_id, generation, character_id, token):
-    """Fence the successful native map handoff; repeated acknowledgement is safe."""
+    """Acknowledge delivery, or retire an arrival superseded by owned movement."""
     if not isinstance(token, str) or not token:
         raise ValueError("Invalid item teleport delivery token")
+    from wakfu_server.travel_delivery_receipts import supersede_moved, notify_superseded
+
     with store.connection() as db:
         store.lock_character(db, account_id, generation, character_id, selected=True)
         receipt = db.execute(
@@ -315,30 +324,41 @@ def acknowledge(store, account_id, generation, character_id, token):
         ).fetchone()
         if receipt is None:
             raise ValueError("Foreign item teleport delivery")
+        if receipt["superseded_at"] is not None:
+            return False
         if receipt["delivered_at"] is not None:
             return True
         current = store.character(account_id, character_id, db)
-        if any(current[key] != receipt["destination"][key] for key in LOCATION_KEYS):
-            raise ValueError("Item teleport delivery destination changed")
-        db.execute(
-            "UPDATE item_teleport_receipts SET delivered_at=COALESCE(delivered_at,%s) WHERE token=%s",
-            (store.now(), token),
-        )
-        return True
+        if not supersede_moved(
+            db, "item_teleport_receipts", receipt, current, now=store.now()
+        ):
+            db.execute(
+                "UPDATE item_teleport_receipts SET delivered_at=%s WHERE token=%s",
+                (store.now(), token),
+            )
+            return True
+    notify_superseded(account_id, generation, character_id, current)
+    return False
 
 
 def pending(store, account_id, generation, character_id):
     """Recover a committed arrival for the currently leased reconnecting actor."""
+    from wakfu_server.travel_delivery_receipts import supersede_moved, notify_superseded
+
     with store.connection() as db:
         store.lock_character(db, account_id, generation, character_id, selected=True)
         receipt = db.execute(
             "SELECT * FROM item_teleport_receipts WHERE account_id=%s AND character_id=%s "
-            "AND delivered_at IS NULL ORDER BY created_at DESC,token DESC LIMIT 1 FOR UPDATE",
+            "AND delivered_at IS NULL AND superseded_at IS NULL "
+            "ORDER BY created_at DESC,token DESC LIMIT 1 FOR UPDATE",
             (account_id, character_id),
         ).fetchone()
         if receipt is None:
             return None
         current = store.character(account_id, character_id, db)
-        if any(current[key] != receipt["destination"][key] for key in LOCATION_KEYS):
-            return None
-        return _result(store, db, account_id, character_id, receipt)
+        if not supersede_moved(
+            db, "item_teleport_receipts", receipt, current, now=store.now()
+        ):
+            return _result(store, db, account_id, character_id, receipt)
+    notify_superseded(account_id, generation, character_id, current)
+    return None

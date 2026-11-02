@@ -149,14 +149,22 @@ class ClosedRiftLoginRecoveryTests(PostgresCase):
                 "UPDATE combat_fights SET status='aborted' WHERE id=%s", (fight_id,)
             )
             db.execute(
-                "UPDATE rift_instances SET status='closed',fight_id=%s,"
-                "ended_at=CURRENT_TIMESTAMP WHERE instance_id=%s",
+                "UPDATE rift_instances SET status='running',fight_id=%s,"
+                "ended_at=NULL WHERE instance_id=%s",
                 (fight_id, run["instance_id"]),
             )
         with self.assertRaises((ValueError, PermissionError)):
             recover(self.store, positions, account, "stale", current)
         self.assertEqual(snapshot(), before)
         recovered = recover(self.store, positions, account, generation, current)
+        with self.store.connection() as db:
+            self.assertEqual(
+                "closed",
+                db.execute(
+                    "SELECT status FROM rift_instances WHERE instance_id=%s",
+                    (run["instance_id"],),
+                ).fetchone()["status"],
+            )
         exit_row = next(
             row for row in catalog["objects"] if row["type"] == "Teleporter"
         )

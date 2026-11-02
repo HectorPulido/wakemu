@@ -254,12 +254,28 @@ internal static class Planner
                         throw new ArgumentException("Invalid advisory movement danger");
                     danger[cell] = cost;
                 }
+            var blockedMovementAnchors = new HashSet<int>();
+            var blockedMovementGoals = new HashSet<int>();
+            if (boardData.TryGetProperty("movementPermissions", out var movement))
+            {
+                if (Long(movement, "actorId") != actorId)
+                    throw new ArgumentException("Movement permissions belong to another actor");
+                foreach (var (key, target) in new[] { ("blockedAnchors", blockedMovementAnchors), ("blockedGoals", blockedMovementGoals) })
+                    foreach (var entry in movement.GetProperty(key).EnumerateArray())
+                    {
+                        int cell = entry.GetInt32();
+                        if (cell < 0 || cell >= cells.Length || !target.Add(cell))
+                            throw new ArgumentException("Invalid actor movement permission cell");
+                    }
+            }
             var board = new MonsterTactics.Board { Fighters = fighters, Round = Int(boardData, "round"),
                 IsPortalTravel=(from,to)=>portalEdges.Contains((from,to)),
                 SearchContinues = CanFinish,
                 MovementDanger = danger.Values.Any(cost => cost > 0)
                     ? cell => danger.GetValueOrDefault(cell) : null,
                 SpellMovementCost = spell => nativeCosts[(spell.Id, spell.Grade)].Mp,
+                MovementAnchorAllowed = (who, cell) => who.Id != actorId || !blockedMovementAnchors.Contains(cell),
+                MovementGoalAllowed = (who, cell) => who.Id != actorId || !blockedMovementGoals.Contains(cell),
                 Walkable = MapGeometry.IsValid, Sees = (from, to) => hasLos && los.Contains((from, to)),
                 Reach = (row, caster, from, aim) => NativeReach(fighters, row, caster, from, aim),
                 TackleAt = (who, cell, ap, mp) => tackle.TryGetValue(cell, out var loss)

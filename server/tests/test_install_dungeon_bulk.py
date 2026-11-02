@@ -100,6 +100,24 @@ def bundle(*configs):
     return {"schema_version": 1, "configurations": list(configs)}
 
 
+class DungeonBulkGradePolicyTests(unittest.TestCase):
+    def test_validation_preserves_explicit_native_stage_progression(self):
+        original = configuration(native_fixture_routes()[0])
+        selected = prepare_configuration(
+            original["compiled_plan"],
+            original["topology"],
+            original["route"],
+            version=original["version"],
+            provenance=original["provenance"],
+            level_policy=dict(
+                mode="native_stage_progression",
+                optional_mode="native_maximum",
+                provenance="Reviewed native-bounded stage progression",
+            ),
+        )
+        self.assertEqual(validate_bundle(bundle(selected)), (selected,))
+
+
 class DungeonBulkInstallerPostgresTests(PostgresCase):
     def setUp(self):
         super().setUp()

@@ -107,7 +107,6 @@ def sections(fight):
         order = tuple(rows)
     retained = _retained_area_ids(fight)
     result = []
-    hidden = None
     owner_affiliations = {}
     definitions = None
     for identity in order:
@@ -165,7 +164,6 @@ def sections(fight):
             owner_wire = 0
         else:
             from .combat_effective_control import effective_affiliation
-            from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
 
             if (
                 type(owner_id) is not int
@@ -174,13 +172,10 @@ def sections(fight):
             ):
                 raise ValueError("Invalid native live area owner identity")
             owner = fight.actors.get(owner_id)
-            if hidden is None:
-                hidden = hidden_snapshot_actor_ids(fight)
             if owner is not None and owner_id not in owner_affiliations:
                 owner_affiliations[owner_id] = effective_affiliation(fight, owner)
             if (
                 owner is None
-                or owner_id in hidden
                 or row.get("native_fight_affiliation_source") != "faV.j(PV).bcM"
                 or type(affiliation) is not int
                 or affiliation != owner_affiliations[owner_id]
@@ -188,6 +183,9 @@ def sections(fight):
                 raise ValueError(
                     "Live area capture cannot be reconstructed from its owner"
                 )
+            # fec.f serializes the original owner UID even after roster retirement.
+            # fec.a resolves it to a nullable PV while fbm preserves the UID;
+            # live areas do not require their creator to remain visible.
             owner_wire = owner_id
         # buK reads the prototype first; fec.a then reads this exact fbm layout.
         result.append(

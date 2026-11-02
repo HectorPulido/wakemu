@@ -1,4 +1,6 @@
 import unittest
+from contextlib import ExitStack
+from dataclasses import replace
 from types import SimpleNamespace
 from wakfu_server.combat_spell_level import NativeSpellBook
 from wakfu_server.combat_triggered_spell import (
@@ -98,5 +100,40 @@ class TriggeredSpellPolicyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "cycle/depth"):
                 with triggered_spell_scope(request):
                     pass
+        with triggered_spell_scope(request):
+            pass
+
+    def test_same_spell_other_caster_is_distinct_but_indirect_cycle_is_rejected(self):
+        _, _, request = self.fixture(False)
+        other_caster = replace(request, caster_id=8)
+        with triggered_spell_scope(request), triggered_spell_scope(other_caster):
+            with self.assertRaisesRegex(ValueError, "cycle/depth"):
+                with triggered_spell_scope(request):
+                    self.fail("An active caster/spell cycle was admitted")
+        with triggered_spell_scope(other_caster):
+            pass
+
+    def test_native_target_cell_distinguishes_chain_but_repeat_still_rejects(self):
+        request = NativeTriggeredSpellRequest(6462, -100007, (31, -25, 0), False)
+        next_target = replace(request, cell=(30, -24, 0))
+        with triggered_spell_scope(request), triggered_spell_scope(next_target):
+            # Changing who pays cannot turn the same active native target into
+            # a distinct cast, even after another target has been processed.
+            with self.assertRaisesRegex(ValueError, "cycle/depth"):
+                with triggered_spell_scope(replace(request, native_rhe=True)):
+                    self.fail("The same active native spell target recurred")
+        with triggered_spell_scope(request):
+            pass
+
+    def test_distinct_requests_keep_depth_limit_and_release_every_scope(self):
+        _, _, request = self.fixture(False)
+        with ExitStack() as scopes:
+            for offset in range(32):
+                scopes.enter_context(
+                    triggered_spell_scope(replace(request, spell_id=123 + offset))
+                )
+            with self.assertRaisesRegex(ValueError, "cycle/depth"):
+                with triggered_spell_scope(replace(request, spell_id=155)):
+                    self.fail("The unchanged depth budget was exceeded")
         with triggered_spell_scope(request):
             pass

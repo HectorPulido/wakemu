@@ -27,6 +27,22 @@ def plan(fight, monsters, snapshot, rooms, states):
     if any(type(weight) is not int or weight < 0 for weight in weights):
         raise ValueError("Invalid frozen stele difficulty weight")
     boss_refs = {m["ref_id"] for m in rooms[-1]["monsters"] if m["role"] == "boss"}
+    if selected and not boss_refs:
+        from wakfu_server.monsters import reference
+
+        # Guide-derived roster roles can omit an original boss/controller.
+        # Consult only the frozen final roster and original bje BOSS property;
+        # never replace an initial phase actor with a later spawned creature.
+        for monster in rooms[-1]["monsters"]:
+            native = reference(monster["ref_id"])
+            arrays = native.get("raw_visual_arrays")
+            properties = arrays.get("csc") if isinstance(arrays, dict) else None
+            if not isinstance(properties, list) or any(
+                type(value) is not int for value in properties
+            ):
+                raise ValueError("Stele carrier lacks original native role properties")
+            if 43 in properties and not {45, 115}.intersection(properties):
+                boss_refs.add(monster["ref_id"])
     carriers = sorted(i for i, m in monsters.items() if m["ref"] in boss_refs)
     if selected and len(carriers) != 1:
         raise ValueError("Stele policy requires one unambiguous frozen boss carrier")

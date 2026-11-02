@@ -204,6 +204,7 @@ def project_support(
     from wakfu_server.combat_definitions import effect_profile
     from wakfu_server.combat_effect_resolver import variant_accepts
     from wakfu_server.combat_effect_targets import native_selector_policy
+    from wakfu_server.combat_effect_groups import decode_group_mode, native_group_route
     from .jondo_area import area_projection
     from .jondo_native_amount import (
         project_native_amount,
@@ -223,7 +224,9 @@ def project_support(
     registry = characteristic_registry().get("effects", {})
     effects, summons, unknown, intents, aims = [], [], set(), set(), set()
     global_self_effect = False
-    pending = [(reference, level, False, 100.0, None, None) for reference in roots]
+    pending = [
+        (reference, level, False, 100.0, None, None, None) for reference in roots
+    ]
     seen = set()
     classification_budget = MAX_NODES
     source_bindings = source_binding_proof(compiled.effects, roots, level)
@@ -249,8 +252,16 @@ def project_support(
 
     while pending and len(seen) < MAX_NODES:
         check()
-        reference, current_level, inherited, chance, state, value_basis = pending.pop()
-        identity = reference, current_level, state
+        (
+            reference,
+            current_level,
+            inherited,
+            chance,
+            state,
+            value_basis,
+            recipient_parent,
+        ) = pending.pop()
+        identity = reference, current_level, state, recipient_parent
         if identity in seen:
             continue
         seen.add(identity)
@@ -281,6 +292,39 @@ def project_support(
             profile, probability, conditional = None, chance, True
         if probability <= 0:
             continue
+        # eYg's actor branch passes its chosen PV to mask0 leaves. Qe.g(PV)
+        # then uses that recipient, not every actor admitted by a standalone
+        # mask0 selector. Preserve the parent's geometry in advisory scoring.
+        selector = effect.get("native_target_selector")
+        recipient_effect = effect
+        if (
+            recipient_parent is not None
+            and isinstance(selector, Mapping)
+            and selector.get("class") == "fcE"
+            and selector.get("mask") == 0
+        ):
+            recipient_effect = compiled.effects[str(recipient_parent)]
+        child_recipient_parent = None
+        if family == 330 and profile is not None:
+            try:
+                raw = effect["parameters"]
+                mode = decode_group_mode(
+                    profile["parameters"],
+                    raw_target_parameter=raw[4] if len(raw) >= 6 else None,
+                )
+                if (
+                    mode.on_target
+                    and mode.transmit_target
+                    and mode.actor_rebind == 0
+                    and native_group_route(effect) == "actors"
+                ):
+                    child_recipient_parent = (
+                        recipient_parent
+                        if recipient_effect is not effect
+                        else reference
+                    )
+            except (ValueError, TypeError, KeyError, IndexError):
+                pass  # Unproved group modes retain their existing uncertainty.
         pending.extend(
             (
                 child,
@@ -291,11 +335,19 @@ def project_support(
                 "native_runner_callback"
                 if family == 865 and index == 1
                 else value_basis,
+                child_recipient_parent,
             )
             for index, child in enumerate(effect.get("children", ()))
         )
+        selection_effect = effect
         try:
-            policy = native_selector_policy(effect)
+            # Only explicit mask0 leaf recipients inherit this scope. Other
+            # selectors and group modes still perform their own native query.
+            scoped_leaf = (
+                recipient_effect is not effect and native_group_route(effect) is None
+            )
+            selection_effect = recipient_effect if scoped_leaf else effect
+            policy = native_selector_policy(selection_effect)
             targets = sorted(policy["relations"])
             in_area = policy["in_area"]
         except (ValueError, KeyError, TypeError):
@@ -306,7 +358,7 @@ def project_support(
         # postpone a fresh state child. Match NativeStateHandler installation.
         triggered = any(masks[index] for index in (0, 1, 3, 4, 5) if index < len(masks))
         try:
-            area = area_projection(effect)
+            area = area_projection(selection_effect)
         except (ValueError, KeyError, TypeError):
             # Unknown shape never falls through to a guessed point recipient.
             area, conditional = dict(fixedCells=[]), True
@@ -521,6 +573,36 @@ def project_support(
             aims = {"self"} if aims or intents else set()
         elif rule.get("allow_self") is False:
             aims.discard("self")
+    from wakfu_server.combat_npc_consumption_preflight import (
+        required_recipient_requirements,
+    )
+
+    operands = required_recipient_requirements(
+        {"evaluation_level": level}, roots, compiled.effects
+    )
+    recipient_required = bool(operands)
+    if recipient_required:
+        # Birth roots may replace an occupied recipient. Their empty-cell
+        # advice must not hide the actual guaranteed consumption operand.
+        aims = set.intersection(
+            *(
+                set(
+                    native_selector_policy(
+                        compiled.effects[str(operand.effect_reference)]
+                    )["relations"]
+                )
+                for operand in operands
+            )
+        )
+        anchor_required = False
+        if rule is not None:
+            if rule.get("free_cell"):
+                aims.clear()
+                unknown.add("native_required_recipient_conflicts_with_free_cell")
+            elif rule.get("maximum", 1) <= 0:
+                aims.intersection_update(("self",))
+            elif rule.get("allow_self") is False:
+                aims.discard("self")
     candidates = []
     if "emptyCell" in aims and indices is not None:
         if request_cache is not None:
@@ -536,6 +618,7 @@ def project_support(
         aimKinds=sorted(aims),
         intents=sorted(intents),
         castAnchorRequired=anchor_required,
+        requiresNativeRecipient=recipient_required,
         effects=effects,
         summons=summons,
         unknown=sorted(unknown),

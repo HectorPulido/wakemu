@@ -193,6 +193,22 @@ def apply(runtime, actor, evidence=None):
 
     if not effective_server_controlled(runtime.fight, actor):
         return []
+    # ffe.sev (51) forbids changing facing during combat. Read the live
+    # post-END counters, including locks just applied by an owned callback.
+    counts = getattr(actor, "native_fight_property_counts", None)
+    if counts is not None:
+        from .combat_property_stack import property_present
+
+        try:
+            locked = property_present(counts, 51)
+        except ValueError:
+            # Defensive facing is optional; incomplete property evidence must
+            # neither rotate the actor nor prevent the normal turn ACK.
+            return []
+    else:
+        locked = 51 in (getattr(actor, "native_fight_properties", ()) or ())
+    if locked:
+        return []
     selected = choose(runtime.fight, actor, evidence)
     if selected is None:
         return []

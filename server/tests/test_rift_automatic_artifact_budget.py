@@ -209,6 +209,39 @@ class RiftAutomaticArtifactBudgetTests(unittest.TestCase):
             any(s.reference == 6786 for s in manual.actors[7].state_ledger.entries)
         )
 
+        # Native Qs retirement is independent of the producer choice ledger.
+        # A stale/odd ledger must repair on replay and cannot block a wave or
+        # resurrect grants. Exercise actual removal, retention and QI callbacks.
+        original_ids = tuple(int(uid) for uid in group["original"])
+        for retired_count in (1, 2):
+            with self.subTest(retired_artifacts=retired_count):
+                recovered = deepcopy(fight)
+                recovery, _ = component.factory(recovered)
+                recovered_group = recovered.rift_wave_state["native_artifact_groups"][
+                    "1"
+                ]
+                with recovered.effect_resolution():
+                    for retired_uid in original_ids[:retired_count]:
+                        recovery.native_area_events.remove_parent(
+                            recovered.native_effect_areas[retired_uid]
+                        )
+                    self.assertFalse(
+                        recovery.native_area_events.artifact_assignment_eligible(
+                            original_ids[0], 7
+                        )
+                    )
+                    self.assertEqual(spawn_artifacts(recovery, wave=1), original_ids)
+                    self.assertFalse(
+                        distribute_unclaimed_artifacts(recovery, before_wave=2)
+                    )
+                self.assertEqual(
+                    recovered_group["remaining"], list(original_ids[retired_count:])
+                )
+                self.assertEqual(recovered_group["assignments"], [])
+                self.assertEqual(
+                    (recovered.actors[7].ap, recovered.actors[7].mp), spent_budget
+                )
+
         # Clear the actual old roster and admit four different native species.
         for identity in (-200, -201):
             fight.apply_damage(7, identity, fight.actors[identity].hp)

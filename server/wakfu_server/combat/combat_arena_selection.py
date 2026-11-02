@@ -197,6 +197,10 @@ def compact_encounter(
     dimensions_include_border=False,
     member_radii=None,
     player_radius=0,
+    allow_border_footprints=False,
+    player_slots=1,
+    member_point_cells=None,
+    placement_ground_cells=None,
 ):
     """Local encounter formation on one mutually reachable native component.
 
@@ -212,6 +216,10 @@ def compact_encounter(
         raise ValueError("Invalid opposing formation spread policy")
     if type(dimensions_include_border) is not bool:
         raise ValueError("Invalid arena rectangle dimension policy")
+    if type(allow_border_footprints) is not bool:
+        raise ValueError("Invalid ordinary actor perimeter policy")
+    if type(player_slots) is not int or not 1 <= player_slots <= 127:
+        raise ValueError("Invalid ordinary party placement capacity")
     if (
         not isinstance(minimum_dimensions, (tuple, list))
         or len(minimum_dimensions) != 2
@@ -229,6 +237,8 @@ def compact_encounter(
     originals = [_cell(member) for member in members]
     if not originals or len(originals) > 126:
         raise ValueError("Invalid encounter monster count")
+    if player_slots + len(originals) > 127:
+        raise ValueError("Ordinary party placement exceeds native actor capacity")
     if type(cell_budget) is not int or not 2 <= cell_budget <= MAX_CELL_BUDGET:
         raise ValueError(
             "Encounter cell budget must be between2 and " + str(MAX_CELL_BUDGET)
@@ -237,6 +247,12 @@ def compact_encounter(
 
     radii = radii_for(originals, member_radii, player_radius)
     geometry = prepare_geometry(data)
+    if member_point_cells is not None:
+        member_point_cells = frozenset(_cell(cell) for cell in member_point_cells)
+    if placement_ground_cells is not None:
+        placement_ground_cells = frozenset(
+            _cell(cell) for cell in placement_ground_cells
+        )
     memoize = isinstance(data, PreparedGeometry)
     key = (
         id(geometry),
@@ -250,6 +266,10 @@ def compact_encounter(
         dimensions_include_border,
         radii,
         player_radius,
+        allow_border_footprints,
+        player_slots,
+        member_point_cells,
+        placement_ground_cells,
     )
     if memoize:
         with _compact_encounters_lock:
@@ -270,6 +290,10 @@ def compact_encounter(
         dimensions_include_border,
         radii,
         player_radius,
+        allow_border_footprints,
+        player_slots,
+        member_point_cells,
+        placement_ground_cells,
     )
     if memoize:
         frozen = _freeze_compact_encounter(result)
@@ -299,11 +323,12 @@ def _freeze_compact_encounter(result):
         tuple(result["participant_positions"]),
         frozenset(result["blocked_ambiguous"]),
         result["bounds"],
+        tuple(result.get("party_reserved_cells", ())),
     )
 
 
 def _thaw_compact_encounter(result):
-    return dict(
+    thawed = dict(
         map_id=result[0],
         cells=set(result[1]),
         edges=set(result[2]),
@@ -312,6 +337,9 @@ def _thaw_compact_encounter(result):
         blocked_ambiguous=set(result[6]),
         bounds=result[7],
     )
+    if result[8]:
+        thawed["party_reserved_cells"] = result[8]
+    return thawed
 
 
 class _FormationMobility:
@@ -371,6 +399,10 @@ def _select_compact_encounter(
     dimensions_include_border,
     member_radii,
     player_radius,
+    allow_border_footprints,
+    player_slots,
+    member_point_cells,
+    placement_ground_cells,
 ):
     selected, ambiguous = encounter_component(geometry, origin, memoize=memoize)
     component = selected
@@ -390,7 +422,7 @@ def _select_compact_encounter(
     )
     target_cells = max(
         target_cells,
-        (2 * player_radius + 1) ** 2
+        player_slots * (2 * player_radius + 1) ** 2
         + sum((2 * radius + 1) ** 2 for radius in member_radii)
         + 12,
     )
@@ -464,10 +496,47 @@ def _select_compact_encounter(
     selected = reachable(origin, cropped, geometry.outgoing) & reachable(
         origin, cropped, geometry.incoming
     )
+    if len(selected) > cell_budget or _rectangle_area(_bounds(selected)) > cell_budget:
+        raise ValueError("Native arena crop exceeds configured cell budget")
     if len(selected) <= len(originals):
         raise ValueError(
             "Native reachable encounter component lacks participant capacity"
         )
+    return _formation_on_selected(
+        geometry,
+        origin,
+        originals,
+        selected,
+        ambiguous,
+        spread_opponents=spread_opponents,
+        member_radii=member_radii,
+        player_radius=player_radius,
+        allow_border_footprints=allow_border_footprints,
+        player_slots=player_slots,
+        member_point_cells=member_point_cells,
+        placement_ground_cells=placement_ground_cells,
+    )
+
+
+def _formation_on_selected(
+    geometry,
+    origin,
+    originals,
+    selected,
+    ambiguous,
+    *,
+    spread_opponents,
+    member_radii,
+    player_radius,
+    allow_border_footprints,
+    player_slots,
+    member_point_cells,
+    reserved_cells=(),
+    placement_ground_cells=None,
+    fixed_member_positions=None,
+):
+    """Reuse one native footprint allocator independently of arena cropping."""
+    xmin, ymin, xmax, ymax = _bounds(selected)
     distances = {origin: 0}
     pending = deque([origin])
     while pending:
@@ -481,28 +550,98 @@ def _select_compact_encounter(
     from .combat_placement_footprints import covered_cells
 
     by_xy = {cell[:2]: cell for cell in selected}
+    if placement_ground_cells is not None:
+        ordinary_ground = selected.intersection(placement_ground_cells) - set(
+            reserved_cells
+        )
+        placement_ground_cells = reachable(
+            origin, ordinary_ground, geometry.outgoing
+        ) & reachable(origin, ordinary_ground, geometry.incoming)
+        placement_ground_cells = placement_ground_cells.intersection(ordinary_ground)
+    if placement_ground_cells is not None and origin not in placement_ground_cells:
+        raise ValueError("Admission player is outside qualified ordinary ground")
     player_covered = covered_cells(origin, player_radius, selected, by_xy=by_xy)
-    free = selected - set(player_covered)
-    occupied = set(player_covered)
-    placed = [(origin, player_radius, player_covered)]
+    party_positions = [origin]
+    reserved = set(reserved_cells)
+    fixed = {} if fixed_member_positions is None else dict(fixed_member_positions)
+    fixed_bodies = {}
+    fixed_occupied = set()
+    for index, center in fixed.items():
+        # Reviewed fixed constructors use native terrain; the renderable-ground
+        # restriction belongs to ordinary formation and player walking.
+        if (
+            type(index) is not int
+            or not 0 <= index < len(originals)
+            or center not in selected
+            or member_radii[index] == 0
+            and member_point_cells is not None
+            and center not in member_point_cells
+        ):
+            raise ValueError("Fixed initial actor is outside qualified native terrain")
+        body = covered_cells(center, member_radii[index], selected, by_xy=by_xy)
+        if body & (reserved | fixed_occupied):
+            raise ValueError("Fixed initial actor footprints overlap")
+        fixed_bodies[index] = body
+        fixed_occupied.update(body)
+    if player_covered & (reserved | fixed_occupied):
+        raise ValueError("Admission player overlaps an authored initial obstacle")
+    occupied = set(player_covered) | reserved | fixed_occupied
+    placed = [(origin, player_radius, player_covered)] + [
+        (center, member_radii[index], fixed_bodies[index])
+        for index, center in fixed.items()
+    ]
+    for center in sorted(selected, key=lambda cell: (distances[cell], cell)):
+        if placement_ground_cells is not None and center not in placement_ground_cells:
+            continue
+        if len(party_positions) == player_slots:
+            break
+        try:
+            covered = covered_cells(center, player_radius, selected, by_xy=by_xy)
+        except ValueError:
+            continue
+        if covered & occupied:
+            continue
+        party_positions.append(center)
+        occupied.update(covered)
+        placed.append((center, player_radius, covered))
+    if len(party_positions) != player_slots:
+        raise ValueError("Native arena lacks disjoint party placement capacity")
+    free = selected - occupied
     mobility = _FormationMobility(selected, geometry.outgoing, by_xy)
     interior = selected - cardinal_border_cells(selected)
     # Scale separation to the selected rectangle, not a folded native detour.
     # Existing arena side policy (normally 7--20) still controls encounter size.
     separation = max(xmax - xmin + 1, ymax - ymin + 1) * 0.6
     relocated = [None] * len(originals)
+    for index, center in fixed.items():
+        relocated[index] = center
     formation_distances = None
     # Pack larger native footprints first, without changing roster output order.
     for index in sorted(range(len(originals)), key=lambda i: (-member_radii[i], i)):
+        if index in fixed:
+            continue
         original, radius = originals[index], member_radii[index]
         candidates = set()
         footprints = {}
         for center in free:
+            if (
+                placement_ground_cells is not None
+                and center not in placement_ground_cells
+            ):
+                continue
+            if (
+                radius == 0
+                and member_point_cells is not None
+                and center not in member_point_cells
+            ):
+                continue
             try:
                 covered = covered_cells(center, radius, selected, by_xy=by_xy)
             except ValueError:
                 continue
-            if covered <= free and (radius == 0 or covered <= interior):
+            if covered <= free and (
+                radius == 0 or covered <= interior or allow_border_footprints
+            ):
                 candidates.add(center)
                 footprints[center] = covered
         if not candidates:
@@ -569,11 +708,11 @@ def _select_compact_encounter(
                         formation_distances[target] = formation_distances[current] + 1
                         pending.append(target)
     chosen_edges = edges_within(selected, geometry.outgoing)
-    return dict(
+    result = dict(
         map_id=geometry.map_id,
         cells=selected,
         edges=chosen_edges,
-        placement={0: [origin], 1: relocated},
+        placement={0: party_positions, 1: relocated},
         participant_positions=list(zip(originals, relocated)),
         blocked_ambiguous=ambiguous,
         bounds=(
@@ -583,6 +722,9 @@ def _select_compact_encounter(
             max(c[1] for c in selected),
         ),
     )
+    if player_slots > 1:
+        result["party_reserved_cells"] = tuple(party_positions)
+    return result
 
 
 def cardinal_border_cells(cells):
@@ -597,3 +739,126 @@ def cardinal_border_cells(cells):
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
         )
     )
+
+
+def full_room_encounter(
+    data,
+    player,
+    members,
+    *,
+    member_radii=None,
+    player_radius=0,
+    player_slots=6,
+    member_point_cells=None,
+    reserved_cells=(),
+    placement_ground_cells=None,
+    fixed_member_positions=None,
+):
+    """Place ordinary bodies legally while retaining every declared room cell."""
+    geometry = prepare_geometry(data)
+    origin, originals = _cell(player), tuple(_cell(member) for member in members)
+    if (
+        origin not in geometry.cells
+        or not originals
+        or len(originals) > 126
+        or len(set(originals)) != len(originals)
+        or any(point not in geometry.cells for point in originals)
+        or len({cell[:2] for cell in geometry.cells}) != len(geometry.cells)
+        or type(player_slots) is not int
+        or not 1 <= player_slots <= 127
+        or player_slots + len(originals) > 127
+    ):
+        raise ValueError("Invalid full room participant or native altitude scope")
+    if _rectangle_area(_bounds(geometry.cells)) > 32767:
+        raise ValueError("Full room rectangle exceeds native wire bounds")
+    from .combat_placement_footprints import radii_for
+
+    radii = radii_for(originals, member_radii, player_radius)
+    fixed = {} if fixed_member_positions is None else dict(fixed_member_positions)
+    if any(
+        type(index) is not int or not 0 <= index < len(originals) for index in fixed
+    ):
+        raise ValueError("Fixed actor placement lacks its original member index")
+    fixed = {index: _cell(cell) for index, cell in fixed.items()}
+    declared_reserved = frozenset(_cell(cell) for cell in reserved_cells)
+    if not declared_reserved.issubset(geometry.cells):
+        raise ValueError("Authored initial obstacle leaves the full native room")
+    reserved_columns = {cell[:2] for cell in declared_reserved}
+    reserved = frozenset(
+        cell for cell in geometry.cells if cell[:2] in reserved_columns
+    )
+    from .combat_placement_footprints import covered_cells
+
+    fixed_covered = set()
+    for index, center in fixed.items():
+        body = covered_cells(center, radii[index], geometry.cells)
+        if body & (reserved | fixed_covered):
+            raise ValueError(
+                "Fixed actor placement overlaps an initial native obstacle"
+            )
+        fixed_covered.update(body)
+    actor_cells = geometry.cells - reserved
+    admission_footprint = covered_cells(origin, player_radius, geometry.cells)
+    admission_reserved = reserved | fixed_covered
+    blocked_origin = bool(admission_footprint & admission_reserved)
+    candidates = [origin]
+    if blocked_origin:
+        # These are prospective constructor slots, not live world obstacles.
+        # Search actual native edges; never invent a floor or movement edge.
+        candidates, seen, pending = [], {origin}, deque([origin])
+        while pending:
+            current = pending.popleft()
+            if current in actor_cells and current not in fixed_covered:
+                candidates.append(current)
+            for target in sorted(geometry.outgoing.get(current, ())):
+                if target in geometry.cells and target not in seen:
+                    seen.add(target)
+                    pending.append(target)
+    last_error = None
+    for placement_origin in candidates:
+        component = reachable(
+            placement_origin, actor_cells, geometry.outgoing
+        ) & reachable(placement_origin, actor_cells, geometry.incoming)
+        try:
+            if len(component) <= len(originals):
+                raise ValueError("Full room lacks native participant capacity")
+            result = _formation_on_selected(
+                geometry,
+                placement_origin,
+                originals,
+                component,
+                set(),
+                spread_opponents=True,
+                member_radii=radii,
+                player_radius=player_radius,
+                allow_border_footprints=True,
+                player_slots=player_slots,
+                member_point_cells=member_point_cells,
+                reserved_cells=reserved,
+                placement_ground_cells=placement_ground_cells,
+                fixed_member_positions=fixed,
+            )
+        except ValueError as exc:
+            if not blocked_origin:
+                raise
+            last_error = exc
+            continue
+        if blocked_origin:
+            result["participant_player_position"] = [
+                list(origin),
+                list(placement_origin),
+            ]
+            result["native_initial_player_relocation"] = dict(
+                schema="wakemu-reserved-slot-placement-v1",
+                physical_radius=player_radius,
+                reserved_cells=[list(cell) for cell in sorted(admission_reserved)],
+            )
+        result.update(
+            cells=set(geometry.cells),
+            edges=set(geometry.edges),
+            bounds=_bounds(geometry.cells),
+        )
+        return result
+    raise ValueError(
+        "Full room lacks legal placement outside reserved spawn slots"
+    ) from last_error

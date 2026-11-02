@@ -138,6 +138,16 @@ class Worker:
             ]
             self.checkpoint()
         for action in entry["actions"]:
+            if (
+                "buyer" in profile.get("behaviors", {})
+                and action["action"] == "exchange.cancel"
+            ):
+                # Old durable decisions from a previous version cannot bypass
+                # the buyer's never-cancel policy after an upgrade or retry.
+                action["done"] = True
+                self.state["recover_exchanges"] = True
+                self.checkpoint()
+                continue
             if action["done"]:
                 continue
             if self.clock() - action["issued_at"] > 300:

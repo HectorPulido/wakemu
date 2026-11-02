@@ -133,6 +133,9 @@ class NativeMorphHandler:
             target_id=actor.id,
             value=runner.value,
             timing_payload=context.timing_payload,
+            # aVz decodes this retained payload before eWG.bbR, whose rEj
+            # guard must retain the completed application, not the input clock.
+            execution_status=0,
         )
         additional = _integer(14, int(own))  # Original il.en -> ij.mk field14.
         payload += b"\x42" + _varint(len(additional)) + additional

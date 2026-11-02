@@ -148,7 +148,10 @@ def assign_artifact(runtime, area_uid, recipient_id):
     row = fight.native_effect_areas.get(area_uid)
     target = fight.actors.get(recipient_id)
     if row is None or target is None or not fight._in_play(target):
-        raise ValueError("Artifact assignment requires its live Qq and recipient")
+        # Native callbacks can retire an area or its recipient between a
+        # producer's selection and delivery. Absence grants nothing; the
+        # producer can reconcile its pending references and choose again.
+        return False
     definition = runtime._definition(row)
     from .combat_artifact_area import verify_artifact_area
 
@@ -178,7 +181,7 @@ def artifact_assignment_eligible(runtime, area_uid, recipient_id):
         raise ValueError("Actual artifact and recipient identities required")
     row = runtime.fight.native_effect_areas.get(area_uid)
     if row is None:
-        raise ValueError("Artifact eligibility requires its actual live Qq")
+        return False  # A retired artifact is no longer an eligible candidate.
     definition = runtime._definition(row)
     verify_artifact_area(row, definition)
     if 2243 not in definition["entry_masks"]:

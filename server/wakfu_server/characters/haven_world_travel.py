@@ -8,7 +8,7 @@ KEYS = ("map_id", "instance_id", "x", "y", "z")
 def _pending(db, character_id):
     return db.execute(
         "SELECT * FROM haven_world_transitions WHERE character_id=%s "
-        "AND delivered_at IS NULL FOR UPDATE",
+        "AND delivered_at IS NULL AND superseded_at IS NULL FOR UPDATE",
         (character_id,),
     ).fetchone()
 
@@ -56,9 +56,12 @@ def travel(store, positions, account_id, generation, character_id, *, leave=Fals
         source = {key: current[key] for key in KEYS}
         prior = _pending(db, character_id)
         if prior is not None:
-            if any(current[key] != prior["destination"][key] for key in KEYS):
-                raise ValueError("Haven World transition destination changed")
-            return _result(store, db, account_id, character_id, prior)
+            from wakfu_server.travel_delivery_receipts import supersede_moved
+
+            if not supersede_moved(
+                db, "haven_world_transitions", prior, current, now=store.now()
+            ):
+                return _result(store, db, account_id, character_id, prior)
         for member in cohort:
             _idle(db, member, store.now())
         if leave:
@@ -165,41 +168,56 @@ def external_departure(db, account_id):
     )
     if departed:
         db.execute(
-            "UPDATE haven_world_transitions SET delivered_at=CURRENT_TIMESTAMP "
-            "WHERE character_id=ANY(%s) AND delivered_at IS NULL",
+            "UPDATE haven_world_transitions SET superseded_at=CURRENT_TIMESTAMP "
+            "WHERE character_id=ANY(%s) AND delivered_at IS NULL AND superseded_at IS NULL",
             ([row["character_id"] for row in departed],),
         )
 
 
 def pending(store, account_id, generation, character_id):
+    from wakfu_server.travel_delivery_receipts import supersede_moved, notify_superseded
+
     with store.connection() as db:
         store.lock_character(db, account_id, generation, character_id)
         row = _pending(db, character_id)
         if row is None:
             return None
         current = store.character(account_id, character_id, db)
-        if any(current[key] != row["destination"][key] for key in KEYS):
-            raise ValueError(
-                "Pending Haven World delivery does not match actual location"
-            )
-        return _result(store, db, account_id, character_id, row)
+        if not supersede_moved(
+            db, "haven_world_transitions", row, current, now=store.now()
+        ):
+            return _result(store, db, account_id, character_id, row)
+    notify_superseded(account_id, generation, character_id, current)
+    return None
 
 
 def acknowledge(store, account_id, generation, character_id, token):
+    from wakfu_server.travel_delivery_receipts import supersede_moved, notify_superseded
+
     with store.connection() as db:
         store.lock_character(db, account_id, generation, character_id)
-        row = _pending(db, character_id)
+        row = db.execute(
+            "SELECT * FROM haven_world_transitions WHERE token=%s AND account_id=%s "
+            "AND character_id=%s FOR UPDATE",
+            (token, account_id, character_id),
+        ).fetchone()
         if row is None:
-            return
-        if row["token"] != token or row["account_id"] != account_id:
             raise ValueError("Invalid Haven World transition receipt")
+        if row["superseded_at"] is not None:
+            return False
+        if row["delivered_at"] is not None:
+            return True
         current = store.character(account_id, character_id, db)
-        if any(current[key] != row["destination"][key] for key in KEYS):
-            raise ValueError("Haven World acknowledgment location changed")
-        db.execute(
-            "UPDATE haven_world_transitions SET delivered_at=CURRENT_TIMESTAMP WHERE token=%s",
-            (token,),
-        )
+        if not supersede_moved(
+            db, "haven_world_transitions", row, current, now=store.now()
+        ):
+            db.execute(
+                "UPDATE haven_world_transitions SET delivered_at=%s WHERE token=%s",
+                (store.now(), token),
+            )
+            return True
+    notify_superseded(account_id, generation, character_id, current)
+    return False
 
 
 def owned_scope(db, source, *, character_id=None):

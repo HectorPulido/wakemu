@@ -146,8 +146,12 @@ def prepare_reconnect(
     return prepared(packets, fight, runtime, ack, recover_pending)
 
 
-def initial_summon_timeline(fight, birth_ids, *, counter=0):
-    """Prepare unique INITIAL members; full recovery owns current-cycle slots.
+def initial_summon_timeline(fight, birth_ids, *, counter=0, witness_actor=None):
+    """Prepare unique members and an optional original end-turn witness.
+
+    A known original12502 must end an ON member, never INITIAL's -1 slot.
+    This recipient-only presentation does not execute a server turn callback;
+    the full recovery still owns every authoritative current-cycle slot.
 
     Additional turns duplicate IDs in the current cycle. Native base order and
     SY progress identify unique members; neither may be replaced by silently
@@ -167,4 +171,18 @@ def initial_summon_timeline(fight, birth_ids, *, counter=0):
     if type(counter) is not int or not 0 <= counter < 2**31:
         raise ValueError("Invalid actual reconnect witness counter")
     payload = initial_timeline(identities, identities)
-    return payload[:2] + struct.pack(">i", counter) + payload[6:]
+    payload = payload[:2] + struct.pack(">i", counter) + payload[6:]
+    if witness_actor is None:
+        return payload
+    if type(witness_actor) is not int or witness_actor not in identities:
+        raise ValueError("Reconnect turn-end witness is not an initial member")
+    # SU header15, two SX count+ID arrays, then SY count+(ID,progress).
+    # Tc's following signed cursor must identify the actual original marker.
+    cursor_offset = 15 + 2 * (1 + 8 * len(identities)) + 1 + 10 * len(identities)
+    return (
+        payload[:6]
+        + b"\x01"  # Native ON_FIGHTER_TURN, before the original end witness.
+        + payload[7:cursor_offset]
+        + struct.pack(">b", identities.index(witness_actor))
+        + payload[cursor_offset + 1 :]
+    )

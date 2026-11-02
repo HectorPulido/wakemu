@@ -401,13 +401,24 @@ class NativeEffectAreaHandler:
                 self.fight, invocation.caster_id, self.actor_authority
             )
         faw_owner_stats = None
-        if faw is not None and damage_only:
+        if faw is not None:
+            from .combat_fake_fighter_hp_owner_copy import mask as combined_copy_mask
+        if faw is not None and (
+            damage_only or combined_copy_mask(definition) is not None
+        ):
             from .combat_fake_fighter_owner_copy import constructor as copy_constructor
 
             owner_actor = registered_or_detached_actor(self.fight, creator_id)
             faw_owner_stats = getattr(owner_actor, "effect_stats", None)
             # Validate the actual owner PA snapshot before reserving any UID.
-            copy_constructor(definition, faw_owner_stats)
+            if damage_only:
+                copy_constructor(definition, faw_owner_stats)
+            else:
+                from .combat_fake_fighter_hp_owner_copy import (
+                    constructor as combined_constructor,
+                )
+
+                combined_constructor(definition, level, faw_owner_stats)
         if faw is not None and faw["kind"] == 4:
             from .combat_microbot_network import preflight_microbot_owner
             from .combat_microbot_path import microbot_path_projection
@@ -570,7 +581,9 @@ class NativeEffectAreaHandler:
                 if damage_only_mask(definition) is not None:
                     install(areas[area_uid], definition, faw_owner_stats)
                 else:
-                    install_fake_fighter_hp(areas[area_uid], definition)
+                    install_fake_fighter_hp(
+                        areas[area_uid], definition, owner_stats=faw_owner_stats
+                    )
             if faw["obstacle"]:
                 slot = self.area_obstacle_register(self.fight, areas[area_uid], faw)
                 if type(slot) is not int or not 0 <= slot <= 126:

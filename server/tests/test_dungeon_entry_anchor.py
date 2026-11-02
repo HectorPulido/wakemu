@@ -7,10 +7,11 @@ import unittest
 from postgres_case import PostgresCase
 import test_dungeon_instances
 from wakfu_server import dungeon_transport
-from wakfu_server.maps import (
+from wakfu_server import (
     dungeon_progression,
     dungeon_runtime,
     dungeon_runtime_config,
+    monsters,
 )
 from wakfu_server import dungeon_instances
 
@@ -30,13 +31,14 @@ class DungeonEntryAnchorPostgresTests(PostgresCase):
         super().setUp()
         self.store.clock = lambda: 2_000_000_000.0
         route = native_route_payload(dungeon_instances.route("jalato_normal"))
+        native = monsters.reference(1)
         monster = {
             "name": "Synthetic native roster member",
             "ref_id": 1,
             "count": 1,
             "role": "monster",
-            "native_min_level": 1,
-            "native_max_level": 5,
+            "native_min_level": native["min_level"],
+            "native_max_level": native["max_level"],
             "guide_min_level": None,
             "guide_max_level": None,
         }
@@ -279,6 +281,75 @@ class DungeonEntryAnchorPostgresTests(PostgresCase):
                     db.execute(f"SELECT count(*) AS n FROM {table}").fetchone()["n"],
                     table,
                 )
+
+    def test_whole_returned_roster_reentry_reactivates_members_and_supersedes_exit(
+        self,
+    ):
+        first = self.enter()
+        instance_id = first["instance_id"]
+        ids = [member["character"]["id"] for member in self.members]
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE dungeon_room_runs SET current_room=2 WHERE instance_id=%s",
+                (instance_id,),
+            )
+            db.execute(
+                "UPDATE characters SET map_id=527,instance_id=0,x=-245,y=-90,z=2 "
+                "WHERE id=ANY(%s)",
+                (ids,),
+            )
+            db.execute(
+                "UPDATE dungeon_instance_members SET status='returned',ended_at=%s "
+                "WHERE instance_id=%s",
+                (self.store.now(), instance_id),
+            )
+            db.execute(
+                "UPDATE dungeon_transition_outbox SET transition_kind='exit',"
+                "destination_instance_id=0,destination_map_id=527 "
+                "WHERE instance_id=%s",
+                (instance_id,),
+            )
+        replay = self.enter()
+        self.assertTrue(replay["reused"])
+        self.assertEqual(instance_id, replay["instance_id"])
+        self.assertEqual(
+            {(1086, instance_id, *self.anchors[2])},
+            {
+                (row["map_id"], row["instance_id"], row["x"], row["y"], row["z"])
+                for row in self.locations()
+            },
+        )
+        with self.store.connection() as db:
+            members = db.execute(
+                "SELECT character_id,status,ended_at FROM dungeon_instance_members "
+                "WHERE instance_id=%s ORDER BY character_id",
+                (instance_id,),
+            ).fetchall()
+            events = db.execute(
+                "SELECT transition_kind,status FROM dungeon_transition_outbox "
+                "WHERE instance_id=%s",
+                (instance_id,),
+            ).fetchall()
+        self.assertEqual(ids, [row["character_id"] for row in members])
+        self.assertTrue(
+            all(
+                row["status"] == "active" and row["ended_at"] is None for row in members
+            )
+        )
+        self.assertEqual(
+            2,
+            sum(
+                row["transition_kind"] == "exit" and row["status"] == "superseded"
+                for row in events
+            ),
+        )
+        self.assertEqual(
+            2,
+            sum(
+                row["transition_kind"] == "enter" and row["status"] == "pending"
+                for row in events
+            ),
+        )
 
 
 if __name__ == "__main__":

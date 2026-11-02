@@ -179,6 +179,66 @@ class ShopClient:
         return total.numerator // total.denominator
 
 
+class BuyerPriceClient:
+    """Quote only offered references against fresh authenticated purchase prices."""
+
+    def __init__(self, http):
+        self.http = http
+
+    def quote(self, items, purchase_percent=80):
+        if type(purchase_percent) is not int or not 1 <= purchase_percent <= 100:
+            raise ValueError("Invalid buyer purchase percent")
+        if not isinstance(items, list) or len(items) > 128:
+            raise ValueError("Invalid offered items")
+        references = []
+        for item in items:
+            if not isinstance(item, dict):
+                raise ValueError("Invalid offered item")
+            reference, quantity = item.get("reference"), item.get("quantity")
+            if (
+                type(reference) is not int
+                or reference <= 0
+                or type(quantity) is not int
+                or quantity <= 0
+            ):
+                raise ValueError("Invalid offered item")
+            if reference not in references:
+                references.append(reference)
+        if not references:
+            return 0
+        payload = self.http.request(
+            "POST", "/internal/bots/buyer-prices", {"references": references}
+        )
+        rows = payload.get("prices") if isinstance(payload, dict) else None
+        if not isinstance(rows, list):
+            raise ValueError("Invalid buyer prices")
+        prices = {}
+        for row in rows:
+            if not isinstance(row, dict):
+                raise ValueError("Invalid buyer price")
+            reference = row.get("reference")
+            quantity, amount = row.get("quantity"), row.get("price_kamas")
+            if (
+                type(reference) is not int
+                or reference not in references
+                or type(quantity) is not int
+                or quantity <= 0
+                or type(amount) is not int
+                or amount < 0
+            ):
+                raise ValueError("Invalid buyer price")
+            unit_price = Fraction(amount, quantity)
+            prices[reference] = min(prices.get(reference, unit_price), unit_price)
+        total = Fraction()
+        for item in items:
+            if item["reference"] not in prices:
+                return None
+            total += (
+                prices[item["reference"]] * item["quantity"] * purchase_percent / 100
+            )
+        return total.numerator // total.denominator
+
+
 class LlmClient:
     """Optional generic internal conversation endpoint; no implicit provider access."""
 

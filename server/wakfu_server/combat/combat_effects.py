@@ -40,6 +40,7 @@ def direct_damage(
     armor_absorbed=0,
     barrier_absorbed=0,
     retained_payload=None,
+    cell=None,
 ):
     """12613/cvX with iN ProtoRunningEffect for eXt classes1..5.
 
@@ -104,6 +105,17 @@ def direct_damage(
         if any(fields.get(key) != value for key, value in expected.items()):
             raise ValueError("Retained damage payload identity differs")
         payload = retained_payload
+    if cell is not None:
+        from .combat_displacement import position_payload
+        from .combat_effect_removal import _identity_fields
+
+        position = position_payload(cell)
+        messages = {}
+        _identity_fields(payload, messages=messages)
+        # Retained runners already carry their authoritative serialized bft.
+        # Preserve it; presentation must not reject an otherwise valid replay.
+        if 5 not in messages:
+            payload += b"\x2a" + _varint(len(position)) + position
     payload += _varint((8 << 3) | 2) + _varint(len(additional)) + additional
     return (
         struct.pack(

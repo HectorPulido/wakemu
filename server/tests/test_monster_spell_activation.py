@@ -10,7 +10,7 @@ import tempfile
 from contextlib import ExitStack
 from unittest.mock import Mock, patch
 
-from wakfu_server.combat.combat_npc_activation import imports_enabled
+from wakfu_server.combat_npc_activation import imports_enabled
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from prepare_monster_spell_activation import merge_npc, merge_records, select_candidates
@@ -43,11 +43,11 @@ class MonsterSpellActivationTests(unittest.TestCase):
         self.assertFalse(imports_enabled(self.policy, 2616, 5, 9999))
         self.assertEqual(self.policy, before)
 
-    def test_inclusive_native_level_bounds_do_not_enable_neighbors(self):
-        for level in (4, 6):
+    def test_species_recommendations_do_not_disable_owned_spells(self):
+        for level in (1, 3, 4, 6, 7, 100, 230, 32767):
             with self.subTest(level=level):
                 self.assertTrue(imports_enabled(self.policy, 2616, level, 1774))
-        for level in (3, 7, 100, 230):
+        for level in (0, -1, 32768, True, 4.0, "4", None):
             with self.subTest(level=level):
                 self.assertFalse(imports_enabled(self.policy, 2616, level, 1774))
 

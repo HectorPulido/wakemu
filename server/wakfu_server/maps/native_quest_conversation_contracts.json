@@ -1,0 +1,362 @@
+{
+  "schema": "native-quest-conversation-contracts-v1",
+  "admission_policy": "reconstructed_wakemu_qualified_talk_v1",
+  "native_source_sha256": {
+    "client/contents/bdata/1.jar": "a40b77575b015bee15fcfcaac700c6fa6f7417f52438121d61e86add825b6ad8",
+    "client/contents/bdata/115.jar": "533840407a60bcaabf19f3125655a1fe1cf4572942f20789a2b2f1ee6f9d02b5",
+    "client/contents/bdata/2.jar": "bf8c9304eab33876116b42533cb3927dcb709134e625cbe634b899696df98b76",
+    "client/contents/bdata/3.jar": "7c3a6a50e0cad375c99fa3b207d5ebaecd1cbcc71927ac2b75ea4f5ee52f4c8b",
+    "client/contents/i18n/i18n_en.jar": "a9a077c6805fbfc9caa28d1b398b1c1ec95e3df035f7f3853ace9d82e2d11830",
+    "client/contents/i18n/i18n_es.jar": "7a1e3247388f5e771e31f2ea1e4db7a2c7dc48d4108b71dae04789e7966ce7c8",
+    "client/contents/i18n/i18n_fr.jar": "12cab5e8b0959cf4cbafa0b675a77da4305a3a45777454239c1cee53f0ba3530",
+    "client/contents/i18n/i18n_pt.jar": "e6f6a6ecbbd81a86c6235f6781e16a4f8b6c3c848b7239809baa80e461975020",
+    "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+    "sniffer/java/ExportNativeQuestDefinitions.java": "24b476f17125d2addf478195f32ad07b231e612851dfde100112d52402130284"
+  },
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(3907)",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 3907,
+      "cjG": 670,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 36",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -22,
+              "ckh": 77,
+              "cki": -11,
+              "ckj": 1134,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 8321,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(8321)",
+          "ckd": [
+            {
+              "ckg": -54,
+              "ckh": 7,
+              "cki": 0,
+              "ckj": 1134,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 8322,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            42000
+          ],
+          "d": 6944,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 36,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 5,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": true,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 0,
+      "cka": "ach.670",
+      "d": 3907,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(3908)",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 3907,
+      "cjG": 670,
+      "cjH": true,
+      "cjI": "IsAchievementComplete(3907)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -1,
+              "ckh": -1,
+              "cki": 0,
+              "ckj": 1201,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 8323,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 15,
+          "ckk": false,
+          "ckl": [
+            29080
+          ],
+          "d": 6945,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 36,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 0,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": true,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 1,
+      "cka": "ach.670",
+      "d": 3908,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "bindings": [
+    {
+      "quest_id": 3907,
+      "objective_id": 8321,
+      "reference_id": 3814,
+      "action_id": 698,
+      "node_id": 4107,
+      "choice_id": 10274,
+      "placement_sha256": "ddd7d146cb16e4b4d821176d3fd8136455f221932108e2121b427f799f153746",
+      "native_definition_sha256": "51d9548c5da80e3a8db278b2573dcd9065a6d524738d4454817387a43ea77de7"
+    },
+    {
+      "quest_id": 3907,
+      "objective_id": 8322,
+      "reference_id": 4671,
+      "action_id": 955,
+      "node_id": 4118,
+      "choice_id": 10285,
+      "placement_sha256": "6f580ca3f0516f89ae227e48fcd267e82eb0022eb8daaa1485cb597ab012a136",
+      "native_definition_sha256": "51d9548c5da80e3a8db278b2573dcd9065a6d524738d4454817387a43ea77de7"
+    },
+    {
+      "quest_id": 3908,
+      "objective_id": 8323,
+      "reference_id": 4669,
+      "action_id": 954,
+      "node_id": 4114,
+      "choice_id": 10281,
+      "placement_sha256": "33dc040b76822e0a3dd8c08e9d919f085c0a5d58d5036f8e3c8abe6c51c4cd85",
+      "native_definition_sha256": "6778ae44968e027ac50e3a03efab2a833044868cf471397a4975201f64bdc7bc"
+    }
+  ],
+  "holds": [],
+  "placements": [
+    {
+      "row": {
+        "actor_id": -2251799927089062,
+        "reference_id": 3814,
+        "map_id": 1134,
+        "instance_id": 0,
+        "x": -22,
+        "y": 77,
+        "z": -11,
+        "direction": 3,
+        "dialogue_root": 3219,
+        "action_ids": [
+          698
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: Tower native quest marker and dialogue reconstruction; original server position/edges not recovered"
+      },
+      "quest_id": 3907,
+      "activation_policy": "qualified_native_availability",
+      "graph": [
+        [
+          3219,
+          10273,
+          4107
+        ],
+        [
+          4107,
+          10274,
+          0
+        ],
+        [
+          3219,
+          8002,
+          0
+        ],
+        [
+          3219,
+          8009,
+          0
+        ]
+      ]
+    },
+    {
+      "row": {
+        "actor_id": -2251799927089919,
+        "reference_id": 4671,
+        "map_id": 1134,
+        "instance_id": 0,
+        "x": -54,
+        "y": 7,
+        "z": 0,
+        "direction": 3,
+        "dialogue_root": 4117,
+        "action_ids": [
+          955
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: Tower native quest marker and dialogue reconstruction; original server position/edges not recovered"
+      },
+      "quest_id": 3907,
+      "activation_policy": "qualified_native_availability",
+      "graph": [
+        [
+          4117,
+          10284,
+          4118
+        ],
+        [
+          4118,
+          10285,
+          0
+        ],
+        [
+          4117,
+          10330,
+          0
+        ]
+      ],
+      "on_completion_transport": [
+        1202,
+        29075,
+        3115
+      ]
+    },
+    {
+      "row": {
+        "actor_id": -2251799933789917,
+        "reference_id": 4669,
+        "map_id": 1201,
+        "instance_id": 0,
+        "x": -1,
+        "y": -1,
+        "z": 0,
+        "direction": 3,
+        "dialogue_root": 4108,
+        "action_ids": [
+          954
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: Tower native quest marker and dialogue reconstruction; original server position/edges not recovered"
+      },
+      "quest_id": 3908,
+      "activation_policy": "qualified_native_availability",
+      "graph": [
+        [
+          4108,
+          10275,
+          4109
+        ],
+        [
+          4109,
+          10276,
+          4110
+        ],
+        [
+          4110,
+          10277,
+          4111
+        ],
+        [
+          4111,
+          10278,
+          4112
+        ],
+        [
+          4112,
+          10279,
+          4113
+        ],
+        [
+          4113,
+          10280,
+          4114
+        ],
+        [
+          4114,
+          10281,
+          0
+        ],
+        [
+          4108,
+          10303,
+          0
+        ]
+      ]
+    }
+  ],
+  "reconstruction": "Explicit Wakemu authoring from native quest compass markers, NPC names/actions, localized story and original2313 entry scene. These are reconstructed positions/edges/activation producers, not recovered original server code.",
+  "ground_entries": [
+    {
+      "map_id": 1201,
+      "object_id": 29090,
+      "action": 5,
+      "parameter": 0,
+      "position": [
+        0,
+        -3,
+        0
+      ],
+      "native_payload_hex": "02000000000b010000000d00000104b100000000fffffffd000000010101010000000400000000fffffffd0000fffffffffffffffe000000000000fffffffe000000000001fffffffe0000000000000000000000",
+      "teleporter_id": 29074,
+      "destination_id": 3114,
+      "native_scene": "scenario/2313.lua:event_2313_19265",
+      "incomplete_feedback": "\u00a1Eh, no tan r\u00e1pido! Habla con Arpagona a la entrada de la Torre Mineral y termina su misi\u00f3n antes de entrar."
+    }
+  ],
+  "activation_links": [
+    {
+      "after_quest": 3907,
+      "start_quest": 3908
+    }
+  ]
+}

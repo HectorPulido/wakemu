@@ -29,6 +29,8 @@ _SUBSCRIPTION_CACHE = OrderedDict()
 _SUBSCRIPTION_BYTES = 0
 _SUBSCRIPTION_LOCK = RLock()
 _SUBSCRIPTION_MISS = object()
+# Synchronous scope metadata only; no state survives a read-pass exit.
+_READ_PASS_CONTEXTS = ContextVar("native_event_read_pass_contexts", default=())
 _SUBSCRIPTION_FALSE = MappingProxyType({"subscription": False})
 _SUBSCRIPTION_TRUE = MappingProxyType({"subscription": True})
 _GROUP_SUBSCRIPTION_FLAGS = {
@@ -421,9 +423,9 @@ class NativeEventReplay:
     def read_pass(self):
         """Share a complete view only across adjacent callback-free deliveries.
 
-        The ordinary global iterator owns this scope. Removals and potential
-        activations invalidate it before any gameplay callback. Nothing is
-        retained on Fight, across phases, or across a nested replay scope.
+        The caller owns this callback-free scope. Selected callbacks suspend
+        inherited same-fight scopes and may open fresh callback-free scopes.
+        No view survives on Fight, across operations, or a nested scope exit.
         """
         previous = self._read_pass
         if previous is not None:
@@ -434,17 +436,90 @@ class NativeEventReplay:
             "view": None,
         }
         self._read_pass = current
+        token = _READ_PASS_CONTEXTS.set((*_READ_PASS_CONTEXTS.get(), (self, current)))
         try:
             yield
         finally:
-            current["view"] = None
-            if previous is not None:
-                previous["view"] = None
-            self._read_pass = previous
+            try:
+                current["view"] = None
+                if previous is not None:
+                    previous["view"] = None
+                self._read_pass = previous
+            finally:
+                _READ_PASS_CONTEXTS.reset(token)
 
     def invalidate_read_pass(self):
         if self._read_pass is not None:
             self._read_pass["view"] = None
+
+    @contextmanager
+    def _callback_read_boundary(self, view=None):
+        """Callbacks inherit no same-fight read snapshot, even within one call.
+
+        A callback may open a fresh explicit callback-free read pass. Suspend
+        only existing contexts and restore their exact pointers, cleared.
+        """
+        active = _READ_PASS_CONTEXTS.get()
+        previous = self._read_pass
+        if previous is None and not active:
+            yield
+            return
+        from .combat_retained_effects import NativeRetainedEffectView
+
+        # Real views carry their already validated fight. Custom views are not
+        # queried for new properties; their own retention scope still clears.
+        native_view = type(view) is NativeRetainedEffectView
+        known_fight = native_view or (
+            type(previous) is dict and previous.get("retention") is self.retention
+        )
+        fight = (
+            view.fight if native_view else (previous["fight"] if known_fight else None)
+        )
+        if not known_fight:
+            # A different replay can enter this boundary without its own pass.
+            # Read only exact native retention storage, never a PV getter or a
+            # newly imported catalog/provider while handling custom callbacks.
+            from sys import modules
+
+            module = modules.get(__package__ + ".combat_retained_runtime")
+            native_type = (
+                None if module is None else module.__dict__.get("NativeRetainedRuntime")
+            )
+            if native_type is not None and type(self.retention) is native_type:
+                storage = native_type.__dict__["__dict__"].__get__(self.retention)
+                if "fight" in storage:
+                    fight = dict.get(storage, "fight")
+                    known_fight = True
+        relevant = []
+        suspended = []
+        visited = set()
+        try:
+            for replay, scope in active:
+                matches = (
+                    scope["fight"] is fight
+                    if known_fight
+                    else scope["retention"] is self.retention
+                )
+                if not matches:
+                    continue
+                relevant.append(scope)
+                scope["view"] = None
+                if replay._read_pass is scope and id(replay) not in visited:
+                    visited.add(id(replay))
+                    suspended.append((replay, scope))
+                    replay._read_pass = None
+            # Also preserve callers that supplied a pre-existing current scope.
+            if previous is not None and id(self) not in visited:
+                previous["view"] = None
+                suspended.append((self, previous))
+                self._read_pass = None
+            yield
+        finally:
+            for scope in relevant:
+                scope["view"] = None
+            for replay, scope in reversed(suspended):
+                scope["view"] = None
+                replay._read_pass = scope
 
     def _current_view(self):
         current = self._read_pass
@@ -709,13 +784,14 @@ class NativeEventReplay:
             self.invalidate_read_pass()
         # Native eZX.a removes queued listeners before sorting/activating survivors.
         if remove:
-            self.retention.removal(view).remove(remove)
-            if applied_scalar_removal:
-                # Concrete scalar handlers reverse and publish their owned
-                # effect; their central records normally prune lazily on the
-                # next view. This event can execute queued criteria first, so
-                # reconcile the actual removal at this mutation boundary.
-                self.retention.synchronize()
+            with self._callback_read_boundary(view):
+                self.retention.removal(view).remove(remove)
+                if applied_scalar_removal:
+                    # Concrete scalar handlers reverse and publish their owned
+                    # effect; their central records normally prune lazily on the
+                    # next view. This event can execute queued criteria first, so
+                    # reconcile the actual removal at this mutation boundary.
+                    self.retention.synchronize()
         queued.sort(
             key=lambda item: activation_order_key(
                 priority=item[2]["event_priority"],
@@ -729,242 +805,263 @@ class NativeEventReplay:
         )
         outcomes = []
         for entry, row, definition in queued:
-            if (
-                isinstance(source, NativeEventSource)
-                and source.runner_modifier is not None
-            ):
-                from .combat_trigger_value_modifier import NativeRunnerAmount
-
-                runner = source.runner_modifier
+            with self._callback_read_boundary(view):
                 if (
-                    not isinstance(runner, NativeRunnerAmount)
-                    or runner.uid != source.uid
-                    or runner.family != source.effect_action_id
+                    isinstance(source, NativeEventSource)
+                    and source.runner_modifier is not None
                 ):
-                    raise ValueError("Native source runner amount identity mismatch")
-                from .combat_runner_target import current_runner_target
+                    from .combat_trigger_value_modifier import NativeRunnerAmount
 
-                source = replace(
-                    source,
-                    value=runner.value,
-                    target_id=current_runner_target(runner, source.target_id),
+                    runner = source.runner_modifier
+                    if (
+                        not isinstance(runner, NativeRunnerAmount)
+                        or runner.uid != source.uid
+                        or runner.family != source.effect_action_id
+                    ):
+                        raise ValueError(
+                            "Native source runner amount identity mismatch"
+                        )
+                    from .combat_runner_target import current_runner_target
+
+                    source = replace(
+                        source,
+                        value=runner.value,
+                        target_id=current_runner_target(runner, source.target_id),
+                    )
+                if entry.uid not in self.retention.fight.native_owned_group_effects:
+                    continue
+                count = row.get("execution_count")
+                if type(count) is not int or not -2147483648 <= count <= 2147483647:
+                    raise ValueError("Missing native retained listener execution count")
+                original = EffectInvocation(
+                    **dict(
+                        row["invocation"],
+                        cell=tuple(row["invocation"]["cell"]),
+                        native_value_scope=None,
+                    )
                 )
-            if entry.uid not in self.retention.fight.native_owned_group_effects:
-                continue
-            count = row.get("execution_count")
-            if type(count) is not int or not -2147483648 <= count <= 2147483647:
-                raise ValueError("Missing native retained listener execution count")
-            original = EffectInvocation(
-                **dict(
-                    row["invocation"],
-                    cell=tuple(row["invocation"]["cell"]),
-                    native_value_scope=None,
+                retained_container = self.retention.replay_container(
+                    row, entry, original
                 )
-            )
-            retained_container = self.retention.replay_container(row, entry, original)
-            if retained_container is not None:
-                # Replay runs under a fight-scoped dispatcher, not the
-                # original spell's runtime plan. Restore the exact container
-                # snapshot captured when this listener was registered.
-                original = replace(
-                    original,
-                    native_retained_container=dict(retained_container),
+                if retained_container is not None:
+                    # Replay runs under a fight-scoped dispatcher, not the
+                    # original spell's runtime plan. Restore the exact container
+                    # snapshot captured when this listener was registered.
+                    original = replace(
+                        original,
+                        native_retained_container=dict(retained_container),
+                    )
+                caster, target = subscription_actor_ids(
+                    target_code=definition["event_target_code"],
+                    caster_code=definition["event_caster_code"],
+                    original_caster=original.caster_id,
+                    original_target=original.target_id,
+                    manager_actor=entry.manager_id,
+                    source_caster=source.caster_id,
+                    source_target=source.target_id,
+                    source_present=isinstance(source, NativeEventSource),
                 )
-            caster, target = subscription_actor_ids(
-                target_code=definition["event_target_code"],
-                caster_code=definition["event_caster_code"],
-                original_caster=original.caster_id,
-                original_target=original.target_id,
-                manager_actor=entry.manager_id,
-                source_caster=source.caster_id,
-                source_target=source.target_id,
-                source_present=isinstance(source, NativeEventSource),
-            )
-            from .combat_encounter_owned_start_binding import owned_start_caster
-
-            reconstructed_caster = owned_start_caster(
-                self.retention.fight,
-                source,
-                entry=entry,
-                original=original,
-                definition=definition,
-                effect=self.dispatcher.effects[str(original.reference)],
-            )
-            if reconstructed_caster is not None:
-                caster = reconstructed_caster
-            from .combat_encounter_movement_binding import movement_caster
-
-            committed_caster = movement_caster(
-                self.retention.fight,
-                source,
-                entry=entry,
-                original=original,
-                definition=definition,
-                effect=self.dispatcher.effects[str(original.reference)],
-            )
-            if committed_caster is not None:
-                caster = committed_caster
-            from .combat_encounter_npc_start_binding import npc_start_caster
-
-            npc_caster = npc_start_caster(
-                self.retention.fight,
-                source,
-                entry=entry,
-                original=original,
-                definition=definition,
-                effect=self.dispatcher.effects[str(original.reference)],
-            )
-            if npc_caster is not None:
-                caster = npc_caster
-            from .combat_external_turn_recipient import external_turn_recipient
-
-            target = external_turn_recipient(
-                self.retention.fight,
-                source,
-                target_code=definition["event_target_code"],
-                original_target=target,
-            )
-            from .combat_external_turn_recipient import external_movement_recipient
-
-            target = external_movement_recipient(
-                self.retention.fight,
-                source,
-                target_code=definition["event_target_code"],
-                original_target=target,
-            )
-            if caster is None:
-                raise ValueError("Native group clone requires caster actor")
-            from .combat_state_managers import registered_area_pv
-
-            target_manager = (
-                (
-                    self.retention.fight.actors.get(target)
-                    or registered_area_pv(self.retention.fight, target)
+                from .combat_encounter_scene_external_participant import (
+                    replay_external_participant,
                 )
-                if target is not None
-                else None
-            )
-            if target is not None and target_manager is None:
-                raise ValueError("Native group clone target manager absent")
-            cell = (
-                target_manager.position
-                if target is not None
-                else (
-                    source.cell
-                    if isinstance(source, NativeEventSource)
-                    else original.cell
-                )
-            )
-            if (
-                target is None
-                and isinstance(source, NativeExternalEvent)
-                and source.cast_boundary_context is not None
-            ):
-                # Wakemu cast policy supplies the validated cast anchor for
-                # null-PV cell groups. It does not fabricate a native Qe source
-                # or replace an explicitly selected actor recipient.
-                from .combat_cast_events import validate_cast_boundary_context
 
-                context = validate_cast_boundary_context(source.cast_boundary_context)
-                cell = tuple(context["target_cell"])
-            source_context = (
-                asdict(replace(source, final_modifier=None, runner_modifier=None))
-                if isinstance(source, NativeEventSource)
-                else None
-            )
-            if source_context is not None:
-                from .combat_state_runner import NativeRunnerStateLevel
-
-                if isinstance(source.runner_modifier, NativeRunnerStateLevel):
-                    source_context[
-                        "native_apply_state_reference"
-                    ] = source.runner_modifier.reference
-                    source_context["native_source_is_eWu"] = True
-                elif source.runner_modifier is not None:
-                    source_context["native_source_is_eWu"] = False
-                source_context.pop("final_modifier", None)
-                source_context.pop("runner_modifier", None)
-            invocation = replace(
-                original,
-                caster_id=caster,
-                target_id=target,
-                cell=cell,
-                base_uid=entry.uid,
-                wakemu_fresh_child_selection=False,
-                native_trigger_context=(source_context),
-                native_turn_boundary_context=(
-                    source.turn_boundary_context
-                    if isinstance(source, NativeExternalEvent)
-                    else None
-                ),
-                native_movement_boundary_context=(
-                    source.movement_boundary_context
-                    if isinstance(source, NativeExternalEvent)
-                    else None
-                ),
-                native_cast_boundary_context=(
-                    source.cast_boundary_context
-                    if isinstance(source, NativeExternalEvent)
-                    else None
-                ),
-            )
-            key = self.history.enter(entry.generic_effect, caster, target)
-            if key is None:
-                continue
-            try:
-                effect = self.dispatcher.effects[str(invocation.reference)]
-                executable = authority.executable(effect, invocation, source)
-                accepted = False
-
-                def allocate_clone():
-                    nonlocal accepted
-                    uid = self.retention.fight.allocate_effect_uid()
-                    accepted = True
-                    return uid
-
-                from .combat_final_modifier import final_modifier_source
-
-                from contextlib import nullcontext
-
-                # Native clones keep their actual PL pointer for all children,
-                # including siblings after another child removes its Qf carrier.
-                # Scope ends with this activation; it does not revive the state.
-                owner_scope = nullcontext()
-                if original.state_uid is not None:
-                    owner_scope = self.retention.container_scope(original)
-                from .rift_ko_cleanup import cleanup_scope
-
-                with final_modifier_source(source), owner_scope, cleanup_scope(
-                    self.retention,
+                scene_caster = replay_external_participant(
                     self.dispatcher,
                     source,
                     entry=entry,
                     original=original,
-                    effect=self.dispatcher.effects[str(original.reference)],
+                )
+                if scene_caster is not None:
+                    caster = scene_caster
+                from .combat_encounter_owned_start_binding import owned_start_caster
+
+                reconstructed_caster = owned_start_caster(
+                    self.retention.fight,
+                    source,
+                    entry=entry,
+                    original=original,
                     definition=definition,
-                ):
-                    outcomes.append(
-                        self.dispatcher.execute_activation(
-                            invocation,
-                            source=source,
-                            condition_context=authority.condition_context,
-                            executable=executable,
-                            allocate_uid=allocate_clone,
-                        )
+                    effect=self.dispatcher.effects[str(original.reference)],
+                )
+                if reconstructed_caster is not None:
+                    caster = reconstructed_caster
+                from .combat_encounter_movement_binding import movement_caster
+
+                committed_caster = movement_caster(
+                    self.retention.fight,
+                    source,
+                    entry=entry,
+                    original=original,
+                    definition=definition,
+                    effect=self.dispatcher.effects[str(original.reference)],
+                )
+                if committed_caster is not None:
+                    caster = committed_caster
+                from .combat_encounter_npc_start_binding import npc_start_caster
+
+                npc_caster = npc_start_caster(
+                    self.retention.fight,
+                    source,
+                    entry=entry,
+                    original=original,
+                    definition=definition,
+                    effect=self.dispatcher.effects[str(original.reference)],
+                )
+                if npc_caster is not None:
+                    caster = npc_caster
+                from .combat_external_turn_recipient import external_turn_recipient
+
+                target = external_turn_recipient(
+                    self.retention.fight,
+                    source,
+                    target_code=definition["event_target_code"],
+                    original_target=target,
+                )
+                from .combat_external_turn_recipient import external_movement_recipient
+
+                target = external_movement_recipient(
+                    self.retention.fight,
+                    source,
+                    target_code=definition["event_target_code"],
+                    original_target=target,
+                )
+                if caster is None:
+                    raise ValueError("Native group clone requires caster actor")
+                from .combat_state_managers import registered_area_pv
+
+                target_manager = (
+                    (
+                        self.retention.fight.actors.get(target)
+                        or registered_area_pv(self.retention.fight, target)
                     )
-                # Qe.k decrements the original listener after an accepted clone,
-                # independently of whether any child reported success.
+                    if target is not None
+                    else None
+                )
+                if target is not None and target_manager is None:
+                    raise ValueError("Native group clone target manager absent")
+                cell = (
+                    target_manager.position
+                    if target is not None
+                    else (
+                        source.cell
+                        if isinstance(source, NativeEventSource)
+                        else original.cell
+                    )
+                )
                 if (
-                    accepted
-                    and entry.uid in self.retention.fight.native_owned_group_effects
-                    and count >= 0
+                    target is None
+                    and isinstance(source, NativeExternalEvent)
+                    and source.cast_boundary_context is not None
                 ):
-                    count = max(0, count - 1)
-                    row["execution_count"] = count
-                    if count == 0:
-                        self.retention.remove_group(entry.uid)
-            finally:
-                self.history.leave(key)
+                    # Wakemu cast policy supplies the validated cast anchor for
+                    # null-PV cell groups. It does not fabricate a native Qe source
+                    # or replace an explicitly selected actor recipient.
+                    from .combat_cast_events import validate_cast_boundary_context
+
+                    context = validate_cast_boundary_context(
+                        source.cast_boundary_context
+                    )
+                    cell = tuple(context["target_cell"])
+                source_context = (
+                    asdict(replace(source, final_modifier=None, runner_modifier=None))
+                    if isinstance(source, NativeEventSource)
+                    else None
+                )
+                if source_context is not None:
+                    from .combat_state_runner import NativeRunnerStateLevel
+
+                    if isinstance(source.runner_modifier, NativeRunnerStateLevel):
+                        source_context[
+                            "native_apply_state_reference"
+                        ] = source.runner_modifier.reference
+                        source_context["native_source_is_eWu"] = True
+                    elif source.runner_modifier is not None:
+                        source_context["native_source_is_eWu"] = False
+                    source_context.pop("final_modifier", None)
+                    source_context.pop("runner_modifier", None)
+                invocation = replace(
+                    original,
+                    caster_id=caster,
+                    target_id=target,
+                    cell=cell,
+                    base_uid=entry.uid,
+                    wakemu_fresh_child_selection=False,
+                    native_trigger_context=(source_context),
+                    native_turn_boundary_context=(
+                        source.turn_boundary_context
+                        if isinstance(source, NativeExternalEvent)
+                        else None
+                    ),
+                    native_movement_boundary_context=(
+                        source.movement_boundary_context
+                        if isinstance(source, NativeExternalEvent)
+                        else None
+                    ),
+                    native_cast_boundary_context=(
+                        source.cast_boundary_context
+                        if isinstance(source, NativeExternalEvent)
+                        else None
+                    ),
+                )
+                key = self.history.enter(entry.generic_effect, caster, target)
+                if key is None:
+                    continue
+                try:
+                    effect = self.dispatcher.effects[str(invocation.reference)]
+                    with self._callback_read_boundary(view):
+                        executable = authority.executable(effect, invocation, source)
+                    accepted = False
+
+                    def allocate_clone():
+                        nonlocal accepted
+                        uid = self.retention.fight.allocate_effect_uid()
+                        accepted = True
+                        return uid
+
+                    from .combat_final_modifier import final_modifier_source
+
+                    from contextlib import nullcontext
+
+                    # Native clones keep their actual PL pointer for all children,
+                    # including siblings after another child removes its Qf carrier.
+                    # Scope ends with this activation; it does not revive the state.
+                    owner_scope = nullcontext()
+                    if original.state_uid is not None:
+                        owner_scope = self.retention.container_scope(original)
+                    from .rift_ko_cleanup import cleanup_scope
+
+                    with final_modifier_source(source), owner_scope, cleanup_scope(
+                        self.retention,
+                        self.dispatcher,
+                        source,
+                        entry=entry,
+                        original=original,
+                        effect=self.dispatcher.effects[str(original.reference)],
+                        definition=definition,
+                    ):
+                        with self._callback_read_boundary(view):
+                            outcomes.append(
+                                self.dispatcher.execute_activation(
+                                    invocation,
+                                    source=source,
+                                    condition_context=authority.condition_context,
+                                    executable=executable,
+                                    allocate_uid=allocate_clone,
+                                )
+                            )
+                    # Qe.k decrements the original listener after an accepted clone,
+                    # independently of whether any child reported success.
+                    if (
+                        accepted
+                        and entry.uid in self.retention.fight.native_owned_group_effects
+                        and count >= 0
+                    ):
+                        count = max(0, count - 1)
+                        row["execution_count"] = count
+                        if count == 0:
+                            self.retention.remove_group(entry.uid)
+                finally:
+                    self.history.leave(key)
         return tuple(outcomes)
 
 

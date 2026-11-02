@@ -15,7 +15,7 @@ def validate(reward):
     if not isinstance(reward, dict):
         raise ValueError("Invalid achievement reward")
     kind, parameters = reward.get("aeV"), reward.get("ckl")
-    if type(kind) is not int or kind not in (2, 3, 5, 6, 11, 12, 17):
+    if type(kind) is not int or kind not in (2, 3, 5, 6, 11, 12, 15, 17):
         raise ValueError("Unsupported native achievement reward")
     if not isinstance(parameters, (list, tuple)) or len(parameters) != (
         2 if kind == 5 else 1
@@ -25,12 +25,14 @@ def validate(reward):
         raise ValueError("Invalid native achievement reward parameters")
     if kind == 2 and parameters[0] > 65535:
         raise ValueError("Native title identity exceeds unsigned16")
-    if kind == 11 and (
+    if kind in (11, 15) and (
         type(reward.get("ckk")) is not bool
         or type(reward.get("d")) is not int
         or reward["d"] <= 0
     ):
-        raise ValueError("Native kamas require an exact reward identity and scope")
+        raise ValueError(
+            "Native scoped rewards require an exact reward identity and scope"
+        )
     if kind == 17:
         from .scaled_xp import _payload
 
@@ -63,6 +65,8 @@ def grant(db, store, character, reward, *, entitlement=None):
         return _emote(db, character, parameters[0])
     if kind == 6:
         return _xp(db, store, character, parameters[0])
+    if kind == 15:
+        return _zaap(db, character, reward, entitlement)
     if kind == 17:
         from .scaled_xp import amount
 
@@ -418,3 +422,50 @@ def _xp(db, store, character, amount):
             },
         )
     ]
+
+
+def _zaap(db, character, reward, entitlement):
+    """Deliver original bdH.REGISTER_ZAAP to the existing account discovery set.
+
+    This earned entitlement does not require a live session or authorize travel.
+    Reward and discovery persistence share the caller's settlement transaction.
+    """
+    if (
+        not isinstance(entitlement, dict)
+        or type(entitlement.get("achievement_id")) is not int
+        or entitlement.get("reward_key") != str(reward.get("d"))
+        or entitlement.get("payload") != reward
+    ):
+        raise ValueError("Native transport reward requires its earned entitlement")
+    from . import storage
+    from .service import _owner
+
+    _owner(db, character)
+    pending = db.execute(
+        "SELECT payload,delivered_at FROM character_achievement_reward_outbox "
+        "WHERE character_id=%s AND achievement_id=%s AND cycle_key=%s "
+        "AND reward_key=%s FOR UPDATE",
+        (
+            character["id"],
+            entitlement["achievement_id"],
+            entitlement.get("cycle_key"),
+            str(reward["d"]),
+        ),
+    ).fetchone()
+    if pending is None or storage._json(pending["payload"]) != storage._json(reward):
+        raise ValueError("Missing native transport reward reservation")
+    if pending["delivered_at"] is not None:
+        return []
+    from wakfu_server.native_transports import ZAAPS, OBJECTS
+    from wakfu_server.transport_discovery import discovery_packet
+
+    identity = reward["ckl"][0]
+    if identity not in ZAAPS or identity not in OBJECTS:
+        raise ValueError("Native transport reward refers to an unknown Zaap")
+    inserted = db.execute(
+        "INSERT INTO transport_discoveries(account_id,kind,transport_id) "
+        "VALUES(%s,1,%s) ON CONFLICT(account_id,kind,transport_id) "
+        "DO NOTHING RETURNING transport_id",
+        (character["account_id"], identity),
+    ).fetchone()
+    return [] if inserted is None else [discovery_packet(1, identity)]

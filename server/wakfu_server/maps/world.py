@@ -2,6 +2,15 @@
 import threading
 
 
+class WorldBatchDeliveryDeferred(OSError):
+    """A captured broadcast was partial; its durable publisher must retry."""
+
+    def __init__(self, *, delivered, expected):
+        self.delivered = delivered
+        self.expected = expected
+        super().__init__("World location batch has unpublished recipients")
+
+
 class World:
     def __init__(
         self,
@@ -630,5 +639,5 @@ class World:
             )
         delivered = sum(self._send_batch(peer, packets) for peer in peers)
         if require_all and delivered != len(peers):
-            raise OSError("World location batch has unpublished recipients")
+            raise WorldBatchDeliveryDeferred(delivered=delivered, expected=len(peers))
         return delivered

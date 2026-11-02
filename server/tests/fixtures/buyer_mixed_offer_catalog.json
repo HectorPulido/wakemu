@@ -1,0 +1,171 @@
+{
+  "articles": [
+    {
+      "id": 10727,
+      "item_ref": 23781,
+      "name": "Hoja del crujidor",
+      "quantity": 1,
+      "price_kamas": 91000,
+      "enabled": true,
+      "buyer_enabled": false,
+      "category": "weapons",
+      "category_enabled": true
+    },
+    {
+      "id": 16336,
+      "item_ref": 30348,
+      "name": "Huesos de Hark Saniss",
+      "quantity": 1,
+      "price_kamas": 410,
+      "enabled": true,
+      "buyer_enabled": false,
+      "category": "resources",
+      "category_enabled": true
+    },
+    {
+      "id": 16343,
+      "item_ref": 30355,
+      "name": "Hombreras de fallecinerado",
+      "quantity": 1,
+      "price_kamas": 27000,
+      "enabled": false,
+      "buyer_enabled": true,
+      "category": "weapons",
+      "category_enabled": true
+    },
+    {
+      "id": 16347,
+      "item_ref": 30360,
+      "name": "Casco de fallecinerado",
+      "quantity": 1,
+      "price_kamas": 27000,
+      "enabled": false,
+      "buyer_enabled": true,
+      "category": "weapons",
+      "category_enabled": true
+    },
+    {
+      "id": 16349,
+      "item_ref": 30362,
+      "name": "Casco protest\u00f3n",
+      "quantity": 1,
+      "price_kamas": 62000,
+      "enabled": true,
+      "buyer_enabled": false,
+      "category": "weapons",
+      "category_enabled": true
+    },
+    {
+      "id": 16351,
+      "item_ref": 30364,
+      "name": "Capa de fallecinerado",
+      "quantity": 1,
+      "price_kamas": 27000,
+      "enabled": false,
+      "buyer_enabled": true,
+      "category": "weapons",
+      "category_enabled": true
+    },
+    {
+      "id": 16360,
+      "item_ref": 30373,
+      "name": "Anillo refunfu\u00f1\u00f3n",
+      "quantity": 1,
+      "price_kamas": 62000,
+      "enabled": true,
+      "buyer_enabled": false,
+      "category": "accessories",
+      "category_enabled": true
+    },
+    {
+      "id": 16363,
+      "item_ref": 30377,
+      "name": "Botas cascarrabias",
+      "quantity": 1,
+      "price_kamas": 62000,
+      "enabled": true,
+      "buyer_enabled": false,
+      "category": "weapons",
+      "category_enabled": true
+    },
+    {
+      "id": 16367,
+      "item_ref": 30383,
+      "name": "Amuleto de fallecinerado",
+      "quantity": 1,
+      "price_kamas": 27000,
+      "enabled": false,
+      "buyer_enabled": true,
+      "category": "accessories",
+      "category_enabled": true
+    },
+    {
+      "id": 16369,
+      "item_ref": 30385,
+      "name": "Amuleto gru\u00f1\u00f3n",
+      "quantity": 1,
+      "price_kamas": 62000,
+      "enabled": true,
+      "buyer_enabled": false,
+      "category": "accessories",
+      "category_enabled": true
+    },
+    {
+      "id": 16485,
+      "item_ref": 30723,
+      "name": "Restos de diario",
+      "quantity": 1,
+      "price_kamas": 13000,
+      "enabled": false,
+      "buyer_enabled": false,
+      "category": "items",
+      "category_enabled": true
+    }
+  ],
+  "offer": [
+    {
+      "reference": 30360,
+      "quantity": 1
+    },
+    {
+      "reference": 30383,
+      "quantity": 3
+    },
+    {
+      "reference": 30355,
+      "quantity": 1
+    },
+    {
+      "reference": 30362,
+      "quantity": 1
+    },
+    {
+      "reference": 30385,
+      "quantity": 1
+    },
+    {
+      "reference": 30373,
+      "quantity": 1
+    },
+    {
+      "reference": 30377,
+      "quantity": 1
+    },
+    {
+      "reference": 30348,
+      "quantity": 1
+    },
+    {
+      "reference": 30723,
+      "quantity": 1
+    },
+    {
+      "reference": 30364,
+      "quantity": 2
+    },
+    {
+      "reference": 23781,
+      "quantity": 1
+    }
+  ]
+}

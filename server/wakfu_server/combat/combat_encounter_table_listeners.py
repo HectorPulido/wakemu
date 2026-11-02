@@ -24,6 +24,9 @@ def _version(policy):
     if row is None:
         raise ValueError("Unknown encounter table listener policy")
     result = dict(row)
+    # Keep previously frozen exact-roster policies byte-for-byte compatible.
+    if result.get("roster_scope", "exact") == "exact":
+        result.pop("roster_scope", None)
     references = list(result.pop("additional_effect_references", ()))
     if references != sorted(set(references)) or any(
         type(value) is not int or value <= 0 for value in references
@@ -55,6 +58,23 @@ def _version(policy):
     return result
 
 
+def _matches_encounter(version, map_id, references):
+    if version["map_id"] != map_id:
+        return False
+    if version.get("roster_scope", "exact") == "exact":
+        return version["monster_references"] == references
+    # Only an explicitly authored, self-owned boss constructor may ignore the
+    # composition of its entourage. Summoned controllers retain exact rosters.
+    boss = version["boss_reference"]
+    return (
+        version.get("roster_scope") == "owned_boss"
+        and version["monster_references"] == [boss]
+        and references.count(boss) == 1
+        and version["owner_reference"] == boss
+        and version["owner_constructor_state"] == version["boss_constructor_state"]
+    )
+
+
 def freeze_table_listener_policy(map_id, monster_references, *, required=True):
     """Freeze the admission pointer before the first score/checkpoint snapshot."""
     from copy import deepcopy
@@ -67,16 +87,30 @@ def freeze_table_listener_policy(map_id, monster_references, *, required=True):
             "WHERE map_id=%s AND monster_references=%s::integer[]",
             (map_id, references),
         ).fetchone()
+        if row is None:
+            candidates = db.execute(
+                "SELECT active.policy FROM encounter_table_listener_active active "
+                "JOIN encounter_table_listener_versions version USING(policy) "
+                "WHERE active.map_id=%s AND version.roster_scope='owned_boss' "
+                "AND version.boss_reference=ANY(%s::integer[])",
+                (map_id, references),
+            ).fetchall()
+            candidates = [
+                candidate
+                for candidate in candidates
+                if _matches_encounter(_version(candidate["policy"]), map_id, references)
+            ]
+            if len(candidates) > 1:
+                raise ValueError("Encounter has ambiguous owned-boss table listeners")
+            row = candidates[0] if candidates else None
     if row is None:
         if not required:
             return None
         raise ValueError("Encounter has no published table listener policy")
     version = _version(row["policy"])
-    if (
-        version["map_id"] != map_id
-        or version["monster_references"] != references
-        or not source_revision_matches(version["catalog_revision"], SOURCE_DEPENDENCIES)
-    ):
+    if not _matches_encounter(
+        version, map_id, references
+    ) or not source_revision_matches(version["catalog_revision"], SOURCE_DEPENDENCIES):
         raise ValueError("Encounter table listener differs from admission or catalog")
     from wakfu_server.paths import DATA_ROOT
 
@@ -147,13 +181,10 @@ def freeze_encounter_table_listener_policy(fight, *, roles):
         if frozen is not None:
             from wakfu_server import native_catalog
 
-            if (
-                frozen["map_id"] != roles.map_id
-                or frozen["monster_references"]
-                != list(sorted(roles.monster_references))
-                or not source_revision_matches(
-                    frozen["catalog_revision"], SOURCE_DEPENDENCIES
-                )
+            if not _matches_encounter(
+                frozen, roles.map_id, list(sorted(roles.monster_references))
+            ) or not source_revision_matches(
+                frozen["catalog_revision"], SOURCE_DEPENDENCIES
             ):
                 raise ValueError(
                     "Frozen table listener differs from encounter or catalog"

@@ -32,11 +32,18 @@ class ClockStore:
         yield self
 
     def execute(self, query, params):
-        if params != (dungeon_entry_access.SETTING,):
+        from wakfu_server.instance_entry_level import SETTING as LEVEL_SETTING
+
+        if params not in ((dungeon_entry_access.SETTING,), (LEVEL_SETTING,)):
             raise AssertionError(params)
+        self.setting = params[0]
         return self
 
     def fetchone(self):
+        from wakfu_server.instance_entry_level import SETTING as LEVEL_SETTING
+
+        if self.setting == LEVEL_SETTING:
+            return {"value": {"version": 1, "enforce_minimum_level": True}}
         return {"value": dict(dungeon_entry_access.DEFAULT)}
 
 
@@ -68,7 +75,7 @@ class SeasonalAccessTests(unittest.TestCase):
                 ClockStore(), HALOUINE, character={"id": 1}, destination_map_id=443
             )
         )
-        self.assertFalse(
+        self.assertTrue(
             dungeon_entry_access.evaluate(ClockStore(), HALOUINE, character={"id": 1})
         )
 
