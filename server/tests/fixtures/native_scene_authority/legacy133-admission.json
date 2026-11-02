@@ -1,0 +1,26 @@
+{
+  "schema": "native-special-instance-admission-v1",
+  "routes": {
+    "native_dungeon_133": {
+      "policy_id": "wakemu.mineral_tower_36.admission.v1",
+      "authority": "reconstructed_wakemu_native_scene_v1",
+      "route": {
+        "template_id": 136,
+        "definition_id": 133,
+        "entry_map_id": 1202,
+        "entry_object_id": 29076,
+        "destination_id": 3117,
+        "start_map_id": 1159
+      },
+      "maximum_members": 3,
+      "competitive_ceiling": 50,
+      "provenance": "Original free outer teleporter3117/template136, three-player format and forced competitive ceiling50. Native item28028x1 is charged by inside GenericActivable33366/descriptor1485 to the activating nonhero participant; never at this outer transition.",
+      "native_paid_start": {
+        "map_id": 1159,
+        "object_id": 33366,
+        "descriptor_id": 1485
+      },
+      "minimum_configuration_version": 5
+    }
+  }
+}

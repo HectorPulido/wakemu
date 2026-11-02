@@ -85,24 +85,50 @@ class LiveEventCostAuthority:
             type(identity) is not int
             or type(level) is not int
             or not 1 <= level <= MAX_CHARACTER_LEVEL
-            or row is None
-            or level > len(row["levels"])
         ):
             raise ValueError("Missing installed native source spell cost table")
+        native_record = None
+        if row is None:
+            # A retained fyG can belong to an NPC or triggered native spell,
+            # outside the player/common cost inventory. Resolve its exact
+            # installed source table; never infer a free or class-default cast.
+            from .combat_native_spell_casting import native_casting_table
+
+            native_record, index = native_casting_table(identity, level)
+            if index >= len(native_record["costs"]):
+                raise ValueError("Missing installed native source spell cost table")
+            costs = native_record["costs"][index]
+            rules = native_record["conditional"]
+            base = dict(zip(("ap", "mp", "wp"), costs))
+            base["conditional_rules"] = len(rules)
+        else:
+            if level > len(row["levels"]):
+                raise ValueError("Missing installed native source spell cost table")
+            base = dict(zip(("ap", "mp", "wp"), row["levels"][level - 1]))
+            base["conditional_rules"] = row["conditional"]
+            rules = None
         actor = self.preview.actors.get(invocation.caster_id)
         if actor is None:
             raise ValueError("Missing native listener cost caster")
         authority = self.actors(self.preview, actor)
         if authority.targeting.get("is_eGj") is not True:
             raise ValueError("Unverified native listener eGj cost branch")
-        base = dict(zip(("ap", "mp", "wp"), row["levels"][level - 1]))
-        base["conditional_rules"] = row["conditional"]
         # fyF costs are resolved against LISTENER actors, even if the spell
         # belongs to a different breed. Do not ownership-gate that source spell.
         context = self.conditions(
             effect, invocation, dict(spell_id=identity, evaluation_level=level)
         )
-        modifiers = native_modifiers(identity, actor.spell_ap_cost_modifiers)
-        result = resolve_costs(identity, level, base, context, modifiers=modifiers)
+        if native_record is None:
+            modifiers = native_modifiers(identity, actor.spell_ap_cost_modifiers)
+        else:
+            categories = native_record["categories"]
+            if not isinstance(categories, (list, tuple)):
+                raise ValueError("Missing native source spell category metadata")
+            modifiers = native_modifiers(
+                identity, actor.spell_ap_cost_modifiers, categories=categories
+            )
+        result = resolve_costs(
+            identity, level, base, context, modifiers=modifiers, rules=rules
+        )
         spell["resolved_costs"] = {key: result[key] for key in ("ap", "mp", "wp")}
         return source

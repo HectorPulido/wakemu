@@ -10,6 +10,7 @@ from wakfu_server.combat_shared import Registry, Session, Batch, SharedFight
 from wakfu_server.combat_reconnect_birth_stage import (
     BirthPresentation,
     PendingBirthPresentation,
+    ReconnectPresentationExpired,
     StagedReconnectPackets,
 )
 
@@ -196,8 +197,37 @@ class ReconnectBirthStageTests(unittest.TestCase):
                 self.assertEqual(
                     registry.drain(423, peer)[-1].packets, ((12873, b"bounded-event"),)
                 )
-                with self.assertRaises(ConnectionError):
+                with self.assertRaises(ReconnectPresentationExpired) as expired:
                     registry.drain(423, owner)
+                self.assertEqual(
+                    expired.exception.reason, "presentation_buffer_overflow"
+                )
+
+    def test_expiry_can_be_detected_before_drain_without_consuming_native_ack(self):
+        registry, shared, owner, peer, _ = self.state(marker=False)
+        pending = shared.reconnect_presentations[owner.account_id]
+        pending.deadline = 120.0
+        prior_ack = deepcopy(shared.ack.__dict__)
+        for now, reason in (
+            (119.0, None),
+            (120.0, "presentation_deadline_expired"),
+        ):
+            with self.subTest(now=now), patch(
+                "wakfu_server.combat_reconnect_birth_stage.time.monotonic",
+                return_value=now,
+            ):
+                self.assertEqual(pending.recovery_reason(), reason)
+                if reason is None:
+                    self.assertEqual(registry.drain(423, owner), [])
+                else:
+                    with self.assertRaises(ReconnectPresentationExpired) as expired:
+                        registry.drain(423, owner)
+                    self.assertEqual(expired.exception.reason, reason)
+                self.assertEqual(shared.ack.__dict__, prior_ack)
+                self.assertEqual(shared.runtime.awaiting_ack, 13)
+                self.assertIs(shared.reconnect_presentations[11], pending)
+                self.assertEqual(shared.connected, {owner.account_id, peer.account_id})
+                self.assertEqual(shared.fight.phase, "active")
 
     def test_packet_prefix_preserves_frozen_continuation_contract(self):
         _, shared, _, _, _ = self.state()

@@ -1,0 +1,427 @@
+{
+  "config": {
+    "compiled_plan": {
+      "slug": "antre-de-la-sorciere",
+      "rooms": [
+        {
+          "order": 1,
+          "monsters": [
+            {
+              "name": "Bouftou d'Halouine",
+              "role": "monster",
+              "count": 4,
+              "ref_id": 2104,
+              "guide_max_level": null,
+              "guide_min_level": null,
+              "native_max_level": 10,
+              "native_min_level": 10
+            },
+            {
+              "name": "Boufette d'Halouine",
+              "role": "monster",
+              "count": 2,
+              "ref_id": 2047,
+              "guide_max_level": null,
+              "guide_min_level": null,
+              "native_max_level": 15,
+              "native_min_level": 15
+            },
+            {
+              "name": "Chef Bouftou d'Halouine",
+              "role": "monster",
+              "count": 1,
+              "ref_id": 2046,
+              "guide_max_level": null,
+              "guide_min_level": null,
+              "native_max_level": 20,
+              "native_min_level": 20
+            }
+          ],
+          "diagnostics": []
+        },
+        {
+          "order": 2,
+          "monsters": [
+            {
+              "name": "Sorci\u00e8re",
+              "role": "boss",
+              "count": 1,
+              "ref_id": 2096,
+              "guide_max_level": null,
+              "guide_min_level": null,
+              "native_max_level": 40,
+              "native_min_level": 40
+            }
+          ],
+          "diagnostics": []
+        }
+      ],
+      "official": false,
+      "source_url": "https://methodwakfu.com/pvm/donjons-evenementiels/antre-de-la-sorciere/",
+      "diagnostics": [],
+      "policy_mode": "explicit_reviewed_guide_reference_rooms",
+      "template_id": 1000443,
+      "asset_map_id": 443,
+      "local_policy": "Reviewed native guide identities; quantities retain explicit candidate authority; no generated species padding.",
+      "roster_ready": true,
+      "definition_id": 1000443,
+      "source_sha256": "522ebb4fdbefa281cf960fb96f0dbcea789ebc597a25511771c91d8a7e47537d",
+      "document_sha256": "b25544f8bc9e8c805cd7e54ca4009ec59c9abe89180d82ecabe1c8aa81fe2026",
+      "identity_policy": "local_legacy_map_registry",
+      "generated_fields": [
+        {
+          "order": 1,
+          "fields": [],
+          "policy_applied": false
+        },
+        {
+          "order": 2,
+          "fields": [],
+          "policy_applied": false
+        }
+      ],
+      "reviewed_official": false,
+      "native_definition_id": null,
+      "reviewed_data_policy": {
+        "rooms": [
+          {
+            "order": 1,
+            "monsters": [
+              {
+                "count": 4,
+                "reference": 2104
+              },
+              {
+                "count": 2,
+                "reference": 2047
+              },
+              {
+                "count": 1,
+                "reference": 2046
+              }
+            ]
+          },
+          {
+            "order": 2,
+            "monsters": [
+              {
+                "count": 1,
+                "reference": 2096
+              }
+            ]
+          }
+        ],
+        "guide_url": "https://methodwakfu.com/pvm/donjons-evenementiels/antre-de-la-sorciere/",
+        "route_key": "legacy-map-443-20179-955",
+        "room_scope": "preserve_existing_native_rooms",
+        "guide_page_date": "2025-05-22",
+        "native_names_fr": {
+          "2046": "Chef Bouftou d'Halouine",
+          "2047": "Boufette d'Halouine",
+          "2096": "Sorci\u00e8re",
+          "2104": "Bouftou d'Halouine"
+        },
+        "quantity_authority": "Reviewed explicit guide counts seven then one; no generated padding",
+        "native_french_archive_sha256": "12cab5e8b0959cf4cbafa0b675a77da4305a3a45777454239c1cee53f0ba3530",
+        "reference_resolution_authority": "2104 exact French Bouftou plus neutral event bite3060/HP4;2047Boufette;2046Chef;2096Sorciere. Properties13 retained for explicit event actors, never inferred as noncombat.",
+        "native_french_properties_sha256": "db6283f079e8609f95ff419b2cc58e40d8e1530b286155cef1a0d1ba3a58183d"
+      },
+      "species_pool_provenance": "guide_verified_native_references",
+      "entry_route_selection_policy": "local_lowest_verified_destination_id",
+      "original_guide_document_sha256": "f7305dadf3f332e9fc0a6971e6a04b118d83c83034e8d3681d6e5e2342b5e683"
+    },
+    "route": {
+      "key": "legacy-map-443-20179-955",
+      "criterion": "@(\"event.halouine.date.expired\") (IsAfter(16,10,2026,10,00,00) and IsBefore(03,11,2026,10,00,00))@ and #HasState(1536)#",
+      "template_id": 1000443,
+      "entry_map_id": 527,
+      "start_map_id": 443,
+      "definition_id": 1000443,
+      "destination_id": 955,
+      "entry_object_id": 20179,
+      "native_template_id": -1,
+      "registration_policy": "local_legacy_map_registry",
+      "native_definition_id": null,
+      "native_localization_key": "content.77.443"
+    },
+    "version": 5,
+    "evidence_hashes": {
+      "plan": "8066ae970719020af5416aac1db608f55a11b1f732ac72248bbcb428e83a17a5",
+      "route": "18cccc6536956654f03b124df53ecb1971be5641d8d09387b0f73d0ede012acb",
+      "topology": "eff4efbd521dd25f12b7045cd1cc54806661a88b06f2dfa5bb9d5c0f71f86bd9"
+    }
+  },
+  "rooms": [
+    {
+      "order": 1,
+      "monsters": [
+        {
+          "role": "monster",
+          "count": 4,
+          "ref_id": 2104,
+          "max_level": 10,
+          "min_level": 10
+        },
+        {
+          "role": "monster",
+          "count": 2,
+          "ref_id": 2047,
+          "max_level": 15,
+          "min_level": 15
+        },
+        {
+          "role": "monster",
+          "count": 1,
+          "ref_id": 2046,
+          "max_level": 20,
+          "min_level": 20
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "monsters": [
+        {
+          "role": "boss",
+          "count": 1,
+          "ref_id": 2096,
+          "max_level": 40,
+          "min_level": 40
+        }
+      ]
+    }
+  ],
+  "native": {
+    "2046": {
+      "ref": 2046,
+      "raw_native": {
+        "csc": [
+          13
+        ]
+      },
+      "world_actions": [
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "",
+          "clx": 197,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 253,
+          "getDuration": 0,
+          "native_class": "aMg"
+        }
+      ]
+    },
+    "2047": {
+      "ref": 2047,
+      "raw_native": {
+        "csc": [
+          13
+        ]
+      },
+      "world_actions": [
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "",
+          "clx": 197,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 256,
+          "getDuration": 0,
+          "native_class": "aMg"
+        }
+      ]
+    },
+    "2096": {
+      "ref": 2096,
+      "raw_native": {
+        "csc": [
+          13,
+          43
+        ]
+      },
+      "world_actions": [
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "",
+          "clx": 197,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 660,
+          "getDuration": 0,
+          "native_class": "aMg"
+        }
+      ]
+    },
+    "2104": {
+      "ref": 2104,
+      "raw_native": {
+        "csc": [
+          13
+        ]
+      },
+      "world_actions": [
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "",
+          "clx": 197,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 254,
+          "getDuration": 0,
+          "native_class": "aMg"
+        }
+      ]
+    }
+  },
+  "members": [
+    {
+      "x": -22,
+      "y": 1,
+      "z": 0,
+      "ap": 5,
+      "hp": 4,
+      "id": -900,
+      "mp": 2,
+      "wp": 4,
+      "ref": 2104,
+      "team": 1,
+      "breed": 2104,
+      "level": 10,
+      "map_id": 443,
+      "max_hp": 4,
+      "sprite_id": 100201602,
+      "initiative": 0,
+      "instance_id": 10000,
+      "effective_level": 10
+    },
+    {
+      "x": -21,
+      "y": 1,
+      "z": 0,
+      "ap": 5,
+      "hp": 4,
+      "id": -901,
+      "mp": 2,
+      "wp": 4,
+      "ref": 2104,
+      "team": 1,
+      "breed": 2104,
+      "level": 10,
+      "map_id": 443,
+      "max_hp": 4,
+      "sprite_id": 100201602,
+      "initiative": 0,
+      "instance_id": 10000,
+      "effective_level": 10
+    },
+    {
+      "x": -24,
+      "y": 1,
+      "z": 0,
+      "ap": 5,
+      "hp": 4,
+      "id": -902,
+      "mp": 2,
+      "wp": 4,
+      "ref": 2104,
+      "team": 1,
+      "breed": 2104,
+      "level": 10,
+      "map_id": 443,
+      "max_hp": 4,
+      "sprite_id": 100201602,
+      "initiative": 0,
+      "instance_id": 10000,
+      "effective_level": 10
+    },
+    {
+      "x": -22,
+      "y": -1,
+      "z": 0,
+      "ap": 5,
+      "hp": 4,
+      "id": -903,
+      "mp": 2,
+      "wp": 4,
+      "ref": 2104,
+      "team": 1,
+      "breed": 2104,
+      "level": 10,
+      "map_id": 443,
+      "max_hp": 4,
+      "sprite_id": 100201602,
+      "initiative": 0,
+      "instance_id": 10000,
+      "effective_level": 10
+    },
+    {
+      "x": -21,
+      "y": 0,
+      "z": 0,
+      "ap": 6,
+      "hp": 5,
+      "id": -904,
+      "mp": 2,
+      "wp": 4,
+      "ref": 2047,
+      "team": 1,
+      "breed": 2047,
+      "level": 15,
+      "map_id": 443,
+      "max_hp": 5,
+      "sprite_id": 100201992,
+      "initiative": 0,
+      "instance_id": 10000,
+      "effective_level": 15
+    },
+    {
+      "x": -20,
+      "y": 1,
+      "z": 0,
+      "ap": 6,
+      "hp": 5,
+      "id": -905,
+      "mp": 2,
+      "wp": 4,
+      "ref": 2047,
+      "team": 1,
+      "breed": 2047,
+      "level": 15,
+      "map_id": 443,
+      "max_hp": 5,
+      "sprite_id": 100201992,
+      "initiative": 0,
+      "instance_id": 10000,
+      "effective_level": 15
+    },
+    {
+      "x": -25,
+      "y": 1,
+      "z": 0,
+      "ap": 8,
+      "hp": 10,
+      "id": -906,
+      "mp": 3,
+      "wp": 4,
+      "ref": 2046,
+      "team": 1,
+      "breed": 2046,
+      "level": 20,
+      "map_id": 443,
+      "max_hp": 10,
+      "sprite_id": 100201984,
+      "initiative": 0,
+      "instance_id": 10000,
+      "effective_level": 20
+    }
+  ]
+}

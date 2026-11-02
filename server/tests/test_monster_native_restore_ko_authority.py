@@ -62,6 +62,37 @@ class NativeRestoreKOAuthorityTests(unittest.TestCase):
                     dict(slot=0, removed=fight.native_timeline_removed[0]),
                 )
 
+    def test_native_qi_move_tuple_position_is_owned_for_resurrection(self):
+        from wakfu_server.combat_qi_registry import NativeQIRegistry
+
+        fight, actor, _ = self.fixture()
+        slots = [None] * 127
+        slots[0] = dict(
+            identity=["actor", actor.id],
+            position=[actor.position[0], actor.position[1]],
+            radius=0,
+            indexed=True,
+            movement_blocking=True,
+        )
+        registry = NativeQIRegistry(
+            dict(x=0, y=0, width=4, height=4, cell_masks=[0] * 16), slots
+        )
+        registry.move(0, ("actor", actor.id), tuple(actor.position[:2]))
+        self.assertIsInstance(registry.slots[0]["position"], tuple)
+        context = StatExecutionContext(True, True, None, False, None)
+        self.assertEqual(
+            self.prepare(fight, actor, registry, [], context=context),
+            dict(slot=0, removed=fight.native_timeline_removed[0]),
+        )
+
+        registry.slots[0]["identity"] = ["actor", actor.id + 1]
+        with self.assertRaisesRegex(ValueError, "owned QI slot"):
+            self.prepare(fight, actor, registry, [], context=context)
+        registry.slots[0]["identity"] = ["actor", actor.id]
+        registry.slots[0]["position"] = (actor.position[0] + 1, actor.position[1])
+        with self.assertRaisesRegex(ValueError, "owned QI slot"):
+            self.prepare(fight, actor, registry, [], context=context)
+
     def test_missing_bcd_execution_authority_and_other_family_reject_before_mutation(
         self,
     ):

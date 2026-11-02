@@ -170,7 +170,15 @@ def plan(session, fight, runtime):
             factory(action_id=candidate_runtime.action_id + 1),
             public,
         )
+    from .combat_summon_retirement import retired_summon_ids
+
+    retired_summons = retired_summon_ids(candidate)
     for identity in removed:
+        if identity in retired_summons:
+            # Final descendants already released QI and captured availability.
+            # Keep their verified OUT_OF_PLAY history instead of removing a
+            # nonexistent slot or unregistering their retirement authority.
+            continue
         target = candidate.actors[identity]
         from .combat_pve_departure import retire_pve_actor
 

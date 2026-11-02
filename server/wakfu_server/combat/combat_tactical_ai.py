@@ -707,7 +707,11 @@ def _distances(fight, origin, actor_id, *, budget=None, paths=True):
             a.position for a in fight.actors.values() if a.id != actor_id and a.hp > 0
         }
     )
-    blocked = blocked or set()
+    from .combat_walk_surface_policy import native_npc_walk_blocked_cells
+
+    blocked = (blocked or set()) | native_npc_walk_blocked_cells(
+        fight, fight.actors[actor_id], fight.walkable - {origin}
+    )
     graph = _adjacency(fight.edges)
     reached = {origin: (0, [])}
     queue = deque([origin])
@@ -724,7 +728,15 @@ def _distances(fight, origin, actor_id, *, budget=None, paths=True):
             ):
                 reached[dst] = distance + 1, [*path, dst] if paths else []
                 queue.append(dst)
-    return reached
+    from .combat_ground_support import fight_supported
+
+    return {
+        cell: value
+        for cell, value in reached.items()
+        if cell == origin
+        or fight.actors[actor_id].physical_radius != 0
+        or fight_supported(fight, cell)
+    }
 
 
 def _nearest_distance(fight, actor, useful):
@@ -739,11 +751,21 @@ def _nearest_distance(fight, actor, useful):
             a.position for a in fight.actors.values() if a.id != actor.id and a.hp > 0
         }
     )
-    blocked = blocked or set()
+    from .combat_walk_surface_policy import native_npc_walk_blocked_cells
+
+    blocked = (blocked or set()) | native_npc_walk_blocked_cells(
+        fight, actor, fight.walkable - {actor.position}
+    )
     visited, queue = {actor.position}, deque([(actor.position, 0)])
     while queue:
         cell, distance = queue.popleft()
-        if useful(cell):
+        from .combat_ground_support import fight_supported
+
+        if (
+            cell == actor.position
+            or actor.physical_radius != 0
+            or fight_supported(fight, cell)
+        ) and useful(cell):
             return distance
         for destination in graph.get(cell, ()):
             if (

@@ -402,7 +402,7 @@ class NativeOracle:
         return random.Random(int(hashlib.sha256(encoded).hexdigest(), 16))
 
     def start_boundary(self, fight, *, actor_id, action_id, forecast=True):
-        from wakfu_server.combat_turn_events import deliver_turn_start
+        from wakfu_server.combat_turn_start_boundary import deliver_start_boundary
 
         private = deepcopy(fight)
         rng = (
@@ -417,25 +417,16 @@ class NativeOracle:
             private, {"native_retained_container": {"present": False}}
         )
         with private.effect_resolution():
-            if self.flags.get("native_start_events", True):
-                from wakfu_server.combat_periodic_aptitude import (
-                    renew_periodic_aptitudes,
-                )
-
-                renew_periodic_aptitudes(dispatcher, actor_id=actor_id)
-                deliver_turn_start(dispatcher, actor_id=actor_id)
-            if (
-                self.flags.get("native_area_callbacks", False)
-                and private.phase == "active"
-            ):
-                dispatcher.native_area_events.turn_start(actor_id)
+            deliver_start_boundary(
+                dispatcher,
+                actor_id=actor_id,
+                native_events=self.flags.get("native_start_events", True),
+                area_callbacks=self.flags.get("native_area_callbacks", False),
+            )
         return private, tuple(packets)
 
     def end_boundary(self, fight, *, actor_id, action_id, forecast=True):
-        from wakfu_server.combat_turn_events import (
-            deliver_turn_end,
-            deliver_turn_regeneration,
-        )
+        from wakfu_server.combat_turn_end_boundary import deliver_end_boundary
 
         private = deepcopy(fight)
         rng = (
@@ -450,9 +441,7 @@ class NativeOracle:
             private, {"native_retained_container": {"present": False}}
         )
         with private.effect_resolution():
-            deliver_turn_end(dispatcher, actor_id=actor_id)
-            if private.phase == "active" and private.current is not None:
-                deliver_turn_regeneration(dispatcher, actor_id=actor_id)
+            deliver_end_boundary(dispatcher, actor_id=actor_id)
         return private, tuple(packets)
 
     def live_start_boundary(self, fight, **boundary):
@@ -476,11 +465,15 @@ class NativeOracle:
                 fight, actor, self.characters[actor.id], self.decks[actor.id]
             )
             return {spell: entry["level"] for spell, entry in actions.items()}
-        elif (
-            actor.id in self.monsters
-            or actor.id in self.companions
-            or actor.id in getattr(fight, "native_summon_registrations", {})
-        ):
+        elif actor.id in getattr(fight, "native_summon_registrations", {}):
+            from wakfu_server.combat_summon_spellbook import actor_action_book
+
+            self.descriptor(fight, actor)
+            result = {
+                row["reference"]: row["level"]
+                for row in actor_action_book(actor)["actions"]
+            }
+        elif actor.id in self.monsters or actor.id in self.companions:
             result = {
                 row["spell_id"]: row["spell_level"]
                 for row in native_abilities(
@@ -904,6 +897,7 @@ class NativeOracle:
             descriptor,
             factory=factory,
             action_id=runtime.action_id + 1,
+            monsters=self.monsters,
         )
 
     def preview_with_evidence(self, runtime, action):

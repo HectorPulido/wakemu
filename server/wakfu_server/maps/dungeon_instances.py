@@ -8,7 +8,7 @@ map movement, combat, or reward policy.
 from __future__ import annotations
 from wakfu_server import native_catalog as protocol_catalog
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 
 from wakfu_server import player_parties
@@ -26,6 +26,7 @@ class EntryRoute:
     start_map_id: int
     criterion: str
     native_template_id: int | None = None
+    context_route_key: str | None = None
 
 
 # These are catalog identities, not permission to enter. The native
@@ -114,6 +115,131 @@ def _load_routes(rows=None):
     return result
 
 
+def canonical_context_key(configured):
+    """Aliases keep literal entrances while pinning the reviewed source context."""
+    return configured.context_route_key or configured.key
+
+
+def _derive_entry_aliases(configured, configurations, *, native_rows=None):
+    """Derive only reviewed native exterior entrances; never create policies.
+
+    Configurations are loaded through pinned_configuration at startup. All
+    entrance identities are validated again against the published native source.
+    """
+    if native_rows is None:
+        native_rows = protocol_catalog.load(
+            DATA_ROOT / "native-generic-teleporters.json"
+        )
+    sources = {(row["map_id"], row["id"]): row for row in native_rows}
+    result = dict(configured)
+    entrances = {
+        (r.entry_map_id, r.entry_object_id, r.destination_id): r
+        for r in result.values()
+    }
+    for configuration in configurations:
+        topology = configuration["topology"]
+        policy = topology.get("entry_path_policy")
+        if policy is None:
+            continue
+        if policy.get("policy") != "native-entry-discriminated-encounter-paths-v1":
+            raise RuntimeError("Unknown native dungeon entry-path policy")
+        canonical = result.get(configuration["route"]["key"])
+        if canonical is None or canonical.context_route_key is not None:
+            raise RuntimeError("Native entry aliases lack their canonical route")
+        for name in (
+            "template_id",
+            "definition_id",
+            "entry_map_id",
+            "entry_object_id",
+            "destination_id",
+            "start_map_id",
+            "criterion",
+        ):
+            if configuration["route"].get(name) != getattr(canonical, name):
+                raise RuntimeError(
+                    "Native entry aliases contradict their canonical route"
+                )
+        if topology.get("asset_map_id") != canonical.start_map_id:
+            raise RuntimeError("Native entry aliases contradict their asset map")
+        paths = policy.get("paths")
+        entries = policy.get("entry_sources")
+        if (
+            not isinstance(paths, list)
+            or not paths
+            or any(
+                not isinstance(p, dict)
+                or not isinstance(p.get("key"), str)
+                or not p["key"]
+                for p in paths
+            )
+            or len({p["key"] for p in paths}) != len(paths)
+            or not isinstance(entries, list)
+            or not entries
+        ):
+            raise RuntimeError("Native entry aliases lack reviewed paths and entrances")
+        path_keys = {p["key"] for p in paths}
+        seen = set()
+        for entry in entries:
+            if (
+                not isinstance(entry, dict)
+                or set(entry) != {"map_id", "source_id", "destination_id", "path"}
+                or entry["path"] not in path_keys
+                or any(
+                    type(entry[k]) is not int or entry[k] <= 0
+                    for k in ("map_id", "source_id", "destination_id")
+                )
+            ):
+                raise RuntimeError("Invalid native dungeon entry alias")
+            identity = (entry["map_id"], entry["source_id"], entry["destination_id"])
+            if identity in seen:
+                raise RuntimeError("Duplicate reviewed native dungeon entrance")
+            seen.add(identity)
+            source = sources.get(identity[:2])
+            matches = (
+                []
+                if source is None
+                else [
+                    d
+                    for d in source["destinations"]
+                    if d["destination_id"] == identity[2]
+                ]
+            )
+            if (
+                len(matches) != 1
+                or matches[0]["map_id"] != canonical.start_map_id
+                or matches[0]["cyZ"]
+                != (canonical.native_template_id or canonical.template_id)
+                or not isinstance(matches[0]["criterion"], str)
+            ):
+                raise RuntimeError(
+                    "Native entry alias no longer matches its source catalog"
+                )
+            previous = entrances.get(identity)
+            if previous is not None:
+                if canonical_context_key(previous) != canonical.key:
+                    raise RuntimeError(
+                        "Native entrance already belongs to another dungeon context"
+                    )
+                if previous.criterion != matches[0]["criterion"]:
+                    raise RuntimeError("Native entry alias criterion changed")
+                continue
+            key = f"{canonical.key}@entry:{identity[0]}:{identity[1]}:{identity[2]}"
+            if key in result:
+                raise RuntimeError("Duplicate native dungeon entry alias key")
+            alias = replace(
+                canonical,
+                key=key,
+                entry_map_id=identity[0],
+                entry_object_id=identity[1],
+                destination_id=identity[2],
+                criterion=matches[0]["criterion"],
+                context_route_key=canonical.key,
+            )
+            result[key] = alias
+            entrances[identity] = alias
+    return result
+
+
 _ROUTES = _load_routes()
 
 
@@ -142,6 +268,18 @@ def load_runtime_routes(store):
         ):
             raise RuntimeError("Invalid installed dungeon route registry")
         prepared = _load_routes(registry["routes"])
+    from wakfu_server.dungeon_runtime_config import pinned_configuration
+
+    with store.connection() as db:
+        active = db.execute(
+            "SELECT route_key,policy_version FROM dungeon_runtime_active_configurations "
+            "ORDER BY route_key"
+        ).fetchall()
+        configurations = [
+            pinned_configuration(db, row["route_key"], row["policy_version"])
+            for row in active
+        ]
+    prepared = _derive_entry_aliases(prepared, configurations)
     _ROUTES = prepared
     return tuple(prepared.values())
 
@@ -156,6 +294,11 @@ def route(key):
     if not isinstance(key, str) or key not in configured:
         raise ValueError("Unknown configured dungeon route")
     return configured[key]
+
+
+def has_entry_aliases(configured):
+    key = canonical_context_key(configured)
+    return any(row.context_route_key == key for row in _ROUTES.values())
 
 
 def route_for_entry(entry_map_id, entry_object_id, destination_id):
@@ -259,11 +402,47 @@ def create_or_reuse(
             (initial["id"],),
         ).fetchall()
         member_ids = [row["character_id"] for row in initial_members]
-        player_parties._lock_members(db, member_ids)
+        if has_entry_aliases(selected_route):
+            from psycopg.errors import LockNotAvailable
 
+            try:
+                owned = db.execute(
+                    "SELECT instance_id FROM dungeon_instances WHERE party_id=%s "
+                    "AND status='active' FOR UPDATE NOWAIT",
+                    (initial["id"],),
+                ).fetchone()
+                if owned is not None:
+                    db.execute(
+                        "SELECT instance_id FROM dungeon_room_runs WHERE instance_id=%s FOR UPDATE NOWAIT",
+                        (owned["instance_id"],),
+                    ).fetchone()
+            except LockNotAvailable as error:
+                raise ValueError(
+                    "Dungeon reentry is busy; retry interaction"
+                ) from error
+        from wakfu_server.dungeon_entry_paths import (
+            lock_members_nowait,
+            owner_lock_query,
+            lock_accounts_nowait,
+            lock_owned_heroes_nowait,
+        )
+
+        alias_family = has_entry_aliases(selected_route)
+        if alias_family:
+            lock_members_nowait(db, member_ids)
+        else:
+            player_parties._lock_members(db, member_ids)
+
+        if alias_family:
+            accounts = db.execute(
+                "SELECT DISTINCT account_id FROM characters WHERE id=ANY(%s)",
+                (member_ids,),
+            ).fetchall()
+            lock_accounts_nowait(db, [row["account_id"] for row in accounts])
         # Match party mutations' lock order: member advisory locks, session and
         # character rows in stable character order, then the party row.
-        live_rows = db.execute(
+        live_rows = owner_lock_query(
+            db,
             "SELECT c.id,c.account_id,c.map_id,c.instance_id,c.x,c.y,c.z,"
             "s.generation,s.character_id AS selected_character_id,s.expires_at "
             "FROM player_party_members m JOIN characters c ON c.id=m.character_id "
@@ -271,10 +450,13 @@ def create_or_reuse(
             "WHERE m.party_id=%s AND c.deleted_at IS NULL "
             "ORDER BY c.id FOR UPDATE OF s,c",
             (initial["id"],),
+            nonblocking=alias_family,
         ).fetchall()
-        party = db.execute(
+        party = owner_lock_query(
+            db,
             "SELECT id,leader_id,revision FROM player_parties WHERE id=%s FOR UPDATE",
             (initial["id"],),
+            nonblocking=alias_family,
         ).fetchone()
         current_members = [row["id"] for row in live_rows]
         if (
@@ -294,6 +476,8 @@ def create_or_reuse(
             raise ValueError("Only a selected party leader or frozen member may enter")
         from wakfu_server.characters.heroes import expand_session_rows
 
+        if alias_family:
+            lock_owned_heroes_nowait(db, live_rows)
         live_rows = expand_session_rows(db, store, live_rows)
         if allowed_position_accounts is not None and any(
             member["account_id"] not in allowed_position_accounts
@@ -326,19 +510,33 @@ def create_or_reuse(
                     "start_map_id",
                 )
             )
+            # Removed heroes remain historical members. Returned members still
+            # belong to the frozen roster and may rejoin this same active run.
             stored_members = db.execute(
                 "SELECT character_id,session_generation,status FROM dungeon_instance_members "
-                "WHERE instance_id=%s ORDER BY character_id",
+                "WHERE instance_id=%s AND status IN ('active','returned') ORDER BY character_id",
                 (existing["instance_id"],),
             ).fetchall()
-            if (
-                expected != actual
-                or [m["character_id"] for m in stored_members] != member_ids
-            ):
+            if [m["character_id"] for m in stored_members] != member_ids:
                 raise ValueError(
                     "Party already owns a different active dungeon session"
                 )
-            if existing["context_route_key"] != selected_route.key:
+            requested_entry_path = None
+            if expected != actual or has_entry_aliases(selected_route):
+                if existing["context_route_key"] != canonical_context_key(
+                    selected_route
+                ):
+                    raise ValueError(
+                        "Party already owns a different active dungeon session"
+                    )
+                from wakfu_server.dungeon_entry_paths import pinned_reentry_path
+
+                requested_entry_path = pinned_reentry_path(db, existing, selected_route)
+                if expected != actual and requested_entry_path is None:
+                    raise ValueError(
+                        "Party already owns a different active dungeon session"
+                    )
+            if existing["context_route_key"] != canonical_context_key(selected_route):
                 raise ValueError(
                     "Active dungeon session has no matching pinned context policy"
                 )
@@ -405,7 +603,9 @@ def create_or_reuse(
                     db, outside, existing, transition_destination, store=store
                 )
                 if initialize_instance is not None:
-                    initialize_instance(db, result)
+                    initialize_instance(
+                        db, dict(result, _requested_entry_path=requested_entry_path)
+                    )
                 return result
             if transition_destination is not None and _party_is_at_destination(
                 live_rows, existing, transition_destination
@@ -456,7 +656,9 @@ def create_or_reuse(
                     existing, transition_destination, moved=(), already_entered=True
                 )
                 if initialize_instance is not None:
-                    initialize_instance(db, result)
+                    initialize_instance(
+                        db, dict(result, _requested_entry_path=requested_entry_path)
+                    )
                 return result
             _validate_entry_members(live_rows, selected_route, store.now())
             if (
@@ -467,27 +669,30 @@ def create_or_reuse(
                 is not True
             ):
                 raise ValueError("Native dungeon entry is not authorized")
-            prior_generations = {
-                row["character_id"]: row["session_generation"] for row in stored_members
-            }
+            prior_members = {row["character_id"]: row for row in stored_members}
             generation_changed = False
             for member in live_rows:
-                if prior_generations[member["id"]] == member["generation"]:
+                prior = prior_members[member["id"]]
+                if (
+                    prior["session_generation"] == member["generation"]
+                    and prior["status"] == "active"
+                ):
                     continue
                 db.execute(
-                    "UPDATE dungeon_instance_members SET session_generation=%s "
-                    "WHERE instance_id=%s AND character_id=%s AND status='active'",
+                    "UPDATE dungeon_instance_members SET session_generation=%s,"
+                    "status='active',ended_at=NULL "
+                    "WHERE instance_id=%s AND character_id=%s "
+                    "AND status IN ('active','returned')",
                     (member["generation"], existing["instance_id"], member["id"]),
                 )
                 db.execute(
                     "UPDATE dungeon_transition_outbox SET status='superseded',"
                     "superseded_at=%s WHERE instance_id=%s AND character_id=%s "
-                    "AND status='pending' AND session_generation<>%s",
+                    "AND status='pending'",
                     (
                         store.now(),
                         existing["instance_id"],
                         member["id"],
-                        member["generation"],
                     ),
                 )
                 generation_changed = True
@@ -510,7 +715,9 @@ def create_or_reuse(
                     db, live_rows, existing, transition_destination, store=store
                 )
             if initialize_instance is not None:
-                initialize_instance(db, result)
+                initialize_instance(
+                    db, dict(result, _requested_entry_path=requested_entry_path)
+                )
             return result
 
         if party["leader_id"] != character_id:
@@ -702,6 +909,7 @@ def pending_transitions(store, account_id, generation, character_id):
     if not isinstance(generation, str) or not generation:
         raise ValueError("Invalid dungeon session generation")
     with store.connection() as db:
+        db.execute("SET LOCAL lock_timeout = '250ms'")
         store.lock_character(db, account_id, generation, character_id)
         db.execute(
             "UPDATE dungeon_transition_outbox SET status='superseded',"
@@ -761,6 +969,7 @@ def acknowledge_transition(store, account_id, generation, character_id, event_id
     if not isinstance(generation, str) or not generation:
         raise ValueError("Invalid dungeon session generation")
     with store.connection() as db:
+        db.execute("SET LOCAL lock_timeout = '250ms'")
         # Match create_or_reuse's row-lock order: session/character, party,
         # run, membership, then outbox. The initial character lock serializes
         # this ACK against party transitions before either takes party/run

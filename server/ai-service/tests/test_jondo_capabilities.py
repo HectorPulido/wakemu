@@ -8,6 +8,64 @@ from wakfu_ai.bridge.jondo_capabilities import empty_aim_cells, project_support
 
 
 class NativeSupportTests(unittest.TestCase):
+    def test_native_7603_transmitted_blindness_keeps_parent_recipient_area(self):
+        from wakfu_server.combat_native_spell_casting import native_casting_table
+        from wakfu_server.combat_npc_attack import npc_runtime_catalog
+        from wakfu_server.combat_effect_targets import native_selector_policy
+        from wakfu_ai.bridge.jondo_area import area_projection
+
+        fight, actor, cells, actors, context = self.fixture()
+        compiled = npc_runtime_catalog(imported=True)
+        table, index = native_casting_table(7603, 58)
+        level, _, roots = table["levels"][index][:3]
+        rule = dict(minimum=1, maximum=30, allow_self=False, free_cell=False)
+        before = deepcopy(compiled.effects["341633"]), deepcopy(
+            compiled.effects["341635"]
+        )
+        result = project_support(
+            compiled,
+            roots,
+            level,
+            fight=fight,
+            actor=actor,
+            rule=rule,
+            context=context,
+            indices=cells,
+            actors=actors,
+        )
+        child = next(
+            row for row in result["effects"] if row["nativeReference"] == 341635
+        )
+        parent = compiled.effects["341633"]
+        self.assertEqual(child["stateId"], 3309)
+        self.assertTrue(child["inArea"])
+        self.assertEqual(
+            set(child["targets"]), native_selector_policy(parent)["relations"]
+        )
+        for key, value in area_projection(parent).items():
+            self.assertEqual(child[key], value)
+        self.assertFalse(result["castAnchorRequired"])
+        self.assertNotIn("emptyCell", result["aimKinds"])
+        self.assertEqual(result["candidateCells"], [])
+        # The same native mask0 leaf is genuinely global when it is a direct
+        # root. Its metadata must not be rewritten in the immutable catalog.
+        direct = project_support(
+            compiled,
+            (341635,),
+            level,
+            fight=fight,
+            actor=actor,
+            rule=rule,
+            context=context,
+            indices=cells,
+            actors=actors,
+        )
+        self.assertFalse(direct["effects"][0]["inArea"])
+        self.assertTrue(direct["castAnchorRequired"])
+        self.assertEqual(
+            (compiled.effects["341633"], compiled.effects["341635"]), before
+        )
+
     def fixture(self):
         actor = SimpleNamespace(
             id=1, team=0, effective_level=5, direction=1, position=(0, 0, 0)
@@ -32,6 +90,123 @@ class NativeSupportTests(unittest.TestCase):
         )
         context = SimpleNamespace(actors={"caster": native})
         return fight, actor, cells, actors, context
+
+    def test_native_recipient_advice_bounds_5815_and_4944_without_changing_other_spells(
+        self,
+    ):
+        from wakfu_server.combat_native_spell_casting import native_casting_table
+        from wakfu_server.combat_npc_attack import npc_runtime_catalog
+        from wakfu_server.combat_effect_targets import native_selector_policy
+        from wakfu_server.combat_npc_consumption_preflight import (
+            required_recipient_requirements,
+        )
+
+        fight, actor, cells, actors, context = self.fixture()
+        compiled = npc_runtime_catalog(imported=True)
+
+        def advise(spell, requested_level, *, rule):
+            table, index = native_casting_table(spell, requested_level)
+            selected_level, roots = table["levels"][index][0], tuple(
+                table["levels"][index][2]
+            )
+            actor.effective_level = selected_level
+            result = project_support(
+                compiled,
+                roots,
+                selected_level,
+                fight=fight,
+                actor=actor,
+                rule=rule,
+                context=context,
+                indices=cells,
+                actors=actors,
+            )
+            return table, selected_level, roots, result
+
+        rule = dict(minimum=1, maximum=4, allow_self=False, free_cell=False)
+        _, _, roots5815, fusion = advise(5815, 22, rule=rule)
+        requirements5815 = required_recipient_requirements(
+            {"evaluation_level": 22}, roots5815, compiled.effects
+        )
+        relations5815 = set.intersection(
+            *(
+                set(
+                    native_selector_policy(
+                        compiled.effects[str(requirement.effect_reference)]
+                    )["relations"]
+                )
+                for requirement in requirements5815
+            )
+        )
+        if rule.get("allow_self") is False:
+            relations5815.discard("self")
+        self.assertTrue(requirements5815)
+        self.assertTrue(fusion["requiresNativeRecipient"])
+        self.assertFalse(fusion["castAnchorRequired"])
+        self.assertEqual(set(fusion["aimKinds"]), relations5815)
+        self.assertEqual(fusion["aimKinds"], ["ally"])
+        self.assertNotIn("emptyCell", fusion["aimKinds"])
+
+        _, level4944, roots4944, fusion_support = advise(4944, 100, rule=rule)
+        requirements4944 = required_recipient_requirements(
+            {"evaluation_level": level4944}, roots4944, compiled.effects
+        )
+        relations4944 = set.intersection(
+            *(
+                set(
+                    native_selector_policy(
+                        compiled.effects[str(requirement.effect_reference)]
+                    )["relations"]
+                )
+                for requirement in requirements4944
+            )
+        )
+        if rule.get("allow_self") is False:
+            relations4944.discard("self")
+        self.assertEqual(
+            tuple(requirement.effect_reference for requirement in requirements4944),
+            (154690,),
+        )
+        self.assertTrue(fusion_support["requiresNativeRecipient"])
+        self.assertFalse(fusion_support["castAnchorRequired"])
+        self.assertEqual(set(fusion_support["aimKinds"]), relations4944)
+        self.assertNotIn("emptyCell", fusion_support["aimKinds"])
+
+        _, level1152, roots1152, summon = advise(
+            1152, 10, rule=dict(rule, free_cell=True)
+        )
+        self.assertEqual(
+            required_recipient_requirements(
+                {"evaluation_level": level1152}, roots1152, compiled.effects
+            ),
+            (),
+        )
+        self.assertFalse(summon["requiresNativeRecipient"])
+        self.assertIn("emptyCell", summon["aimKinds"])
+
+        _, level5601, roots5601, conditional = advise(5601, 100, rule=rule)
+        self.assertIn(174976, roots5601)
+        self.assertTrue(compiled.effects["174976"]["criteria"].strip())
+        self.assertEqual(
+            required_recipient_requirements(
+                {"evaluation_level": level5601}, roots5601, compiled.effects
+            ),
+            (),
+        )
+        self.assertFalse(conditional["requiresNativeRecipient"])
+        without_conditional = tuple(root for root in roots5601 if root != 174976)
+        without = project_support(
+            compiled,
+            without_conditional,
+            level5601,
+            fight=fight,
+            actor=actor,
+            rule=rule,
+            context=context,
+            indices=cells,
+            actors=actors,
+        )
+        self.assertEqual(conditional["aimKinds"], without["aimKinds"])
 
     def test_actual_larva_summon_has_typed_native_recipe_and_empty_aims(self):
         from wakfu_server.combat_native_spell_casting import native_casting_table

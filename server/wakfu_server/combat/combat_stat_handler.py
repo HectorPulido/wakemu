@@ -328,6 +328,7 @@ class NativeStatHandler:
             requested=requested if stat is not None else None,
             timing_payload=context.timing_payload,
             execution_status=execution_status,
+            cell=invocation.cell,
         )
         if clone:
             from .combat_stat_effects import null_listener_clone_payload
@@ -342,6 +343,7 @@ class NativeStatHandler:
                 execution_status=execution_status,
                 caster_id=invocation.caster_id,
                 target_id=target.id,
+                cell=invocation.cell,
             )
         packet = evaluated_effect_delivery(
             self.fight.id,

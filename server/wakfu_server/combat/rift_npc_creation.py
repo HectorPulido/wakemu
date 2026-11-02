@@ -215,7 +215,25 @@ def install_native_wave(
     visible_count = len(fight.actors) - len(hidden_snapshot_actor_ids(fight))
     if visible_count + len(actors) > 127:
         raise ValueError("Native rift visible fighter capacity exhausted")
-    occupied = {a.position for a in fight.actors.values() if fight._in_play(a)}
+    from .combat_state import Fight
+
+    if (
+        hasattr(fight, "native_global_pv_collections")
+        and type(fight) is Fight
+        and "_in_play" not in fight.__dict__
+        and getattr(fight._in_play, "__func__", None) is Fight._in_play
+    ):
+        from .combat_global_pv_read_view import NativeGlobalPVReadView
+
+        occupied_view = NativeGlobalPVReadView(fight)
+        occupied = {
+            a.position
+            for a in fight.actors.values()
+            if occupied_view.participates(fight, a.id)
+        }
+        del occupied_view  # This read scope ends before constructor callbacks.
+    else:
+        occupied = {a.position for a in fight.actors.values() if fight._in_play(a)}
     if any(
         a.id in fight.actors
         or a.position not in fight.walkable

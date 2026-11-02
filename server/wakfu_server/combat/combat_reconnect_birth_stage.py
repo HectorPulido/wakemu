@@ -15,6 +15,14 @@ MAX_BUFFER_BATCHES = 256
 MAX_RECOVERY_SECONDS = 120
 
 
+class ReconnectPresentationExpired(ConnectionError):
+    """An owned presentation needs durable recovery, not a socket disconnect."""
+
+    def __init__(self, reason):
+        self.reason = reason
+        super().__init__("Native combat recovery exceeded its transport buffer")
+
+
 @dataclass(frozen=True)
 class BirthPresentation:
     counter: int
@@ -94,11 +102,18 @@ class PendingBirthPresentation:
             and struct.unpack(">i", body)[0] == self.presentation.counter
         )
 
+    def recovery_reason(self):
+        """Inspect a failed private presentation without changing combat or ACKs."""
+        if self.overflowed:
+            return "presentation_buffer_overflow"
+        if time.monotonic() >= self.deadline:
+            return "presentation_deadline_expired"
+        return None
+
     def check_transport(self):
-        if self.overflowed or time.monotonic() >= self.deadline:
-            raise ConnectionError(
-                "Native combat recovery exceeded its transport buffer"
-            )
+        reason = self.recovery_reason()
+        if reason is not None:
+            raise ReconnectPresentationExpired(reason)
 
     def buffer(self, batch, *, awaiting_ack, fight_id):
         """Retain every event; expose only a real first end-turn if needed."""

@@ -16,6 +16,13 @@
 wakfu_server/__pycache__/
 
 !requirements.txt
+!ai-service/
+!ai-service/wakfu_ai/
+!ai-service/wakfu_ai/**/*.py
+!ai-service/wakfu_ai/*.py
+!ai-service/*.py
+!ai-service/scripts/
+!ai-service/scripts/*.py
 !cron-service/
 !cron-service/Dockerfile
 !cron-service/service.py

@@ -56,12 +56,18 @@ class RetiredManagerPruneIndexTests(unittest.TestCase):
 
     def test_non_native_values_and_custom_records_keep_original_equality_reads(self):
         class Record(dict):
+            def __init__(self):
+                super().__init__()
+                self.reads = []
+
             def get(self, key, default=None):
-                if key != "manager_id":
-                    raise AssertionError(
-                        "Matching manager must retain short-circuit reads"
-                    )
-                return 12
+                self.reads.append(key)
+                return 12 if key == "manager_id" else default
+
+            def __getitem__(self, key):
+                if key == "manager_id":
+                    return 12
+                raise KeyError(key)
 
         for record, identity, survives in (
             ({"manager_id": True}, 1, True),
@@ -84,6 +90,29 @@ class RetiredManagerPruneIndexTests(unittest.TestCase):
                     identity in fight.native_retired_area_managers, survives
                 )
                 self.assertIn(999, fight.native_retired_area_managers)
+                if isinstance(record, Record):
+                    self.assertIn("manager_id", record.reads)
+
+    def test_owned_container_index_matches_and_is_rebuilt_after_mutation(self):
+        from wakfu_server.combat_state_managers import _owned_container_state_users
+
+        fight = SimpleNamespace(
+            owned_stat_effects={1: {"state_uid": 101}, 2: {"state_uid": None}},
+            native_owned_group_effects={3: {"state_uid": 102}},
+            native_owned_area_effects={4: {"state_uid": 101}},
+            native_owned_spatial_effects={},
+        )
+        self.assertEqual(_owned_container_state_users(fight), {101, 102, None})
+        fight.owned_stat_effects[5] = {"state_uid": 103}
+        self.assertEqual(_owned_container_state_users(fight), {101, 102, 103, None})
+        fight.native_owned_area_effects[6] = {"state_uid": True}
+        self.assertIsNone(_owned_container_state_users(fight))
+
+        class CustomMap(dict):
+            pass
+
+        fight.native_owned_area_effects = CustomMap({4: {"state_uid": 101}})
+        self.assertIsNone(_owned_container_state_users(fight))
 
 
 if __name__ == "__main__":

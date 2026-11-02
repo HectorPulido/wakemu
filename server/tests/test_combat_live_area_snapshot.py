@@ -180,6 +180,63 @@ class LiveAreaSnapshotTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "cannot be reconstructed"):
                 sections(fight)
 
+    def test_retired_owner_uid_is_serialized_without_reviving_its_roster_entry(self):
+        from copy import deepcopy
+
+        row = self.gate(101)
+        owner = SimpleNamespace(id=7, team=1, hp=0)
+        fight = SimpleNamespace(
+            native_effect_areas={101: row},
+            native_owned_area_effects={},
+            native_retained_records={},
+            actors={7: owner},
+        )
+        definition = dict(
+            type="GATE",
+            native_class="bcS",
+            native_type_id=19,
+            effect_ids=[],
+            entry_masks=[],
+            exit_masks=[],
+        )
+        original = deepcopy(vars(fight))
+        with (
+            patch(
+                "wakfu_server.combat_effect_area.native_effect_areas",
+                return_value={"823": definition},
+            ),
+            patch(
+                "wakfu_server.combat_effective_control.effective_affiliation",
+                return_value=1,
+            ),
+            patch(
+                "wakfu_server.combat_snapshot_actor_visibility.hidden_snapshot_actor_ids",
+                return_value={7},
+            ),
+        ):
+            result = sections(fight)
+            self.assertEqual(
+                result, [struct.pack(">qqiihqhib", 823, 101, 101, -4, 0, 7, 1, 3, -1)]
+            )
+            self.assertEqual(vars(fight), original)
+            self.assertIs(fight.actors[7], owner)
+            # Retirement is not authority to invent an owner, affiliation or capture.
+            for invalid in ("missing_owner", "wrong_affiliation", "missing_capture"):
+                with self.subTest(invalid=invalid):
+                    if invalid == "missing_owner":
+                        fight.actors = {}
+                    elif invalid == "wrong_affiliation":
+                        row["native_fight_affiliation"] = 0
+                    else:
+                        row["native_fight_affiliation_source"] = "unknown"
+                    with self.assertRaisesRegex(ValueError, "cannot be reconstructed"):
+                        sections(fight)
+                    fight.actors = {7: owner}
+                    row.update(
+                        native_fight_affiliation=1,
+                        native_fight_affiliation_source="faV.j(PV).bcM",
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()

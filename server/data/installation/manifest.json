@@ -9,8 +9,8 @@
     "reviewed-dungeons": {
       "compression": "gzip",
       "path": "artifacts/reviewed-dungeons.sql.gz",
-      "sha256": "a8dc1370b1e15180ccc37afdff2ba1e59777e947d8727bfd11d05cf0b488dcce",
-      "size": 2806940
+      "sha256": "493769d3d246a71eadc81954654b7e8a6b65fbb92a08f38acf2e576c604f84fc",
+      "size": 8547170
     },
     "shop-public": {
       "compression": "none",
@@ -70,10 +70,10 @@
     "declared_treasure_locations": 52,
     "declared_treasure_outcomes": 5,
     "declared_treasure_policies": 2,
-    "dungeon_context_active_policies": 89,
-    "dungeon_context_policy_versions": 164,
-    "dungeon_runtime_active_configurations": 89,
-    "dungeon_runtime_configurations": 164,
+    "dungeon_context_active_policies": 127,
+    "dungeon_context_policy_versions": 299,
+    "dungeon_runtime_active_configurations": 127,
+    "dungeon_runtime_configurations": 299,
     "native_generic_chest_script_sources": 107,
     "native_generic_emote_effect_sources": 54,
     "native_generic_reward_approaches": 22,
@@ -82,6 +82,15 @@
     "native_generic_reward_programs": 4,
     "native_loot_chest_prototypes": 85,
     "native_random_item_tables": 1145,
+    "native_scene_admission_policies": 4,
+    "native_scene_environment_placements": 21,
+    "native_scene_policies": 4,
+    "native_scene_policy_approaches": 13,
+    "native_scene_policy_combat_cells": 722,
+    "native_scene_policy_objects": 10,
+    "native_scene_profile_state_levels": 10,
+    "native_scene_profile_states": 5,
+    "native_scene_profile_targets": 6,
     "paid_container_approaches": 49,
     "paid_container_contextual_item_sources": 10,
     "paid_container_locations": 17,
@@ -94,7 +103,7 @@
     "archmonster_blocked_sources": 2,
     "archmonster_eligible_sources": 61,
     "archmonster_enabled": true,
-    "dungeon_routes": 89,
+    "dungeon_routes": 127,
     "environmental_profiles_enabled": 1270,
     "environmental_profiles_enabled_sealed": 1270,
     "environmental_profiles_sealed": 1270,
@@ -111,7 +120,7 @@
   "player_tables_exported": [],
   "reviewed_dungeons": {
     "artifact": "reviewed-dungeons",
-    "sha256": "225a911e17c881c5be959916a2433c7bfcfbce9664899ba6257d0a9e12fbaad6"
+    "sha256": "9fe9e3216185133cbacbc59a62a5a9f6f432750e8cc33e65cd54f37c67a44220"
   },
   "sql_seeds": [
     "shop-public",

@@ -11,6 +11,26 @@ NON_ORDINARY_PROPERTIES = frozenset((13, 43, 45, 49, 99, 115))
 BOSS_PROPERTIES = frozenset((43, 49, 99))
 
 
+def generated_reference(candidates, catalog, *, order, room_count, index):
+    """Use native tiers for new ordinary drafts; preserve final/controller slots.
+
+    Native reference identifiers carry no difficulty ordering. This only assigns
+    absent identities, never moves an existing named actor or changes a count.
+    A final encounter's species dependencies still require separate review.
+    """
+    previous = candidates[(order - 1 + index) % len(candidates)]
+    if order == room_count or not catalog[previous].get("native_abilities"):
+        return previous
+    ordinary = [ref for ref in candidates if catalog[ref].get("native_abilities")]
+    levels = sorted({catalog[ref]["min_level"] for ref in ordinary})
+    rank = (order - 1) * (len(levels) - 1) // max(1, room_count - 1)
+    tier = sorted(
+        (ref for ref in ordinary if catalog[ref]["min_level"] == levels[rank]),
+        key=lambda ref: (catalog[ref]["max_level"], ref),
+    )
+    return tier[index % len(tier)]
+
+
 def draft(
     plan,
     definition,
@@ -22,8 +42,13 @@ def draft(
     generation_targets=None,
     boss_references=(),
     admission_policy=None,
+    encounter_recipe=None,
 ):
     """Return an optional policy artifact; never an installable configuration."""
+    from wakfu_server.dungeon_encounter_sources import reconcile
+
+    input_source_plan = copy.deepcopy(plan)
+    plan = reconcile(plan, definition, encounter_recipe)
     if type(capacity) is not int or not 1 <= capacity <= 121:
         raise ValueError("Local room capacity must be between one and 121")
     if type(generation_target) is not int or not 1 <= generation_target <= capacity:
@@ -86,11 +111,15 @@ def draft(
             native=catalog[ref],
         )
     }
-    original = copy.deepcopy(plan)
+    original = input_source_plan
     known_rooms = tuple(plan.get("rooms", ()))
     if known_rooms:
         count = len(known_rooms)
-        count_source = "existing_guide_room_list"
+        count_source = (
+            "reviewed_native_encounter_source_recipe"
+            if encounter_recipe is not None
+            else "existing_guide_room_list"
+        )
         if room_count is not None and room_count != count:
             raise ValueError("Local room count would overwrite existing guide rooms")
     else:
@@ -250,18 +279,45 @@ def draft(
                 raise ValueError("Known guide species has invalid native grade bounds")
             changes = []
             if ref is None:
-                candidates = (
-                    sorted(bosses)
-                    if bosses and order == count and monster.get("role") == "boss"
-                    else regular_pool
+                from wakfu_server.dungeon_roster_identity import (
+                    anonymous_name,
+                    resolve_reference,
                 )
-                if ultimate and order == count:
-                    candidates = sorted(bosses)
-                if not candidates:
-                    raise ValueError(
-                        "Unresolved intermediate encounter cannot substitute the final boss"
+
+                if anonymous_name(monster.get("name")):
+                    candidates = (
+                        sorted(bosses)
+                        if bosses and order == count and monster.get("role") == "boss"
+                        else regular_pool
                     )
-                ref = candidates[(order - 1 + index) % len(candidates)]
+                    if ultimate and order == count:
+                        candidates = sorted(bosses)
+                    if not candidates:
+                        raise ValueError(
+                            "Unresolved intermediate encounter cannot substitute the final boss"
+                        )
+                    ref = (
+                        candidates[(order - 1 + index) % len(candidates)]
+                        if candidates != regular_pool
+                        else generated_reference(
+                            candidates,
+                            catalog,
+                            order=order,
+                            room_count=count,
+                            index=index,
+                        )
+                    )
+                else:
+                    ref = resolve_reference(
+                        monster.get("name"), [catalog[value] for value in pool]
+                    )
+                    require(
+                        admission_policy,
+                        ref,
+                        catalog[ref]["min_level"],
+                        catalog[ref]["max_level"],
+                        native=catalog[ref],
+                    )
                 monster["ref_id"] = ref
                 monster["name"] = catalog[ref].get("name", str(ref))
                 # A replacement species is not evidence for a boss identity.
@@ -282,10 +338,22 @@ def draft(
                     }
                 )
         total = sum(monster["count"] for monster in monsters)
-        # Ultimate encounters never receive synthetic padding to eight actors.
-        target = 1 if ultimate else targets.get(order, generation_target)
+        # Known guide quantities are a composition, not a request for padding.
+        fixed_quantities = bool(existing.get("monsters")) and all(
+            type(row.get("count")) is int and row["count"] > 0
+            for row in existing["monsters"]
+        )
+        # Only absent or explicitly incomplete quantities use local generation.
+        target = (
+            original_total
+            if fixed_quantities
+            else 1
+            if ultimate
+            else targets.get(order, generation_target)
+        )
         final_boss_missing = (
-            bool(bosses)
+            not fixed_quantities
+            and bool(bosses)
             and order == count
             and not any(monster["ref_id"] in bosses for monster in monsters)
         )
@@ -301,7 +369,17 @@ def draft(
                 candidates = sorted(bosses)
             if not candidates:
                 raise ValueError("Generated encounter has no resolved non-boss species")
-            ref = candidates[(order - 1 + len(monsters)) % len(candidates)]
+            ref = (
+                candidates[(order - 1 + len(monsters)) % len(candidates)]
+                if reserve_boss or ultimate
+                else generated_reference(
+                    candidates,
+                    catalog,
+                    order=order,
+                    room_count=count,
+                    index=len(monsters),
+                )
+            )
             native = catalog[ref]
             monsters.append(
                 {
@@ -345,6 +423,13 @@ def draft(
         "definition_id": definition["id"],
         "transport_npc_capacity": capacity,
         "generation_target": generation_target,
+        "generated_species_assignment_policy": {
+            "mode": "native_stage_tiers_before_final_encounter",
+            "scope": "Absent anonymous identities and synthetic ordinary slots only",
+            "native_reference_order_is_difficulty": False,
+            "preserved": "Known named actors/counts, final encounter composition and source-qualified event-controller placements",
+            "requires_recipe_review_before_activation": True,
+        },
         "boss_references": sorted(bosses),
         "ultimate_boss_singleton_policy": ultimate,
         "room_count": count,
@@ -360,6 +445,11 @@ def draft(
         "native_definition_id": None if legacy else definition["id"],
         "identity_policy": definition.get("policy_mode", "native_aKU_definition"),
         "original_plan": original,
+        **(
+            {"encounter_source_recipe": copy.deepcopy(encounter_recipe)}
+            if encounter_recipe is not None
+            else {}
+        ),
         "rooms": rooms,
         "policy": "Preserve complete rooms and known quantities; generated fillers exclude resolved bosses except one final boss; ultimate encounters have no synthetic padding.",
     }

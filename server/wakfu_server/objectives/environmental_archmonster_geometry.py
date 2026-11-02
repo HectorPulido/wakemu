@@ -115,13 +115,10 @@ def plan_geometry(db, map_id, instance_id, region_id, breed, level, *, taken):
                 (map_id, instance_id),
             ).fetchall()
         )
-    world = occupied[0]
-    with world.lock:
-        blocked.update(
-            (row["x"], row["y"])
-            for _, _, row in world.players.values()
-            if world.location(row) == (map_id, instance_id)
-        )
+    positions = presence.try_positions(occupied, map_id, instance_id)
+    if positions is None:
+        return None
+    blocked.update(point[:2] for point in positions)
     positions, adjacency = _geometry(revision, map_id, region_id)
     candidates = sorted(
         (point for point in positions if adjacency[point]),

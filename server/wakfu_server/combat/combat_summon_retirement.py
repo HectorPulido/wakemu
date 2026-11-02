@@ -165,8 +165,12 @@ def _ko_current(actor):
     return current
 
 
-def retired_summon_ids(fight, *, registry=None):
+def retired_summon_ids(fight, *, registry=None, pv_view=None):
     """Validate persistent retirement records and return their actor IDs."""
+    if pv_view is None:
+        from .combat_global_pv_read_view import NativeGlobalPVReadView
+
+        pv_view = NativeGlobalPVReadView(fight)
     records = getattr(fight, "native_summon_retirements", {})
     if not isinstance(records, dict):
         raise ValueError("Malformed native summon retirement checkpoint")
@@ -241,11 +245,13 @@ def retired_summon_ids(fight, *, registry=None):
             or record.get("copied") is not copied
         ):
             raise ValueError("Native summon retirement facts changed")
-        if global_fighter_guards(fight, actor_id) != dict(
-            baF=False, baG=False, baK=True
-        ):
+        if (global_fighter_guards if pv_view is None else pv_view.guards)(
+            fight, actor_id
+        ) != dict(baF=False, baG=False, baK=True):
             raise ValueError("Retired summon lacks OUT_OF_PLAY status")
-        if not global_fighter_registered(fight, actor_id):
+        if not (global_fighter_registered if pv_view is None else pv_view.registered)(
+            fight, actor_id
+        ):
             raise ValueError("Retired summon lost its native fighter identity")
         aliases = [
             slot
@@ -303,8 +309,15 @@ def retired_summon_ids(fight, *, registry=None):
                     if (
                         successor_captured
                         and successor_source["ref"] == source["ref"]
-                        and global_fighter_registered(fight, candidate_id)
-                        and global_fighter_guards(fight, candidate_id)["baK"] is False
+                        and (
+                            global_fighter_registered
+                            if pv_view is None
+                            else pv_view.registered
+                        )(fight, candidate_id)
+                        and (
+                            global_fighter_guards if pv_view is None else pv_view.guards
+                        )(fight, candidate_id)["baK"]
+                        is False
                     ):
                         successors.append(candidate_id)
             if (

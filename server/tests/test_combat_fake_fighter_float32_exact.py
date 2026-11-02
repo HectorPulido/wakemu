@@ -4,7 +4,13 @@ import struct
 import unittest
 from unittest.mock import patch
 
-from wakfu_server.combat_fake_fighter import _float32
+from wakfu_server.combat_fake_fighter import (
+    _fake_fighter_constructor_plan,
+    _cached_float_constructor,
+    _float32,
+    _plain_float_constructor,
+    fake_fighter_constructor,
+)
 
 
 def reference(value):
@@ -84,6 +90,9 @@ def boundary_cases():
 
 
 class FakeFighterFloat32ExactTests(unittest.TestCase):
+    def setUp(self):
+        _cached_float_constructor.cache_clear()
+
     def test_ieee_boundaries_and_exact_integer_domain_match_original_codec(self):
         count = 0
         for value in boundary_cases():
@@ -122,6 +131,115 @@ class FakeFighterFloat32ExactTests(unittest.TestCase):
             actual = tuple(outcome(_float32, value) for value in values)
             self.assertGreaterEqual(packed.call_count, len(values))
         self.assertEqual(actual, expected)
+
+    def test_cached_plan_uses_content_and_returns_fresh_mutable_constructor(self):
+        definition = {
+            "type": "FAKE_FIGHTER",
+            "native_type_id": 15,
+            "native_class": "bcQ",
+            "raw_bdh": [-1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 6.0, -1.0],
+        }
+        cached_plan = _fake_fighter_constructor_plan(definition)
+        with patch(
+            "wakfu_server.combat_fake_fighter._plain_float_constructor",
+            return_value=None,
+        ):
+            reference_plan = _fake_fighter_constructor_plan(definition)
+        self.assertEqual(cached_plan, reference_plan)
+        first = fake_fighter_constructor(definition)
+        self.assertEqual(_cached_float_constructor.cache_info().misses, 1)
+        first["kind"] = 123
+        first["characteristic_ids"] = (20,)
+
+        second = fake_fighter_constructor(definition)
+        self.assertIsNot(first, second)
+        self.assertEqual(second["kind"], -1)
+        self.assertEqual(second["characteristic_ids"], ())
+        self.assertEqual(_cached_float_constructor.cache_info().hits, 2)
+
+        # In-place prototype mutation changes the packed content key.
+        definition["raw_bdh"][0] = 3.0
+        changed = fake_fighter_constructor(definition)
+        self.assertEqual(changed["kind"], 3)
+        self.assertEqual(_cached_float_constructor.cache_info().misses, 2)
+
+    def test_binary64_cache_key_keeps_signed_zero_and_native_prototype_guards(self):
+        definition = {
+            "type": "FAKE_FIGHTER",
+            "native_type_id": 15,
+            "native_class": "bcQ",
+            "raw_bdh": [-1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 6.0, -1.0],
+        }
+        positive = _plain_float_constructor(definition, definition["raw_bdh"])
+        definition["raw_bdh"][2] = -0.0
+        negative = _plain_float_constructor(definition, definition["raw_bdh"])
+        self.assertEqual(math.copysign(1.0, positive[0][2]), 1.0)
+        self.assertEqual(math.copysign(1.0, negative[0][2]), -1.0)
+        self.assertEqual(_cached_float_constructor.cache_info().misses, 2)
+
+        definition["native_class"] = "not-the-native-prototype"
+        with self.assertRaisesRegex(ValueError, "prototype"):
+            fake_fighter_constructor(definition)
+
+    def test_custom_mappings_and_sequences_keep_legacy_callback_path(self):
+        class CustomList(list):
+            def __init__(self, values):
+                super().__init__(values)
+                self.iterations = 0
+
+            def __iter__(self):
+                self.iterations += 1
+                return super().__iter__()
+
+        class CustomMapping(dict):
+            def __init__(self, values):
+                super().__init__(values)
+                self.reads = []
+
+            def get(self, key, *args):
+                self.reads.append(key)
+                return super().get(key, *args)
+
+        raw = CustomList([-1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 6.0, -1.0])
+        definition = CustomMapping(
+            {
+                "type": "FAKE_FIGHTER",
+                "native_type_id": 15,
+                "native_class": "bcQ",
+                "raw_bdh": raw,
+            }
+        )
+        result = fake_fighter_constructor(definition)
+        self.assertEqual(result["kind"], -1)
+        self.assertGreater(raw.iterations, 0)
+        self.assertTrue(definition.reads)
+        self.assertEqual(_cached_float_constructor.cache_info().currsize, 0)
+
+        class IntSubclass(int):
+            pass
+
+        typed_flag = {
+            "type": "FAKE_FIGHTER",
+            "native_type_id": IntSubclass(15),
+            "native_class": "bcQ",
+            "raw_bdh": [-1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 6.0, -1.0],
+        }
+        self.assertEqual(fake_fighter_constructor(typed_flag)["kind"], -1)
+        self.assertEqual(_cached_float_constructor.cache_info().currsize, 0)
+
+    def test_invalid_float_constructor_inputs_fail_without_cache_entries(self):
+        base = {
+            "type": "FAKE_FIGHTER",
+            "native_type_id": 15,
+            "native_class": "bcQ",
+            "raw_bdh": [-1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 6.0, -1.0],
+        }
+        for value in (float("nan"), float("inf"), -float("inf"), 1e300):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                raw = list(base["raw_bdh"])
+                raw[0] = value
+                fake_fighter_constructor({**base, "raw_bdh": raw})
+        self.assertEqual(_cached_float_constructor.cache_info().currsize, 0)
 
 
 if __name__ == "__main__":

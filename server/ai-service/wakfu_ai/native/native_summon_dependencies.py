@@ -56,7 +56,9 @@ def registered_dependency_enabled(fight, actor, monsters, policy, spell, level):
         not isinstance(entry, dict)
         or type(entry.get("min_level")) is not int
         or type(entry.get("max_level")) is not int
-        or not entry["min_level"] <= current.effective_level <= entry["max_level"]
+        or not 1 <= entry["min_level"] <= entry["max_level"] <= 32767
+        or type(current.effective_level) is not int
+        or not 1 <= current.effective_level <= 32767
         or not isinstance(entry.get("spell_ids"), list)
         or not entry["spell_ids"]
     ):
@@ -64,25 +66,24 @@ def registered_dependency_enabled(fight, actor, monsters, policy, spell, level):
     scopes = entry.get("registered_summon_profiles")
     if not isinstance(scopes, dict):
         return False
+    # Historical exported grades describe sampled dependencies. The actual
+    # registered descriptor and source-attested complete book own this grade.
     for descriptor, book in chain:
         scope = scopes.get(str(descriptor["ref"]))
         if (
             not isinstance(scope, dict)
             or type(scope.get("min_level")) is not int
             or type(scope.get("max_level")) is not int
-            or not 0
-            <= scope["min_level"]
-            <= descriptor["level"]
-            <= scope["max_level"]
-            <= 32767
+            or not 0 <= scope["min_level"] <= scope["max_level"] <= 32767
+            or not 0 <= descriptor["level"] <= 32767
             or (
                 "descriptor_levels" in scope
                 and (
                     not isinstance(scope["descriptor_levels"], list)
                     or any(
-                        type(value) is not int for value in scope["descriptor_levels"]
+                        type(value) is not int or not 0 <= value <= 32767
+                        for value in scope["descriptor_levels"]
                     )
-                    or descriptor["level"] not in scope["descriptor_levels"]
                 )
             )
             or not isinstance(scope.get("spell_ids"), list)

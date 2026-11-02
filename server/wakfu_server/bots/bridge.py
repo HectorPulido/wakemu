@@ -179,12 +179,19 @@ class BotWorldBridge:
                 self.last_worker is None
                 or self.clock() - self.last_worker > self.worker_timeout
             ):
-                self.runtime.deactivate_all()
+                self.runtime.deactivate_idle()
+                self.runtime.heartbeat()
                 return
             self.runtime.heartbeat()
 
     def request(self, method, path, body=None):
         parsed = urlsplit(path)
+        if method == "POST" and path == "/internal/bots/buyer-prices":
+            if not isinstance(body, dict) or set(body) != {"references"}:
+                raise ValueError("Invalid buyer price request")
+            from .buyer_catalog import purchase_prices
+
+            return purchase_prices(self.runtime.store, body["references"])
         if (
             method == "GET"
             and parsed.path == "/internal/bots/snapshot"

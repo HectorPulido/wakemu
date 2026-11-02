@@ -60,7 +60,7 @@ def seed_zone(store, groups, map_id, instance_id, region_id, plan, *, locate=sur
             "z",
         }:
             raise ValueError("Invalid initial monster plan entry")
-        # Validate types, native level range and living statistics before any
+        # Validate types, protocol level bounds and living statistics before any
         # SQL mutation or sequence allocation (bool is not a coordinate).
         owned_instance(
             row["reference"],

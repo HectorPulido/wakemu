@@ -60,6 +60,7 @@ def execute(
     ecology_publish=None,
     private_scene=None,
     positions=None,
+    fighting=None,
 ):
     if not isinstance(text, str) or not text.startswith("!"):
         return None
@@ -237,6 +238,7 @@ def execute(
             current,
             destination,
             positions=positions,
+            fighting=fighting,
         )
         result.update(
             action="tp",

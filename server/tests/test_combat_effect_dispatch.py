@@ -25,6 +25,50 @@ def effect(kind, parameters=(), *, criteria="", children=()):
 
 
 class EffectDispatchTests(unittest.TestCase):
+    def test_point_self_center_provenance_is_fresh_only_not_trigger_or_replay(self):
+        from dataclasses import replace
+
+        parent = effect(330, children=(91,))
+        parent.update(
+            area_class="anD", native_target_selector={"class": "fcE", "mask": 8195}
+        )
+        for kind in ("fresh", "preselected", "trigger_context", "activation"):
+            with self.subTest(kind=kind):
+                seen = []
+                dispatcher = EffectDispatcher(
+                    {"90": parent, "91": effect(400)},
+                    {
+                        400: lambda definition, values, invocation: seen.append(
+                            invocation
+                        )
+                        is None
+                    },
+                    resolve=lambda definition, invocation: (invocation,),
+                    condition_context=lambda invocation: ConditionContext({}),
+                    probability_accepts=lambda *args: True,
+                    group_cells=lambda *args: (),
+                    actor_position=lambda identity: (0, 0, 0),
+                )
+                invocation = EffectInvocation(90, 20, 7, 7, (0, 0, 0))
+                if kind == "preselected":
+                    invocation = replace(invocation, native_preselected_target=True)
+                elif kind == "trigger_context":
+                    invocation = replace(invocation, native_trigger_context={})
+                if kind == "activation":
+                    dispatcher.execute_activation(
+                        invocation,
+                        source=None,
+                        condition_context=lambda *args: ConditionContext({}),
+                        executable=True,
+                        allocate_uid=lambda: 900,
+                    )
+                else:
+                    dispatcher.execute(invocation)
+                self.assertEqual(len(seen), 1)
+                self.assertTrue(seen[0].native_explicit_target)
+                self.assertEqual(seen[0].target_id, 7)
+                self.assertEqual(seen[0].wakemu_transmitted_point_self, kind == "fresh")
+
     def test_bounded_conditional_reentry_stops_before_cycle_guard(self):
         dispatcher = EffectDispatcher(
             {"90": effect(400, criteria="1 > 2")},

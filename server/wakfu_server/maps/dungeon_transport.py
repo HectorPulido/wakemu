@@ -144,6 +144,9 @@ def _enter(
             session["entry_item_payment"] = consume(
                 db, session["members"], native["item_reference"], native["cyW"]
             )
+        from .special_instance_admission import initialize as initialize_special
+
+        initialize_special(db, session, resolved)
         if initialize_instance is not None:
             initialize_instance(db, session)
 

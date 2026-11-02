@@ -56,7 +56,7 @@ class CapturedAbortedRecoveryTests(PostgresCase):
             self.assertEqual(live["captured_roster"], used.to_record())
             for status, checkpoint_status in (
                 ("active", "aborted"),
-                ("aborted", "active"),
+                ("placement", "aborted"),
                 ("finished", "ended"),
             ):
                 with self.subTest(
@@ -71,15 +71,37 @@ class CapturedAbortedRecoveryTests(PostgresCase):
                         (checkpoint_status, fight_id),
                     )
                     self.assertFalse(reconcile_aborted(db, original))
-            with db.transaction(force_rollback=True):
-                foreign = deepcopy(state)
-                foreign["actors"][str(owner["id"])]["owner_id"] = account + 1
-                db.execute(
-                    "UPDATE fight_checkpoints SET snapshot=%s WHERE fight_id=%s",
-                    (Jsonb(foreign), fight_id),
-                )
-                with self.assertRaisesRegex(ValueError, "actual controlled owner"):
-                    reconcile_aborted(db, original)
+            foreign = deepcopy(state)
+            foreign["actors"][str(owner["id"])]["owner_id"] = account + 1
+            for historical in (
+                None,
+                {},
+                {"actors": []},
+                foreign,
+                {"native_captured_rosters": {str(owner["id"]): "invalid"}},
+            ):
+                with self.subTest(historical=historical), db.transaction(
+                    force_rollback=True
+                ):
+                    if historical is None:
+                        db.execute(
+                            "DELETE FROM fight_checkpoints WHERE fight_id=%s",
+                            (fight_id,),
+                        )
+                    else:
+                        db.execute(
+                            "UPDATE fight_checkpoints SET snapshot=%s,status='active' WHERE fight_id=%s",
+                            (Jsonb(historical), fight_id),
+                        )
+                    returned = health_store.initialize(
+                        store, account, generation, owner["id"], exploration=True, db=db
+                    )
+                    current = OwnedCapturedRoster.from_record(
+                        returned["captured_roster"], expected_owner_id=owner["id"]
+                    )
+                    self.assertEqual(current, replace(used, available=(True,) * 10))
+                    for key in ("hp_damage", "health_dead", "xp", "inventory_items"):
+                        self.assertEqual(returned[key], original[key], key)
             with db.transaction(force_rollback=True):
                 new_fight = db.execute(
                     "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
@@ -107,8 +129,13 @@ class CapturedAbortedRecoveryTests(PostgresCase):
                 renamed[1] = replace(renamed[1], name="Later descriptor edit")
                 changed = replace(used, slots=tuple(renamed))
                 save(db, owner, changed)
-                self.assertFalse(
+                self.assertTrue(
                     reconcile_aborted(db, store.character(account, owner["id"], db))
+                )
+                repaired = store.character(account, owner["id"], db)
+                self.assertEqual(
+                    repaired["captured_roster"],
+                    replace(changed, available=(True,) * 10).to_record(),
                 )
             # Keep a user's subsequent selection rather than restoring old slot1.
             selected = replace(used, selected_slot=3)

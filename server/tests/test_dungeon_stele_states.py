@@ -64,6 +64,92 @@ class DungeonSteleStateTests(unittest.TestCase):
                     self.fight, monsters, self.snapshot, self.rooms, self.catalog
                 )
 
+    def test_original_boss_property_recovers_unlabelled_initial_phase_carrier(self):
+        rooms = [
+            dict(
+                monsters=[
+                    dict(ref_id=4400, role="unknown"),
+                    dict(ref_id=4208, role="ordinary"),
+                ]
+            )
+        ]
+        monsters = {-3: dict(ref=4400), -4: dict(ref=4208)}
+        native = {
+            4400: dict(raw_visual_arrays=dict(csc=[43])),
+            4208: dict(raw_visual_arrays=dict(csc=[])),
+        }
+        before = deepcopy((rooms, monsters))
+        with patch("wakfu_server.monsters.reference", side_effect=native.__getitem__):
+            receipt = dungeon_stele_states.plan(
+                self.fight,
+                monsters,
+                self.snapshot,
+                rooms,
+                self.catalog,
+            )
+        self.assertEqual(receipt["actor_ids"], [-3])
+        self.assertEqual((rooms, monsters), before)
+        self.assertNotIn(4211, [row["ref"] for row in monsters.values()])
+
+    def test_native_fallback_rejects_ambiguous_nonboss_and_malformed_sources(self):
+        rooms = [
+            dict(
+                monsters=[
+                    dict(ref_id=4400, role="unknown"),
+                    dict(ref_id=4208, role="ordinary"),
+                ]
+            )
+        ]
+        monsters = {-3: dict(ref=4400), -4: dict(ref=4208)}
+        for properties in (
+            ([], []),
+            ([43], [43]),
+            ([43, 45], []),
+            ([43, 115], []),
+            ([True], []),
+            (None, []),
+        ):
+            native = dict(
+                zip(
+                    (4400, 4208),
+                    [dict(raw_visual_arrays=dict(csc=value)) for value in properties],
+                )
+            )
+            with self.subTest(properties=properties), patch(
+                "wakfu_server.monsters.reference", side_effect=native.__getitem__
+            ), self.assertRaises(ValueError):
+                dungeon_stele_states.plan(
+                    self.fight,
+                    monsters,
+                    self.snapshot,
+                    rooms,
+                    self.catalog,
+                )
+
+    def test_explicit_boss_and_empty_selection_do_not_consult_fallback_catalog(self):
+        with patch(
+            "wakfu_server.monsters.reference",
+            side_effect=AssertionError("Unexpected fallback"),
+        ):
+            self.assertEqual(
+                dungeon_stele_states.plan(
+                    self.fight,
+                    self.monsters,
+                    self.snapshot,
+                    self.rooms,
+                    self.catalog,
+                )["actor_ids"],
+                [-3],
+            )
+            receipt = dungeon_stele_states.plan(
+                self.fight,
+                self.monsters,
+                dict(self.snapshot, selections=[]),
+                [dict(monsters=[dict(ref_id=100, role="unknown")])],
+                self.catalog,
+            )
+            self.assertEqual(receipt["actor_ids"], [])
+
     def test_unknown_or_incomplete_native_closure_rejects(self):
         for catalog in (
             dict(states={}, effects={}),

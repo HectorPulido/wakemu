@@ -36,12 +36,25 @@ def _health_baseline(db, account_id, character_id):
     return hp, maximum, damage, dead
 
 
-def create(store, account_id, generation, character_id, *, team=0, on_created=None):
+def create(
+    store,
+    account_id,
+    generation,
+    character_id,
+    *,
+    team=0,
+    on_created=None,
+    before_owner_lock=None,
+):
     if type(team) is not int or team not in (0, 1):
         raise ValueError("Invalid fight participant team")
     if on_created is not None and not callable(on_created):
         raise ValueError("Fight creation callback must be callable")
+    if before_owner_lock is not None and not callable(before_owner_lock):
+        raise ValueError("Fight ownership preflight must be callable")
     with store.connection() as db:
+        if before_owner_lock is not None:
+            before_owner_lock(db)
         # Roster and selected-character mutations use account-before-session.
         db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
         store.lock_character(db, account_id, generation, character_id)

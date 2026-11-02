@@ -187,6 +187,55 @@ class WithdrawalPlanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "owner"):
             plan(Session(3, 10, "foreign", 527, 0), self.fight, self.runtime)
 
+    def test_owner_withdrawal_preserves_previously_retired_captured_child(self):
+        from test_combat_summon_owner_death import SummonOwnerDeathTests
+        from wakfu_server.combat_global_pv_collections import global_fighter_guards
+        from wakfu_server.combat_timeline_snapshot import insert
+
+        fixture = SummonOwnerDeathTests()
+        fight, owner, enemy, child, ally = fixture.fixture(captured=True)
+        # The helper adds its second controller after the real timeline was
+        # initialized; register that actor's actual native SY counter too.
+        insert(fight, ally.id, fight.order.index(ally.id))
+        fight.apply_effect_damage(enemy.id, owner.id, owner.hp)
+        self.assertEqual(child.hp, 0)
+        self.assertEqual(child.native_obstacle_id, -1)
+        self.assertEqual(
+            global_fighter_guards(fight, child.id),
+            dict(baF=False, baG=False, baK=True),
+        )
+        before_retirement = deepcopy(fight.native_summon_retirements[child.id])
+        before_child_events = sum(
+            event.get("kind") == "summon_out_of_play"
+            and event.get("actor_id") == child.id
+            for event in fight.events
+        )
+        runtime = RuntimeMessages(fight)
+        session = Session(owner.owner_id, owner.id, "owner", 527, 0)
+
+        result = plan(session, fight, runtime)
+
+        self.assertIn(child.id, result.removed_actor_ids)
+        self.assertIn(child.id, result.fight.actors)
+        self.assertEqual(result.fight.actors[child.id].native_obstacle_id, -1)
+        self.assertEqual(
+            result.fight.native_summon_retirements[child.id], before_retirement
+        )
+        self.assertEqual(
+            global_fighter_guards(result.fight, child.id),
+            dict(baF=False, baG=False, baK=True),
+        )
+        self.assertEqual(
+            sum(
+                event.get("kind") == "summon_out_of_play"
+                and event.get("actor_id") == child.id
+                for event in result.fight.events
+            ),
+            before_child_events,
+        )
+        self.assertGreater(result.fight.actors[ally.id].hp, 0)
+        self.assertIn(ally.id, result.fight.order)
+
     def registry(self):
         other = Session(2, 20, "other", 527, 0)
         registry = Registry(lambda session: session in (self.session, other))

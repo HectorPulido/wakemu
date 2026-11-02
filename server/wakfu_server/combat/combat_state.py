@@ -137,6 +137,8 @@ class Fight:
         self.wakemu_ai_cast_history = fresh_history()
         self.native_start_event_delivered = False
         self.native_turn_event_deliveries = {}
+        # Plain schema1 observation data; legacy checkpoints may omit this.
+        self.native_optional_ballot_challenge = None
         self.native_table_turn = (
             0  # SU initial timeline before native13477 starts round1.
         )
@@ -501,6 +503,9 @@ class Fight:
                 raise ValueError("Altitude transition requires validated terrain edge")
             cost += step
             origin = target
+        from .combat_walk_surface_policy import require_native_walk_surfaces
+
+        require_native_walk_surfaces(self, actor, path)
         from .combat_rail_movement import movement_cost
         from .combat_tackle_movement import movement_tackle_cost
 

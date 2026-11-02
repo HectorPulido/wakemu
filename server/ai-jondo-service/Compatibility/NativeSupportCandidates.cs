@@ -135,7 +135,8 @@ internal static class NativeSupportCandidates
         string relation = target == null ? "emptyCell" : target.Id == actor.Id ? "self" : target.TeamId == actor.TeamId ? "ally" : "enemy";
         // A role bonus ranks only real authored summon capabilities; it is not
         // a prediction of an invented creature's HP, spells or future damage.
-        if (target == null || target.Id == actor.Id && Names(support, "aimKinds", "self"))
+        if (target == null || target.Id == actor.Id && Names(support, "aimKinds", "self")
+            || target != null && Flag(support, "requiresNativeRecipient") && Names(support, "aimKinds", relation))
             foreach (var summon in summons.Where(s => Int(s, "reference") > 0
                 && Text(s, "benefit") is "beneficial" or "harmful"))
             {

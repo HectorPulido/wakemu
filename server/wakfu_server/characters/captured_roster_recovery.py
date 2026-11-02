@@ -1,18 +1,15 @@
-"""Restore native captured availability after an attested interrupted fight."""
-from wakfu_server.characters.captured_roster import (
-    OwnedCapturedRoster,
-    roster_from_character,
-)
+"""Restore owned captured availability after a durable interrupted-fight abort."""
+from wakfu_server.characters.captured_roster import roster_from_character
 from wakfu_server.characters.captured_roster_store import save
 
 
 def reconcile_aborted(db, character):
     """Run inside owned exploration initialization after the character lock.
 
-    A capture stays unavailable while its live fight owns it. Only the latest
-    durable membership, an aborted checkpoint and its actual controlled owner
-    can attest the missing native PC teardown. Never replace stored descriptors
-    or selection with the checkpoint's older values.
+    Durable real-character membership supplies PC ownership. A latest aborted
+    fight without any live membership attests its lost teardown. Historical
+    actor/component snapshots are not authoritative over the current owned
+    roster; never copy old descriptors, selection, health or inventory from one.
     """
     if character.get("breed") != 2:
         return False
@@ -23,9 +20,8 @@ def reconcile_aborted(db, character):
     ):
         return False
     witness = db.execute(
-        "SELECT f.id,f.status,c.status AS checkpoint_status,c.snapshot "
-        "FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
-        "LEFT JOIN fight_checkpoints c ON c.fight_id=f.id "
+        "SELECT f.id,f.status FROM combat_fight_participants p "
+        "JOIN combat_fights f ON f.id=p.fight_id "
         "WHERE p.character_id=%s AND p.account_id=%s "
         "AND NOT EXISTS (SELECT 1 FROM combat_fight_participants live "
         "JOIN combat_fights running ON running.id=live.fight_id "
@@ -34,38 +30,12 @@ def reconcile_aborted(db, character):
         "ORDER BY f.id DESC LIMIT 1 FOR SHARE OF f,p",
         (character["id"], character["account_id"]),
     ).fetchone()
-    if (
-        witness is None
-        or witness["status"] != "aborted"
-        or witness["checkpoint_status"] != "aborted"
-    ):
+    if witness is None or witness["status"] != "aborted":
         return False
-    state = witness["snapshot"]
-    if not isinstance(state, dict):
-        raise ValueError("Aborted capture recovery lacks checkpoint state")
-    key = str(character["id"])
-    actor = state.get("actors", {}).get(key)
-    if (
-        not isinstance(actor, dict)
-        or actor.get("id") != character["id"]
-        or actor.get("controlled") is not True
-        or actor.get("owner_id") != character["account_id"]
-    ):
-        raise ValueError("Aborted capture recovery lacks actual controlled owner")
-    source = state.get("native_captured_rosters", {}).get(key)
-    if source is None:
-        source = state.get("native_captured_roster_updates", {}).get(key)
-    if source is None:
-        return False
-    previous = OwnedCapturedRoster.from_record(
-        source, expected_owner_id=character["id"]
-    )
-    if current.slots != previous.slots or any(
-        entry is not None and not current.available[index] and previous.available[index]
-        for index, entry in enumerate(current.slots)
-    ):
-        return False  # A later capture/component mutation is not this teardown.
     from wakfu_server.combat_captured_roster_lifecycle import reset_availability
 
+    # Native biB.dnN -> eHR/bPo.fxn fills the current component's ten flags.
+    # Occupied descriptors become unavailable only when a live summon consumes
+    # them. No such fight remains; imported or later-edited descriptors survive.
     save(db, character, reset_availability(current))
     return True

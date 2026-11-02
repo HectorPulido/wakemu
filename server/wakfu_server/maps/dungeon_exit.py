@@ -1,5 +1,7 @@
 """Authoritative native exterior return with durable per-member delivery."""
 
+from .dungeon_transition_recovery import DungeonExitDeferred
+
 import struct
 
 from wakfu_server import generic_transports, player_parties
@@ -195,9 +197,14 @@ def leave(
                     "SELECT status FROM dungeon_room_runs WHERE instance_id=%s",
                     (run["instance_id"],),
                 ).fetchone()
-                if binding is None or (
-                    binding["room_order"] != 1
-                    and (progress is None or progress["status"] != "completed")
+                from wakfu_server.dungeon_native_flow import exit_available
+
+                if not exit_available(
+                    topology,
+                    binding,
+                    completed=(
+                        progress is not None and progress["status"] == "completed"
+                    ),
                 ):
                     raise ValueError("Foreign native dungeon exit is locked")
         return resolve(
@@ -302,6 +309,46 @@ def leave_automatic(
     )
 
 
+def leave_recovery(
+    store, account_id, generation, character_id, *, in_fight, positions=None
+):
+    """Recover failed room hydration through a verified owned exterior receipt.
+
+    Use the normal exit transaction and outbox so the live worker reconciles its
+    scene, membership and position together. This is not an ordinary route or
+    a replacement for a valid native exit's requirements.
+    """
+    from wakfu_server import dungeon_runtime
+    from wakfu_server.dungeon_recovery import _recorded_exterior
+
+    def destination_for(db, character, run):
+        try:
+            _, configuration = dungeon_runtime.configuration_for_instance(
+                db, run["instance_id"]
+            )
+            return automatic_destination(character, run, configuration)
+        except ValueError:
+            try:
+                destination = _recorded_exterior(db, account_id, run)
+            except ValueError as error:
+                raise DungeonExitDeferred(
+                    "Dungeon recovery exterior is temporarily unavailable"
+                ) from error
+            if destination is None:
+                raise DungeonExitDeferred("Dungeon recovery has no verified exterior")
+            return destination
+
+    return _leave(
+        store,
+        account_id,
+        generation,
+        character_id,
+        in_fight=in_fight,
+        destination_for=destination_for,
+        positions=positions,
+    )
+
+
 def _leave(
     store,
     account_id,
@@ -321,6 +368,7 @@ def _leave(
             store,
             positions,
             account_id,
+            defer_rebind_busy=True,
             transition=lambda: _leave(
                 store,
                 account_id,
@@ -360,7 +408,9 @@ def _leave(
             or member["session_generation"] != generation
             or in_fight(character_id) is not False
         ):
-            raise ValueError("Dungeon member cannot leave in its current state")
+            raise DungeonExitDeferred(
+                "Dungeon member cannot leave in its current state"
+            )
         destination = destination_for(db, character, run)
         revision = run["revision"] + 1
         db.execute(
@@ -417,7 +467,7 @@ def _leave(
             hero_id = owned["character_id"]
             store.lock_character(db, account_id, generation, hero_id, selected=False)
             if in_fight(hero_id) is not False:
-                raise ValueError("Owned hero cannot leave during combat")
+                raise DungeonExitDeferred("Owned hero cannot leave during combat")
             db.execute(
                 "UPDATE characters SET map_id=%s,instance_id=0,x=%s,y=%s,z=%s WHERE id=%s",
                 tuple(destination[key] for key in ("map_id", "x", "y", "z"))

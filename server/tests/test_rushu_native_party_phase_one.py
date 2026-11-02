@@ -43,7 +43,8 @@ class RushuNativePartyPhaseOneTests(PostgresCase):
     def diagnose_native_party_admission(self):
         self._run(admission_only=True)
 
-    def _run(self, *, admission_only=False, seed_probe=False):
+    def _run(self, *, admission_only=False, seed_probe=False, stop_at_table=5):
+        self.assertIn(stop_at_table, (5, 6))
         global RUSHU_ACTUAL_CHECKPOINT
         from native_paid_party_fixture import (
             NativeGear,
@@ -801,12 +802,40 @@ class RushuNativePartyPhaseOneTests(PostgresCase):
                     )
 
                 runtime.turn_started()
-                for boundary in range(10 if seed_probe else 36):
+                for boundary in range(10 if seed_probe else 7 * stop_at_table + 1):
                     while runtime.awaiting_ack is not None:
                         runtime.acknowledge_turn(
                             struct.pack(">i", runtime.awaiting_ack)
                         )
                     current = runtime.fight
+                    if stop_at_table == 6 and any(
+                        delivery.get("actor_id") == -200
+                        and delivery.get("table_turn") == 6
+                        for delivery in getattr(
+                            current, "native_npc_phase_deliveries", {}
+                        ).values()
+                    ):
+                        self.assertEqual(current.phase, "active")
+                        self.assertTrue(
+                            all(
+                                current.actors[identity].hp > 0
+                                for identity in identities
+                            )
+                        )
+                        facts.update(
+                            status="normal_party_reached_completed_vestige_table_six",
+                            final_table=current.native_table_turn,
+                            final_native_areas=[
+                                dict(
+                                    uid=uid,
+                                    reference=area["reference"],
+                                    cell=area["cell"],
+                                )
+                                for uid, area in current.native_effect_areas.items()
+                            ],
+                            final_npc_phase_deliveries=current.native_npc_phase_deliveries,
+                        )
+                        return current
                     snapshot = dict(
                         table=current.native_table_turn,
                         turn=current.turn_id,
@@ -912,7 +941,8 @@ class RushuNativePartyPhaseOneTests(PostgresCase):
                         all(current.actors[identity].hp > 0 for identity in identities)
                     )
                     if (
-                        current.native_table_turn >= 5
+                        stop_at_table == 5
+                        and current.native_table_turn >= 5
                         and current.current.id in identities
                     ):
                         break

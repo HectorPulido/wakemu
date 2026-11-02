@@ -55,6 +55,12 @@ def deliver_owned_death(
             global_death_event_id=1012,
         ),
     }
+    from .combat_owned_area_death import apply_owned_area_death
+
+    # The actual OFF_PLAY transition precedes this callback and settlement.
+    # Keep Qs.l's removal effects inside the same private native dispatcher;
+    # a presentation-only death packet is too late to change the outcome.
+    apply_owned_area_death(fight, actor_id, retention=retention)
     from .combat_finisher_events import prepare_owned_finisher
 
     finisher = prepare_owned_finisher(fight, source, replay=replay, authority=authority)

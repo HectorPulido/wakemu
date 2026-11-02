@@ -123,7 +123,9 @@ def refresh_area_geometry(fight, row):
         or row.get("native_anchor_source") != "faN.bgZ"
     ):
         raise ValueError("Missing native faN owner anchor authority")
-    owner = fight.actors.get(owner_id)
+    from .combat_summon_initialization import registered_or_detached_actor
+
+    owner = registered_or_detached_actor(fight, owner_id)
     if owner is None:
         raise ValueError("Missing registered native faN owner PV")
     cell = owner.position

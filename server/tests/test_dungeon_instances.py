@@ -248,6 +248,93 @@ class DungeonInstanceTests(PostgresCase):
             ],
         )
 
+    def test_removed_hero_does_not_block_reentry_while_foreign_party_member_stays_inside(
+        self,
+    ):
+        from wakfu_server.characters import heroes
+        from wakfu_server.maps import dungeon_exit
+
+        members, _party_id = self.party(2)
+        main, foreign = members
+        hero = self.store.create_character(main["account"], "Dng Removed Hero")
+        heroes.add(
+            self.store,
+            main["account"],
+            main["generation"],
+            main["character"]["id"],
+            hero["id"],
+        )
+        from unittest.mock import patch
+
+        with patch("wakfu_server.characters.dungeon_modulation_health.reconcile"):
+            first = self.enter(main)
+        instance_id = first["instance_id"]
+        with (
+            patch("wakfu_server.dungeon_runtime.configuration_for_instance") as config,
+            patch("wakfu_server.dungeon_exit.automatic_destination") as destination,
+        ):
+            config.return_value = ({}, {})
+            destination.return_value = {
+                "map_id": 527,
+                "x": -245,
+                "y": -90,
+                "z": 0,
+            }
+            heroes.remove(
+                self.store,
+                main["account"],
+                main["generation"],
+                main["character"]["id"],
+                hero["id"],
+            )
+        hero_outside = self.store.character(main["account"], hero["id"])
+        self.assertEqual(
+            (527, 0), (hero_outside["map_id"], hero_outside["instance_id"])
+        )
+        foreign_before = self.store.character(
+            foreign["account"], foreign["character"]["id"]
+        )
+
+        with patch("wakfu_server.characters.dungeon_modulation_health.reconcile"):
+            dungeon_exit._leave(
+                self.store,
+                main["account"],
+                main["generation"],
+                main["character"]["id"],
+                in_fight=lambda _identity: False,
+                destination_for=lambda _db, _character, _run: {
+                    "map_id": 527,
+                    "x": -245,
+                    "y": -90,
+                    "z": 0,
+                },
+            )
+        with patch("wakfu_server.characters.dungeon_modulation_health.reconcile"):
+            again = self.enter(main)
+
+        self.assertEqual(instance_id, again["instance_id"])
+        self.assertTrue(again["reused"])
+        foreign_after = self.store.character(
+            foreign["account"], foreign["character"]["id"]
+        )
+        self.assertEqual(
+            tuple(
+                foreign_before[key] for key in ("map_id", "instance_id", "x", "y", "z")
+            ),
+            tuple(
+                foreign_after[key] for key in ("map_id", "instance_id", "x", "y", "z")
+            ),
+        )
+        with self.store.connection() as db:
+            rows = db.execute(
+                "SELECT character_id,status FROM dungeon_instance_members "
+                "WHERE instance_id=%s ORDER BY character_id",
+                (instance_id,),
+            ).fetchall()
+        by_id = {row["character_id"]: row["status"] for row in rows}
+        self.assertEqual("removed", by_id[hero["id"]])
+        self.assertEqual("active", by_id[foreign["character"]["id"]])
+
     def test_entry_creates_live_run_and_moves_all_members_atomically(self):
         members, party_id = self.party(2)
         checks = []

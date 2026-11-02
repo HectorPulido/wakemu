@@ -32,6 +32,7 @@ class InstanceEntryLevelPolicyTests(unittest.TestCase):
             "not (GetRealLevel() < 200)",
             "not (200 > GetRealLevel())",
             "IsAchievementComplete(99) and GetRealLevel() >= 200",
+            "GetRealLevel() >= 200 and IsBefore(1,1,2000,0,0,0)",
         ):
             with self.subTest(expression=expression):
                 self.assertTrue(
@@ -47,7 +48,6 @@ class InstanceEntryLevelPolicyTests(unittest.TestCase):
             "GetRealLevel() != 1",
             "not (GetRealLevel() >= 1)",
             "0 <= GetRealLevel() <= 0",
-            "GetRealLevel() >= 200 and IsBefore(1,1,2000,0,0,0)",
         ):
             with self.subTest(expression=expression):
                 self.assertFalse(

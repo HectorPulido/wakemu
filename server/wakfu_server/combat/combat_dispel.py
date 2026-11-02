@@ -155,7 +155,13 @@ class NativeDispelHandler:
         if removal.view is not view:
             raise ValueError("Native dispel/removal views disagree")
         if invocation.target_id not in view.fight.actors:
-            raise ValueError("Missing native dispel target")
+            from .combat_state_managers import registered_area_pv
+
+            area = registered_area_pv(view.fight, invocation.target_id)
+            if area is None:
+                raise ValueError("Missing native dispel target")
+            if not area.native_running_effect_manager:
+                return  # eXe.c returns when the actual PV has no Qf.
         selected = select_dispel(
             (
                 e

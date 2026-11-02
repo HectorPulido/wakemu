@@ -6,6 +6,7 @@ Global recipients require an audited native iterator order when more than one
 manager has a matching global listener. No lifecycle event ID is synthesized.
 """
 from dataclasses import replace
+from contextvars import ContextVar
 from .combat_native_actor_lookup import native_actor
 from .combat_event_replay import (
     NativeEventSource,
@@ -14,6 +15,257 @@ from .combat_event_replay import (
 )
 from .combat_native_events import subscription_selection
 from .combat_event_costs import source_cost_descriptor
+from . import combat_state_managers as _area_managers
+from . import combat_effect_area as _area_definitions
+from . import combat_area_property as _area_properties
+from . import combat_effect_area_geometry as _area_geometry
+from . import combat_fake_fighter as _fake_fighters
+
+_PURE_AREA_SOURCES = (
+    _area_managers.registered_area_pv,
+    _area_definitions.native_effect_areas,
+    _area_properties.area_properties,
+    _area_geometry.refresh_area_geometry,
+    _fake_fighters.verified_fake_fighter,
+    _area_managers.retained_area_pv_row,
+    _area_managers._dependency_module,
+)
+
+
+def _pure_area_recipient_read(fight, identity):
+    """Recognize read-only PV lookups without retaining their live result."""
+    current_sources = (
+        _area_managers.registered_area_pv,
+        _area_definitions.native_effect_areas,
+        _area_properties.area_properties,
+        _area_geometry.refresh_area_geometry,
+        _fake_fighters.verified_fake_fighter,
+        _area_managers.retained_area_pv_row,
+        _area_managers._dependency_module,
+    )
+    if any(
+        current is not original
+        for current, original in zip(current_sources, _PURE_AREA_SOURCES)
+    ):
+        return False
+    areas = getattr(fight, "native_effect_areas", {})
+    retired = getattr(fight, "native_retired_area_managers", {})
+    if type(areas) is not dict or type(retired) is not dict:
+        return False
+    if type(identity) is not int or identity in retired:
+        return False
+    row = areas.get(identity)
+    if (
+        type(row) is not dict
+        or any(type(key) is not str for key in row)
+        or type(row.get("reference")) is not int
+        or type(row.get("uid")) is not int
+        or row["uid"] != identity
+        or type(row.get("native_area_contract")) is not str
+        or row["native_area_contract"] not in ("faW", "faY")
+    ):
+        return False
+    if (
+        "native_faw_hp_constructor" in row
+        or "native_faw_damage_only_constructor" in row
+    ):
+        return False
+    if (
+        type(row.get("cell")) not in (list, tuple)
+        or any(type(value) is not int for value in row["cell"])
+        or type(row.get("native_running_effect_manager")) is not bool
+        or type(row.get("native_obstacle_id")) is not int
+        or type(row.get("native_obstacle_source")) is not str
+    ):
+        return False
+    from .combat_state_ledger import StateLedger
+
+    if "state_ledger" in row and type(row["state_ledger"]) is not StateLedger:
+        return False
+    ledger = row.get("state_ledger")
+    if row["native_running_effect_manager"]:
+        if (
+            type(ledger) is not StateLedger
+            or type(ledger.actor_id) is not int
+            or ledger.actor_id != identity
+        ):
+            return False
+    elif ledger is not None:
+        return False
+    if row["native_area_contract"] == "faW":
+        constructor = row.get("native_faw_constructor")
+        if (
+            type(constructor) is not dict
+            or any(type(key) is not str for key in constructor)
+            or row["native_running_effect_manager"] is not True
+            or constructor.get("running_effect_manager") is not True
+            or any(
+                type(value) not in (int, bool, tuple)
+                or (
+                    type(value) is tuple
+                    and any(type(item) is not int for item in value)
+                )
+                for value in constructor.values()
+            )
+        ):
+            return False
+        if (
+            constructor.get("kind") == 4
+            and type(row.get("native_microbot_network_source")) is not str
+        ):
+            return False
+    definition = _area_definitions.native_effect_areas().get(str(row.get("reference")))
+    return (
+        type(definition) is dict
+        and all(type(key) is str for key in definition)
+        and type(definition.get("type")) is str
+        and definition["type"]
+        == ("FAKE_FIGHTER" if row["native_area_contract"] == "faW" else "GLYPH")
+        and type(definition.get("native_class")) is str
+        and type(definition.get("native_type_id")) is int
+        and type(definition.get("raw_bdh")) in (list, tuple)
+        and all(type(value) in (int, float) for value in definition["raw_bdh"])
+        and type(definition.get("native_area_properties")) in (list, tuple)
+        and all(type(value) is int for value in definition["native_area_properties"])
+        and type(definition.get("entry_masks")) in (list, tuple)
+        and all(type(value) is int for value in definition["entry_masks"])
+        and type(row.get("native_current_area_properties", ())) in (list, tuple)
+        and all(
+            type(value) is int
+            for value in row.get("native_current_area_properties", ())
+        )
+    )
+
+
+_PHASE_READ_PASS = object()
+_PHASE_READ_SCOPES = ContextVar("ordinary_phase_read_scopes", default=())
+
+
+def _owns_phase_read_pass(events):
+    from .combat_event_replay import NativeEventReplay
+
+    if (
+        type(events)
+        not in (
+            OrdinaryHealingEvents,
+            OrdinaryDamageEvents,
+            OrdinaryResourceLossEvents,
+            OrdinaryArmorEvents,
+            OrdinaryDisplacementEvents,
+        )
+        or type(events.replay) is not NativeEventReplay
+    ):
+        return False
+    current = events.replay._read_pass
+    return (
+        type(current) is dict
+        and current.get("ordinary_phase_token") is _PHASE_READ_PASS
+        and current.get("ordinary_phase_owner") is events
+        and current.get("fight") is events.preview
+        and current.get("retention") is events.retention
+    )
+
+
+def _fallback_phase_read_pass(events):
+    """Suspend only our operation scopes, including opaque replay forwarders."""
+    from contextlib import contextmanager, nullcontext
+
+    owned_scopes = _PHASE_READ_SCOPES.get()
+    if not owned_scopes:
+        return nullcontext()
+
+    @contextmanager
+    def fallback():
+        suspended = []
+        visited = set()
+        for replay, scope in owned_scopes:
+            scope["view"] = None
+            if id(replay) in visited:
+                continue
+            visited.add(id(replay))
+            current = replay._read_pass
+            if (
+                type(current) is dict
+                and current.get("ordinary_phase_token") is _PHASE_READ_PASS
+            ):
+                suspended.append((replay, current))
+                replay._read_pass = None
+        try:
+            yield
+        finally:
+            for _, scope in owned_scopes:
+                scope["view"] = None
+            for replay, previous in reversed(suspended):
+                previous["view"] = None
+                replay._read_pass = previous
+
+    return fallback()
+
+
+def _phase_read_pass(events, invocation):
+    """Broaden only the existing exact ordinary, registered delivery scope."""
+    from contextlib import contextmanager, nullcontext
+    from .combat_event_replay import NativeEventReplay
+    from .combat_retained_runtime import NativeRetainedRuntime
+    from .combat_ordinary_authority import (
+        OrdinaryActorAuthority,
+        _immutable_property_catalog,
+    )
+    from .combat_summon import RegisteredSummonAuthority
+    from .combat_npc_spellbook import ordinary_npc_spellbook
+    from .combat_summon_initialization import detached_actors
+
+    from .combat_runtime_adapter import NativeServerRuntimeAdapter
+    from .combat_state import Fight
+
+    # Reject custom providers before reading their attributes or descriptors.
+    if not (
+        type(events)
+        in (
+            OrdinaryHealingEvents,
+            OrdinaryDamageEvents,
+            OrdinaryResourceLossEvents,
+            OrdinaryArmorEvents,
+            OrdinaryDisplacementEvents,
+        )
+        and type(events.replay) is NativeEventReplay
+        and type(events.retention) is NativeRetainedRuntime
+        and type(events.adapter) is NativeServerRuntimeAdapter
+        and type(events.preview) is Fight
+    ):
+        return _fallback_phase_read_pass(events)
+    authority = events.adapter.actor_authority
+    if type(authority) is RegisteredSummonAuthority:
+        authority = authority.ordinary
+    if not (
+        events.replay.retention is events.retention
+        and events.retention.fight is events.preview
+        and type(authority) is OrdinaryActorAuthority
+        and authority.catalog is _immutable_property_catalog()
+        and (
+            authority.npc_spellbook is None
+            or authority.npc_spellbook is ordinary_npc_spellbook
+        )
+        and hasattr(events.preview, "native_global_pv_collections")
+        and not detached_actors(events.preview)
+    ):
+        return _fallback_phase_read_pass(events)
+
+    @contextmanager
+    def scope():
+        with events.replay.read_pass():
+            current = events.replay._read_pass
+            current["ordinary_phase_token"] = _PHASE_READ_PASS
+            current["ordinary_phase_owner"] = events
+            token = _PHASE_READ_SCOPES.set(
+                (*_PHASE_READ_SCOPES.get(), (events.replay, current))
+            )
+            try:
+                yield
+            finally:
+                _PHASE_READ_SCOPES.reset(token)
+
+    return scope()
 
 
 class OrdinaryHealingEvents:
@@ -75,6 +327,47 @@ class OrdinaryHealingEvents:
             retention=self.retention,
             finisher_cleanup=self._queue_finisher_cleanup,
         )
+
+    def area_death(self, area_id, *, effect, invocation, uid, value):
+        """Wakemu local1033 policy for a lethally damaged HP-owning area.
+
+        The native6197/1033 consumer is source-backed; the original server
+        producer is absent. Deliver before Qq.b completes the actual PV, so
+        existing native corpse guards remain unchanged.
+        """
+        from .combat_state_managers import registered_area_pv
+
+        if (
+            area_id != invocation.target_id
+            or registered_area_pv(self.preview, area_id) is None
+        ):
+            raise ValueError("Area death requires its actual lethal Qq source")
+        definition = self.definition(effect, invocation)
+        flags = effect["native_effect_flags"]
+        parent = (
+            None
+            if invocation.native_trigger_context is None
+            else invocation.native_trigger_context["uid"]
+        )
+        source = NativeEventSource(
+            uid,
+            invocation.reference,
+            value,
+            invocation.caster_id,
+            area_id,
+            invocation.cell,
+            (1033,),
+            6,
+            area_id,
+            parent,
+            definition["event_suppresses_level_one"] or 5 in flags,
+            6 in flags,
+            False,
+            True,
+            cost_source=source_cost_descriptor(self.retention, invocation),
+            **self.identifiers(effect, invocation),
+        )
+        return self.replay(source, authority=self.authority)
 
     def _queue_finisher_cleanup(self, source):
         pending = getattr(self, "_pending_finisher_cleanup", None)
@@ -224,12 +517,24 @@ class OrdinaryHealingEvents:
             # Qe.L delivers through PV.a; faV/Qq forwards to its actual Qf.
             # Explicit generic state/stat events may address a registered area.
             # Healing/eXs still requires a fighter and its characteristics.
-            manager = registered_area_pv(self.preview, identity)
-            if manager is None or getattr(manager, "native_is_area", False) is not True:
-                raise ValueError(
-                    f"Ordinary event recipient absent: identity={identity}, phase={channel}, family={effect['effect_class']}"
-                )
-            return manager
+            from contextlib import nullcontext
+
+            guarded_area = _owns_phase_read_pass(
+                self
+            ) and not _pure_area_recipient_read(self.preview, identity)
+            boundary = (
+                self.replay._callback_read_boundary() if guarded_area else nullcontext()
+            )
+            with boundary:
+                manager = registered_area_pv(self.preview, identity)
+                if (
+                    manager is None
+                    or getattr(manager, "native_is_area", False) is not True
+                ):
+                    raise ValueError(
+                        f"Ordinary event recipient absent: identity={identity}, phase={channel}, family={effect['effect_class']}"
+                    )
+                return manager
 
         for identity in (invocation.caster_id, invocation.target_id):
             if identity is None and _nullable_target:
@@ -326,178 +631,231 @@ class OrdinaryHealingEvents:
             )
         if invocation.target_id is not None:
             sources.append(base)
-        outcomes = []
-        for source in sources:
-            recipient = verify_recipient(source.manager_actor_id)
-            if getattr(recipient, "native_is_area", False):
-                # Keep the actual Qq object across reactions that unregister it.
-                from .combat_state_managers import retained_area_pv_row
 
-                area_row = retained_area_pv_row(self.preview, source.manager_actor_id)
-                if recipient.native_running_effect_manager:
-                    outcomes.append(self.replay(source, authority=self.authority))
-                if source.channel == 1:
-                    callbacks = getattr(self.retention, "area_events", None)
-                    from .combat_effect_area import native_effect_areas
+        def deliver():
+            outcomes = []
+            for source in sources:
+                recipient = verify_recipient(source.manager_actor_id)
+                if getattr(recipient, "native_is_area", False):
+                    from contextlib import nullcontext
 
-                    area_definition = native_effect_areas()[str(area_row["reference"])]
-                    masks = (
-                        set(recipient.native_entry_masks)
-                        | set(area_definition.get("exit_masks", ()))
-                        | set(area_row.get("native_removal_masks", ()))
+                    boundary = (
+                        self.replay._callback_read_boundary()
+                        if _owns_phase_read_pass(self)
+                        else nullcontext()
                     )
-                    if callbacks is None and masks.intersection(event_ids):
-                        raise ValueError(
-                            "Missing native area lifecycle callback authority"
+                    with boundary:
+                        # Area row/definition lookups and Qq callbacks can run hooks.
+                        # Do not carry a fighter delivery view across this boundary.
+                        if _owns_phase_read_pass(self):
+                            self.replay.invalidate_read_pass()
+                        # Keep the actual Qq object across reactions that unregister it.
+                        from .combat_state_managers import retained_area_pv_row
+
+                        area_row = retained_area_pv_row(
+                            self.preview, source.manager_actor_id
                         )
-                    if callbacks is not None:
-                        outcomes.extend(
-                            callbacks.running_source(
-                                effect,
-                                invocation,
-                                uid=uid,
-                                value=value,
-                                channel=1,
-                                source=source,
-                                area_row=area_row,
-                                qf_delivered=True,
+                        if recipient.native_running_effect_manager:
+                            outcomes.append(
+                                self.replay(source, authority=self.authority)
+                            )
+                        if source.channel == 1:
+                            callbacks = getattr(self.retention, "area_events", None)
+                            from .combat_effect_area import native_effect_areas
+
+                            area_definition = native_effect_areas()[
+                                str(area_row["reference"])
+                            ]
+                            masks = (
+                                set(recipient.native_entry_masks)
+                                | set(area_definition.get("exit_masks", ()))
+                                | set(area_row.get("native_removal_masks", ()))
+                            )
+                            if callbacks is None and masks.intersection(event_ids):
+                                raise ValueError(
+                                    "Missing native area lifecycle callback authority"
+                                )
+                            if callbacks is not None:
+                                guarded_callback = _owns_phase_read_pass(self)
+                                if guarded_callback:
+                                    self.replay.invalidate_read_pass()
+                                try:
+                                    outcomes.extend(
+                                        callbacks.running_source(
+                                            effect,
+                                            invocation,
+                                            uid=uid,
+                                            value=value,
+                                            channel=1,
+                                            source=source,
+                                            area_row=area_row,
+                                            qf_delivered=True,
+                                        )
+                                    )
+                                finally:
+                                    if guarded_callback:
+                                        self.replay.invalidate_read_pass()
+                        if _owns_phase_read_pass(self):
+                            self.replay.invalidate_read_pass()
+                        continue  # Actual null bax skips Qf, never its own Qq callbacks.
+                outcomes.append(self.replay(source, authority=self.authority))
+            # eZR.L invokes PN.bab().m(caster) AFTER local deliveries. Determine whether
+            # any complete tracked manager can observe it before requiring roster order.
+            global_channel = channel * 10 + 1
+            from .combat_summon_initialization import detached_actor
+
+            construction = detached_actor(self.preview, invocation.caster_id)
+            if construction is not None:
+                # Actual fresh eZQ/PO.bab().m: constructor's beg contains SELF.
+                # Do not substitute fcb's battle-wide registered PV iterator.
+                verify_recipient(construction.id)
+                outcomes.append(
+                    self.replay(
+                        replace(
+                            base,
+                            channel=global_channel,
+                            manager_actor_id=construction.id,
+                        ),
+                        authority=self.authority,
+                    )
+                )
+                return tuple(outcomes)
+            if hasattr(self.preview, "native_global_pv_collections"):
+                from .combat_global_pv_collections import global_pv_iterator
+                from .combat_event_replay import NativeEventReplay
+                from .combat_retained_runtime import NativeRetainedRuntime
+                from .combat_ordinary_authority import (
+                    OrdinaryActorAuthority,
+                    _immutable_property_catalog,
+                )
+                from .combat_summon import RegisteredSummonAuthority
+                from .combat_npc_spellbook import ordinary_npc_spellbook
+                from contextlib import nullcontext
+
+                authority = self.adapter.actor_authority
+                if type(authority) is RegisteredSummonAuthority:
+                    authority = authority.ordinary
+                pure_reads = (
+                    type(self.replay) is NativeEventReplay
+                    and type(self.replay.retention) is NativeRetainedRuntime
+                    and type(authority) is OrdinaryActorAuthority
+                    and authority.catalog is _immutable_property_catalog()
+                    and (
+                        authority.npc_spellbook is None
+                        or authority.npc_spellbook is ordinary_npc_spellbook
+                    )
+                )
+                read_pass = (
+                    self.replay.read_pass()
+                    if pure_reads and not _owns_phase_read_pass(self)
+                    else nullcontext()
+                )
+
+                # Native m(caster) constructs its iterator after local delivery.
+                # Visit every eligible PV, not a cached set of matching listeners:
+                # earlier reactions can register subscriptions on later managers.
+                with read_pass:
+                    for identity in global_pv_iterator(
+                        self.preview, caster_id=invocation.caster_id
+                    ):
+                        # Anchored/custom PV lookups can refresh geometry or run
+                        # callbacks. Plain nonanchored area queries are read-only;
+                        # replay still invalidates before any selected activation.
+                        pure_area = (
+                            pure_reads
+                            and identity not in self.preview.actors
+                            and _pure_area_recipient_read(self.preview, identity)
+                        )
+                        if (
+                            pure_reads
+                            and identity not in self.preview.actors
+                            and not pure_area
+                        ):
+                            self.replay.invalidate_read_pass()
+                        recipient = verify_recipient(identity)
+                        if (
+                            getattr(recipient, "native_is_area", False)
+                            and not recipient.native_running_effect_manager
+                        ):
+                            continue  # Qq forwards to its actual nullable Qf.
+                        outcomes.append(
+                            self.replay(
+                                replace(
+                                    base,
+                                    channel=global_channel,
+                                    manager_actor_id=identity,
+                                ),
+                                authority=self.authority,
                             )
                         )
-                continue  # Actual null bax skips Qf, never its own Qq callbacks.
-            outcomes.append(self.replay(source, authority=self.authority))
-        # eZR.L invokes PN.bab().m(caster) AFTER local deliveries. Determine whether
-        # any complete tracked manager can observe it before requiring roster order.
-        global_channel = channel * 10 + 1
-        from .combat_summon_initialization import detached_actor
-
-        construction = detached_actor(self.preview, invocation.caster_id)
-        if construction is not None:
-            # Actual fresh eZQ/PO.bab().m: constructor's beg contains SELF.
-            # Do not substitute fcb's battle-wide registered PV iterator.
-            verify_recipient(construction.id)
-            outcomes.append(
-                self.replay(
-                    replace(
-                        base, channel=global_channel, manager_actor_id=construction.id
-                    ),
-                    authority=self.authority,
-                )
-            )
-            if channel == 3:
-                self._finish_finisher_cleanup(uid)
-            return tuple(outcomes)
-        if hasattr(self.preview, "native_global_pv_collections"):
-            from .combat_global_pv_collections import global_pv_iterator
-            from .combat_event_replay import NativeEventReplay
-            from .combat_retained_runtime import NativeRetainedRuntime
-            from .combat_ordinary_authority import (
-                OrdinaryActorAuthority,
-                _immutable_property_catalog,
-            )
-            from .combat_summon import RegisteredSummonAuthority
-            from .combat_npc_spellbook import ordinary_npc_spellbook
-            from contextlib import nullcontext
-
-            authority = self.adapter.actor_authority
-            if type(authority) is RegisteredSummonAuthority:
-                authority = authority.ordinary
-            pure_reads = (
-                type(self.replay) is NativeEventReplay
-                and type(self.replay.retention) is NativeRetainedRuntime
-                and type(authority) is OrdinaryActorAuthority
-                and authority.catalog is _immutable_property_catalog()
-                and (
-                    authority.npc_spellbook is None
-                    or authority.npc_spellbook is ordinary_npc_spellbook
-                )
-            )
-            read_pass = self.replay.read_pass() if pure_reads else nullcontext()
-
-            # Native m(caster) constructs its iterator after local delivery.
-            # Visit every eligible PV, not a cached set of matching listeners:
-            # earlier reactions can register subscriptions on later managers.
-            with read_pass:
-                for identity in global_pv_iterator(
-                    self.preview, caster_id=invocation.caster_id
+                        if (
+                            pure_reads
+                            and getattr(recipient, "native_is_area", False)
+                            and not pure_area
+                        ):
+                            self.replay.invalidate_read_pass()
+                return tuple(outcomes)
+            relevant = set()
+            for entry in self.retention.view().entries:
+                row = self.preview.native_owned_group_effects.get(entry.uid)
+                if row is None:
+                    continue
+                meta = self.retention.metadata["effects"][str(entry.generic_effect)]
+                if not meta["event_global_subscription"]:
+                    continue
+                if subscription_selection(
+                    masks=row["native_subscription_masks"],
+                    event_ids=event_ids,
+                    channel=global_channel,
+                    global_subscription=True,
+                    reversed_subscription=meta["event_reverse_subscription"],
+                    flags=row["native_effect_flags"],
+                    source_present=True,
+                    source_suppresses_level_one=base.suppresses_level_one,
+                    source_suppresses_all=base.suppresses_all,
+                    source_suppressed=False,
+                    source_is_self=uid == entry.uid,
+                    source_parent_is_self=parent == entry.uid,
                 ):
-                    # Area lookup refreshes live geometry, unlike the audited
-                    # ordinary fighter authority. Never carry a view across it.
-                    if pure_reads and identity not in self.preview.actors:
-                        self.replay.invalidate_read_pass()
-                    recipient = verify_recipient(identity)
-                    if (
-                        getattr(recipient, "native_is_area", False)
-                        and not recipient.native_running_effect_manager
-                    ):
-                        continue  # Qq forwards to its actual nullable Qf.
-                    outcomes.append(
-                        self.replay(
-                            replace(
-                                base, channel=global_channel, manager_actor_id=identity
-                            ),
-                            authority=self.authority,
-                        )
+                    relevant.add(entry.manager_id)
+            if len(relevant) > 1:
+                if any(identity not in self.preview.actors for identity in relevant):
+                    raise ValueError(
+                        "Global native event requires audited fighter/area iterator order"
                     )
-                    if pure_reads and getattr(recipient, "native_is_area", False):
-                        self.replay.invalidate_read_pass()
-            if channel == 3:
-                self._finish_finisher_cleanup(uid)
+                order = getattr(self.preview, "native_event_actor_order", None)
+                if (
+                    not isinstance(order, tuple)
+                    or len(order) != len(set(order))
+                    or set(order) != set(self.preview.actors)
+                ):
+                    raise ValueError(
+                        "Global native event requires audited fcb.m actor iterator order"
+                    )
+                relevant = [identity for identity in order if identity in relevant]
+            for identity in relevant:
+                recipient = verify_recipient(identity)
+                if (
+                    getattr(recipient, "native_is_area", False)
+                    and not recipient.native_running_effect_manager
+                ):
+                    raise ValueError("Global listener belongs to a native null-Qf area")
+                outcomes.append(
+                    self.replay(
+                        replace(
+                            base, channel=global_channel, manager_actor_id=identity
+                        ),
+                        authority=self.authority,
+                    )
+                )
             return tuple(outcomes)
-        relevant = set()
-        for entry in self.retention.view().entries:
-            row = self.preview.native_owned_group_effects.get(entry.uid)
-            if row is None:
-                continue
-            meta = self.retention.metadata["effects"][str(entry.generic_effect)]
-            if not meta["event_global_subscription"]:
-                continue
-            if subscription_selection(
-                masks=row["native_subscription_masks"],
-                event_ids=event_ids,
-                channel=global_channel,
-                global_subscription=True,
-                reversed_subscription=meta["event_reverse_subscription"],
-                flags=row["native_effect_flags"],
-                source_present=True,
-                source_suppresses_level_one=base.suppresses_level_one,
-                source_suppresses_all=base.suppresses_all,
-                source_suppressed=False,
-                source_is_self=uid == entry.uid,
-                source_parent_is_self=parent == entry.uid,
-            ):
-                relevant.add(entry.manager_id)
-        if len(relevant) > 1:
-            if any(identity not in self.preview.actors for identity in relevant):
-                raise ValueError(
-                    "Global native event requires audited fighter/area iterator order"
-                )
-            order = getattr(self.preview, "native_event_actor_order", None)
-            if (
-                not isinstance(order, tuple)
-                or len(order) != len(set(order))
-                or set(order) != set(self.preview.actors)
-            ):
-                raise ValueError(
-                    "Global native event requires audited fcb.m actor iterator order"
-                )
-            relevant = [identity for identity in order if identity in relevant]
-        for identity in relevant:
-            recipient = verify_recipient(identity)
-            if (
-                getattr(recipient, "native_is_area", False)
-                and not recipient.native_running_effect_manager
-            ):
-                raise ValueError("Global listener belongs to a native null-Qf area")
-            outcomes.append(
-                self.replay(
-                    replace(base, channel=global_channel, manager_actor_id=identity),
-                    authority=self.authority,
-                )
-            )
+
+        with _phase_read_pass(self, invocation):
+            outcomes = deliver()
         if channel == 3:
-            # All owned writers append their lethal delivery before Qe L3.
+            # Cleanup may mutate managers; it never inherits the delivery view.
             self._finish_finisher_cleanup(uid)
-        return tuple(outcomes)
+        return outcomes
 
 
 class OrdinaryDamageEvents(OrdinaryHealingEvents):

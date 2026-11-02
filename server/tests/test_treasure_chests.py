@@ -162,7 +162,7 @@ class TreasureChestTests(PostgresCase):
         self.assertFalse(independent["replay"])
 
         failed_account, failed_generation, failed = self.owner("rollback")
-        original_grant = harvest_inventory.grant
+        original_grant = harvest_inventory.grant_products
 
         def fail_after_inventory_mutation(*args, **kwargs):
             original_grant(*args, **kwargs)
@@ -220,7 +220,21 @@ class TreasureChestTests(PostgresCase):
                     allowed_references={2340},
                     db=db,
                 )
-        with self.assertRaisesRegex(ValueError, "inventory full"):
+            for bag in full["inventory_containers"][1:]:
+                for slot in range(bag["capacity"]):
+                    owned_grant(
+                        self.store,
+                        full_account,
+                        full_generation,
+                        full["id"],
+                        reference=2340,
+                        quantity=1,
+                        container=bag["uid"],
+                        slot=slot,
+                        allowed_references={2340},
+                        db=db,
+                    )
+        with self.assertRaisesRegex(ValueError, "no supported ordinary bag space"):
             chests.claim(
                 self.store,
                 full_account,

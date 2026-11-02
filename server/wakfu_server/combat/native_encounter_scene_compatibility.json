@@ -1,0 +1,318 @@
+{
+  "authority": "authorized_wakemu_native_content_reconstruction",
+  "records": [
+    {
+      "configuration_sha256": "16175229679956d0a455ca8cb1862d90469366a2ae5f2c93753ed79c7783e045",
+      "document_sha256": "573565d348fef4fd64f9307cab592499cbdee23f8cae19ff57014fd22573002c",
+      "plan_sha256": "22561cd9606d9445bae3a5dc0d855f2695a441dbc48e940cdbfff8d4c9a6f539",
+      "policy_version": 4,
+      "rooms": [
+        {
+          "encounter_scene": {
+            "authority": "authorized_wakemu_native_content_reconstruction",
+            "full_room_scope": true,
+            "native_initial_glyph_authority": "authorized_wakemu_native_content_reconstruction",
+            "native_initial_glyph_policy": "wakemu.reviewed-interior-water-socket-reconstruction-v1",
+            "native_initial_glyph_source_url": "https://methodwakfu.com/pvm/donjons/donjon-equipage-du-poulpe/",
+            "native_initial_glyphs": [
+              {
+                "cell": [
+                  -8,
+                  -24,
+                  -2
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  -8,
+                  -16,
+                  -2
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  -6,
+                  -11,
+                  -2
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  -3,
+                  -28,
+                  -2
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  2,
+                  -18,
+                  -2
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  1,
+                  -11,
+                  -2
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  2,
+                  -25,
+                  -2
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  4,
+                  -21,
+                  -2
+                ],
+                "level": 0,
+                "reference": 1753
+              }
+            ],
+            "policy_id": "wakemu.reviewed-native-sea-encounter-v1",
+            "schema_version": 1,
+            "source_uri": "https://methodwakfu.com/pvm/donjons/donjon-equipage-du-poulpe/",
+            "state_programs": [
+              {
+                "level": 1,
+                "protected": true,
+                "repeat_at_round_start": {
+                  "channel": 61,
+                  "event_id": 1003,
+                  "root_ids": [
+                    341747,
+                    341758
+                  ]
+                },
+                "source_sha256": "04bd9d3fa7b20b31197038cf0716a155c30581e8d8133c41c3c09a804ed2ee64",
+                "state_id": 7592,
+                "target_references": [
+                  5373,
+                  5374,
+                  5375
+                ]
+              }
+            ]
+          },
+          "room_order": 1,
+          "room_sha256": "1e55f52e20bc24779f2f2338143d3e00b81ae4f3a0c2ae672a78c33dd2ee7756"
+        },
+        {
+          "encounter_scene": {
+            "authority": "authorized_wakemu_native_content_reconstruction",
+            "callback_owned_spells": [
+              {
+                "actor_reference": 5376,
+                "initial_state": 7590,
+                "native_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+                "paths": [
+                  [
+                    [
+                      "state",
+                      7590
+                    ],
+                    [
+                      "effect",
+                      341692
+                    ],
+                    [
+                      "effect",
+                      341693
+                    ],
+                    [
+                      "spell",
+                      7604
+                    ]
+                  ],
+                  [
+                    [
+                      "state",
+                      7590
+                    ],
+                    [
+                      "effect",
+                      341692
+                    ],
+                    [
+                      "effect",
+                      341693
+                    ],
+                    [
+                      "spell",
+                      7604
+                    ],
+                    [
+                      "effect",
+                      341645
+                    ],
+                    [
+                      "state",
+                      7583
+                    ],
+                    [
+                      "effect",
+                      341650
+                    ],
+                    [
+                      "effect",
+                      341651
+                    ],
+                    [
+                      "spell",
+                      7605
+                    ]
+                  ]
+                ],
+                "source_closure_sha256": "05962d2e7b51e520731e67d017c3e5c6159821cf4aa1e59c9a829fcd037bc580"
+              }
+            ],
+            "full_room_scope": true,
+            "native_initial_glyph_authority": "authorized_wakemu_native_content_reconstruction",
+            "native_initial_glyph_policy": "wakemu.reviewed-interior-water-socket-reconstruction-v1",
+            "native_initial_glyph_source_url": "https://methodwakfu.com/pvm/donjons/donjon-equipage-du-poulpe/",
+            "native_initial_glyphs": [
+              {
+                "cell": [
+                  -9,
+                  -65,
+                  -17
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  -9,
+                  -53,
+                  -17
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  -7,
+                  -62,
+                  -17
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  -8,
+                  -57,
+                  -17
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  -4,
+                  -62,
+                  -17
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  -4,
+                  -55,
+                  -17
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  -2,
+                  -64,
+                  -17
+                ],
+                "level": 0,
+                "reference": 1753
+              },
+              {
+                "cell": [
+                  -2,
+                  -58,
+                  -17
+                ],
+                "level": 0,
+                "reference": 1753
+              }
+            ],
+            "policy_id": "wakemu.reviewed-native-sea-encounter-v1",
+            "schema_version": 1,
+            "source_uri": "https://methodwakfu.com/pvm/donjons/donjon-equipage-du-poulpe/",
+            "state_programs": [],
+            "turn_end_order": {
+              "authority": "reviewed_native_phase_causal_order_reconstruction",
+              "constructor_state": 7590,
+              "event_ids": [
+                1037,
+                1002
+              ],
+              "source_effect_chain": [
+                341692,
+                341693,
+                341645,
+                341714
+              ],
+              "source_sha256": "b6465e31b3e28feb5fe96583cd38b33b6f7532e6ca2a238e13e9d1b713a9c555",
+              "target_references": [
+                5376
+              ]
+            },
+            "external_event_participants": [
+              {
+                "listener_reference": 341736,
+                "receiver_state": 7585,
+                "receiver_root": 341740,
+                "controller_state": 7590,
+                "controller_references": [
+                  5376
+                ],
+                "source_chain": [
+                  341736,
+                  409623,
+                  341737
+                ],
+                "event_id": 1002,
+                "phase": "end",
+                "relation": "actual_owned_event_participant_as_external_caster",
+                "authority": "authorized_wakemu_native_content_reconstruction",
+                "source_sha256": "ed5a9cb5d9f8478a27e30db24826d8fd87e8eebdd3f3154236a9d44f2f9970cc"
+              }
+            ]
+          },
+          "room_order": 2,
+          "room_sha256": "0879403f68c0622c30f75235da2ba1ceb55f9aa68a699814d3d00a554d71dff5"
+        }
+      ],
+      "route_key": "native_dungeon_184"
+    }
+  ],
+  "schema_version": 1
+}

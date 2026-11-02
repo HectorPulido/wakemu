@@ -251,6 +251,8 @@ def artifact_contact_eligible(fight, *, area_row, actor_id, criterion_probe=None
         and actor_id not in getattr(fight, "native_summon_registrations", {})
         and not carrying_relations(fight, actor)["is_carried"]
         and area_row["uid"] in group["remaining"]
+        and len(set(group["remaining"]) & fight.native_effect_areas.keys())
+        > len(group.get("pending_pairs", ()))
         and group["original"][str(area_row["uid"])] == area_row["reference"]
         and group["choices_made"] < group["choices_allowed"]
     )
@@ -262,25 +264,6 @@ def artifact_contact_eligible(fight, *, area_row, actor_id, criterion_probe=None
     if type(permitted) is not bool:
         raise ValueError("Native Rift contact criterion probe must return bool")
     return permitted
-
-
-def _artifact_representative(fight, team, *, area_uid, area_events):
-    actors = sorted(
-        (
-            actor
-            for actor in fight.actors.values()
-            if actor.team == team
-            and fight._in_play(actor)
-            and actor.id not in getattr(fight, "native_summon_registrations", {})
-        ),
-        key=lambda actor: actor.id,
-    )
-    for actor in actors:
-        if area_events.artifact_assignment_eligible(area_uid, actor.id):
-            return actor.id
-    raise ValueError(
-        "Native artifact team assignment requires an eligible living original fighter"
-    )
 
 
 def apply_artifact_collection(dispatcher, *, area_row, actor_id):
@@ -318,36 +301,20 @@ def apply_artifact_collection(dispatcher, *, area_row, actor_id):
         raise ValueError(
             "Rift choice requires the actual consumed native contact receipt"
         )
-    remaining = [value for value in group["remaining"] if value != uid]
-    if not remaining:
-        raise ValueError("Rift artifact pair lost its remaining opponent choice")
     rng = getattr(dispatcher, "rift_artifact_rng", None)
     if not callable(getattr(rng, "randrange", None)):
         raise ValueError(
             "Rift artifact assignment requires the accepted transaction RNG"
         )
     from wakfu_server.combat_encounter_roles import assigned_roles
+    from wakfu_server.rift_artifact_recovery import finish_pending_pairs
 
-    paired = remaining[rng.randrange(len(remaining))]
-    recipient = _artifact_representative(
-        fight,
-        assigned_roles(fight).npc_team,
-        area_uid=paired,
-        area_events=dispatcher.native_area_events,
-    )
-    group["remaining"] = [value for value in remaining if value != paired]
+    group["remaining"] = [value for value in group["remaining"] if value != uid]
     group["choices_made"] += 1
-    if not dispatcher.native_area_events.assign_artifact(paired, recipient):
-        raise ValueError("Paired native rift artifact was not assigned")
-    group["assignments"].append(
-        dict(
-            kind="contact_pair",
-            collected=uid,
-            collector=actor_id,
-            opponent=paired,
-            recipient=recipient,
-        )
+    group.setdefault("pending_pairs", []).append(
+        dict(kind="contact_pair", collected=uid, collector=actor_id)
     )
+    finish_pending_pairs(dispatcher, group, npc_team=assigned_roles(fight).npc_team)
     return True
 
 
@@ -371,47 +338,66 @@ def distribute_unclaimed_artifacts(dispatcher, *, before_wave):
         raise ValueError(
             "Rift artifact distribution requires the accepted transaction RNG"
         )
+    from wakfu_server.rift_artifact_recovery import (
+        eligible_representative,
+        finish_pending_pairs,
+        reconcile_artifact_group,
+    )
+
     changed = False
     for key, group in sorted(
         fight.rift_wave_state.get("native_artifact_groups", {}).items(),
         key=lambda item: int(item[0]),
     ):
-        if int(key) >= before_wave or not group["remaining"]:
+        if int(key) >= before_wave:
             continue
-        if len(group["remaining"]) % 2:
-            raise ValueError(
-                "Unclaimed native rift artifacts lost their complete pairs"
-            )
-        while group["remaining"]:
-            remaining = group["remaining"]
-            selected = remaining.pop(rng.randrange(len(remaining)))
-            paired = remaining.pop(rng.randrange(len(remaining)))
-            player = _artifact_representative(
-                fight,
-                roles.player_team,
-                area_uid=selected,
-                area_events=dispatcher.native_area_events,
-            )
-            enemy = _artifact_representative(
-                fight,
-                roles.npc_team,
-                area_uid=paired,
-                area_events=dispatcher.native_area_events,
-            )
-            for uid, recipient in ((selected, player), (paired, enemy)):
-                if not dispatcher.native_area_events.assign_artifact(uid, recipient):
-                    raise ValueError(
-                        "Unclaimed native rift artifact assignment was rejected"
-                    )
-            group["assignments"].append(
-                dict(
-                    kind="automatic_pair",
-                    collected=selected,
-                    collector=player,
-                    opponent=paired,
-                    recipient=enemy,
-                    before_wave=before_wave,
+        changed |= finish_pending_pairs(
+            dispatcher, group, npc_team=roles.npc_team, before_wave=before_wave
+        )
+        # Native removal may leave an odd remainder. Preserve the actual live
+        # choice for later contact rather than blocking the successor wave.
+        # Pending opponent obligations have priority over new player grants.
+        while len(group["remaining"]) >= 2 and not group.get("pending_pairs"):
+            candidates = []
+            for uid in group["remaining"]:
+                player = eligible_representative(
+                    fight,
+                    roles.player_team,
+                    area_uid=uid,
+                    area_events=dispatcher.native_area_events,
                 )
+                if player is None:
+                    continue
+                if any(
+                    other != uid
+                    and eligible_representative(
+                        fight,
+                        roles.npc_team,
+                        area_uid=other,
+                        area_events=dispatcher.native_area_events,
+                    )
+                    is not None
+                    for other in group["remaining"]
+                ):
+                    candidates.append((uid, player))
+            if not candidates:
+                break  # Carry/state restrictions can change on later waves.
+            selected, player = candidates[rng.randrange(len(candidates))]
+            if not dispatcher.native_area_events.assign_artifact(selected, player):
+                repaired = reconcile_artifact_group(fight, group)
+                changed |= repaired
+                if not repaired:
+                    break
+                continue
+            group["remaining"] = [uid for uid in group["remaining"] if uid != selected]
+            group.setdefault("pending_pairs", []).append(
+                dict(kind="automatic_pair", collected=selected, collector=player)
             )
             changed = True
+            finish_pending_pairs(
+                dispatcher,
+                group,
+                npc_team=roles.npc_team,
+                before_wave=before_wave,
+            )
     return changed

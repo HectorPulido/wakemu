@@ -3,7 +3,11 @@
 SOURCE = "wakemu.pve_withdrawal.QI_g.fdt_bx.v1"
 
 
-def retired_pve_actor_ids(fight):
+def retired_pve_actor_ids(fight, *, pv_view=None):
+    if pv_view is None:
+        from .combat_global_pv_read_view import NativeGlobalPVReadView
+
+        pv_view = NativeGlobalPVReadView(fight)
     records = getattr(fight, "native_pve_departures", {})
     if not isinstance(records, dict):
         raise ValueError("Malformed owned PvE departure source")
@@ -26,9 +30,9 @@ def retired_pve_actor_ids(fight):
         if collections is not None:
             from .combat_global_pv_collections import global_fighter_participates
 
-            if identity not in collections.get(
-                "retired_fighters", []
-            ) or global_fighter_participates(fight, identity):
+            if identity not in collections.get("retired_fighters", []) or (
+                global_fighter_participates if pv_view is None else pv_view.participates
+            )(fight, identity):
                 raise ValueError("Stale owned PvE departure population")
         retired.add(identity)
     return frozenset(retired)

@@ -9,6 +9,8 @@ from wakfu_server import player_parties
 
 def completion_destination(result, topology):
     """Allow local automatic exterior return only for a final victory."""
+    if result.get("encounter_scope", "main") == "optional":
+        return None
     if topology.get("policy") != "local_accessible_anchor_policy":
         return None
     if result.get("victory") is not True or result.get("completed") is not True:

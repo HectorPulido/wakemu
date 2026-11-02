@@ -27,6 +27,7 @@ class NativeReflectRunnerHandler:
         self.authority = authority
         self.event_lifecycle = None
         self.prepared, self.runners = {}, {}
+        self.prepared_event_clones = {}
 
     def _events(self, effect):
         masks = effect.get("target_masks")
@@ -64,9 +65,40 @@ class NativeReflectRunnerHandler:
     def cancel_prepared(self, invocation):
         self.prepared.pop(invocation.native_running_uid, None)
         self.runners.pop(invocation.native_running_uid, None)
+        self.prepared_event_clones.pop(invocation.native_running_uid, None)
 
     def prepare(self, effect, values, invocation):
-        uid = self.allocate_uid()
+        return self._prepare(effect, invocation, self.allocate_uid())
+
+    def prepare_activation(self, effect, values, invocation, *, clone_uid):
+        """Qe.k/j/bbL gives this exact clone Ty=false, preserving its listener."""
+        listener = getattr(self.fight, "native_owned_group_effects", {}).get(
+            invocation.base_uid
+        )
+        original = (
+            {} if not isinstance(listener, dict) else listener.get("invocation", {})
+        )
+        if (
+            effect.get("effect_class") != 309
+            or type(clone_uid) is not int
+            or clone_uid <= 0
+            or clone_uid in self.runners
+            or clone_uid in self.prepared_event_clones
+            or invocation.native_running_uid is not None
+            or not isinstance(listener, dict)
+            or listener.get("uid") != invocation.base_uid
+            or listener.get("effect_class") != 309
+            or not isinstance(original, dict)
+            or original.get("reference") != invocation.reference
+            or original.get("level") != invocation.level
+            or listener.get("state_uid") != invocation.state_uid
+        ):
+            raise ValueError("Missing subscribed eZc original listener authority")
+        prepared = self._prepare(effect, invocation, clone_uid)
+        self.prepared_event_clones[clone_uid] = prepared
+        return prepared
+
+    def _prepare(self, effect, invocation, uid):
         invocation = replace(invocation, native_running_uid=uid)
         runner = NativeRunnerAmount(uid, 309, rng=self.rng)
         bind_runner_target(runner, invocation)
@@ -102,6 +134,13 @@ class NativeReflectRunnerHandler:
         if not ctx.executable:
             return False
         uid = invocation.native_running_uid or self.allocate_uid()
+        clone = self.prepared_event_clones.get(uid)
+        if clone is not None:
+            if clone != invocation:
+                raise ValueError("Prepared native eZc clone identity changed")
+            # Native Qe.j calls bbL; eZR.Ty checks bfM before definition timing.
+            # The original subscription remains the only retained listener.
+            ctx = replace(ctx, retained=False)
         runner = self.runners.get(uid)
         if runner is None:
             ratio, on_target = self._calculate(effect, invocation)

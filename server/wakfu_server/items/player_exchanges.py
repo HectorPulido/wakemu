@@ -69,7 +69,28 @@ def _owners(exchange):
     ]
 
 
-def _outbox(store, db, exchange, event, *, canceled_by=None, previous_state=None):
+def _outbox(
+    store,
+    db,
+    exchange,
+    event,
+    *,
+    canceled_by=None,
+    previous_state=None,
+    quote_rejection=None,
+):
+    if (
+        quote_rejection is None
+        and event == "snapshot"
+        and exchange["state"] == "active"
+    ):
+        previous = db.execute(
+            "SELECT payload->'quote_rejection' AS rejection FROM player_exchange_outbox "
+            "WHERE exchange_id=%s AND revision=%s AND event='snapshot' ORDER BY id DESC LIMIT 1",
+            (exchange["id"], exchange["revision"]),
+        ).fetchone()
+        if previous is not None:
+            quote_rejection = previous["rejection"]
     members = [
         dict(row)
         for row in db.execute(
@@ -118,6 +139,11 @@ def _outbox(store, db, exchange, event, *, canceled_by=None, previous_state=None
                         "items": items,
                         "canceled_by": canceled_by,
                         "previous_state": previous_state,
+                        **(
+                            {"quote_rejection": quote_rejection}
+                            if quote_rejection is not None
+                            else {}
+                        ),
                     }
                 ),
                 store.now(),
@@ -413,16 +439,20 @@ def published(store, account_id, generation, character_id, exchange_id, revision
 
 
 def _offered_item(store, db, account_id, character_id, uid, quantity):
-    from .exchange_rules import eligibility, ITEMS
-    from .inventory_move import STACKS
-    from wakfu_server.wire import proto_fields
-
     item = db.execute(
         "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
         (uid, character_id),
     ).fetchone()
     if item is None or quantity > item["quantity"]:
         raise ValueError("Exchange item is unavailable or foreign")
+    if item.get("instance_custody_id") is not None:
+        raise ValueError(
+            "This temporary dungeon tool must stay with its owner until exit"
+        )
+    from .exchange_rules import eligibility, ITEMS
+    from .inventory_move import STACKS
+    from wakfu_server.wire import proto_fields
+
     rule = STACKS.get(item["reference"])
     if rule is None or item["quantity"] > rule["maximum"]:
         raise ValueError("Exchange item has an unsupported stack")
@@ -803,3 +833,111 @@ def _commit(store, db, exchange, wallets, members):
         "DELETE FROM player_exchange_members WHERE exchange_id=%s", (exchange["id"],)
     )
     return dict(exchange, receipt=receipt, applied=True)
+
+
+def decline_purchase_quote(
+    store,
+    account_id,
+    generation,
+    character_id,
+    exchange_id,
+    *,
+    expected_revision,
+    reason,
+):
+    """Keep an unpriced offer open, revoke consent and explain it exactly once.
+
+    Money and inventory stay untouched. Offer mutations already revoke both
+    participants' consent; this boundary also rejects queued previous revisions.
+    """
+    from wakfu_server.bots.buyer_catalog import purchase_prices_in_transaction
+    import hashlib
+    import json
+
+    reasons = {
+        "unsupported_items",
+        "buyer_items",
+        "seller_kamas",
+        "quote_unavailable",
+        "zero_value",
+        "insufficient_budget",
+        "worker_unavailable",
+    }
+    if (
+        type(expected_revision) is not int
+        or expected_revision <= 0
+        or reason not in reasons
+    ):
+        raise ValueError("Invalid purchase quote rejection")
+    with store.connection() as db:
+        exchange, _wallets = _active(
+            store, db, account_id, generation, character_id, exchange_id
+        )
+        if exchange["revision"] != expected_revision:
+            from wakfu_server.bots.bridge import BotConflict
+
+            raise BotConflict("exchange_revision_stale")
+        items = [
+            dict(row)
+            for row in db.execute(
+                "SELECT o.uid,o.quantity,i.reference FROM player_exchange_items o "
+                "JOIN inventory_items i ON i.uid=o.uid AND i.character_id=o.character_id "
+                "WHERE o.exchange_id=%s AND o.character_id<>%s ORDER BY o.uid",
+                (exchange_id, character_id),
+            ).fetchall()
+        ]
+        references = sorted({row["reference"] for row in items})
+        prices = (
+            purchase_prices_in_transaction(db, references)["prices"]
+            if references
+            else []
+        )
+        priced = {row["reference"] for row in prices}
+        missing = [reference for reference in references if reference not in priced]
+        if reason == "unsupported_items" and not missing:
+            raise ValueError("Current purchase offer has no unpriced items")
+        names = {
+            row["item_ref"]: row["name"]
+            for row in db.execute(
+                "SELECT item_ref,name FROM shop_articles WHERE item_ref=ANY(%s) ORDER BY id DESC",
+                (missing,),
+            ).fetchall()
+        }
+        fingerprint = hashlib.sha256(
+            json.dumps(items, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        prior = db.execute(
+            "SELECT payload->'quote_rejection' AS rejection FROM player_exchange_outbox "
+            "WHERE exchange_id=%s AND revision=%s AND character_id=%s AND event='snapshot' "
+            "ORDER BY id DESC LIMIT 1",
+            (exchange_id, exchange["revision"], character_id),
+        ).fetchone()
+        rejection = dict(
+            by=character_id,
+            fingerprint=fingerprint,
+            reason=reason,
+            items=[
+                dict(reference=reference, name=names.get(reference, str(reference)))
+                for reference in missing
+            ],
+        )
+        if prior is not None and prior["rejection"] == rejection:
+            ready = db.execute(
+                "SELECT 1 FROM player_exchange_members WHERE exchange_id=%s AND confirmed_revision IS NOT NULL LIMIT 1",
+                (exchange_id,),
+            ).fetchone()
+            if ready is None:
+                return dict(exchange)
+        db.execute(
+            "UPDATE player_exchange_members SET confirmed_revision=NULL WHERE exchange_id=%s",
+            (exchange_id,),
+        )
+        exchange = dict(
+            db.execute(
+                "UPDATE player_exchanges SET revision=revision+1,delivery_sequence=delivery_sequence+1 "
+                "WHERE id=%s RETURNING *",
+                (exchange_id,),
+            ).fetchone()
+        )
+        _outbox(store, db, exchange, "snapshot", quote_rejection=rejection)
+        return exchange

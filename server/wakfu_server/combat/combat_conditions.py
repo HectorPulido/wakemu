@@ -136,6 +136,8 @@ class ConditionActor:
     characteristics: Mapping[str, int | None] | None = None
     characteristic_maxima: Mapping[str, int] | None = None
     direction: int | None = None  # Native eGj.bcy().dyI; None means unknown.
+    # eLB alone skips source-proven absent HP PCs; absence is not a zero PA.
+    total_hp_absent_characteristics: frozenset[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -302,6 +304,10 @@ class ConditionContext:
     is_in_diagonal: bool | None = None  # eNY resolved fight/coordinate snapshot.
     native_casting_query: object = (
         None  # Owned fcj request/table producer, not effect execution.
+    )
+
+    external_event_caster_query: object = (
+        None  # Explicit reviewed caller relationship; never a native source Qe.
     )
 
 
@@ -1223,7 +1229,9 @@ def evaluate_condition(
                 raise UnknownCondition("Missing native total HP actor")
             try:
                 return total_hp_percent(
-                    actor.characteristics or {}, actor.characteristic_maxima or {}
+                    actor.characteristics or {},
+                    actor.characteristic_maxima or {},
+                    known_absent=actor.total_hp_absent_characteristics,
                 )
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
@@ -1518,6 +1526,19 @@ def evaluate_condition(
             return actor.breed_id
         if name in ("GetTriggeringEffectCaster", "GetTriggeringEffectTarget"):
             if context.triggering_effect_present is False:
+                if (
+                    name == "GetTriggeringEffectCaster"
+                    and context.external_event_caster_query is not None
+                ):
+                    external = context.external_event_caster_query()
+                    if external is not None:
+                        if type(external) is not int or not -(1 << 63) <= external < (
+                            1 << 63
+                        ):
+                            raise UnknownCondition(
+                                "Invalid reviewed external participant identity"
+                            )
+                        return external
                 return -1
             value = (
                 context.triggering_effect_caster_id
@@ -1752,6 +1773,18 @@ def evaluate_condition(
                 raise UnknownCondition("Missing native summon count")
             return actor.summon_count
         characteristic = aliases[args[0].value.upper()]
+        if (
+            name in ("GetCharacInPct", "GetCharacPct", "GetCharacteristicPct")
+            and isinstance(actor.total_hp_absent_characteristics, frozenset)
+            and characteristic in actor.total_hp_absent_characteristics
+        ):
+            if characteristic in (actor.characteristics or {}) or characteristic in (
+                actor.characteristic_maxima or {}
+            ):
+                raise UnknownCondition("Contradictory native characteristic absence")
+            # eJz.e returns -1 when the selected eHg.a(PC) is false. The
+            # registered area constructor proves absence; missing data does not.
+            return -1.0
         if actor.characteristics is None or characteristic not in actor.characteristics:
             raise UnknownCondition(f"Missing native characteristic: {characteristic}")
         value = actor.characteristics[characteristic]

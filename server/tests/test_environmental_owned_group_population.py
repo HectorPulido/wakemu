@@ -441,9 +441,15 @@ class EnvironmentalOwnedGroupPopulationTests(PostgresCase):
             )
         ]
         self.groups.register(1134, 17, 990000, foreign)
-        good, bad, outside = (
-            SimpleNamespace(shutdown=lambda *_: None) for _ in range(3)
-        )
+
+        class Peer:
+            def __init__(self):
+                self.shutdown_calls = []
+
+            def shutdown(self, how):
+                self.shutdown_calls.append(how)
+
+        good, bad, outside = Peer(), Peer(), Peer()
         self.world.join(self.generation, good, self.character)
         other_account = self.store.register(
             "environmental-selected-peer", "test-password"
@@ -490,7 +496,7 @@ class EnvironmentalOwnedGroupPopulationTests(PostgresCase):
 
         def partial(peer, packets):
             if peer is bad:
-                raise OSError("selected group map peer unavailable")
+                raise BrokenPipeError(32, "selected group map peer unavailable")
             received.append((peer, packets))
 
         self.world.deliver_batch = partial
@@ -502,8 +508,11 @@ class EnvironmentalOwnedGroupPopulationTests(PostgresCase):
                 ).fetchone()["n"],
                 0,
             )
-        with self.assertRaisesRegex(OSError, "unpublished recipients"):
-            refresh(self.now)
+        self.assertFalse(refresh(self.now))
+        self.assertEqual(bad.shutdown_calls, [2])
+        self.assertEqual(good.shutdown_calls, [])
+        self.assertEqual(len(received), 1)
+        self.assertIs(received[0][0], good)
         with self.store.connection() as db:
             owned = db.execute("SELECT * FROM environmental_owned_groups").fetchall()
             self.assertEqual(len(owned), 1)
@@ -521,9 +530,9 @@ class EnvironmentalOwnedGroupPopulationTests(PostgresCase):
             self.assertEqual(
                 db.execute("SELECT count(*) AS n FROM combat_groups").fetchone()["n"], 2
             )
-        self.world.deliver_batch = lambda peer, packets: received.append(
-            (peer, packets)
-        )
+        # The broken socket's worker owns normal departure cleanup. Once its
+        # lease is removed, retry the same durable batch to remaining peers.
+        self.world.leave(other["id"], "selected-peer")
         self.assertTrue(refresh(self.now + 1))
         self.assertTrue(
             any(opcode == 12608 for peer, packets in received for opcode, _ in packets)
@@ -553,7 +562,7 @@ class EnvironmentalOwnedGroupPopulationTests(PostgresCase):
             for opcode, body in packets
             if opcode == 12304
         ]
-        self.assertEqual(len(removals), 2)  # One native batch per actual map peer.
+        self.assertEqual(len(removals), 1)  # The broken peer left before the retry.
         import struct
 
         expected_removal_ids = member_ids

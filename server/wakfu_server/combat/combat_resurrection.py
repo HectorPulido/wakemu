@@ -41,12 +41,14 @@ def prepare_resurrection(fight, target, effect, *, execution_context=None):
         raise ValueError("Resurrection requires an actual owned OFF_PLAY corpse")
     registry = current_registry(fight)
     slot = target.native_obstacle_id
+    slots = registry.slots
+    row = slots[slot] if type(slot) is int and 0 <= slot < len(slots) else None
     if (
-        type(slot) is not int
-        or not 0 <= slot < len(registry.slots)
-        or registry.slots[slot] is None
-        or registry.slots[slot]["identity"] != ["actor", target.id]
-        or registry.slots[slot]["position"] != list(target.position[:2])
+        row is None
+        or row["identity"] != ["actor", target.id]
+        # Native movement retains its coordinate tuple; checkpoint JSON uses
+        # lists. Both describe the same still-owned corpse registration.
+        or tuple(row["position"]) != tuple(target.position[:2])
     ):
         raise ValueError("Revivable fighter lost its owned QI slot")
     removed = [

@@ -49,7 +49,14 @@ def defeated_members(fight, members):
                 for key in ("map_id", "instance_id", "x", "y", "z", "team")
             },
         )
-        if member != verified or actor is None or actor.controlled or member["id"] >= 0:
+        from .combat_fixed_actor_placement import native_member_fields
+
+        if (
+            native_member_fields(member) != verified
+            or actor is None
+            or actor.controlled
+            or member["id"] >= 0
+        ):
             raise ValueError("Corpse roster contains a foreign actor")
         if actor.hp == 0:
             result.append(member)

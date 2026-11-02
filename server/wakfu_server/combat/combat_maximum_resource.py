@@ -563,22 +563,42 @@ REDUCTION_FAMILIES = {56: 2, 57: 3, 192: 4}
 
 
 def _reduction_area_lacks_characteristic(fight, identity, stat):
-    """Prove faW PV.a(PC)==false from its actual constructor population."""
+    """Prove PV.a(PC)==false from the actual supported area constructor."""
     from .combat_state_managers import registered_area_pv, retained_area_pv_row
     from .combat_effect_area import native_effect_areas
     from .combat_fake_fighter import verified_fake_fighter
 
-    if registered_area_pv(fight, identity) is None:
+    pv = registered_area_pv(fight, identity)
+    if pv is None:
         raise ValueError("Missing native reduction target PV")
     row = retained_area_pv_row(fight, identity)
-    if row.get("native_area_contract") != "faW":
-        raise ValueError(
-            "Unsupported native reduction target PV characteristic authority"
-        )
     definition = native_effect_areas()[str(row["reference"])]
-    constructor = verified_fake_fighter(row, definition)
-    if stat in constructor["characteristic_ids"]:
-        raise ValueError("Native reduction area PA writer is unavailable")
+    if row.get("native_area_contract") == "fbd":
+        from .combat_wall_area import verified_wall_constructor
+
+        verified_wall_constructor(row, definition, fight=fight)
+        # fbd.aQc installs rMK's eight resistance PCs plus HP/sgC.
+        # AP/MP/WP (2/3/4) are absent; preserve eWO's muted PA branch.
+        if stat not in (2, 3, 4):
+            raise ValueError("Unproven native wall reduction characteristic")
+        return True
+    if row.get("native_area_contract") == "faW":
+        constructor = verified_fake_fighter(row, definition)
+        if stat in constructor["characteristic_ids"]:
+            raise ValueError("Native reduction area PA writer is unavailable")
+        return True
+    if row.get("native_area_contract") == "fbc":
+        # registered_area_pv verified the actual trap characteristic universe.
+        if not isinstance(pv.native_characteristics, dict):
+            raise ValueError("Missing native trap characteristic authority")
+        if stat in pv.native_characteristics:
+            raise ValueError("Native reduction area PA writer is unavailable")
+        return True
+    # The other registered faV subtypes inherit a(PC)=false/b(PC)=null.
+    # Registration already validated the native subtype/constructor; unknown
+    # areas cannot reach this branch. Preserve the existing muted lifecycle.
+    if pv.native_characteristics is not None:
+        raise ValueError("Changed native plain-area characteristic universe")
     return True
 
 

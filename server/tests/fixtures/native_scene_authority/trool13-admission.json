@@ -1,0 +1,21 @@
+{
+  "policy_id": "wakemu.configured_native_13.admission.v1",
+  "authority": "reconstructed_wakemu_native_scene_v1",
+  "route": {
+    "definition_id": 13,
+    "template_id": 16,
+    "entry_map_id": 337,
+    "entry_object_id": 18969,
+    "destination_id": 1167,
+    "start_map_id": 483
+  },
+  "maximum_members": 3,
+  "competitive_ceiling": 95,
+  "provenance": "Original free outer teleporter1167/template16, three-player format and forced competitive ceiling95. Native item29714x1 is charged by inside GenericActivable33318/descriptor1483 to the activating nonhero participant; never at this outer transition. Original localized no.incantation.for.trool binds this ticket to boss arrival.",
+  "native_paid_start": {
+    "map_id": 483,
+    "object_id": 33318,
+    "descriptor_id": 1483
+  },
+  "minimum_configuration_version": 1
+}

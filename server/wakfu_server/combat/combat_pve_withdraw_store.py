@@ -2,6 +2,10 @@
 from . import combat_health
 
 
+class WithdrawalRecoveryDeferred(ValueError):
+    """An owned historical return lacks safe health proof; keep its socket."""
+
+
 def persist(
     store, session, character, original_fight, *, db=None, captured_departure_fight=None
 ):
@@ -127,7 +131,9 @@ def persist(
     )
 
 
-def _complete_owned_health_return(store, db, session, fight_id):
+def _complete_owned_health_return(
+    store, db, session, fight_id, *, preserve_newer_health=False
+):
     """Finish only certified withdrawal health, once, inside its return TX.
 
     An abort receipt alone never revives a character. The matching account's
@@ -137,6 +143,7 @@ def _complete_owned_health_return(store, db, session, fight_id):
     """
     from wakfu_server import health_policy
 
+    failure = WithdrawalRecoveryDeferred if preserve_newer_health else ValueError
     participants = tuple(
         db.execute(
             "SELECT character_id,session_generation FROM combat_fight_participants "
@@ -158,7 +165,7 @@ def _complete_owned_health_return(store, db, session, fight_id):
         or member_ids != {row["character_id"] for row in withdrawals}
         or any(row["session_generation"] != session.generation for row in withdrawals)
     ):
-        raise ValueError("Withdrawal health return lacks the complete owned roster")
+        raise failure("Withdrawal health return lacks the complete owned roster")
     withdrawal_by_id = {row["character_id"]: row for row in withdrawals}
     for member in participants:
         identity = member["character_id"]
@@ -179,7 +186,7 @@ def _complete_owned_health_return(store, db, session, fight_id):
             or exit_row["reason"] != "abort"
             or exit_row["generation"] != member["session_generation"]
         ):
-            raise ValueError("Withdrawal health return lacks its original exit receipt")
+            raise failure("Withdrawal health return lacks its original exit receipt")
         if withdrawal_by_id[identity]["health_returned_at"] is not None:
             continue
         character = store.character(session.account_id, identity, db)
@@ -201,7 +208,21 @@ def _complete_owned_health_return(store, db, session, fight_id):
                 "WHERE w.fight_id=p.fight_id AND w.character_id=p.character_id) LIMIT 1",
                 (identity, fight_id),
             ).fetchone()
-            if (
+            # An owned selection recovery may discover an older unreturned
+            # receipt after another authoritative health initialization. Keep
+            # that newer canonical dead baseline rather than healing it or
+            # rejecting login. A live fight still owns its health and ACKs.
+            preserve_newer = (
+                preserve_newer_health
+                and active is None
+                and character["hp"] == 0
+                and baseline is not None
+                and baseline["initial_hp"] == 0
+                and baseline["initial_damage"] == character["hp_damage"]
+                and baseline["coefficient"] == 0
+                and baseline["started_at"] > exit_row["created_at"]
+            )
+            if not preserve_newer and (
                 character["hp"] != 0
                 or baseline is None
                 or baseline["initial_hp"] != 0
@@ -211,31 +232,62 @@ def _complete_owned_health_return(store, db, session, fight_id):
                 or newer is not None
                 or active is not None
             ):
-                raise ValueError(
-                    "Dead withdrawal health no longer matches its exit baseline"
-                )
-            # Reuse the explicit Wakemu one-HP exploration policy only after
-            # the owned withdrawal continuation, never a generic abort/tick.
-            damage, dead = health_policy.recover_finished_return(
-                character["max_hp"], character["hp_damage"], True
-            )
-            hp = health_policy.apply_damage(db, character, damage, dead)
-            from wakfu_server import health
+                if not preserve_newer_health or active is not None:
+                    raise failure(
+                        "Dead withdrawal health no longer matches its exit baseline"
+                    )
+                from wakfu_server.health_store import reconcile_owned_dead_regeneration
 
-            now = store.now()
-            db.execute(
-                "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) "
-                "VALUES(%s,%s,%s,%s,%s) ON CONFLICT(character_id) DO UPDATE SET "
-                "initial_hp=excluded.initial_hp,started_at=excluded.started_at,"
-                "coefficient=excluded.coefficient,last_at=excluded.last_at",
-                (
-                    identity,
-                    hp,
-                    now,
-                    health.exploration_coefficient(character["max_hp"], hp),
-                    now,
-                ),
-            )
+                try:
+                    reconciled = reconcile_owned_dead_regeneration(
+                        store,
+                        db,
+                        session.account_id,
+                        session.generation,
+                        identity,
+                        selected_main_id=session.character_id,
+                    )
+                except ValueError as error:
+                    raise WithdrawalRecoveryDeferred(
+                        "Withdrawal recovery cannot establish canonical regeneration"
+                    ) from error
+                if any(
+                    reconciled[key] != character[key]
+                    for key in (
+                        "hp",
+                        "hp_damage",
+                        "health_dead",
+                        "max_hp",
+                        "hp_zero_valid",
+                    )
+                ):
+                    raise WithdrawalRecoveryDeferred(
+                        "Withdrawal recovery changed its health authority"
+                    )
+                preserve_newer = True
+            if not preserve_newer:
+                # Reuse the explicit Wakemu one-HP exploration policy only after
+                # the owned withdrawal continuation, never a generic abort/tick.
+                damage, dead = health_policy.recover_finished_return(
+                    character["max_hp"], character["hp_damage"], True
+                )
+                hp = health_policy.apply_damage(db, character, damage, dead)
+                from wakfu_server import health
+
+                now = store.now()
+                db.execute(
+                    "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) "
+                    "VALUES(%s,%s,%s,%s,%s) ON CONFLICT(character_id) DO UPDATE SET "
+                    "initial_hp=excluded.initial_hp,started_at=excluded.started_at,"
+                    "coefficient=excluded.coefficient,last_at=excluded.last_at",
+                    (
+                        identity,
+                        hp,
+                        now,
+                        health.exploration_coefficient(character["max_hp"], hp),
+                        now,
+                    ),
+                )
         db.execute(
             "UPDATE combat_pve_withdrawals SET health_returned_at=%s "
             "WHERE fight_id=%s AND character_id=%s AND health_returned_at IS NULL",
@@ -306,7 +358,13 @@ def recover(store, session, fight_id, previous_generation):
                 previous_generation,
             ),
         )
-        _complete_owned_health_return(store, db, session, fight_id)
+        _complete_owned_health_return(
+            store,
+            db,
+            session,
+            fight_id,
+            preserve_newer_health=True,
+        )
         return store.character(session.account_id, session.character_id, db)
 
 
@@ -349,7 +407,24 @@ def recover_pending(store, session):
         )
         if not pending:
             return None
+        recovered = False
         for row in pending:
+            if (
+                db.execute(
+                    "SELECT 1 FROM combat_fight_participants old "
+                    "JOIN combat_fight_participants running_member ON running_member.character_id=old.character_id "
+                    "JOIN combat_fights live ON live.id=running_member.fight_id "
+                    "WHERE old.fight_id=%s AND old.account_id=%s "
+                    "AND running_member.fight_id<>old.fight_id AND live.status IN ('placement','active') "
+                    "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals retired "
+                    "WHERE retired.fight_id=running_member.fight_id AND retired.character_id=running_member.character_id) LIMIT 1",
+                    (row["fight_id"], session.account_id),
+                ).fetchone()
+                is not None
+            ):
+                # The actual live encounter owns health and return delivery.
+                # Leave this historical continuation entirely unchanged.
+                continue
             db.execute(
                 "UPDATE combat_pve_withdrawals SET returned_at=COALESCE(returned_at,%s),"
                 "session_generation=%s WHERE fight_id=%s "
@@ -362,5 +437,16 @@ def recover_pending(store, session):
                     row["session_generation"],
                 ),
             )
-            _complete_owned_health_return(store, db, session, row["fight_id"])
-        return store.character(session.account_id, session.character_id, db)
+            _complete_owned_health_return(
+                store,
+                db,
+                session,
+                row["fight_id"],
+                preserve_newer_health=True,
+            )
+            recovered = True
+        return (
+            store.character(session.account_id, session.character_id, db)
+            if recovered
+            else None
+        )

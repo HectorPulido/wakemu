@@ -175,7 +175,7 @@ def reviewed_dungeon_rows(db):
         raise ValueError(
             "Installed dungeon route registry differs from active reviewed configurations"
         )
-    return {
+    tables = {
         "dungeon_runtime_configurations": configurations,
         "dungeon_context_policy_versions": contexts,
         "dungeon_context_active_policies": context_pins,
@@ -187,9 +187,13 @@ def reviewed_dungeon_rows(db):
             }
         ],
     }
+    from tools.export_native_scene_seed import scene_rows
+
+    tables.update(scene_rows(db, configurations))
+    return tables
 
 
-def reviewed_dungeon_sql(tables):
+def reviewed_dungeon_sql(tables, *, schema="public"):
     """Explicit SQL for the existing normalized authority tables, not JSON rules.
 
     Existing conflicting versions or pins abort the whole target transaction.
@@ -197,7 +201,9 @@ def reviewed_dungeon_sql(tables):
     identity sequence or permission grant is copied or changed.
     """
     from psycopg.sql import Literal
+    from tools.export_native_scene_seed import scene_sql, _schema
 
+    _schema(schema)
     columns = {
         "dungeon_runtime_configurations": (
             "route_key",
@@ -215,6 +221,7 @@ def reviewed_dungeon_sql(tables):
     ):
         raise ValueError("Only the known public dungeon route setting can be exported")
     lines = ["-- Explicit public reviewed dungeon authority; no player data.", "BEGIN;"]
+    lines.extend(scene_sql(tables, schema=schema))
     for table, fields in columns.items():
         for row in tables[table]:
             values = []
@@ -234,7 +241,7 @@ def reviewed_dungeon_sql(tables):
                 else:
                     value = Literal(value).as_string()
                 values.append(value)
-            qualified = "public." + table
+            qualified = schema + "." + table
             conflict = (
                 " ON CONFLICT(name) DO UPDATE SET value=EXCLUDED.value;"
                 if table == "settings"

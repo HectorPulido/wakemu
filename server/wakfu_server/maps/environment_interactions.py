@@ -6,6 +6,7 @@ The caller owns live position, timers, scene publication and occupation exclusio
 import struct
 import uuid
 from datetime import timedelta
+from psycopg.types.json import Jsonb
 
 from wakfu_server.inventory_items import _lease
 
@@ -171,12 +172,12 @@ def complete(
         character = store.character(account_id, character_id, db)
         reward = grant(db, character, rule["item_reference"], rule["quantity"])
         db.execute(
-            "UPDATE environment_interaction_tickets SET state='completed' WHERE token=%s",
-            (token,),
+            "UPDATE environment_interaction_tickets SET state='completed',item_grants=%s WHERE token=%s",
+            (Jsonb(reward["grants"]), token),
         )
         return dict(
             replay=False,
-            packets=[reward["packet"]],
+            packets=reward["packets"],
             character=store.character(account_id, character_id, db),
         )
 

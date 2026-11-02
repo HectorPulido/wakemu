@@ -389,14 +389,14 @@ class ChestRewardTransactionTests(PostgresCase):
             db.execute(
                 "UPDATE achievement_chest_bindings SET artifact_reference=NULL WHERE binding_id=1"
             )
-        original = harvest_inventory.grant
+        original = harvest_inventory.grant_products
 
         def mutate_then_fail(*args, **kwargs):
             original(*args, **kwargs)
             raise ValueError("Failure after custom mutation")
 
         with patch.object(
-            harvest_inventory, "grant", side_effect=mutate_then_fail
+            harvest_inventory, "grant_products", side_effect=mutate_then_fail
         ), self.assertRaisesRegex(ValueError, "custom mutation"):
             self.claim(account, generation, character)
         self.assertEqual(initial, self.snapshot(account, character["id"]))

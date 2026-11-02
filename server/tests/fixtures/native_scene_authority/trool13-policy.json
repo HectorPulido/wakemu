@@ -1,0 +1,90 @@
+{
+  "policy_id": "wakemu.configured_native_13.paid_start.v1",
+  "authority": "explicit_reconstructed_source_bound_native_scene_v1",
+  "map_id": 483,
+  "definition_id": 13,
+  "template_id": 16,
+  "source_id": 33318,
+  "wire_action": 0,
+  "descriptor_id": 1483,
+  "catalog_revision": "b3963fc05f1d8ec1eb9afc268fab0350f4de120144d67f7eee470747750b2450",
+  "gates": [],
+  "native_objects": [
+    {
+      "id": 33318,
+      "type": "GenericActivableInteractiveElement",
+      "position": [
+        -60,
+        -76,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d00000101e3ffffffc4ffffffb4000000010101030001000000043134383300000000000101"
+    }
+  ],
+  "approaches": [
+    [
+      -60,
+      -77,
+      0
+    ],
+    [
+      -61,
+      -76,
+      0
+    ],
+    [
+      -59,
+      -76,
+      0
+    ],
+    [
+      -60,
+      -75,
+      0
+    ]
+  ],
+  "maximum_members": 3,
+  "native_descriptor": {
+    "descriptor_id": 1483,
+    "groups": [
+      {
+        "id": 1841,
+        "clx": 431,
+        "cod": 29714,
+        "coe": 1,
+        "cof": true,
+        "cnd": 0,
+        "cog": 0,
+        "actions": [
+          {
+            "wire_action": 0,
+            "criterion": "not IsHero()",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "criterion": "not IsHero()",
+                "parameters": [],
+                "type": 1,
+                "reference": 3359
+              }
+            ],
+            "id": 1892
+          }
+        ]
+      }
+    ]
+  },
+  "native_effects": [
+    {
+      "criterion": "not IsHero()",
+      "parameters": [],
+      "type": 1,
+      "reference": 3359
+    }
+  ],
+  "profile": {
+    "kind": "configured_native_roster_v1",
+    "compiled_plan_sha256": "90557c627f5b07c27d3562fd6d0797b9057791b214d26909a44ba8d0745ab284"
+  },
+  "competitive_ceiling": 95
+}

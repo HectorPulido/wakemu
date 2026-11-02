@@ -403,11 +403,18 @@ def remove_absent_current_stat(handler, uid):
         or entry.get("native_absent_characteristic") is not True
     ):
         raise ValueError("Missing native absent-PA current-stat receipt")
-    target = _target_pv(handler, entry["target_id"])
-    if target is None or not _absent_area_characteristic(
-        handler, target, entry["stat_id"]
-    ):
-        raise ValueError("Missing native absent-PA current-stat owner")
+    if entry.get("effect_class") == 1013:
+        if entry.get("family") != "eWQ" or entry.get("stat_id") != 97:
+            raise ValueError("Changed native absent-armor current-stat receipt")
+        from .combat_armor_area_characteristics import armor_area_characteristics
+
+        target, _ = armor_area_characteristics(handler.fight, entry["target_id"])
+    else:
+        target = _target_pv(handler, entry["target_id"])
+        if target is None or not _absent_area_characteristic(
+            handler, target, entry["stat_id"]
+        ):
+            raise ValueError("Missing native absent-PA current-stat owner")
     packet = running_effect_removal(
         handler.fight.id,
         handler.action_id,

@@ -1,0 +1,611 @@
+[
+  {
+    "config": {
+      "route": {
+        "key": "native_dungeon_131",
+        "criterion": "not GetBooleanSystemConfiguration(\"beta.mode\") and not IsNeoServer()",
+        "template_id": 134,
+        "entry_map_id": 1124,
+        "start_map_id": 1156,
+        "definition_id": 131,
+        "destination_id": 2904,
+        "entry_object_id": 28582
+      },
+      "version": 3,
+      "compiled_plan": {
+        "slug": "boss-ultimes-pointe-du-mont-zinit",
+        "rooms": [
+          {
+            "order": 1,
+            "monsters": [
+              {
+                "name": "Ogrest",
+                "role": "boss",
+                "count": 1,
+                "ref_id": 4378,
+                "guide_max_level": null,
+                "guide_min_level": null,
+                "native_max_level": 230,
+                "native_min_level": 230
+              }
+            ],
+            "diagnostics": []
+          }
+        ],
+        "official": false,
+        "source_url": "https://methodwakfu.com/pvm/boss-ultimes/pointe-du-mont-zinit/",
+        "diagnostics": [],
+        "policy_mode": "explicit_local_singleton_native_ultimate_boss",
+        "template_id": 134,
+        "asset_map_id": 1156,
+        "local_policy": "Preserve complete rooms and known quantities; fill unresolved slots deterministically from the native species pool.",
+        "roster_ready": true,
+        "definition_id": 131,
+        "source_sha256": "33efefea83ab8efe41f214306ca24e4153e161dc6cd8b4e52a063261769c3b8d",
+        "boss_references": [
+          4378
+        ],
+        "document_sha256": "2aa7b3061f95da40d66144287cdfeb17ca83043bd34fe44f9e94911a180391c6",
+        "generated_fields": [
+          {
+            "order": 1,
+            "fields": [
+              {
+                "fields": [
+                  "ref_id",
+                  "name",
+                  "role"
+                ],
+                "monster_index": 0,
+                "original_monster": {
+                  "name": "Ogrest",
+                  "role": "boss",
+                  "count": 1,
+                  "ref_id": null,
+                  "guide_max_level": null,
+                  "guide_min_level": null,
+                  "native_max_level": null,
+                  "native_min_level": null
+                }
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 1,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 2,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 3,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 4,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 5,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 6,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 7,
+                "original_monster": null
+              }
+            ],
+            "policy_applied": true
+          }
+        ],
+        "reviewed_official": false,
+        "roster_policy_evidence": {
+          "boss_references": [
+            4378
+          ],
+          "species_pool_provenance": "Installed native ULTIMATE_BOSS singleton species pool"
+        },
+        "original_guide_document_sha256": "55e831b4878b762b4882e0d720efe72f2f3dd2a28699a9a65cbdead3f66a9724"
+      },
+      "evidence_hashes": {
+        "plan": "500cd42ba8303595b3d92068891008a40b21d8df04dc301c713ec5ac973218df",
+        "route": "f1b34e780ce9ed74428d68e4762cfdc8d43d0efef3a1afafba06be21d943b87e",
+        "topology": "770d9401ae5f0a3110619c840c80c67c50ff71660089a368cd0a91a0402bc560"
+      }
+    },
+    "native": {
+      "ref": 4378,
+      "raw_native": {
+        "csc": [
+          102,
+          49,
+          13
+        ]
+      },
+      "world_actions": [
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 349,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 911,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 267,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 919,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 348,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 910,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 347,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 909,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "",
+          "clx": 303,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 908,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 345,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 907,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 344,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 906,
+          "getDuration": 0,
+          "native_class": "aMg"
+        }
+      ]
+    }
+  },
+  {
+    "config": {
+      "route": {
+        "key": "native_dungeon_181",
+        "criterion": "not GetBooleanSystemConfiguration(\"beta.mode\")",
+        "template_id": 176,
+        "entry_map_id": 1342,
+        "start_map_id": 1332,
+        "definition_id": 181,
+        "destination_id": 4489,
+        "entry_object_id": 33257
+      },
+      "version": 3,
+      "compiled_plan": {
+        "slug": "palais-de-rushu",
+        "rooms": [
+          {
+            "order": 1,
+            "monsters": [
+              {
+                "name": "Rushu",
+                "role": "boss",
+                "count": 1,
+                "ref_id": 5306,
+                "guide_max_level": null,
+                "guide_min_level": null,
+                "native_max_level": 230,
+                "native_min_level": 230
+              }
+            ],
+            "diagnostics": []
+          }
+        ],
+        "official": false,
+        "source_url": "https://methodwakfu.com/pvm/boss-ultimes/palais-de-rushu/",
+        "diagnostics": [],
+        "policy_mode": "explicit_local_singleton_native_ultimate_boss",
+        "template_id": 176,
+        "asset_map_id": 1332,
+        "local_policy": "Preserve complete rooms and known quantities; fill unresolved slots deterministically from the native species pool.",
+        "roster_ready": true,
+        "definition_id": 181,
+        "source_sha256": "a20c7d52504927e281fdfb87d8220dbe8d8b228a64b04192c26d4fe661848b8e",
+        "boss_references": [
+          5306
+        ],
+        "document_sha256": "82f29fd902a2053c5ef3ecfc75da48ef468832874bf656c12f20ab481f619b89",
+        "generated_fields": [
+          {
+            "order": 1,
+            "fields": [
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 0,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 1,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 2,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 3,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 4,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 5,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 6,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 7,
+                "original_monster": null
+              }
+            ],
+            "policy_applied": true
+          }
+        ],
+        "reviewed_official": false,
+        "roster_policy_evidence": {
+          "boss_references": [
+            5306
+          ],
+          "species_pool_provenance": "Installed native ULTIMATE_BOSS singleton species pool"
+        },
+        "original_guide_document_sha256": "a1179ddab48872311b39475ac7698e4716a4320fb10a444a48facf9273d637c4"
+      },
+      "evidence_hashes": {
+        "plan": "d9c09e71fdbc3ab028aa73ba2b350a51e2f89edadb119270aa24ccf7a58d9763",
+        "route": "929f230494c839b1a5a7e56398725dddf6cdff42037e459d454c2e988b43fdae",
+        "topology": "141653b31b8310ec0f2980fb71c49def2040b1f9892ccd4ee26119955a91ed4f"
+      }
+    },
+    "native": {
+      "ref": 5306,
+      "raw_native": {
+        "csc": [
+          102,
+          49,
+          13
+        ]
+      },
+      "world_actions": [
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 267,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 1180,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "",
+          "clx": 303,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 1181,
+          "getDuration": 0,
+          "native_class": "aMg"
+        }
+      ]
+    }
+  },
+  {
+    "config": {
+      "route": {
+        "key": "native_dungeon_203",
+        "criterion": "",
+        "template_id": 195,
+        "entry_map_id": 1430,
+        "start_map_id": 1435,
+        "definition_id": 203,
+        "destination_id": 4716,
+        "entry_object_id": 35050
+      },
+      "version": 3,
+      "compiled_plan": {
+        "slug": "boss-ultimes-coeur-de-lhorloge-de-nox",
+        "rooms": [
+          {
+            "order": 1,
+            "monsters": [
+              {
+                "name": "Nox",
+                "role": "boss",
+                "count": 1,
+                "ref_id": 5664,
+                "guide_max_level": null,
+                "guide_min_level": null,
+                "native_max_level": 245,
+                "native_min_level": 245
+              }
+            ],
+            "diagnostics": []
+          }
+        ],
+        "official": false,
+        "source_url": "https://methodwakfu.com/pvm/boss-ultimes/coeur-de-lhorloge-de-nox/",
+        "diagnostics": [],
+        "policy_mode": "explicit_local_singleton_native_ultimate_boss",
+        "template_id": 195,
+        "asset_map_id": 1435,
+        "local_policy": "Preserve complete rooms and known quantities; fill unresolved slots deterministically from the native species pool.",
+        "roster_ready": true,
+        "definition_id": 203,
+        "source_sha256": "5c647003df8e2f400f441fe8dcfa198c50d2006f9f39c2e9130bfe5eb96a9651",
+        "boss_references": [
+          5664
+        ],
+        "document_sha256": "b4c68deb13c3962f8c73f681b04211b97fb8afcf866b421bb5c7118aa2ab690f",
+        "generated_fields": [
+          {
+            "order": 1,
+            "fields": [
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 0,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 1,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 2,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 3,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 4,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 5,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 6,
+                "original_monster": null
+              },
+              {
+                "fields": [
+                  "local_slot"
+                ],
+                "monster_index": 7,
+                "original_monster": null
+              }
+            ],
+            "policy_applied": true
+          }
+        ],
+        "reviewed_official": false,
+        "roster_policy_evidence": {
+          "boss_references": [
+            5664
+          ],
+          "species_pool_provenance": "Installed native ULTIMATE_BOSS singleton species pool"
+        },
+        "original_guide_document_sha256": "7cb8ef480e785b8c16eb387d8f931a59ce4e4edb23f8add103e30f224a03c08a"
+      },
+      "evidence_hashes": {
+        "plan": "d4cbf9bfd8742da2b15361a31ab7f92311ae6d46e8fec3f150d0048a02c64d13",
+        "route": "87b4c7a98cbbcf1970fc82c250c2c55ea18d0835d27a68fa3c7bb5da5110ef74",
+        "topology": "1f7e356303f50729470e36bb06222de7cfe317a4e3e17123329affe9187b6428"
+      }
+    },
+    "native": {
+      "ref": 5664,
+      "raw_native": {
+        "csc": [
+          35,
+          13,
+          102,
+          49
+        ]
+      },
+      "world_actions": [
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "",
+          "clx": 303,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 1399,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 267,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 1401,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 444,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 1402,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 445,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 1403,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 446,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 1404,
+          "getDuration": 0,
+          "native_class": "aMg"
+        },
+        {
+          "aGJ": 1,
+          "cbH": 0,
+          "clT": "IsAdmin()",
+          "clx": 447,
+          "csI": false,
+          "csJ": false,
+          "csK": false,
+          "d": 1405,
+          "getDuration": 0,
+          "native_class": "aMg"
+        }
+      ]
+    }
+  }
+]

@@ -32,7 +32,7 @@ class PaidComponentRuntime:
                 native_events=True,
                 area_callbacks=True,
                 **self.common,
-                **kw
+                **kw,
             ),
             turn_end_provider=lambda phase, **kw: prepare_server_turn_end(
                 first, monsters, phase, deck, **self.common, **kw
@@ -43,7 +43,7 @@ class PaidComponentRuntime:
                 deck,
                 action_id=action_id,
                 critical=False,
-                **self.common
+                **self.common,
             )[0],
         )
         self.payments = []
@@ -93,7 +93,7 @@ class PaidComponentRuntime:
             candidate,
             self.decks[self.first],
             **self.common,
-            **kw
+            **kw,
         )
 
     def npc_move(self, path):
@@ -181,7 +181,7 @@ class PaidComponentRuntime:
         )
         return True
 
-    def path_to(self, identity, accepts):
+    def path_to(self, identity, accepts, *, blocked_cells=()):
         from wakfu_server.combat_obstacle_condition import footprint
 
         actor = self.fight.actors[identity]
@@ -192,6 +192,7 @@ class PaidComponentRuntime:
                 if other.hp > 0 and other.id != identity
             )
         )
+        blocked.update(tuple(cell[:2]) for cell in blocked_cells)
         adjacent = {}
         for start, end in self.fight.edges:
             adjacent.setdefault(tuple(start), []).append(tuple(end))
@@ -215,7 +216,8 @@ class PaidComponentRuntime:
         *,
         position_accepts=None,
         visible_footprint=False,
-        casting_flags=None
+        casting_flags=None,
+        blocked_cells=(),
     ):
         from wakfu_server.combat_casting_los import native_casting_ray
         from wakfu_server.combat_server_spell import server_runtime
@@ -227,7 +229,7 @@ class PaidComponentRuntime:
             self.decks[identity],
             action_id=self.runtime.action_id + 1,
             critical=False,
-            **self.common
+            **self.common,
         )
 
         def accepts(cell):
@@ -268,7 +270,7 @@ class PaidComponentRuntime:
                 )
             )
 
-        return self.path_to(identity, accepts)
+        return self.path_to(identity, accepts, blocked_cells=blocked_cells)
 
     def cast(self, identity, reference, target_id, *, aim_cell=None):
         from wakfu_server.combat_server_spell import prepare_server_spell
@@ -304,7 +306,7 @@ class PaidComponentRuntime:
                     if other.hp > 0
                 },
             ),
-            **self.common
+            **self.common,
         )
         commit_spell_transaction(self.runtime, transaction, stats_serializer=self.stats)
         actor, target = self.fight.actors[identity], self.fight.actors[target_id]
@@ -345,7 +347,7 @@ class PaidComponentRuntime:
             self.monsters,
             self.decks[self.first],
             action_id=self.runtime.action_id + 1,
-            **self.common
+            **self.common,
         )
         before = dict(ap=actor.ap, hp=target.hp)
         commit_spell_transaction(self.runtime, transaction, stats_serializer=self.stats)

@@ -1,0 +1,40 @@
+name: wakemu-native-adventures
+services:
+  gateway:
+    image: sha256:6ccf0d4801c813d76b599d34ee0e65bcabb98520db8bd4c0ca56467f631b980d
+    pull_policy: never
+    restart: unless-stopped
+    stop_grace_period: 2s
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    pids_limit: 96
+    entrypoint: [python3, -B]
+    command: [/gateway/adventures_gateway.py]
+    environment:
+      PUBLIC_ADVENTURES_ORIGIN: "https://wakemu-adventures.p.hectorpulido.net"
+      PUBLIC_UNIFIED_ORIGIN: "https://wakemu.p.hectorpulido.net"
+      OBJECTIVES_HOST: objectives
+      AUTH_HOST: remote-auth
+      AUTH_PORT: "8443"
+      AUTH_TLS_NAME: localhost
+      SHOP_HOST: dispatcher
+      SHOP_PORT: "18089"
+      OBJECTIVES_PORT: "8094"
+      BIND_PORT: "18090"
+      PYTHONDONTWRITEBYTECODE: "1"
+    ports:
+      - "192.168.0.7:18090:18090/tcp"
+    volumes:
+      - ./gateway:/gateway:ro
+      - /home/hector/wakemu/.database/secrets/objectives-token:/run/secrets/objectives-token:ro
+      - /home/hector/wakemu-deploy/tls/fullchain.pem:/run/certificates/auth-ca.pem:ro
+    tmpfs:
+      - /tmp:size=8m,mode=1777
+    networks: [client-access]
+networks:
+  client-access:
+    external: true
+    name: wakemu-linux_client-access

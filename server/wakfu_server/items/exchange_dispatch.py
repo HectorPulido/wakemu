@@ -264,6 +264,7 @@ class Exchanges:
             "exchange.cancel": {"exchange_id"},
             "exchange.offer_kamas": {"exchange_id", "amount", "revision"},
             "exchange.ready": {"exchange_id", "revision"},
+            "exchange.decline_quote": {"exchange_id", "revision", "reason"},
         }
         if (
             action not in fields
@@ -332,6 +333,16 @@ class Exchanges:
                         character_id,
                         exchange_id,
                         args["amount"],
+                    )
+                elif action == "exchange.decline_quote":
+                    exchange = player_exchanges.decline_purchase_quote(
+                        self.store,
+                        account_id,
+                        generation,
+                        character_id,
+                        exchange_id,
+                        expected_revision=args["revision"],
+                        reason=args["reason"],
                     )
                 elif action == "exchange.ready":
                     exchange = player_exchanges.confirm(
@@ -525,6 +536,32 @@ class Exchanges:
                     row["exchange_id"], row["revision"], payload, previous=previous
                 )
             )
+            rejection = payload.get("quote_rejection")
+            if (
+                rejection is not None
+                and row["character_id"] != rejection["by"]
+                and (previous is None or previous.get("quote_rejection") != rejection)
+            ):
+                from wakfu_server.ecology_feedback import information
+
+                messages = {
+                    "buyer_items": "Retira los objetos del lado del comprador para continuar.",
+                    "seller_kamas": "Retira tus kamas de la oferta; el comprador solo compra objetos.",
+                    "quote_unavailable": "No se pudo calcular el precio. Cambia la oferta para volver a intentarlo.",
+                    "zero_value": "La oferta no tiene un precio de compra positivo. Retira esos objetos para continuar.",
+                    "insufficient_budget": "El comprador no tiene fondos suficientes para esta oferta. Reduce la cantidad.",
+                    "worker_unavailable": "El comprador esta temporalmente sin respuesta. El intercambio sigue abierto.",
+                }
+                if rejection["reason"] == "unsupported_items":
+                    names = ", ".join(item["name"] for item in rejection["items"])
+                    text = (
+                        "El comprador no compra: "
+                        + names
+                        + ". Retira esos objetos de la oferta para continuar."
+                    )
+                else:
+                    text = messages[rejection["reason"]]
+                packets.append(information(text + " El intercambio sigue abierto."))
         elif event == "canceled":
             canceled_by = payload.get("canceled_by")
             close_result = (

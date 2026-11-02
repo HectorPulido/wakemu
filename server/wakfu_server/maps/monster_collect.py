@@ -11,6 +11,7 @@ import threading
 import math
 from datetime import timedelta
 from functools import wraps, lru_cache
+from psycopg.types.json import Jsonb
 
 
 def _serialized(method):
@@ -24,7 +25,7 @@ def _serialized(method):
 
 from .paths import DATA_ROOT
 from .wire import proto_fields
-from .inventory_items import _lease, insertion
+from .inventory_items import _lease
 
 
 class Regenerating(ValueError):
@@ -381,8 +382,6 @@ class Harvests:
             < ticket["rule"]["duration_ms"] / 1000
         ):
             raise ValueError("Monster harvest completed too early")
-        from .inventory_uids import allocate
-
         with self.store.connection() as db:
             _lease(self.store, db, account_id, generation, character_id)
             character = self.store.character(account_id, character_id, db)
@@ -419,11 +418,6 @@ class Harvests:
                 )
             else:
                 available(db, self.store, monster, ticket["rule"]["action_id"])
-            # Base pocket accepts ordinary materials; no bag specialty assumptions.
-            base = character["inventory_containers"][0]
-            from wakfu_server.inventory_move import STACKS
-            from wakfu_server.inventory_elements import masks
-
             reference = ticket["rule"]["item_ref"]
             from wakfu_server.profession_consumable_modifiers import (
                 modifiers,
@@ -444,66 +438,17 @@ class Harvests:
                 quantity_percent,
                 operation=f"monster:{ticket['token']}:{reference}",
             )
-            stack_rule = STACKS.get(reference)
-            if stack_rule is None or quantity > stack_rule["maximum"]:
-                raise ValueError("Unsupported native harvest stack quantity")
-            existing = next(
-                (
-                    i
-                    for i in character["inventory_items"]
-                    if i["container"] == base["uid"]
-                    and i["reference"] == reference
-                    and stack_rule["minimal_mergeable"]
-                    and masks(i) is None
-                    and "mount" not in i
-                    and i["quantity"] + quantity <= stack_rule["maximum"]
-                ),
-                None,
-            )
-            occupied = {
-                i["slot"]
-                for i in character["inventory_items"]
-                if i["container"] == base["uid"]
-            }
-            slot = next((s for s in range(base["capacity"]) if s not in occupied), None)
-            if slot is None and existing is None:
-                raise ValueError("Base inventory full")
-            uid = existing["uid"] if existing is not None else allocate(db)
-            item = dict(
-                uid=uid,
-                character_id=character_id,
-                reference=reference,
-                quantity=quantity
-                + (existing["quantity"] if existing is not None else 0),
-                container=base["uid"],
-                slot=existing["slot"] if existing is not None else slot,
-            )
-            if existing is not None:
-                db.execute(
-                    "UPDATE inventory_items SET quantity=%s WHERE uid=%s AND character_id=%s",
-                    (item["quantity"], uid, character_id),
-                )
-            else:
-                db.execute(
-                    "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(%s,%s,%s,%s,%s,%s)",
-                    tuple(
-                        item[k]
-                        for k in (
-                            "uid",
-                            "character_id",
-                            "reference",
-                            "quantity",
-                            "container",
-                            "slot",
-                        )
-                    ),
-                )
+            from .harvest_inventory import grant
+
+            granted = grant(db, character, reference, quantity)
+            item = granted["item"]
+            uid = item["uid"]
             completed_at = self.store.now()
             regenerates_until = completed_at + timedelta(
                 seconds=ticket["cooldown_seconds"]
             )
             db.execute(
-                "INSERT INTO monster_harvest_receipts(token,character_id,map_id,instance_id,monster_id,action_id,completed_at,item_uid,regenerates_until) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                "INSERT INTO monster_harvest_receipts(token,character_id,map_id,instance_id,monster_id,action_id,completed_at,item_uid,regenerates_until,item_grants) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (
                     ticket["token"],
                     character_id,
@@ -514,12 +459,8 @@ class Harvests:
                     completed_at,
                     uid,
                     regenerates_until,
+                    Jsonb(granted["grants"]),
                 ),
-            )
-            packet = (
-                (12470, struct.pack(">qh", uid, quantity))
-                if existing is not None
-                else insertion(item, notification=True)
             )
             from .profession_rewards import base_xp
             from .profession_store import award
@@ -553,7 +494,7 @@ class Harvests:
             return dict(
                 applied=True,
                 item=item,
-                packets=[packet, *progress["packets"]],
+                packets=[*granted["packets"], *progress["packets"]],
                 availability=(
                     monster["map_id"],
                     monster["instance_id"],
@@ -572,6 +513,6 @@ class Harvests:
         return dict(
             applied=True,
             item=item,
-            packets=[packet, *progress["packets"], *feedback],
+            packets=[*granted["packets"], *progress["packets"], *feedback],
             availability=(key[0], key[1], availability_packet(key[2], key[3], False)),
         )

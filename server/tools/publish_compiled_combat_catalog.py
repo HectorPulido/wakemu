@@ -285,7 +285,18 @@ def publish(db, spool, manifest, canonical_bytes, *, identity_check=None):
                 metadata["ordered_keys_sha256"],
             ),
         )
+    began = time.monotonic()
+    spool.db.execute(
+        "CREATE INDEX IF NOT EXISTS records_publication_order "
+        "ON records(collection,ordinal)"
+    )
+    log(
+        "compiled_publication_spool_indexed",
+        generation=generation,
+        seconds=time.monotonic() - began,
+    )
     count = 0
+    began = time.monotonic()
     with db.cursor().copy(
         "COPY native_compiled_catalog_records "
         "(generation,collection,record_key,ordinal,raw,sha256) FROM STDIN (FORMAT BINARY)"
@@ -296,6 +307,12 @@ def publish(db, spool, manifest, canonical_bytes, *, identity_check=None):
         ):
             copy.write_row((generation, *row))
             count += 1
+    log(
+        "compiled_publication_copied",
+        generation=generation,
+        records=count,
+        seconds=time.monotonic() - began,
+    )
     expected = sum(row["count"] for row in spool.collections.values())
     actual = db.execute(
         "SELECT count(*) AS n FROM native_compiled_catalog_records WHERE generation=%s",

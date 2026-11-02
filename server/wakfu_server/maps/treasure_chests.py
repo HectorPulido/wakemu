@@ -194,7 +194,7 @@ def _claim_custom(
 ):
     """Fence the real selected main and atomically grant one account reward."""
     from wakfu_server import native_catalog
-    from wakfu_server.harvest_inventory import grant
+    from wakfu_server.harvest_inventory import grant_products
     from wakfu_server.simple_item_actions import _idle
 
     if not loaded or blocked or is_hero is not False or len(body) != 12:
@@ -258,12 +258,23 @@ def _claim_custom(
             character=actual,
             receipt=dict(previous),
         )
-    packets, rewards = [], []
+    products = {}
     for reward in rule["rewards"]:
-        granted = grant(db, actual, reward["reference"], reward["quantity"])
-        packets.append(granted["packet"])
-        rewards.append(dict(reward, uid=granted["item"]["uid"]))
-        actual = store.character(account_id, character["id"], db)
+        reference = reward["reference"]
+        products[reference] = products.get(reference, 0) + reward["quantity"]
+    granted = grant_products(db, actual, products)
+    packets = list(granted["packets"])
+    rewards = []
+    for reward in rule["rewards"]:
+        item_grants = [
+            item
+            for item in granted["grants"]
+            if item["reference"] == reward["reference"]
+        ]
+        rewards.append(
+            dict(reward, uid=item_grants[0].get("uid"), item_grants=item_grants)
+        )
+    actual = store.character(account_id, character["id"], db)
     receipt = db.execute(
         "INSERT INTO account_treasure_claims(account_id,content_id,character_id,rule_sha256,rewards,claimed_at) "
         "VALUES(%s,%s,%s,%s,%s,%s) RETURNING *",

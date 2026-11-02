@@ -548,9 +548,11 @@ class NativeDisplacementHandler:
         # eVl.rwB(4) marks ZONE_EFFECT for damage mastery/event consumers.
         # Native displacement runners do not consume it; preserve the metadata
         # while using the unchanged forced-path and movement lifecycle.
-        if flags - {3, 4, 5, 13, 14, 17, 26, 36, 37}:
+        # eVl.rwS(22) marks SINGLE_TARGET_EFFECT for HP-loss consumers;
+        # eXD/eXk do not consume it. Retain it without changing movement.
+        if flags - {3, 4, 5, 13, 14, 17, 22, 26, 36, 37}:
             raise ValueError(
-                f"Unhandled native displacement flags: {sorted(flags-{3,4,5,13,14,17,26,36,37})}"
+                f"Unhandled native displacement flags: {sorted(flags-{3,4,5,13,14,17,22,26,36,37})}"
             )
         from .combat_displacement_retention import retained_displacement_context
 

@@ -2,6 +2,7 @@
 from psycopg.errors import UniqueViolation
 from postgres_case import PostgresCase
 from test_dungeon_progression import DungeonProgressionPostgresTests as Fixture
+from test_dungeon_instances import DungeonInstanceTests as EntryFixture
 from wakfu_server import fight_store
 from wakfu_server.maps.dungeon_progression import bind_encounter
 from wakfu_server.maps.dungeon_fight_binding import abort_room_encounter
@@ -21,7 +22,9 @@ class DungeonAbortBindingTests(PostgresCase):
         self.store.clock = lambda: 2_000_000_000.0
         self.install_context_policy()
         self.members, self.party_id = self.party(2)
-        self.instance_id = self.create(self.members[0])["instance_id"]
+        # This fixture tests a real in-dungeon abort/retry. Bare create() leaves
+        # the character public, so selection correctly retires its membership.
+        self.instance_id = EntryFixture.enter(self, self.members[0])["instance_id"]
         monster = SimpleNamespace(
             ref_id=1, count=1, native_min_level=1, native_max_level=5, role="monster"
         )

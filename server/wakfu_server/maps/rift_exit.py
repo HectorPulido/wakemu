@@ -66,6 +66,24 @@ def _exit(
             )
         ) or character["map_id"] != run["catalog"]["map_id"]:
             raise ValueError("Character is outside its owned rift")
+        if run["status"] == "running" and not (
+            fighting is not None
+            and any(fighting(identity) for identity in run["members"])
+        ):
+            # The canonical fight outcome wins over a retained active checkpoint.
+            # Repair only an already-aborted binding; never infer defeat, settle
+            # rewards, or abort another fight to authorize this departure.
+            interrupted = db.execute(
+                "SELECT 1 FROM combat_fights f WHERE f.id=%s AND f.status='aborted' "
+                "AND NOT EXISTS(SELECT 1 FROM rift_settlement_receipts receipt WHERE receipt.instance_id=%s) "
+                "AND NOT EXISTS(SELECT 1 FROM combat_fight_participants p JOIN combat_fights active_fight ON active_fight.id=p.fight_id "
+                "WHERE p.character_id=ANY(%s) AND active_fight.status IN('placement','active'))",
+                (run["fight_id"], run["instance_id"], list(run["members"])),
+            ).fetchone()
+            if interrupted is not None:
+                repaired = rift_runtime.abort_bound_fight(db, run["fight_id"])
+                if repaired is not None:
+                    run = repaired
         if run["status"] == "running" or (
             fighting is not None and fighting(character_id)
         ):
@@ -228,7 +246,15 @@ def _leave(
 
 
 def relocate(
-    store, positions, account_id, generation, character_id, source, destination
+    store,
+    positions,
+    account_id,
+    generation,
+    character_id,
+    source,
+    destination,
+    *,
+    fighting=None,
 ):
     """Reuse native departure custody for an authorized console relocation.
 
@@ -266,6 +292,6 @@ def relocate(
         source_allowed=None,
         # Running status and the complete cohort's persisted combat membership
         # are checked under the same run/owner locks as native departure.
-        fighting=None,
+        fighting=fighting,
         relocation=dict(source=dict(source), destination=dict(destination)),
     )

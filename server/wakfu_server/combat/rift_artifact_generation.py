@@ -178,12 +178,9 @@ def spawn_artifacts(dispatcher, *, wave):
             raise ValueError(
                 "Rift artifact generation replay changed its original group"
             )
-        for uid in group["remaining"]:
-            row = fight.native_effect_areas.get(uid)
-            if row is None or row["reference"] != group["original"][str(uid)]:
-                raise ValueError(
-                    "Unconsumed native Rift artifact lost its original area"
-                )
+        from wakfu_server.rift_artifact_recovery import reconcile_artifact_group
+
+        reconcile_artifact_group(fight, group)
         return tuple(previous["area_uids"])
     if (
         settings.get("placement_policy")

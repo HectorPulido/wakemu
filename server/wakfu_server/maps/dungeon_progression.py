@@ -123,6 +123,30 @@ def progression_result(current_room, total_rooms, player_team, winner):
     )
 
 
+def lock_encounter_run(db, fight_id):
+    """Lock an existing dungeon binding before its group settlement starts.
+
+    Room hydration owns the run before population and group locks. Settlement
+    must follow that order too; taking its group lock first can deadlock with
+    a reconnect replaying the current room. Ordinary fights have no binding.
+    This reserves ownership only; authoritative progression still waits for
+    the successfully settled group in the caller's reward transaction.
+    """
+    encounter = db.execute(
+        "SELECT instance_id FROM dungeon_room_encounters WHERE fight_id=%s",
+        (fight_id,),
+    ).fetchone()
+    if encounter is None:
+        return None
+    run = db.execute(
+        "SELECT instance_id FROM dungeon_room_runs WHERE instance_id=%s FOR UPDATE",
+        (encounter["instance_id"],),
+    ).fetchone()
+    if run is None:
+        raise ValueError("Dungeon encounter has no owned room progression")
+    return run["instance_id"]
+
+
 def settle_encounter(db, fight):
     """Apply an authoritative finished result once, inside reward settlement.
 
@@ -153,6 +177,14 @@ def settle_encounter(db, fight):
         if encounter["status"] != expected_status:
             raise ValueError("Conflicting replayed dungeon fight result")
         return dict(encounter["result"], replay=True)
+    if encounter.get("encounter_scope", "main") == "postboss":
+        from wakfu_server import dungeon_postboss_nodes
+
+        return dungeon_postboss_nodes.settle(db, run, encounter, fight)
+    if encounter.get("encounter_scope", "main") == "optional":
+        from wakfu_server import dungeon_optional_encounters
+
+        return dungeon_optional_encounters.settle(db, run, encounter, fight)
     if run["status"] != "active" or run["current_room"] != encounter["room_order"]:
         raise ValueError("Encounter does not belong to the current dungeon room")
     result = progression_result(
@@ -179,4 +211,34 @@ def settle_encounter(db, fight):
         "UPDATE dungeon_room_encounters SET status=%s,result_revision=%s,result=%s::jsonb WHERE fight_id=%s",
         (expected_status, revision, json.dumps(receipt), fight.id),
     )
+    from wakfu_server import dungeon_optional_votes
+
+    if (
+        dungeon_optional_votes.scene_enabled(getattr(fight, "map_id", None))
+        or getattr(fight, "native_optional_ballot_challenge", None) is not None
+    ):
+        from psycopg import Error as OptionalEvidenceDatabaseError
+
+        for observe in (
+            dungeon_optional_votes.queue_checkpoint,
+            dungeon_optional_votes.record_victory,
+        ):
+            try:
+                with db.transaction():
+                    observe(db, run, encounter, fight)
+            except (
+                ValueError,
+                TypeError,
+                KeyError,
+                AttributeError,
+                OptionalEvidenceDatabaseError,
+            ) as error:
+                # Individual ballot failure cannot revoke main or council access.
+                receipt.setdefault("optional_ballot_qualification", {})[
+                    observe.__name__
+                ] = type(error).__name__
+                db.execute(
+                    "UPDATE dungeon_room_encounters SET result=%s::jsonb WHERE fight_id=%s",
+                    (json.dumps(receipt), fight.id),
+                )
     return dict(receipt, replay=False)

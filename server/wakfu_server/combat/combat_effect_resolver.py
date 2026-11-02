@@ -224,6 +224,8 @@ class NativeEffectResolver:
             raise UnknownEffectResolution("Invalid server fresh-child selection policy")
         if type(invocation.wakemu_rebound_child_selection) is not bool:
             raise UnknownEffectResolution("Invalid fresh rebound selection policy")
+        if type(invocation.wakemu_transmitted_point_self) is not bool:
+            raise UnknownEffectResolution("Invalid fresh group-center provenance")
         # Explicit Wakemu reconstruction: after a fresh actor swap, a criterion
         # group without its own rebind selects candidates in the new source
         # context. Native chosen-PV replay and swap-owning groups stay bound.
@@ -348,6 +350,9 @@ class NativeEffectResolver:
                 or (
                     selector["mask"] == 1
                     and effect.get("area_class") not in (None, "anA", "anD")
+                    # A point SELF group supplied an area center, not one of
+                    # this fresh child's recipients. Enumerate its native area.
+                    and not invocation.wakemu_transmitted_point_self
                 )
             )
         ):

@@ -90,7 +90,10 @@ def queue_completed_round(fight):
             from .combat_spirit_round_events import has_round_interest
 
             if not has_round_interest(fight):
-                return
+                from .combat_encounter_scene_states import has_scene_round_interest
+
+                if not has_scene_round_interest(fight):
+                    return
     if (
         fight.phase != "active"
         or fight.current is None
@@ -189,4 +192,7 @@ def deliver_completed_round(dispatcher):
             excluded_uids=excluded,
         )
     outcomes += deliver_spirit_round(dispatcher, receipt, spirit_pairs, spirit_scope)
+    from .combat_encounter_scene_states import deliver_scene_round_start
+
+    outcomes += deliver_scene_round_start(dispatcher, receipt)
     return outcomes

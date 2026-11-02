@@ -268,21 +268,17 @@ def accessible_anchor_topology(
         room["anchor"] = valid_anchor
         room["validated_enemy_capacity"] = count
         room["validated_party_capacity"] = 6
-    return {
-        "asset_map_id": geometry["map_id"],
-        "policy": "local_accessible_anchor_policy",
-        "official_room_order_verified": False,
-        "rooms": rooms,
-        "doors": [],
-        "auto_edges": [
-            dict(
-                source_room=order,
-                destination_room=order + 1,
-                anchor=rooms[order]["anchor"],
-            )
-            for order in range(1, room_count)
-        ],
-    }
+    from wakfu_server.dungeon_auto_edges import finalize_local_auto_edges
+
+    return finalize_local_auto_edges(
+        {
+            "asset_map_id": geometry["map_id"],
+            "policy": "local_accessible_anchor_policy",
+            "official_room_order_verified": False,
+            "rooms": rooms,
+            "doors": [],
+        }
+    )
 
 
 def build_bundle(

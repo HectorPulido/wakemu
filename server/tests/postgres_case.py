@@ -48,6 +48,9 @@ class PostgresCase(unittest.TestCase):
 
         def cleanup_schema():
             with admin.connection() as db:
+                # Use the migrator's existing transaction lock so another
+                # case cannot create hundreds of tables during this drop.
+                db.execute("SELECT pg_advisory_xact_lock(%s)", (5790545553,))
                 db.execute(f"DROP SCHEMA {schema} CASCADE")
 
         self.addCleanup(cleanup_schema)

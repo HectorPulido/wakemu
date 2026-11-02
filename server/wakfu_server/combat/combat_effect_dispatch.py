@@ -57,6 +57,9 @@ class EffectInvocation:
     )
     native_explicit_target: bool = False  # Native PK.a received a non-null PV argument.
     wakemu_fresh_child_selection: bool = False
+    wakemu_transmitted_point_self: bool = (
+        False  # Fresh group's center PV, not an enumerated area recipient.
+    )
     wakemu_rebound_child_selection: bool = (
         False  # Fresh server swap, never native replay.
     )
@@ -387,7 +390,8 @@ class EffectDispatcher:
                 or selected.level != invocation.level
             ):
                 raise ValueError("Resolver changed effect identity or evaluation level")
-            if selected.native_preselected_target:
+            preselected_parent = selected.native_preselected_target
+            if preselected_parent:
                 # g(PV) binds this runner once. Its newly allocated children
                 # still execute their own native target-selection contracts.
                 selected = replace(selected, native_preselected_target=False)
@@ -970,7 +974,12 @@ class EffectDispatcher:
                         bytes.fromhex(native_context_hex)
                     ).hex()
 
+                count_child_executions = mode.limit > 0 and mode.count_successes
+
                 def execute_child(child):
+                    # Native ordered success limits count PT.bas(), not deferred
+                    # subscription registration or the handler's material delta.
+                    report = {"accepted_count": 0} if count_child_executions else None
                     result = self.execute(
                         replace(
                             selected,
@@ -990,6 +999,25 @@ class EffectDispatcher:
                                 mode.on_target and mode.transmit_target
                             ),
                             wakemu_fresh_child_selection=True,
+                            wakemu_transmitted_point_self=(
+                                activation is None
+                                and selected.native_trigger_context is None
+                                and selected.native_delayed_uid is None
+                                and not preselected_parent
+                                and mode.on_target
+                                and mode.transmit_target
+                                and mode.actor_rebind == 0
+                                and effect.get("area_class") == "anD"
+                                and isinstance(
+                                    effect.get("native_target_selector"), dict
+                                )
+                                and effect["native_target_selector"].get("class")
+                                == "fcE"
+                                and bool(
+                                    effect["native_target_selector"].get("mask", 0) & 2
+                                )
+                                and selected.target_id == selected.caster_id
+                            ),
                             wakemu_rebound_child_selection=(
                                 activation is None
                                 and (
@@ -1030,9 +1058,12 @@ class EffectDispatcher:
                             else selected.base_uid,
                         ),
                         ancestors=(*ancestors, invocation.reference),
+                        _pt_report=report,
                     )
                     child_success.append(result)
-                    return result
+                    return (
+                        report["accepted_count"] > 0 if report is not None else result
+                    )
 
                 scope = (
                     self.group_execution_scope(selected)

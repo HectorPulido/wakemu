@@ -10,11 +10,11 @@ def effect_catalog():
     source = protocol_catalog.load(
         DATA_ROOT / "native-class-morph933-effect-closure.json"
     )
-    from .combat_morph_spellbook import native_morph_profiles
+    from .combat_morph_spellbook import native_class_morph_profiles
 
     references = {
         row["reference"]
-        for profile in native_morph_profiles().values()
+        for profile in native_class_morph_profiles().values()
         for row in profile["abilities"]
     }
     if (

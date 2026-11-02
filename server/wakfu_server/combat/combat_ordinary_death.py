@@ -38,20 +38,21 @@ def owned_fighter_guards(fight, actor):
     return dict(baF=in_play, baG=off_play, baK=False)
 
 
-def registered_ordinary_death(fight, actor):
+def registered_ordinary_death(fight, actor, *, event_indices=None):
     if actor.hp > 0:
         return False
     if actor.hp != 0 or fight.actors.get(actor.id) is not actor:
         raise ValueError("Invalid owned ordinary death actor")
-    return _registered_death_event(fight, actor.id)
+    return _registered_death_event(fight, actor.id, event_indices=event_indices)
 
 
-def _registered_death_event(fight, actor_id, *, sequence=None):
+def _registered_death_event(fight, actor_id, *, sequence=None, event_indices=None):
     """Verify one actual historical causal death, including owner relations."""
     events = getattr(fight, "events", None)
     if not isinstance(events, list):
         raise ValueError("Missing owned ordinary death registration")
-    for index in range(len(events) - 1, -1, -1):
+    indices = range(len(events) - 1, -1, -1) if event_indices is None else event_indices
+    for index in indices:
         event = events[index]
         if (
             event.get("kind") != "death"

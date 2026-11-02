@@ -203,6 +203,23 @@ class BattlegroundBorderTests(unittest.TestCase):
             dispatcher.native_area_events.event(10000, actor.id)
         self.assertEqual(actor.mp, 2)
 
+    def test_native_fbo12_border_owns_its_real_area_manager(self):
+        fight, arena = self.fixture()
+        row = install_battleground_border(fight, arena, reference=1297, identity=-100)
+        self.assertIsNone(row["owner_id"])
+        self.assertEqual(row["native_area_contract"], "faP")
+        self.assertIs(row["native_running_effect_manager"], True)
+        self.assertEqual(row["state_ledger"].actor_id, -100)
+        self.assertIs(registered_area_pv(fight, -100).state_ledger, row["state_ledger"])
+        self.assertEqual(row["cell"], (0, 0, 3))
+        fight.native_border_constructor = dict(
+            reference=1297, identity=-100, arena=arena
+        )
+        original = row["state_ledger"]
+        ensure_battleground_border(fight)
+        self.assertIs(row["state_ledger"], original)
+        self.assertEqual(len(fight.native_effect_areas), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

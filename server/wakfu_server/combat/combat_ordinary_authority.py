@@ -190,8 +190,8 @@ class OrdinaryActorAuthority:
             )
         return withdrawn, monsters
 
-    def _creation_facts(self, preview, actor, *, _population=None):
-        """Fresh ordinary identity/life facts shared by full and GF queries."""
+    def _creation_identity(self, preview, actor, *, _population=None):
+        """Attest current ordinary constructor identity without dynamic life facts."""
         withdrawn, monsters = (
             self._creation_population(preview) if _population is None else _population
         )
@@ -219,6 +219,13 @@ class OrdinaryActorAuthority:
             raise ValueError(
                 "Ordinary authority cannot attest changed native relationships"
             )
+        return player, source, profile
+
+    def _creation_facts(self, preview, actor, *, _population=None):
+        """Fresh full authority retains carry, properties, life and controller checks."""
+        player, source, profile = self._creation_identity(
+            preview, actor, _population=_population
+        )
         from .combat_carrying import carrying_relations
 
         carrying = carrying_relations(preview, actor)
@@ -255,7 +262,23 @@ class OrdinaryActorAuthority:
             return construction.targeting.get("is_eGj"), construction.targeting.get(
                 "dTE"
             )
-        self._creation_facts(
+        # Original GF tests eGj/dTE before reading another fighter's life,
+        # controller or properties. Only the native ordinary producer permits
+        # this projection; supplied catalogs keep their full callback contract.
+        identity_query = (
+            self._creation_identity
+            if (
+                self.catalog is _immutable_property_catalog()
+                and "_creation_facts" not in self.__dict__
+                and "_creation_identity" not in self.__dict__
+                and getattr(self._creation_facts, "__func__", None)
+                is _ORDINARY_CREATION_FACTS
+                and getattr(self._creation_identity, "__func__", None)
+                is _ORDINARY_CREATION_IDENTITY
+            )
+            else self._creation_facts
+        )
+        identity_query(
             preview,
             actor,
             _population=None if _population is None else _population(),
@@ -634,6 +657,11 @@ class OrdinaryActorAuthority:
             ]
         )
         return frozenset(row["world_properties"])
+
+
+# Bind source methods once; GF must preserve custom instance/class delegates.
+_ORDINARY_CREATION_FACTS = OrdinaryActorAuthority._creation_facts
+_ORDINARY_CREATION_IDENTITY = OrdinaryActorAuthority._creation_identity
 
 
 def native_probability(probability, *, draw_percent, random_fraction=None):

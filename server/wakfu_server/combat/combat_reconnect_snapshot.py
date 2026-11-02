@@ -126,6 +126,18 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
                 }
                 if marker_ids and marker_ids <= initial_ids:
                     witness_counter, marker_packets = counter, original
+    witness_actor = None
+    if birth_ids and marker_packets:
+        marker_actors = {
+            struct.unpack_from(">q", body, 12)[0]
+            for opcode, body in marker_packets
+            if opcode == 12502 and len(body) == 28
+        }
+        base = getattr(fight, "native_base_turn_order", None)
+        base = fight.order if base is None else base
+        initial_ids = {row["actor_id"] for row in participants} & set(base)
+        if len(marker_actors) == 1 and marker_actors <= initial_ids:
+            witness_actor = next(iter(marker_actors))
     value = dict(
         fight_id=fight.id,
         kind=getattr(fight, "native_fight_model", None),
@@ -133,10 +145,13 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
         myo=context["terrain_effect_id"],
         myp=context["terrain_instance_id"],
         myD=topology(context["arena"]),
-        # No current-member substitution: INITIAL has the native -1 sentinel.
+        # A retained original marker needs its actual ON presentation member.
+        # Otherwise INITIAL retains -1 until a real witness is available.
         # Full recovery below restores real counters and even a summon turn.
         myG=(
-            initial_summon_timeline(fight, birth_ids, counter=witness_counter)
+            initial_summon_timeline(
+                fight, birth_ids, counter=witness_counter, witness_actor=witness_actor
+            )
             if birth_ids
             else current_timeline
         ),

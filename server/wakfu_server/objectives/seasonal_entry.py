@@ -157,9 +157,11 @@ def actions(db, identity):
             continue
         minimum_offer = False
         if route["start_map_id"] not in REVIEWED_MAPS:
-            from wakfu_server.maps.dungeon_entry_access import minimum_offer_allowed
+            from wakfu_server.maps.dungeon_entry_access import (
+                unrestricted_offer_allowed,
+            )
 
-            minimum_offer = minimum_offer_allowed(
+            minimum_offer = unrestricted_offer_allowed(
                 db,
                 route["criterion"],
                 character=actor,

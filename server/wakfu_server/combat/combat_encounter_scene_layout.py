@@ -45,6 +45,7 @@ def apply_role_assignment(selected_arena, roles):
         # Ready. Their existing team flags, wire and geometry remain untouched.
         return dict(selected_arena, native_encounter_roles=roles.record())
     from .combat_wire import arena
+    from .combat_qi_surface_catalog import native_qi_surfaces
 
     cells = selected_arena["validated_cells"]
     placement = roles.placement_cells(
@@ -67,6 +68,7 @@ def apply_role_assignment(selected_arena, roles):
         placement,
         obstacle_values=selected_arena.get("team_values"),
         surface_indices=indices,
+        native_surfaces=native_qi_surfaces(selected_arena["map_id"]),
         border_cells=selected_arena.get("native_border_cells", ()),
         gap_surface_indices=restored_gap_indices(
             selected_arena["map_id"], cells, selected_arena
@@ -204,6 +206,7 @@ def prepare_encounter_scene(character, members, selected_arena, *, layout=None):
         surface_indices=native_surface_indices(
             native_qi_surfaces(layout["map_id"]), cells
         ),
+        native_surfaces=native_qi_surfaces(layout["map_id"]),
         border_cells=border_cells,
         gap_surface_indices=gap_indices,
     )
@@ -319,6 +322,10 @@ def scene_player_position(character, arena):
     relocation = arena.get("participant_player_position")
     if relocation is None:
         return original
+    if arena.get("native_initial_player_relocation") is not None:
+        from .combat_initial_player_relocation import validated_destination
+
+        return validated_destination(arena, original=original)
     scene = arena.get("native_encounter_scene_layout")
     from wakfu_server.combat_encounter_roles import roles_from_record
 

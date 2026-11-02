@@ -71,46 +71,76 @@ class NativeAreaEventRuntime:
                 if row is None:
                     continue  # An actual removal mask already retired this PV.
                 if (
-                    row.get("native_area_contract") != "fbd"
+                    row.get("native_area_contract") not in ("fbd", "faW")
                     or row.get("native_qq_bhi") is not True
                     or row.get("native_qq_guard_source") != "Qq.b"
-                    or row.get("native_wall_hp_current") != 0
+                    or self._hp_area_current(row, self._definition(row)) != 0
                 ):
                     raise ValueError("Changed lethally completed native wall authority")
                 self.remove_parent(row)
         finally:
             self._flushing_wall_retirements = False
 
-    def wall_death(self, row, source_id):
-        """Qe.bbZ -> faV.b(10014) -> Qq.b; Qs retirement is separate."""
-        from .combat_wall_area import verified_wall_constructor, wall_hp_state
+    def _hp_area_current(self, row, definition):
+        if row.get("native_area_contract") == "fbd":
+            from .combat_wall_area import verified_wall_constructor, wall_hp_state
 
+            constructor = verified_wall_constructor(row, definition, fight=self.fight)
+            return wall_hp_state(row, constructor)["current"]
+        if row.get("native_area_contract") == "faW":
+            from .combat_fake_fighter import verified_fake_fighter
+            from .combat_fake_fighter_resources import fake_fighter_hp_state
+
+            constructor = verified_fake_fighter(row, definition)
+            if 1 not in constructor["characteristic_ids"]:
+                raise ValueError("Native faW death requires actual HP authority")
+            return fake_fighter_hp_state(row, definition)["current"]
+        raise ValueError("Native HP-owning Qq death contract required")
+
+    def wall_death(self, row, source_id):
+        """Keep the existing fbd10014 completion contract unchanged."""
         if row.get("native_area_contract") != "fbd":
             raise ValueError("Native fbd death contract required")
+        return self._complete_hp_area_death(row, source_id)
+
+    def fake_fighter_death(self, row, source_id, *, death_delivery):
+        """Consumer-backed local1033, followed by native faV/Qq completion."""
+        if row.get("native_area_contract") != "faW" or not callable(death_delivery):
+            raise ValueError("Native faW death requires its owned event delivery")
+        return self._complete_hp_area_death(
+            row, source_id, death_delivery=death_delivery
+        )
+
+    def _complete_hp_area_death(self, row, source_id, *, death_delivery=None):
         uid = row["uid"]
         if getattr(self.fight, "native_effect_areas", {}).get(uid) is not row:
-            raise ValueError("Missing actual registered native wall death target")
+            raise ValueError("Missing actual registered native HP-area death target")
         definition = self._definition(row)
-        constructor = verified_wall_constructor(row, definition, fight=self.fight)
-        hp = wall_hp_state(row, constructor)["current"]
+        hp = self._hp_area_current(row, definition)
         completed = row.get("native_qq_bhi")
         if type(completed) is not bool or row.get("native_qq_guard_source") not in (
             "Qq.constructor",
             "Qq.b",
         ):
             raise ValueError("Missing native Qq completion-state authority")
-        source = self.fight.actors.get(source_id)
+        from .combat_native_actor_lookup import native_actor
+
+        source = native_actor(self.fight, source_id)
         if source is None:
-            raise ValueError("Missing actual native wall death source")
+            from .combat_state_managers import registered_area_pv
+
+            source = registered_area_pv(self.fight, source_id)
+        if source is None:
+            raise ValueError("Missing actual native HP-area death source")
         if hp > 0 or completed or uid in self._dying_area_uids:
             return False
         self._dying_area_uids.add(uid)
         try:
-            # faV.b delivers its own area mask before Qq.b sets bhi. A mask
-            # may remove this same PV; keep the actual object on that stack.
             from .combat_state_managers import selected_area_pv_scope
 
             with selected_area_pv_scope(self.fight, (uid,)):
+                if death_delivery is not None:
+                    death_delivery()
                 self._deliver_event(row, definition, source, 10014)
                 row["native_qq_bhi"] = True
                 row["native_qq_guard_source"] = "Qq.b"

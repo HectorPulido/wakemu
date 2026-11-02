@@ -62,7 +62,10 @@ _FIELDS = (
 def _policy(row, route):
     if row is None:
         raise ValueError("Dungeon ProtoDungeon context policy is not configured")
-    if row["route_key"] != route.key or (row["template_id"], row["definition_id"]) != (
+    if row["route_key"] != dungeon_instances.canonical_context_key(route) or (
+        row["template_id"],
+        row["definition_id"],
+    ) != (
         route.template_id,
         route.definition_id,
     ):
@@ -132,7 +135,7 @@ def active_policy(db, route):
         "p.provenance FROM dungeon_context_active_policies a "
         "JOIN dungeon_context_policy_versions p USING(route_key,policy_version) "
         "WHERE a.route_key=%s FOR SHARE OF a",
-        (route.key,),
+        (dungeon_instances.canonical_context_key(route),),
     ).fetchone()
     return _policy(row, route)
 
@@ -146,7 +149,7 @@ def policy_version(db, route, version):
         "min_level,difficulty_level,is_difficulty_available,"
         "can_increase_difficulty,is_competitive_cancelled,allowed_ids,provenance "
         "FROM dungeon_context_policy_versions WHERE route_key=%s AND policy_version=%s",
-        (route.key, version),
+        (dungeon_instances.canonical_context_key(route), version),
     ).fetchone()
     return _policy(row, route)
 

@@ -12,8 +12,11 @@ class BuyerBehavior:
             return [("exchange.accept", {"exchange_id": payload["exchange_id"]})]
         if event_type != "exchange.updated" or payload.get("state") != "active":
             return []
-        if shop is None:
-            raise RuntimeError("Shop integration is unavailable")
+        args = {"exchange_id": payload["exchange_id"], "revision": payload["revision"]}
+
+        def decline(reason):
+            return [("exchange.decline_quote", dict(args, reason=reason))]
+
         bot_character_id = payload["bot_character_id"]
         items = [
             item
@@ -24,29 +27,40 @@ class BuyerBehavior:
         own = next(
             member for member in members if member["character_id"] == bot_character_id
         )
-        args = {"exchange_id": payload["exchange_id"], "revision": payload["revision"]}
         if any(
             item["character_id"] == bot_character_id
             for item in payload.get("items", [])
-        ) or any(
+        ):
+            return decline("buyer_items")
+        if any(
             member["offered_kamas"] != 0
             for member in members
             if member["character_id"] != bot_character_id
         ):
-            return [("exchange.cancel", {"exchange_id": payload["exchange_id"]})]
-        amount = shop.quote(items, settings.get("purchase_percent", 80)) if items else 0
+            return decline("seller_kamas")
+        if not items:
+            return []
+        if shop is None:
+            return decline("quote_unavailable")
+        try:
+            amount = shop.quote(items, settings.get("purchase_percent", 80))
+        except Exception:
+            # A per-offer integration failure never closes a native trade.
+            return decline("quote_unavailable")
+        if amount is None:
+            return decline("unsupported_items")
+        if type(amount) is not int or amount < 0:
+            return decline("quote_unavailable")
+        if amount == 0:
+            return decline("zero_value")
         budget = payload.get("bot_kamas")
         if type(budget) is not int or budget < 0:
-            raise ValueError("Exchange event lacks a valid bot budget")
-        if amount is None or amount > budget:
-            return [("exchange.cancel", {"exchange_id": payload["exchange_id"]})]
+            return decline("quote_unavailable")
+        if amount > budget:
+            return decline("insufficient_budget")
         if own["offered_kamas"] != amount:
             return [("exchange.offer_kamas", dict(args, amount=amount))]
-        if (
-            items
-            and amount > 0
-            and own.get("confirmed_revision") != payload["revision"]
-        ):
+        if own.get("confirmed_revision") != payload["revision"]:
             return [("exchange.ready", args)]
         return []
 

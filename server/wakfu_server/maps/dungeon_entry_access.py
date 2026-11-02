@@ -1,8 +1,9 @@
 """Database policy for mission-free dungeon entrances, never internal doors.
 
 Waived predicates are unknown in a three-valued expression. A required false
-level/date/mode predicate still denies entry, while a mission-only alternative
-can authorize it. No achievement or character-state facts are manufactured.
+level/item/mode predicate still denies entry, while a mission-only alternative
+can authorize it. Exterior calendar windows are waived by server policy.
+No achievement or character-state facts are manufactured.
 """
 
 SETTING = "dungeon_entry_access_policy"
@@ -34,10 +35,8 @@ def _evaluate(
     store, criterion, *, character, destination_map_id=None, minimum_enforced
 ):
     from wakfu_server.maps import dungeon_achievement_authority, dungeon_criteria
-    from wakfu_server.maps.seasonal_access import open_event_calendar
 
     selected = policy(store)
-    criterion = open_event_calendar(criterion, destination_map_id=destination_map_id)
     authority = None
     if not selected["bypass_mission_prerequisites"] and any(
         name in criterion
@@ -56,6 +55,7 @@ def _evaluate(
         bypass_mission_prerequisites=selected["bypass_mission_prerequisites"],
         bypass_state_prerequisites=selected["bypass_state_prerequisites"],
         bypass_minimum_level=not minimum_enforced,
+        bypass_calendar_prerequisites=True,
     )
 
 
@@ -126,3 +126,51 @@ def minimum_offer_allowed(db, criterion, *, character, destination_map_id):
     except ValueError:
         return False
     return strict is False and relaxed is True
+
+
+def unrestricted_offer_allowed(db, criterion, *, character, destination_map_id):
+    """Offer the same native entrance under the server admission policy.
+
+    The GUI intent preserves native source/destination/position binding and
+    revalidates real costs and party membership in the normal entry transaction.
+    """
+    from contextlib import contextmanager
+    import time
+    from .instance_entry_level import enforced
+
+    minimum_enforced = enforced(db)
+    now = time.time()
+
+    class SnapshotStore:
+        @contextmanager
+        def connection(self):
+            yield db
+
+        def clock(self):
+            return now
+
+    actor = dict(character)
+    if "GetItemQuantity" in criterion:
+        from wakfu_server.inventory_items import load as load_items
+        from wakfu_server.items.quest_inventory import load as load_quests
+        from wakfu_server.items.account_quest_inventory import load as load_account
+        from wakfu_server.characters.exploration_secrets import load as load_secrets
+
+        actor["exploration_secrets"] = load_secrets(db)
+        actor["inventory_items"] = load_items(db, actor["id"])
+        actor["quest_items"] = load_quests(db, actor["id"])
+        actor["account_quest_items"] = load_account(db, actor["account_id"])
+    store = SnapshotStore()
+    try:
+        return (
+            _evaluate(
+                store,
+                criterion,
+                character=actor,
+                destination_map_id=destination_map_id,
+                minimum_enforced=minimum_enforced,
+            )
+            is True
+        )
+    except ValueError:
+        return False

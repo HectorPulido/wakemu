@@ -68,9 +68,12 @@ class NpcActivationProjectionTests(unittest.TestCase):
     def check_queries(self, policy):
         self.assertTrue(activation.imports_enabled(policy, 10, 2, 3))
         self.assertTrue(activation.imports_enabled(policy, "10", 8, 4))
+        for level in (1, 9, 32767):
+            self.assertTrue(activation.imports_enabled(policy, 10, level, 3))
         for monster, level, spell in (
-            (10, 1, 3),
-            (10, 9, 3),
+            (10, 0, 3),
+            (10, 32768, 3),
+            (10, True, 3),
             (10, 3, 5),
             (11, 3, 3),
             (99, 3, 3),

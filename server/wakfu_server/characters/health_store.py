@@ -449,3 +449,64 @@ def tick_company(
                 )
             )
         return tuple(updates)
+
+
+def reconcile_owned_dead_regeneration(
+    store, db, account_id, generation, character_id, *, selected_main_id
+):
+    """Rebuild a derived dead clock from canonical health without changing HP.
+
+    The caller owns its proven exploration/withdrawal boundary. Saved company
+    participants may include an inactive owned hero; its real account ownership
+    and absence of a live nonwithdrawn fight remain mandatory. This never runs
+    build/equipment reconciliation or fabricates a combat return acknowledgment.
+    """
+    if db.info.transaction_status != TransactionStatus.INTRANS:
+        raise ValueError("Regeneration reconciliation requires an active transaction")
+    store.lock_character(db, account_id, generation, selected_main_id)
+    store.lock_character(
+        db,
+        account_id,
+        generation,
+        character_id,
+        selected=character_id == selected_main_id,
+    )
+    character = db.execute(
+        "SELECT id,account_id,hp,max_hp,hp_damage,health_dead,hp_zero_valid "
+        "FROM characters WHERE id=%s AND account_id=%s AND deleted_at IS NULL",
+        (character_id, account_id),
+    ).fetchone()
+    if (
+        character is None
+        or character["health_dead"] is not True
+        or character["hp"] != 0
+        or character["hp_zero_valid"]
+        or health_policy.visible(
+            character["max_hp"], character["hp_damage"], character["health_dead"]
+        )
+        != character["hp"]
+    ):
+        raise ValueError("Regeneration reconciliation lacks canonical dead health")
+    if (
+        db.execute(
+            "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+            "WHERE p.character_id=%s AND f.status IN ('placement','active') "
+            "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w "
+            "WHERE w.fight_id=p.fight_id AND w.character_id=p.character_id) LIMIT 1",
+            (character_id,),
+        ).fetchone()
+        is not None
+    ):
+        raise ValueError("A live combat owns this regeneration baseline")
+    now = store.now()
+    db.execute(
+        "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) "
+        "VALUES(%s,0,%s,0,%s) ON CONFLICT(character_id) DO UPDATE SET "
+        "initial_hp=excluded.initial_hp,started_at=excluded.started_at,"
+        "coefficient=excluded.coefficient,last_at=excluded.last_at",
+        (character_id, now, now),
+    )
+    # The standard SQL trigger derives initial_damage from the locked character.
+    # The actual reconciliation time is not required to exceed a corrupt or
+    # pre-clock-correction historical timestamp; this transaction is the proof.
+    return dict(character)

@@ -35,6 +35,61 @@ def _int(value):
     return max(-(1 << 31), min((1 << 31) - 1, math.trunc(value)))
 
 
+_FLOAT64_FORMATS = tuple(">" + str(count) + "d" for count in range(65))
+_CONSTRUCTOR_FIELDS = (
+    "kind",
+    "movement_blocking",
+    "visibility_obstacle",
+    "obstacle",
+    "running_effect_manager",
+    "owner_activation",
+    "other_activation",
+    "height",
+    "characteristic_ids",
+)
+
+
+@lru_cache(maxsize=256)
+def _cached_float_constructor(packed, count):
+    # Binary64 content preserves signed zero and separates every float input.
+    # Only immutable prototype arithmetic is retained, never area ownership.
+    p = tuple(
+        _float32(value) for value in struct.unpack(_FLOAT64_FORMATS[count], packed)
+    )
+    if p[1] != -1 or 0 <= p[9] <= 127 or len(p) >= 14:
+        return p, None
+    height = _int(p[8])
+    return p, (
+        max(-(1 << 31), min((1 << 31) - 1, math.floor(p[0] + 0.5))),
+        p[3] == 1,
+        p[4] == 1,
+        p[3] == 1 or p[4] == 1,
+        p[5] == 1,
+        p[6] == 1,
+        p[7] == 1,
+        ((height + 128) % 256) - 128 if height > 0 else 6,
+        (),
+    )
+
+
+def _plain_float_constructor(definition, raw):
+    if (
+        type(definition) is not dict
+        or type(raw) not in (list, tuple)
+        or not 10 <= len(raw) <= 64
+        or type(definition.get("type")) is not str
+        or type(definition.get("native_class")) is not str
+        or type(definition.get("native_type_id")) is not int
+    ):
+        return None
+    for value in raw:
+        if type(value) is not float:
+            return None
+    return _cached_float_constructor(
+        struct.pack(_FLOAT64_FORMATS[len(raw)], *raw), len(raw)
+    )
+
+
 def fake_fighter_constructor(definition, level=None, *, allow_hp=False):
     return _fake_fighter_constructor_plan(definition, level, allow_hp=allow_hp)[0]
 
@@ -49,7 +104,14 @@ def _fake_fighter_constructor_plan(definition, level=None, *, allow_hp=False):
     raw = definition.get("raw_bdh")
     if not isinstance(raw, (tuple, list)) or len(raw) < 10:
         raise ValueError("Missing native faW constructor parameters")
-    p = tuple(_float32(value) for value in raw)
+    cached = _plain_float_constructor(definition, raw)
+    if cached is not None:
+        p, fields = cached
+        if fields is not None:
+            # Each caller still owns a fresh mutable constructor record.
+            return dict(zip(_CONSTRUCTOR_FIELDS, fields)), None, p
+    else:
+        p = tuple(_float32(value) for value in raw)
     # Native catalog containers have no user callbacks. Preserve legacy reads
     # for custom mappings/sequences, whose get/iteration may have side effects.
     share_parameters = (
@@ -76,6 +138,13 @@ def _fake_fighter_constructor_plan(definition, level=None, *, allow_hp=False):
             mask = owner_copy.damage_only_mask(definition)
         if mask is not None:
             characteristic_ids = (20,)
+        elif (
+            _dependency_module(
+                "combat_fake_fighter_hp_owner_copy"
+            ).mask_from_parameters(definition, p)
+            is not None
+        ):
+            characteristic_ids = (1, 20)
         else:
             if share_parameters:
                 resources = resource_module._owned_resources_from_parameters(

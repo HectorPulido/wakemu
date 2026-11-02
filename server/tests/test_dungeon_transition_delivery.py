@@ -2,7 +2,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 from wakfu_server import dungeon_instances
-from wakfu_server.maps import dungeon_transition_delivery as delivery
+from wakfu_server import dungeon_transition_delivery as delivery
+from wakfu_server.dungeon_transition_recovery import DungeonHydrationDeferred
 
 
 class DungeonTransitionDeliveryTests(unittest.TestCase):
@@ -112,8 +113,27 @@ class DungeonTransitionDeliveryTests(unittest.TestCase):
         bootstrap.assert_not_called()
         ack.assert_not_called()
 
-    def test_unrelated_local_map_defers_without_ack(self):
+    def test_stale_worker_scene_recovers_from_authoritative_pending_destination(self):
         unrelated = {**self.destination, "map_id": 527}
+        with (
+            patch.object(
+                delivery.dungeon_instances,
+                "pending_transitions",
+                return_value=(self.event,),
+            ),
+            patch.object(
+                delivery.dungeon_instances, "acknowledge_transition", return_value=True
+            ) as ack,
+        ):
+            bootstrap = Mock(return_value=True)
+            result = self.invoke(
+                current_location=lambda: unrelated, bootstrap=bootstrap
+            )
+        self.assertEqual(result["state"], "delivered")
+        bootstrap.assert_called_once_with(self.event)
+        ack.assert_called_once_with(self.store, 9, "lease-a", 27, 4)
+
+    def test_destination_change_during_preparation_retries_without_ack(self):
         with (
             patch.object(
                 delivery.dungeon_instances,
@@ -122,12 +142,13 @@ class DungeonTransitionDeliveryTests(unittest.TestCase):
             ),
             patch.object(delivery.dungeon_instances, "acknowledge_transition") as ack,
         ):
-            bootstrap = Mock(return_value=True)
             result = self.invoke(
-                current_location=lambda: unrelated, bootstrap=bootstrap
+                bootstrap=Mock(
+                    side_effect=DungeonHydrationDeferred("destination changed")
+                )
             )
-        self.assertEqual(result["state"], "deferred_map_mismatch")
-        bootstrap.assert_not_called()
+        self.assertEqual(result["state"], "session_or_destination_changed")
+        self.assertEqual(result["pending_event_ids"], (4,))
         ack.assert_not_called()
 
     def test_partial_bootstrap_keeps_event_pending_then_retry_acks(self):

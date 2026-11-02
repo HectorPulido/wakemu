@@ -111,7 +111,7 @@ def qualified_npc_uids(dispatcher):
     """Verify real ordinary construction and registered retained source IDs."""
     from .combat_event_replay import NativeCloneAuthority
     from .combat_ordinary_events import OrdinaryHealingEvents
-    from .combat_summon import ordinary_roster_authority
+    from .combat_summon import RegisteredSummonAuthority, ordinary_roster_authority
     from .combat_state_managers import state_managers
     from .combat_effect_removal import _readonly_hex_identity_fields
     from .combat_retained_source_provenance import state_source_provenance
@@ -144,13 +144,34 @@ def qualified_npc_uids(dispatcher):
                 verified[identity] = False
             else:
                 source = actors(fight, actor)
-                verified[identity] = (
+                # Mark in progress before following source ancestry: malformed
+                # cycles never acquire ordinary NPC event-source authority.
+                verified[identity] = False
+                native_npc = (
                     source.is_player is False
-                    and source.is_summon is False
                     and source.native_actor_type == 1
                     and type(source.native_npc_prototype_ref) is int
                     and source.native_npc_prototype_ref > 0
                 )
+                if native_npc and source.is_summon is False:
+                    verified[identity] = True
+                elif (
+                    native_npc
+                    and source.is_summon is True
+                    and isinstance(actors, RegisteredSummonAuthority)
+                ):
+                    # actors() above validates the full original registration,
+                    # fresh controller/master and native source provenance.
+                    registration = getattr(
+                        fight, "native_summon_registrations", {}
+                    ).get(identity)
+                    if isinstance(registration, Mapping):
+                        # Original independent eZl children self-control; that
+                        # does not replace their causal NPC caster ancestry.
+                        controller = registration["controller_id"]
+                        verified[identity] = npc(registration["caster_id"]) and (
+                            controller == identity or npc(controller)
+                        )
         return verified[identity]
 
     carriers = {

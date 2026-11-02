@@ -240,13 +240,17 @@ def npc_spell_catalog():
     from wakfu_server.combat_published_catalogs import compilation_mode
     from wakfu_server.native_catalog_document import load_published_document
 
+    from .combat_npc_activation_policy import merge_policy
+
     if not compilation_mode():
-        return load_published_document("native-npc-spell-effect-trees.json")
+        document = load_published_document("native-npc-spell-effect-trees.json")
+    else:
+        from wakfu_server.paths import DATA_ROOT
 
-    import json
-    from wakfu_server.paths import DATA_ROOT
-
-    return protocol_catalog.load(DATA_ROOT / "native-npc-spell-effect-trees.json")
+        document = protocol_catalog.load(
+            DATA_ROOT / "native-npc-spell-effect-trees.json"
+        )
+    return dict(document, activation_policy=merge_policy(document["activation_policy"]))
 
 
 def npc_runtime_catalog(*, imported=True):

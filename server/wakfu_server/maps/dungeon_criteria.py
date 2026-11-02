@@ -35,6 +35,7 @@ def evaluate(
     bypass_mission_prerequisites=False,
     bypass_state_prerequisites=False,
     bypass_minimum_level=False,
+    bypass_calendar_prerequisites=False,
 ):
     """Evaluate restricted native predicates against explicit server authority.
 
@@ -63,6 +64,7 @@ def evaluate(
             bypass_mission_prerequisites,
             bypass_state_prerequisites,
             bypass_minimum_level,
+            bypass_calendar_prerequisites,
         )
     ):
         raise ValueError("Invalid dungeon prerequisite bypass flags")
@@ -93,6 +95,7 @@ def evaluate(
         "HasState",
         "IsAfter",
         "IsBefore",
+        "GetDate",
         "IsAchievementRunning",
         "IsAchievementObjectiveComplete",
         "IsAchievementComplete",
@@ -168,8 +171,16 @@ def evaluate(
                 # Waive only a literal lower-bound predicate in its actual
                 # boolean polarity. Upper bounds/equality retain real values.
                 # Chained comparisons still check every non-level relation.
+                calendar_operand = any(
+                    isinstance(item, ast.Call)
+                    and isinstance(item.func, ast.Name)
+                    and item.func.id == "GetDate"
+                    for item in (left_node, right_node)
+                )
                 results.append(
                     waived
+                    if bypass_calendar_prerequisites and calendar_operand
+                    else waived
                     if bypass_minimum_level
                     and is_minimum(left_node, op, right_node, negated)
                     else comparisons[type(op)](left, right)
@@ -209,8 +220,19 @@ def evaluate(
                 return (
                     (quantity + account_quantity(character, args) + 2**31) % 2**32
                 ) - 2**31
+            if name == "GetDate":
+                if node.keywords:
+                    raise ValueError("Invalid dungeon date predicate arguments")
+                if args:
+                    return calendar_milliseconds(args)
+                current = now_ms if now_ms is not None else int(store.clock() * 1000)
+                if type(current) is not int:
+                    raise ValueError("Missing current UTC date authority")
+                return current
             if name in ("IsAfter", "IsBefore"):
                 date = calendar_milliseconds(args)
+                if bypass_calendar_prerequisites:
+                    return waived
                 current = now_ms
                 if current is None:
                     current = int(store.clock() * 1000)

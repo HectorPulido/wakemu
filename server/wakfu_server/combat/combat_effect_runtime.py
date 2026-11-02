@@ -578,6 +578,20 @@ class NativeEffectRuntimeFactory:
         )
         healing.retention = retention
 
+        from .combat_target_property_eligibility import (
+            target_property_eligibility,
+            special_state_container,
+        )
+
+        if self.summon_authority is not None:
+            target_eligibility = target_property_eligibility(
+                fight=preview,
+                actor_authority=self.summon_authority,
+                retention=retention,
+            )
+            damage.target_eligibility = target_eligibility
+            healing.target_eligibility = target_eligibility
+
         def undead_damage(effect, invocation, amount, runner):
             from .combat_undead_healing import apply_undead_healing
 
@@ -1871,6 +1885,9 @@ class NativeEffectRuntimeFactory:
                             fight=preview,
                             actor_authority=self.summon_authority,
                             retention=retention,
+                            special_state_container=lambda row: special_state_container(
+                                preview, row
+                            ),
                         ),
                     )
                     random_earth.child_execution_gate = dispatcher_child_gate(
@@ -1880,6 +1897,9 @@ class NativeEffectRuntimeFactory:
                             fight=preview,
                             actor_authority=self.summon_authority,
                             retention=retention,
+                            special_state_container=lambda row: special_state_container(
+                                preview, row
+                            ),
                         ),
                     )
                     if self.displacement_authority is not None:
@@ -2272,8 +2292,25 @@ class NativeEffectRuntimeFactory:
             context = timing.direct_state_reference(
                 preview, secondary, parameters[0], parameters[2], critical=False
             )
+            # eVZ.d attaches eVR.j to this directly constructed eWu. Its
+            # synthetic PK has no flags or target masks; its PL is null.
+            # 304 identifies the eWu runner for the shared corpse policy,
+            # not eVR's native action (-1). Do not inherit the loss PK: a
+            # parent corpse bypass does not authorize this fresh carrier.
+            applying_effect = dict(
+                native_definition_class="eVR",
+                reference=-4,
+                effect_class=304,
+                native_effect_flags=[],
+                target_masks=[[] for _ in range(7)],
+            )
             return retention.apply_state_reference(
-                state, secondary, parameters[0], parameters[2], carrier_context=context
+                state,
+                secondary,
+                parameters[0],
+                parameters[2],
+                carrier_context=context,
+                applying_effect=applying_effect,
             )
 
         loss.secondary_state = lambda *args: resource_secondary(loss, *args)

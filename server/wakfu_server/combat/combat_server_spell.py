@@ -574,7 +574,7 @@ def prepare_server_turn_end(
 ):
     """Atomic owned1002/1037 end boundaries before timer expiration."""
     from copy import deepcopy
-    from .combat_turn_events import deliver_turn_end, deliver_turn_regeneration
+    from .combat_turn_end_boundary import deliver_end_boundary
 
     preview = deepcopy(fight)
     factory, _ = server_runtime(
@@ -591,49 +591,7 @@ def prepare_server_turn_end(
         preview, {"native_retained_container": {"present": False}}
     )
     with preview.effect_resolution():
-        from .combat_npc_phase_controller import deliver_npc_score_result
-
-        from .combat_encounter_turn_end_order import turn_end_event_order
-
-        objective_terminal = None
-        if getattr(preview, "native_encounter_objective_policy", None) is not None:
-            from .combat_encounter_objective import deliver_objective_score_marker
-
-            deliver_objective_score_marker(dispatcher, actor_id=actor_id)
-        deliver_npc_score_result(dispatcher, actor_id=actor_id)
-        order = turn_end_event_order(preview, actor_id=actor_id)
-        early_regeneration = order[0] == 1037
-        if early_regeneration:
-            deliver_turn_regeneration(dispatcher, actor_id=actor_id)
-        if not early_regeneration or (
-            preview.phase == "active" and preview.current is not None
-        ):
-            deliver_turn_end(dispatcher, actor_id=actor_id)
-        if (
-            preview.phase == "active"
-            and preview.current is not None
-            and preview.current.id == actor_id
-            and getattr(preview, "native_ogrest_phase_context", None) is not None
-        ):
-            from .combat_ogrest_phase_controller import finish_ogrest_player_turn
-
-            finish_ogrest_player_turn(dispatcher, actor_id=actor_id)
-        if getattr(preview, "native_encounter_objective_policy", None) is not None:
-            from .combat_encounter_objective import deliver_owned_objective_boundary
-
-            objective_terminal = deliver_owned_objective_boundary(
-                dispatcher, actor_id=actor_id, boundary="owned_player_end"
-            )
-        if (
-            not early_regeneration
-            and objective_terminal is None
-            and preview.phase == "active"
-            and preview.current is not None
-        ):
-            deliver_turn_regeneration(dispatcher, actor_id=actor_id)
-        from .combat_encounter_terminal_cleanup import deliver_terminal_helper_cleanup
-
-        deliver_terminal_helper_cleanup(dispatcher)
+        deliver_end_boundary(dispatcher, actor_id=actor_id)
     return preview, tuple(packets)
 
 
@@ -658,7 +616,7 @@ def prepare_server_turn_start(
     the FSM nor repeats timer cleanup. Callback ordering is server policy.
     """
     from copy import deepcopy
-    from .combat_turn_events import deliver_turn_start
+    from .combat_turn_start_boundary import deliver_start_boundary
 
     if fight.phase != "active" or fight.current is None or fight.current.id != actor_id:
         raise ValueError("Turn-start requires the actual active actor")
@@ -677,60 +635,12 @@ def prepare_server_turn_start(
         preview, {"native_retained_container": {"present": False}}
     )
     with preview.effect_resolution():
-        objective_terminal = None
-        if native_events:
-            from .combat_periodic_aptitude import renew_periodic_aptitudes
-            from .combat_npc_phase_controller import (
-                deliver_npc_score_result,
-                deliver_npc_table_phase,
-            )
-
-            from .combat_equipment_external_events import deliver_completed_round
-
-            if getattr(preview, "native_encounter_objective_policy", None) is not None:
-                from .combat_encounter_objective import deliver_objective_score_marker
-
-                deliver_objective_score_marker(dispatcher, actor_id=actor_id)
-            deliver_completed_round(dispatcher)
-            if getattr(preview, "native_encounter_objective_policy", None) is not None:
-                from .combat_encounter_objective import deliver_owned_objective_boundary
-
-                objective_terminal = deliver_owned_objective_boundary(
-                    dispatcher, actor_id=actor_id, boundary="completed_round"
-                )
-            if objective_terminal is None:
-                renew_periodic_aptitudes(dispatcher, actor_id=actor_id)
-                deliver_npc_score_result(dispatcher, actor_id=actor_id)
-                if (
-                    getattr(preview, "native_encounter_objective_policy", None)
-                    is not None
-                ):
-                    from .combat_encounter_objective import (
-                        deliver_owned_objective_boundary,
-                    )
-
-                    objective_terminal = deliver_owned_objective_boundary(
-                        dispatcher, actor_id=actor_id, boundary="owned_boss_start"
-                    )
-                deliver_npc_table_phase(dispatcher, actor_id=actor_id)
-                if preview.phase == "active" and objective_terminal is None:
-                    deliver_turn_start(dispatcher, actor_id=actor_id)
-                    if preview.phase == "active":
-                        from .combat_ogrest_phase_controller import (
-                            deliver_ogrest_post_turn_start,
-                        )
-
-                        deliver_ogrest_post_turn_start(dispatcher, actor_id=actor_id)
-                    if preview.phase == "active" and preview.current is not None:
-                        from .combat_encounter_table_listeners import (
-                            deliver_owned_post_start_listeners,
-                        )
-
-                        deliver_owned_post_start_listeners(
-                            dispatcher, actor_id=actor_id
-                        )
-        if area_callbacks and preview.phase == "active" and objective_terminal is None:
-            dispatcher.native_area_events.turn_start(actor_id)
+        deliver_start_boundary(
+            dispatcher,
+            actor_id=actor_id,
+            native_events=native_events,
+            area_callbacks=area_callbacks,
+        )
     return preview, tuple(packets)
 
 

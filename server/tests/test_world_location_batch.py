@@ -142,9 +142,13 @@ class LocationBatchTests(unittest.TestCase):
         self.attach(world, 1, "a", Peer("broken"))
         self.attach(world, 2, "b", Peer("good"))
         packets = ((12304, b"remove"), (12608, b"spawn"))
-        with self.assertRaisesRegex(OSError, "unpublished recipients"):
+        from wakfu_server.world import WorldBatchDeliveryDeferred
+
+        with self.assertRaises(WorldBatchDeliveryDeferred) as raised:
             world.emit_location_batch(4, 5, packets, require_all=True)
         self.assertEqual(attempted, ["broken", "good"])
+        self.assertEqual(raised.exception.delivered, 1)
+        self.assertEqual(raised.exception.expected, 2)
 
     def test_strict_zero_recipient_is_vacuously_delivered_and_default_remains_non_strict(
         self,

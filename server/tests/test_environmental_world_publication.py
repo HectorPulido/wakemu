@@ -10,6 +10,115 @@ from wakfu_server.objectives import environmental_service
 
 
 class EnvironmentalWorldPublicationTests(unittest.TestCase):
+    def test_partial_world_batch_defers_resource_ack_and_propagates_unrelated_oserror(
+        self,
+    ):
+        from datetime import datetime, timezone
+        from types import SimpleNamespace
+        from wakfu_server.world import World
+
+        class Peer:
+            def __init__(self):
+                self.shutdown_calls = []
+
+            def shutdown(self, how):
+                self.shutdown_calls.append(how)
+
+        good, broken = Peer(), Peer()
+        received, attempts = [], []
+
+        def deliver_batch(peer, packets):
+            attempts.append(peer)
+            if peer is broken:
+                raise BrokenPipeError(32, "closed resource recipient")
+            received.append((peer, packets))
+
+        world = World(
+            lambda _: b"",
+            lambda _: b"",
+            lambda *_: None,
+            deliver_batch=deliver_batch,
+        )
+        location = dict(map_id=527, instance_id=0, region_id=5, x=1, y=2, z=0)
+        world.join(
+            "healthy-lease",
+            good,
+            dict(id=17, name="healthy", account_id=2, **location),
+        )
+        world.join(
+            "broken-lease",
+            broken,
+            dict(id=18, name="broken", account_id=3, **location),
+        )
+        store = SimpleNamespace(
+            current_character_session=Mock(return_value=True),
+            now=lambda: datetime(2026, 1, 1, tzinfo=timezone.utc),
+        )
+        snapshot = dict(
+            inactive_scope=False,
+            instances=[],
+            deliveries=[],
+            resource_publications=[
+                dict(publication_id="resource:1", packets=[(13873, b"resource")])
+            ],
+        )
+        connection = publication.SelectedEnvironmentalEvents()
+        with patch.object(
+            environmental_service, "refresh", return_value=snapshot
+        ), patch.object(environmental_service, "acknowledge_resources") as ack:
+            self.assertFalse(
+                connection.refresh(
+                    store,
+                    world,
+                    2,
+                    "healthy-lease",
+                    17,
+                    location=location,
+                    ready=True,
+                    checkpoint=Mock(),
+                )
+            )
+            self.assertEqual(attempts, [good, broken])
+            self.assertEqual(received, [(good, ((13873, b"resource"),))])
+            self.assertEqual((broken.shutdown_calls, good.shutdown_calls), ([2], []))
+            ack.assert_not_called()
+
+            world.leave(18, "broken-lease")
+            self.assertTrue(
+                connection.refresh(
+                    store,
+                    world,
+                    2,
+                    "healthy-lease",
+                    17,
+                    location=location,
+                    ready=True,
+                    checkpoint=Mock(),
+                )
+            )
+            ack.assert_called_once()
+
+        connection = publication.SelectedEnvironmentalEvents(groups=object())
+        with patch.object(
+            environmental_service,
+            "refresh",
+            return_value=dict(inactive_scope=False, instances=[], deliveries=[]),
+        ), patch(
+            "wakfu_server.objectives.environmental_group_publication.publish",
+            side_effect=OSError("unrelated publisher failure"),
+        ):
+            with self.assertRaisesRegex(OSError, "unrelated publisher failure"):
+                connection.refresh(
+                    store,
+                    world,
+                    2,
+                    "healthy-lease",
+                    17,
+                    location=location,
+                    ready=True,
+                    checkpoint=Mock(),
+                )
+
     def test_historical_result_hydrates_present_completed_context_then_restores_current_instance(
         self,
     ):

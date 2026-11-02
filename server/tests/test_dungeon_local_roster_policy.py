@@ -70,12 +70,12 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
         self.assertFalse(result["rooms"][0]["policy_applied"])
         self.assertEqual(plan, before)
 
-    def test_partial_known_quantities_remain_and_unknown_fields_are_annotated(self):
+    def test_partial_known_quantities_remain_and_anonymous_fields_are_annotated(self):
         known = {"ref_id": 2, "count": 4, "name": "Known", "role": "monster"}
         unknown = {
             "ref_id": None,
             "count": None,
-            "name": "Unresolved boss",
+            "name": "Random monster species",
             "role": "boss",
         }
         room = {
@@ -93,6 +93,235 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
         generated = result["rooms"][0]["generated_fields"][0]
         self.assertEqual(generated["original_monster"], unknown)
         self.assertEqual(sum(row["count"] for row in rows), 8)
+
+    def test_unresolved_named_guide_species_fails_instead_of_guessing(self):
+        room = {
+            "order": 1,
+            "diagnostics": ["incomplete_composition"],
+            "monsters": [
+                {"ref_id": None, "count": 1, "name": "Unresolved boss", "role": "boss"}
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "Reviewed monster name is unresolved"):
+            draft({**self.plan, "rooms": [room]}, self.definition, self.native)
+
+    def test_named_guide_species_resolves_accented_french_name_exactly(self):
+        native = [
+            {**row, "name": "Native " + row["name"], "name_fr": "Bouftou d’Incarnam"}
+            if row["ref"] == 2
+            else row
+            for row in self.native
+        ]
+        room = {
+            "order": 1,
+            "diagnostics": ["incomplete_composition"],
+            "monsters": [
+                {
+                    "ref_id": None,
+                    "count": 1,
+                    "name": "BOUFTOU D'INCARNAM",
+                    "role": "monster",
+                }
+            ],
+        }
+        result = draft({**self.plan, "rooms": [room]}, self.definition, native)
+        self.assertEqual(result["rooms"][0]["monsters"][0]["ref_id"], 2)
+
+    def test_named_identity_ambiguity_and_known_quantities_fail_closed_without_padding(
+        self,
+    ):
+        native = [
+            {**row, "name_fr": "Bouftou d’Incarnam"} if row["ref"] in (1, 2) else row
+            for row in self.native
+        ]
+        ambiguous = {
+            "order": 1,
+            "diagnostics": ["incomplete_composition"],
+            "monsters": [
+                {
+                    "ref_id": None,
+                    "count": 1,
+                    "name": "Bouftou d'Incarnam",
+                    "role": "monster",
+                }
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "Reviewed monster name is ambiguous"):
+            draft({**self.plan, "rooms": [ambiguous]}, self.definition, native)
+
+        named_six = {
+            "order": 1,
+            "diagnostics": ["incomplete_composition"],
+            "monsters": [
+                {
+                    "ref_id": None,
+                    "count": 6,
+                    "name": "Bouftou d'Incarnam",
+                    "role": "monster",
+                }
+            ],
+        }
+        # Make the locale identity unique for this case. Even with a generation
+        # target of eight and a missing final-boss role, the known source total
+        # remains six and the native identity must be the exact named match.
+        unique_native = [
+            {**row, "name_fr": "Bouftou d’Incarnam"}
+            if row["ref"] == 1
+            else {**row, "name_fr": "Other " + row["name"]}
+            for row in self.native
+        ]
+        result = draft(
+            {**self.plan, "rooms": [named_six]},
+            self.definition,
+            unique_native,
+            boss_references=(3,),
+        )
+        rows = result["rooms"][0]["monsters"]
+        self.assertEqual([(row["ref_id"], row["count"]) for row in rows], [(1, 6)])
+
+        anonymous_seven = {
+            "order": 1,
+            "diagnostics": ["incomplete_composition"],
+            "monsters": [
+                {
+                    "ref_id": None,
+                    "count": 7,
+                    "name": "Random monster species",
+                    "role": "monster",
+                }
+            ],
+        }
+        result = draft(
+            {**self.plan, "rooms": [anonymous_seven]}, self.definition, self.native
+        )
+        self.assertEqual(sum(row["count"] for row in result["rooms"][0]["monsters"]), 7)
+
+    def test_roster_repair_selects_original_immutable_guide_carrier(self):
+        from prepare_native_named_dungeon_rosters import (
+            restore_guide_plan,
+            select_guide_carrier,
+        )
+
+        route = {"key": "native_dungeon_34"}
+        digest = "a" * 64
+        orders = (1, 2, 3, 4)
+
+        def plan(*, flattened):
+            rooms, generated_fields = [], []
+            for order in orders:
+                if flattened:
+                    monsters = [
+                        {"ref_id": 4238 if index == 0 else 4237, "count": 1}
+                        for index in range(8)
+                    ]
+                else:
+                    monsters = [
+                        {"ref_id": 4238, "count": 2},
+                        {"ref_id": 4237, "name": "Dark Moule", "count": 2},
+                        {"ref_id": 4237, "name": "Kralamour", "count": 3},
+                        {"ref_id": 4237, "count": 1},
+                    ]
+                rooms.append({"order": order, "monsters": monsters})
+                generated_fields.append(
+                    {
+                        "order": order,
+                        "policy_applied": True,
+                        "fields": [
+                            {
+                                "monster_index": 1,
+                                "fields": ["ref_id", "name", "role"],
+                                "original_monster": {"name": "Dark Moule", "count": 2},
+                            },
+                            {
+                                "monster_index": 2,
+                                "fields": ["ref_id", "name", "role"],
+                                "original_monster": {"name": "Kralamour", "count": 3},
+                            },
+                            {
+                                "monster_index": 3,
+                                "fields": ["local_slot"],
+                                "original_monster": None,
+                            },
+                        ],
+                    }
+                )
+            return {
+                "definition_id": 34,
+                "policy_mode": (
+                    "explicit_dev_native_physical_rooms"
+                    if flattened
+                    else "generated_native_species_policy"
+                ),
+                "local_policy": (
+                    "Preserve complete rooms and known quantities; fill unresolved slots"
+                    if flattened
+                    else "generated"
+                ),
+                "roster_policy_evidence": {
+                    "policy_mode": "generated_native_species_policy"
+                },
+                "official": False,
+                "reviewed_official": False,
+                "original_guide_document_sha256": digest,
+                "rooms": rooms,
+                "generated_fields": generated_fields,
+            }
+
+        carrier = {
+            "route": route,
+            "version": 2,
+            "compiled_plan": plan(flattened=False),
+        }
+        current = {
+            "route": route,
+            "version": 3,
+            "compiled_plan": plan(flattened=True),
+        }
+        self.assertEqual(
+            sum(
+                row["count"]
+                for row in restore_guide_plan(carrier)["rooms"][0]["monsters"]
+            ),
+            7,
+        )
+        self.assertGreater(
+            sum(
+                row["count"]
+                for row in restore_guide_plan(current)["rooms"][0]["monsters"]
+            ),
+            7,
+        )
+        selected = select_guide_carrier(current, [current, carrier])
+        self.assertEqual(selected["version"], 2)
+        self.assertEqual(
+            [room["order"] for room in restore_guide_plan(selected)["rooms"]],
+            list(orders),
+        )
+        for mismatch in (
+            {**carrier, "route": {"key": "other_route"}},
+            {
+                **carrier,
+                "compiled_plan": {
+                    **carrier["compiled_plan"],
+                    "original_guide_document_sha256": "b" * 64,
+                },
+            },
+            {
+                **carrier,
+                "compiled_plan": {**carrier["compiled_plan"], "definition_id": 35},
+            },
+            {
+                **carrier,
+                "compiled_plan": {
+                    **carrier["compiled_plan"],
+                    "rooms": list(reversed(carrier["compiled_plan"]["rooms"])),
+                },
+            },
+        ):
+            with self.subTest(mismatch=mismatch), self.assertRaisesRegex(
+                ValueError, "No immutable original guide carrier"
+            ):
+                select_guide_carrier(current, [mismatch])
 
     def test_no_inferred_room_count_from_three_players_or_ultimate_kind(self):
         for kind in ("DUNGEON_3_PLAYERS", "ULTIMATE_BOSS", "INFINITE_WAVE"):
@@ -139,7 +368,12 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
             {
                 "order": 1,
                 "monsters": [
-                    {"name": "Boufrog", "ref_id": None, "count": 1, "role": "unknown"}
+                    {
+                        "name": "Random monster species",
+                        "ref_id": None,
+                        "count": 1,
+                        "role": "unknown",
+                    }
                 ],
                 "diagnostics": ["unresolved_ref"],
             },
@@ -278,7 +512,7 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
         self.assertEqual(len(result["rooms"][0]["monsters"]), 1)
         self.assertEqual(result["rooms"][0]["monsters"][0]["count"], 1)
 
-    def test_known_regular_counts_do_not_crowd_out_missing_final_boss(self):
+    def test_known_regular_counts_are_not_padded_with_missing_final_boss(self):
         room = {
             "order": 1,
             "monsters": [{"ref_id": 1, "count": 8, "role": "monster"}],
@@ -292,7 +526,8 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
         )
         rows = result["rooms"][0]["monsters"]
         self.assertEqual(rows[0]["count"], 8)
-        self.assertEqual([(m["ref_id"], m["count"]) for m in rows[1:]], [(3, 1)])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(sum(row["count"] for row in rows), 8)
 
     def test_conflicts_malformed_counts_and_unavailable_pool_fail_closed(self):
         for capacity in (True, 0, 122):

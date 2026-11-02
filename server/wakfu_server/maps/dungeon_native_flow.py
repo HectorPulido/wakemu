@@ -12,6 +12,10 @@ def validate_transport_binding(topology, binding):
     the victory that first unlocks the higher endpoint, never the source room.
     Literal source/destination verification remains the caller's responsibility.
     """
+    if binding.get("binding_kind") == "native_entry_transfer":
+        from wakfu_server.dungeon_entry_paths import validate_transfer
+
+        return validate_transfer(topology, binding)
     start, end = binding["source_room"], binding["destination_room"]
     orders = {room["order"] for room in topology["rooms"]}
     if (
@@ -83,7 +87,9 @@ def disabled_source_ids(topology, sources):
                 "Native source exclusion conflicts with its catalog or reviewed main path"
             )
         disabled.add(identity)
-    return frozenset(disabled)
+    from wakfu_server.dungeon_optional_vote_geometry import unlocked_transports
+
+    return frozenset(disabled) - unlocked_transports(topology)
 
 
 def enabled(topology):
@@ -96,6 +102,13 @@ def enabled(topology):
 
 def object_room(topology, source):
     """Resolve literal source approaches without inventing walkable center cells."""
+    from wakfu_server.dungeon_optional_continuations import (
+        object_room as continuation_room,
+    )
+
+    owned_room = continuation_room(topology, source)
+    if owned_room is not None:
+        return owned_room
     if topology.get("policy") == "native_shared_arena_sequential_policy":
         from wakfu_server import dungeon_shared_arena
 
@@ -104,10 +117,24 @@ def object_room(topology, source):
             raise ValueError("Shared arena source belongs to another asset map")
         exits = topology["physical_exit_objects"]
         return 1 if source["id"] == exits[0]["source_id"] else None
+    if topology.get("rotation_choice"):
+        from wakfu_server import dungeon_rotation
+
+        shared = dungeon_rotation.shared_entry_room(topology, source)
+        if shared is not None:
+            return shared
+    if topology.get("main_completion") is not None:
+        from wakfu_server.dungeon_main_completion import object_room as completion_room
+
+        completed_owner = completion_room(topology, source)
+        if completed_owner is not None:
+            return completed_owner
     asset_map = topology.get("asset_map_id")
     if asset_map is not None and source.get("map_id") != asset_map:
         raise ValueError("Native interactive object belongs to another asset map")
-    cells = {tuple(c): r["order"] for r in topology["rooms"] for c in r["cells"]}
+    from wakfu_server.dungeon_optional_rooms import cell_rooms
+
+    cells = cell_rooms(topology)
     center = tuple(source[k] for k in ("x", "y", "z"))
     center_room = cells.get(center)
     if topology.get("policy") not in (TELEPORT_POLICY, MIXED_POLICY):
@@ -152,7 +179,15 @@ def object_room(topology, source):
     return room
 
 
-def packets(topology, *, map_id, instance_id, unlocked_room, completed=False):
+def _progress_packets(
+    topology,
+    *,
+    map_id,
+    instance_id,
+    unlocked_room,
+    completed=False,
+    recipient_character_id=None
+):
     if topology.get("policy") == "native_shared_arena_sequential_policy":
         from wakfu_server import dungeon_shared_arena
 
@@ -162,6 +197,17 @@ def packets(topology, *, map_id, instance_id, unlocked_room, completed=False):
             instance_id=instance_id,
             unlocked_room=unlocked_room,
             completed=completed,
+        )
+    if dungeon_physical_doors.enabled(topology) and topology.get("rotation_choice"):
+        from wakfu_server import dungeon_excavation_runtime
+
+        return dungeon_excavation_runtime.flow_packets(
+            topology,
+            map_id=map_id,
+            instance_id=instance_id,
+            unlocked_room=unlocked_room,
+            completed=completed,
+            recipient_character_id=recipient_character_id,
         )
     if dungeon_physical_doors.enabled(topology):
         return dungeon_physical_doors.packets(
@@ -205,12 +251,39 @@ def packets(topology, *, map_id, instance_id, unlocked_room, completed=False):
     )
 
 
-def validate_movement(topology, request, *, unlocked_room):
+def packets(
+    topology,
+    *,
+    map_id,
+    instance_id,
+    unlocked_room,
+    completed=False,
+    recipient_character_id=None
+):
+    output = _progress_packets(
+        topology,
+        map_id=map_id,
+        instance_id=instance_id,
+        unlocked_room=unlocked_room,
+        completed=completed,
+        recipient_character_id=recipient_character_id,
+    )
+    if topology.get("main_completion") is None:
+        return output
+    from wakfu_server.dungeon_main_completion import packets as completion_packets
+
+    return tuple(output) + completion_packets(topology, completed=completed)
+
+
+def validate_movement(topology, request, *, unlocked_room, completed=False):
     if topology.get("policy") == "native_shared_arena_sequential_policy":
         from wakfu_server import dungeon_shared_arena
 
         cells = dungeon_shared_arena.validate(topology)
         dungeon_shared_arena.stage(topology, unlocked_room)
+        from wakfu_server.dungeon_optional_continuations import extra_cells
+
+        cells = cells | extra_cells(topology)
         current = tuple(request["start_position"][k] for k in ("x", "y", "z"))
         if current not in cells:
             raise ValueError("Shared arena movement starts outside reviewed cells")
@@ -224,12 +297,31 @@ def validate_movement(topology, request, *, unlocked_room):
         raise ValueError("Dungeon has no supported native exploration policy")
     if topology.get("policy") in (TELEPORT_POLICY, MIXED_POLICY):
         current = tuple(request["start_position"][k] for k in ("x", "y", "z"))
-        cells = {tuple(c): r["order"] for r in topology["rooms"] for c in r["cells"]}
+        from wakfu_server.dungeon_optional_rooms import cell_rooms
+
+        cells = cell_rooms(topology)
+        if topology.get("entry_path_policy") is not None:
+            from wakfu_server.dungeon_entry_paths import (
+                foyer_cells,
+                accessible_postboss_orders,
+            )
+
+            cells.update({position: 1 for position in foyer_cells(topology)})
+            accessible = accessible_postboss_orders(topology)
+            cells = {
+                position: (1 if room in accessible else room)
+                for position, room in cells.items()
+            }
         if topology.get("policy") == MIXED_POLICY:
+            from wakfu_server.dungeon_native_door_collision import native_blocking_cells
+
             cells.update(
                 {
-                    tuple(g["position"]): g["destination_room"]
+                    cell: g["destination_room"]
                     for g in topology["physical_doors"]
+                    for cell in native_blocking_cells(
+                        topology["asset_map_id"], g["position"]
+                    )
                 }
             )
             from wakfu_server import dungeon_branches
@@ -241,19 +333,32 @@ def validate_movement(topology, request, *, unlocked_room):
                     for position, room in cells.items()
                     if position in allowed
                 }
+        if topology.get("entry_path_policy") is not None:
+            accessible = accessible_postboss_orders(topology)
+            cells = {
+                position: (1 if room in accessible else room)
+                for position, room in cells.items()
+            }
         visited = [current]
         for step in request["steps"]:
             current = tuple(
                 current[i] + step["d" + axis] for i, axis in enumerate(("x", "y", "z"))
             )
             visited.append(current)
-        if any(cells.get(p, unlocked_room + 1) > unlocked_room for p in visited):
+        from wakfu_server.dungeon_optional_vote_geometry import extra_cells
+
+        side_cells = extra_cells(topology)
+        if any(
+            p not in side_cells and cells.get(p, unlocked_room + 1) > unlocked_room
+            for p in visited
+        ):
             raise ValueError("Native exploration crosses a locked room")
     # Reuse the proven native edge validator; never alter combat geometry.
     return dungeon_physical_doors.validate_movement(
         dict(topology, policy=dungeon_physical_doors.POLICY),
         request,
         unlocked_room=unlocked_room,
+        completed=completed,
         blocked_source_ids=(
             dungeon_branches.unselected_gate_ids(topology)
             if topology.get("policy") == MIXED_POLICY
@@ -271,4 +376,9 @@ def exit_available(topology, binding, *, completed):
 
         dungeon_shared_arena.validate(topology)
         return completed is True
+    if topology.get("entry_path_policy") is not None:
+        from wakfu_server.dungeon_entry_paths import entrance_room_orders
+
+        if binding["room_order"] in entrance_room_orders(topology):
+            return True
     return binding["room_order"] == 1 or completed is True

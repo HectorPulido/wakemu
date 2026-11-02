@@ -247,25 +247,37 @@ class SelectedEnvironmentalEvents:
         if self._groups is not None:
             from .environmental_group_publication import publish
 
-            group_publications = publish(
-                store,
-                world,
-                self._groups,
-                map_id=location["map_id"],
-                instance_id=location["instance_id"],
-                now_ms=environmental_service._clock(store, now_ms),
-            )
+            from wakfu_server.world import WorldBatchDeliveryDeferred
+
+            try:
+                group_publications = publish(
+                    store,
+                    world,
+                    self._groups,
+                    map_id=location["map_id"],
+                    instance_id=location["instance_id"],
+                    now_ms=environmental_service._clock(store, now_ms),
+                )
+            except WorldBatchDeliveryDeferred:
+                # The failed peer owns its socket cleanup. Keep the durable
+                # batch pending without disconnecting this healthy publisher.
+                return False
         resource_publications = snapshot.get("resource_publications", ())
         if resource_publications:
             resource_packets = tuple(
                 packet for row in resource_publications for packet in row["packets"]
             )
-            sent = world.emit_location_batch(
-                location["map_id"],
-                location["instance_id"],
-                resource_packets,
-                require_all=True,
-            )
+            from wakfu_server.world import WorldBatchDeliveryDeferred
+
+            try:
+                sent = world.emit_location_batch(
+                    location["map_id"],
+                    location["instance_id"],
+                    resource_packets,
+                    require_all=True,
+                )
+            except WorldBatchDeliveryDeferred:
+                return False
             if not sent:
                 return False
             environmental_service.acknowledge_resources(

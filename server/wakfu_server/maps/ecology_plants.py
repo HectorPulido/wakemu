@@ -5,7 +5,7 @@ import json
 import time
 
 from wakfu_server import planting
-from wakfu_server.planting_runtime import monster_growth_member
+from wakfu_server.planting_runtime import NoEligibleMonsterGrowth, monster_growth_member
 
 RESOURCE_KEYS = (
     "resource_uid",
@@ -48,11 +48,13 @@ def _prepare_birth_batch(store, snapshot, refs, delay, occupied):
             in occupied
         ):
             continue
-        member = monster_growth_member(
+        member = _growth_member(
             resource,
             planting.RESOURCES[resource["resource_reference"]],
             decision_seed=f"seed-birth:{resource['resource_uid']}:{resource['resource_reference']}:{resource['stage']}",
         )
+        if member is None:
+            continue
         candidate = dict(
             kind="resource_growth",
             world_epoch=epoch,
@@ -93,6 +95,15 @@ def _seed_log(resource, state, **details):
         ),
         flush=True,
     )
+
+
+def _growth_member(resource, definition, **kwargs):
+    """Keep an unavailable native family retryable without starving other seeds."""
+    try:
+        return monster_growth_member(resource, definition, **kwargs)
+    except NoEligibleMonsterGrowth as error:
+        _seed_log(resource, "unavailable", reason=str(error))
+        return None
 
 
 def prepare(store, snapshot, *, limit=16):
@@ -244,7 +255,9 @@ def prepare(store, snapshot, *, limit=16):
                                 age_ms=now_ms - resource["creation_time"],
                             )
                             continue
-                        member = monster_growth_member(resource, definition)
+                        member = _growth_member(resource, definition)
+                        if member is None:
+                            continue
                         _seed_log(
                             resource,
                             "prepared",

@@ -199,6 +199,12 @@ def _reachable(fight, actor, portals=(), *, geometry=None):
         }
     for start, end in portals:
         adjacency.setdefault(tuple(start), []).append(tuple(end))
+    from wakfu_server.combat_walk_surface_policy import native_npc_walk_blocked_cells
+    from wakfu_server.combat_ground_support import fight_supported
+
+    movement_blocked = native_npc_walk_blocked_cells(
+        fight, actor, fight.walkable - {actor.position}
+    )
     occupied = {
         tuple(a.position)
         for a in fight.actors.values()
@@ -212,10 +218,18 @@ def _reachable(fight, actor, portals=(), *, geometry=None):
         if distances[here] >= actor.mp:
             continue
         for cell in adjacency.get(here, ()):
-            if cell not in occupied and cell not in distances:
+            if (
+                cell not in occupied
+                and cell not in movement_blocked
+                and cell not in distances
+            ):
                 distances[cell] = distances[here] + 1
                 pending.append(cell)
-    return distances, adjacency
+    return {
+        cell: distance
+        for cell, distance in distances.items()
+        if cell == origin or actor.physical_radius != 0 or fight_supported(fight, cell)
+    }, adjacency
 
 
 def _area_harmful(fight, actor, row, definition, effects, registry):
@@ -798,10 +812,14 @@ def build_snapshot(oracle, *, excluded_actions=(), budget_ms=500):
 
     geometry = geometry_projection(fight, catalog_revision=baseline["catalogRevision"])
     cells, indices = geometry.cells, geometry.indices
+    from wakfu_server.combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    retired = hidden_snapshot_actor_ids(fight)
+    presented_actors = tuple(a for a in fight.actors.values() if a.id not in retired)
     factory, adapter = oracle.factory(fight, runtime.action_id + 1, random.Random(0))
     properties, actor_contexts = {}, {}
     project_condition = getattr(adapter.actor_authority, "condition_projection", None)
-    for candidate in fight.actors.values():
+    for candidate in presented_actors:
         if candidate.hp <= 0:
             continue
         if callable(project_condition):
@@ -818,12 +836,12 @@ def build_snapshot(oracle, *, excluded_actions=(), budget_ms=500):
         properties[candidate.id] = adapter.actor_authority.properties(fight, candidate)
     hidden = {
         a.id
-        for a in fight.actors.values()
+        for a in presented_actors
         if a.hp > 0
         and effective_affiliation(fight, a) != effective_affiliation(fight, actor)
         and {5, 18}.intersection(properties.get(a.id) or ())
     }
-    visible = [a for a in fight.actors.values() if a.id not in hidden]
+    visible = [a for a in presented_actors if a.id not in hidden]
     hp_definition = None
     if any(
         isinstance(getattr(a, "effect_minima", None), dict) and 1 in a.effect_minima
@@ -913,7 +931,9 @@ def build_snapshot(oracle, *, excluded_actions=(), budget_ms=500):
                 candidate, metadata=metadata, world_properties=world
             )
         )
-    owned = oracle.owned_spells(fight)
+    from wakfu_server.combat_ai_callback_spells import deliberate_spells
+
+    owned = deliberate_spells(fight, oracle.owned_spells(fight), oracle.monsters)
     spells, errors = [], []
     # Dynamic support work is shared only inside this guarded snapshot.
     support_request_cache = {}
@@ -1133,6 +1153,17 @@ def build_snapshot(oracle, *, excluded_actions=(), budget_ms=500):
             los.append([indices[origin], indices[target], value])
         except (ValueError, TypeError, KeyError):
             continue
+    from wakfu_server.combat_walk_surface_policy import native_npc_walk_blocked_cells
+    from wakfu_server.combat_ground_support import fight_supported
+
+    movement_blocked = native_npc_walk_blocked_cells(
+        fight, actor, fight.walkable - {actor.position}
+    )
+    movement_goal_blocked = (
+        {cell for cell in fight.walkable if not fight_supported(fight, cell)}
+        if actor.physical_radius == 0
+        else set()
+    )
     danger = movement_danger(fight, actor, indices)
     if oracle.state_identity(runtime) != baseline["nativeIdentity"]:
         raise ValueError("Native source changed while preparing Jondo snapshot")
@@ -1151,6 +1182,11 @@ def build_snapshot(oracle, *, excluded_actions=(), budget_ms=500):
             tackle=tackle,
             portalEdges=portals,
             movementDanger=danger,
+            movementPermissions=dict(
+                actorId=actor.id,
+                blockedAnchors=sorted(indices[cell] for cell in movement_blocked),
+                blockedGoals=sorted(indices[cell] for cell in movement_goal_blocked),
+            ),
             mechanicAreas=areas,
         ),
         spells=spells,

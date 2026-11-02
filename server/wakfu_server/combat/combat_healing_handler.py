@@ -56,6 +56,15 @@ class NativeHealingHandler:
         self.final_modifiers = {}
         self.runner_modifiers = {}
 
+    def native_eligibility(self, effect, invocation):
+        callback = getattr(self, "target_eligibility", None)
+        if callback is None:
+            return True  # Unsourced arithmetic components retain their legacy API.
+        allowed = callback(effect, invocation)
+        if type(allowed) is not bool:
+            raise ValueError("Missing native target execution eligibility")
+        return allowed
+
     def _calculate(self, effect, invocation, *, additional_final=0):
         from .combat_area_damage_guard import area_damage_has_no_resources
 

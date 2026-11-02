@@ -183,6 +183,14 @@ def install_battleground_border(fight, arena, *, reference, identity):
         native_border_source=SOURCE,
         native_border_policy=arena["native_border_policy"],
     )
+    # faP inherits faV.bax: FBO12 owns an eZV/Qf; other prototypes
+    # retain Qq's null manager. Preserve the actual neutral area identity.
+    from .combat_area_property import area_properties
+    from .combat_state_ledger import StateLedger
+
+    row["native_running_effect_manager"] = 12 in area_properties(row, definition)
+    if row["native_running_effect_manager"]:
+        row["state_ledger"] = StateLedger(identity)
     areas[identity] = row
     from .combat_global_pv_collections import register_global_area
 

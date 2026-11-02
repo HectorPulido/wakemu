@@ -61,6 +61,9 @@ class HeroSwitchDispatchTests(unittest.TestCase):
             def attach(self, account_id, generation, attached):
                 events.append(("attach", account_id, generation, attached["id"]))
 
+            def release(self, account_id, generation, identity):
+                events.append(("release", account_id, generation, identity))
+
         class World:
             def leave(self, identity, generation):
                 events.append(("leave", identity, generation))
@@ -192,6 +195,15 @@ class HeroSwitchDispatchTests(unittest.TestCase):
         )
         self.assertEqual(84, namespace["hero_switch_pending"])
         self.assertFalse(any(event[0] == "join_world" for event in events))
+        sequence = [event[0] for event in events]
+        leave_index = next(i for i, event in enumerate(events) if event[0] == "leave")
+        release_index = next(
+            i for i, event in enumerate(events) if event[0] == "release"
+        )
+        attach_index = next(i for i, event in enumerate(events) if event[0] == "attach")
+        self.assertLess(leave_index, release_index)
+        self.assertLess(release_index, attach_index)
+        self.assertEqual(events[release_index], ("release", 7, "lease", 42))
 
     def test_matching_completion_joins_without_hydrating_again_then_syncs_once(self):
         namespace, events = self.run_branch(

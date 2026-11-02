@@ -133,10 +133,26 @@ def authorize(rule, *, profession_id, profession_level):
     return rule
 
 
+def _lock_owned_scope(db, resource):
+    from wakfu_server import dungeon_resource_obstacles
+
+    if not dungeon_resource_obstacles.lock_scope(db, resource):
+        from wakfu_server.objectives.environmental_resource_actions import lock_scope
+
+        lock_scope(db, resource)
+
+
 def _authorize_owned_action(
     store, db, account_id, generation, character, resource, rule
 ):
     if rule["profession_id"] == 0:
+        from wakfu_server import dungeon_resource_obstacles
+
+        owned = dungeon_resource_obstacles.authorize(
+            db, store, account_id, generation, character, resource, rule
+        )
+        if owned is not None:
+            return owned
         from wakfu_server.objectives.environmental_resource_actions import (
             authorize_action,
         )
@@ -228,11 +244,7 @@ def reserve(store, account_id, generation, prepared, *, location_context=None):
         ):
             raise ValueError("Invalid resource occupation policy")
         if rule["profession_id"] == 0:
-            from wakfu_server.objectives.environmental_resource_actions import (
-                lock_scope,
-            )
-
-            lock_scope(db, expected)
+            _lock_owned_scope(db, expected)
         resource = db.execute(
             "SELECT * FROM planted_resources WHERE resource_uid=%s FOR UPDATE",
             (expected["resource_uid"],),
@@ -365,7 +377,7 @@ def pending(store, account_id, generation, character_id):
     return None if row is None else dict(row)
 
 
-def complete(store, ticket, body, *, location_context=None):
+def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=None):
     """Commit a successful flora occupation and its rewards exactly once.
 
     Catalog cvF is an explicit local transition policy, supported by captured
@@ -420,13 +432,8 @@ def complete(store, ticket, body, *, location_context=None):
                 occupation["action_id"],
             )
             if snapshot_rule["profession_id"] == 0:
-                from wakfu_server.objectives.environmental_resource_actions import (
-                    lock_scope,
-                )
-
-                # Cleanup owns scope before deleting the resource and cascading
-                # into its occupation. Do not retain that row while waiting.
-                lock_scope(db, snapshot)
+                # Own scope before locking the occupation or resource rows.
+                _lock_owned_scope(db, snapshot)
         locked_occupation = db.execute(
             "SELECT * FROM resource_harvest_occupations WHERE token=%s FOR UPDATE",
             (token,),
@@ -537,7 +544,7 @@ def complete(store, ticket, body, *, location_context=None):
                     operation=f"flora:{token}:{item_reference}",
                 )
                 product = grant(db, character, item_reference, quantity)
-                packets.append(product["packet"])
+                packets.extend(product["packets"])
             from wakfu_server.territory_bonuses import (
                 current_region,
                 profession_xp_percent,
@@ -560,7 +567,24 @@ def complete(store, ticket, body, *, location_context=None):
             )
             packets.extend(reward["packets"])
             packets.extend(ecology["packets"])
-        if environmental_action is not None:
+        dungeon_action = (
+            environmental_action is not None
+            and environmental_action.get("kind") == "dungeon_resource_obstacle"
+        )
+        dungeon_group = None
+        consumed = []
+        if dungeon_action:
+            from wakfu_server import dungeon_resource_obstacles
+
+            event, payment_packets, consumed = dungeon_resource_obstacles.apply(
+                db, store, character, resource, environmental_action, token
+            )
+            packets.extend(payment_packets)
+            if on_dungeon_unlocked is not None:
+                if not callable(on_dungeon_unlocked):
+                    raise ValueError("Dungeon resource group callback is invalid")
+                dungeon_group = on_dungeon_unlocked(db, resource["instance_id"])
+        elif environmental_action is not None:
             from wakfu_server.objectives.environmental_resource_population import retire
 
             if (
@@ -625,7 +649,12 @@ def complete(store, ticket, body, *, location_context=None):
             xp=reward["xp"],
             ecology={key: val for key, val in ecology.items() if key != "packets"},
         )
-        if environmental_action is not None:
+        if product:
+            outcome["item_grants"] = product["grants"]
+        if dungeon_action:
+            outcome["dungeon_resource_action"] = environmental_action
+            outcome["consumed"] = consumed
+        elif environmental_action is not None:
             outcome["environmental_action"] = environmental_action
         if product and quantity_percent:
             outcome.update(
@@ -662,9 +691,11 @@ def complete(store, ticket, body, *, location_context=None):
         applied=True,
         packets=packets,
         world_packets=[]
-        if environmental_action is not None
+        if environmental_action is not None and not dungeon_action
         else [state_packet(event, stage)],
-        environmental_owned_publication=environmental_action is not None,
+        environmental_owned_publication=environmental_action is not None
+        and not dungeon_action,
+        dungeon_group=dungeon_group,
         event=event,
         map_id=resource["map_id"],
         instance_id=resource["instance_id"],

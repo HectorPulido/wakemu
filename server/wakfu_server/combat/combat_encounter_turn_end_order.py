@@ -122,6 +122,11 @@ def order_policy_from_record(record):
 
 def turn_end_event_order(fight, *, actor_id):
     """Apply the frozen order only to its actual owned boss and exact cycles."""
+    from .combat_encounter_scene_turn_order import declared_turn_end_order
+
+    scene_order = declared_turn_end_order(fight, actor_id=actor_id)
+    if scene_order is not None:
+        return scene_order
     record = getattr(fight, "native_turn_end_order_policy", None)
     if record is None:
         return DEFAULT_ORDER

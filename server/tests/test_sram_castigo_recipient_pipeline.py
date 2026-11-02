@@ -36,13 +36,15 @@ class SramCastigoRecipientPipelineTests(unittest.TestCase):
             if row.reference == 3114
         )
 
-    def fixture(self, target_position=None, *, ring=False):
+    def fixture(
+        self, target_position=None, *, ring=False, breed=4, spells=(4579, 4589)
+    ):
         (
             character,
             monster,
             fight,
         ) = transaction_fixtures.SpellTransactionTests().native_server_fixture(
-            4,
+            breed,
             30,
             full_health=True,
             native_qi=True,
@@ -159,7 +161,7 @@ class SramCastigoRecipientPipelineTests(unittest.TestCase):
             fight.native_effect_uid_next = 1
             fight.native_obstacle_cells = frozenset()
             fight.ready(3)
-        deck = encode_deck([4579, 4589])
+        deck = encode_deck(spells)
         for index, source in enumerate(characters.values()):
             fight, _ = prepare_server_initialization(
                 source,
@@ -177,7 +179,7 @@ class SramCastigoRecipientPipelineTests(unittest.TestCase):
         self.assertEqual(fight.current.id, 7)
         return characters, monsters, RuntimeMessages(fight), deck
 
-    def cast(self, fixture, spell=4589, *, critical=False):
+    def cast(self, fixture, spell=4589, *, critical=False, aim_at_caster=False):
         from wakfu_server.combat_actor import (
             actual_actor_stats,
             actual_monster_actor_stats,
@@ -185,7 +187,9 @@ class SramCastigoRecipientPipelineTests(unittest.TestCase):
 
         characters, monsters, runtime, deck = fixture
         original = snapshot(runtime.fight)
-        target = runtime.fight.actors[7 if spell == 4589 else -7].position
+        target = runtime.fight.actors[
+            7 if spell == 4589 or aim_at_caster else -7
+        ].position
 
         def los(origin, destination, current):
             return authoritative_visible(

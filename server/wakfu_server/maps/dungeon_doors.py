@@ -3,7 +3,7 @@
 import struct
 
 from wakfu_server import generic_transports, player_parties
-from wakfu_server import dungeon_criteria
+from wakfu_server import dungeon_achievement_authority
 
 
 def resolve(
@@ -95,6 +95,13 @@ def resolve(
         or (abs(destination_room - source_room) != 1 and mixed_binding is None)
     ):
         raise ValueError("Dungeon door topology does not identify reviewed rooms")
+    if topology is not None and not (
+        mixed_binding is not None
+        and mixed_binding.get("binding_kind") == "native_entry_transfer"
+    ):
+        from wakfu_server.dungeon_optional_rooms import require_main_room
+
+        require_main_room(topology, destination_room)
     return source_room, destination_room, dict(destination)
 
 
@@ -122,6 +129,13 @@ def _advance(
         raise ValueError("Authoritative combat check is required")
     if on_arrival is not None and not callable(on_arrival):
         raise ValueError("Authoritative arrival callback is required")
+    entry_paths = topology is not None and topology.get("entry_path_policy") is not None
+    from wakfu_server.dungeon_entry_paths import (
+        lock_members_nowait,
+        owner_lock_query,
+        lock_accounts_nowait,
+    )
+
     with store.connection() as db:
         initial = db.execute(
             "SELECT instance_id,party_id FROM dungeon_instance_members "
@@ -138,8 +152,29 @@ def _advance(
                 (initial["instance_id"],),
             ).fetchall()
         ]
-        player_parties._lock_members(db, member_ids)
-        members = db.execute(
+        if topology is not None and topology.get("entry_path_policy") is not None:
+            # This entry point may hold the position account barrier. Never
+            # wait for a run/instance holder that may be waiting for accounts.
+            db.execute(
+                "SELECT instance_id FROM dungeon_instances WHERE instance_id=%s FOR UPDATE NOWAIT",
+                (initial["instance_id"],),
+            ).fetchone()
+            db.execute(
+                "SELECT instance_id FROM dungeon_room_runs WHERE instance_id=%s FOR UPDATE NOWAIT",
+                (initial["instance_id"],),
+            ).fetchone()
+        if entry_paths:
+            lock_members_nowait(db, member_ids)
+        else:
+            player_parties._lock_members(db, member_ids)
+        if entry_paths:
+            accounts = db.execute(
+                "SELECT DISTINCT account_id FROM characters WHERE id=ANY(%s)",
+                (member_ids,),
+            ).fetchall()
+            lock_accounts_nowait(db, [row["account_id"] for row in accounts])
+        members = owner_lock_query(
+            db,
             "SELECT c.id,c.account_id,c.map_id,c.instance_id,c.x,c.y,c.z,"
             "s.generation,s.character_id AS selected_character_id,s.expires_at,"
             "m.session_generation AS membership_generation "
@@ -148,10 +183,13 @@ def _advance(
             "WHERE m.instance_id=%s AND m.status='active' AND c.deleted_at IS NULL "
             "ORDER BY c.id FOR UPDATE OF s,c",
             (initial["instance_id"],),
+            nonblocking=entry_paths,
         ).fetchall()
-        db.execute(
+        owner_lock_query(
+            db,
             "SELECT id FROM player_parties WHERE id=%s FOR UPDATE",
             (initial["party_id"],),
+            nonblocking=entry_paths,
         ).fetchone()
         run = db.execute(
             "SELECT * FROM dungeon_instances WHERE instance_id=%s FOR UPDATE",
@@ -183,9 +221,11 @@ def _advance(
             or actor["generation"] != generation
         ):
             raise ValueError("Dungeon door session is stale")
+        from wakfu_server import heroes
+
         for member in members:
             if (
-                member["selected_character_id"] != member["id"]
+                not heroes.session_authorized(db, member)
                 or member["expires_at"] <= store.now()
                 or member["membership_generation"] != member["generation"]
                 or member["instance_id"] != run["instance_id"]
@@ -195,42 +235,117 @@ def _advance(
                 raise ValueError(
                     "Every active dungeon member must be online outside combat"
                 )
-        source_room, destination_room, destination = resolve(
-            actor,
-            body,
-            source_allowed=source_allowed,
-            room_for_position=room_for_position,
-            criterion_allowed=lambda criterion: dungeon_criteria.evaluate(
-                store, criterion
-            ),
-            topology=topology,
-        )
-        if max(source_room, destination_room) > progress["current_room"]:
-            raise ValueError("Dungeon next room has no committed victory authorization")
-        if destination_room > source_room:
-            receipt = db.execute(
-                "SELECT result FROM dungeon_room_encounters WHERE instance_id=%s "
-                "AND room_order=%s AND status='victory' ORDER BY result_revision DESC LIMIT 1",
-                (run["instance_id"], destination_room - 1),
-            ).fetchone()
+        if topology is not None and topology.get("entry_path_policy") is not None:
+            from wakfu_server import dungeon_runtime
+
+            _, fresh_config = dungeon_runtime.configuration_for_instance(
+                db, run["instance_id"]
+            )
+            if fresh_config["topology"].get("entry_path_source_sha256") != topology.get(
+                "entry_path_source_sha256"
+            ):
+                raise ValueError("Pinned native entrance path changed")
+            topology = fresh_config["topology"]
+        if topology is not None and topology.get("optional_vote_access") is not None:
+            from wakfu_server import dungeon_runtime
+
+            _, fresh_config = dungeon_runtime.configuration_for_instance(
+                db, run["instance_id"]
+            )
             if (
-                receipt is None
-                or receipt["result"].get("victory") is not True
-                or receipt["result"].get("current_room") != destination_room
+                fresh_config["topology"].get("optional_vote_access")
+                != topology["optional_vote_access"]
+            ):
+                raise ValueError("Pinned optional transport changed")
+            topology = fresh_config["topology"]
+        from wakfu_server.dungeon_optional_vote_geometry import resolve_transport
+
+        side_destination = (
+            None
+            if topology is None
+            else resolve_transport(
+                topology,
+                actor,
+                body,
+                source_allowed=source_allowed,
+            )
+        )
+        if side_destination is not None:
+            destination = side_destination
+        else:
+            source_room, destination_room, destination = resolve(
+                actor,
+                body,
+                source_allowed=source_allowed,
+                room_for_position=room_for_position,
+                criterion_allowed=lambda criterion: dungeon_achievement_authority.evaluate(
+                    store,
+                    criterion,
+                    character=store.character(account_id, character_id, db),
+                ),
+                topology=topology,
+            )
+            entry_transfer = None
+            if topology is not None and topology.get("entry_path_policy") is not None:
+                from wakfu_server import dungeon_entry_paths
+
+                source_id, destination_id = struct.unpack_from(">qi", body)
+                matches = [
+                    record
+                    for record in topology["entry_path_policy"]["entry_transfers"]
+                    if record["source_id"] == source_id
+                    and record["destination_id"] == destination_id
+                ]
+                if matches:
+                    entry_transfer = dungeon_entry_paths.transfer_binding(
+                        topology, source_id, destination_id
+                    )
+                    if str(progress.get("branch_key") or "").startswith(
+                        dungeon_entry_paths.HINT_PREFIX
+                    ):
+                        if on_arrival is None:
+                            raise ValueError(
+                                "Native entrance choice requires atomic group hydration"
+                            )
+                        from wakfu_server import dungeon_runtime_config
+
+                        source_config = dungeon_runtime_config.pinned_configuration(
+                            db, run["context_route_key"], run["context_policy_version"]
+                        )
+                        dungeon_entry_paths.select_unfought_path(
+                            db, run, source_config, entry_transfer["to_path"]
+                        )
+            if (
+                entry_transfer is None
+                and max(source_room, destination_room) > progress["current_room"]
             ):
                 raise ValueError(
                     "Dungeon next room has no committed victory authorization"
                 )
-        if topology is not None and topology.get("branch_routes"):
-            from wakfu_server import dungeon_branches
+            if entry_transfer is None and destination_room > source_room:
+                receipt = db.execute(
+                    "SELECT result FROM dungeon_room_encounters WHERE instance_id=%s "
+                    "AND room_order=%s AND status='victory' ORDER BY result_revision DESC LIMIT 1",
+                    (run["instance_id"], destination_room - 1),
+                ).fetchone()
+                if (
+                    receipt is None
+                    or receipt["result"].get("victory") is not True
+                    or receipt["result"].get("current_room") != destination_room
+                ):
+                    raise ValueError(
+                        "Dungeon next room has no committed victory authorization"
+                    )
+            if topology is not None and topology.get("branch_routes"):
+                from wakfu_server import dungeon_branches
 
-            if on_arrival is None:
-                raise ValueError(
-                    "Native branch travel requires atomic encounter initialization"
+                if on_arrival is None:
+                    raise ValueError(
+                        "Native branch travel requires atomic encounter initialization"
+                    )
+                dungeon_branches.select(
+                    db, run["instance_id"], topology, struct.unpack_from(">q", body)[0]
                 )
-            dungeon_branches.select(
-                db, run["instance_id"], topology, struct.unpack_from(">q", body)[0]
-            )
         revision = run["revision"] + 1
         db.execute(
             "UPDATE dungeon_instances SET revision=%s WHERE instance_id=%s",
@@ -252,6 +367,8 @@ def _advance(
                 "WHERE character_id=%s AND status='pending'",
                 (store.now(), member["id"]),
             )
+            if member["selected_character_id"] != member["id"]:
+                continue
             db.execute(
                 "INSERT INTO dungeon_transition_outbox(instance_id,party_id,transition_revision,character_id,"
                 "session_generation,source_map_id,source_instance_id,source_x,source_y,source_z,"
@@ -301,20 +418,30 @@ def advance(
 ):
     """Travel through a door with the complete instance's positions fenced."""
 
+    from psycopg.errors import LockNotAvailable
+
     def transition(allowed_accounts=None):
-        return _advance(
-            store,
-            account_id,
-            generation,
-            character_id,
-            body,
-            source_allowed=source_allowed,
-            room_for_position=room_for_position,
-            in_fight=in_fight,
-            topology=topology,
-            on_arrival=on_arrival,
-            allowed_position_accounts=allowed_accounts,
-        )
+        try:
+            return _advance(
+                store,
+                account_id,
+                generation,
+                character_id,
+                body,
+                source_allowed=source_allowed,
+                room_for_position=room_for_position,
+                in_fight=in_fight,
+                topology=topology,
+                on_arrival=on_arrival,
+                allowed_position_accounts=allowed_accounts,
+            )
+        except LockNotAvailable as error:
+            # The transaction context has already rolled back. The position
+            # barrier remains authoritative and the normal action rejection
+            # keeps the client connected to retry the same native interaction.
+            raise ValueError(
+                "Dungeon native travel is busy; retry interaction"
+            ) from error
 
     if positions is None:
         return transition()

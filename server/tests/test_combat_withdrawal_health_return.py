@@ -282,6 +282,269 @@ class WithdrawalHealthReturnTests(PostgresCase):
             acknowledge(store, owner, fight.id)
         self.assertEqual(store.character(account, character["id"])["hp"], 0)
 
+    def test_replacement_lease_preserves_newer_dead_baseline_and_finishes_pending_return(
+        self,
+    ):
+        self._assert_newer_dead_baseline_recovery(use_registry=False)
+
+    def test_replacement_lease_preserves_newer_dead_baseline_with_retained_registry(
+        self,
+    ):
+        self._assert_newer_dead_baseline_recovery(use_registry=True)
+
+    def test_selector_return_same_lease_preserves_newer_dead_baseline(self):
+        self._assert_newer_dead_baseline_recovery(
+            use_registry=True, replace_lease=False
+        )
+
+    def _assert_newer_dead_baseline_recovery(self, *, use_registry, replace_lease=True):
+        values, _, _ = self.withdrawn()
+        (
+            store,
+            account,
+            generation,
+            character,
+            fight,
+            adapter,
+            owner,
+            shared,
+            *_,
+        ) = values
+        store.clock = lambda: 1005
+        # A later authoritative exploration initialization must not be undone
+        # by an older unacknowledged withdrawal when this account reconnects.
+        health_store.initialize(
+            store, account, generation, character["id"], coefficient=0
+        )
+        if replace_lease:
+            generation = store.begin_session(account)
+            store.select_character(account, generation, character["id"])
+        replacement = replace(owner, generation=generation)
+        before = store.character(account, character["id"])
+        combat_before = snapshot(shared.fight)
+        with store.connection() as db:
+            regeneration = dict(
+                db.execute(
+                    "SELECT * FROM character_regeneration WHERE character_id=%s",
+                    (character["id"],),
+                ).fetchone()
+            )
+        recovered = (
+            adapter.recover_withdrawn_pve(replacement)
+            if use_registry
+            else recover_pending(store, replacement)
+        )
+        self.assertEqual(recovered, before)
+        self.assertTrue(recovered["health_dead"])
+        self.assertEqual(recovered["hp"], 0)
+        self.assertIsNone(recover_pending(store, replacement))
+        self.assertEqual(snapshot(shared.fight), combat_before)
+        with store.connection() as db:
+            self.assertEqual(
+                dict(
+                    db.execute(
+                        "SELECT * FROM character_regeneration WHERE character_id=%s",
+                        (character["id"],),
+                    ).fetchone()
+                ),
+                regeneration,
+            )
+            exit_row = db.execute(
+                "SELECT return_acknowledged_at FROM fight_health_exits WHERE fight_id=%s AND character_id=%s",
+                (fight.id, character["id"]),
+            ).fetchone()
+            self.assertIsNone(exit_row["return_acknowledged_at"])
+            continuation = db.execute(
+                "SELECT returned_at,health_returned_at,session_generation FROM combat_pve_withdrawals "
+                "WHERE fight_id=%s AND character_id=%s",
+                (fight.id, character["id"]),
+            ).fetchone()
+            self.assertIsNotNone(continuation["returned_at"])
+            self.assertIsNotNone(continuation["health_returned_at"])
+            self.assertEqual(continuation["session_generation"], generation)
+
+    def test_pending_recovery_does_not_consume_old_return_while_current_fight_is_active(
+        self,
+    ):
+        values, _, _ = self.withdrawn()
+        (
+            store,
+            account,
+            generation,
+            character,
+            fight,
+            adapter,
+            owner,
+            shared,
+            *_,
+        ) = values
+        store.clock = lambda: 1005
+        health_store.initialize(
+            store, account, generation, character["id"], coefficient=0
+        )
+        generation = store.begin_session(account)
+        store.select_character(account, generation, character["id"])
+        replacement = replace(owner, generation=generation)
+        combat_before = snapshot(shared.fight)
+        before = store.character(account, character["id"])
+        with store.connection() as db:
+            active = db.execute(
+                "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
+            ).fetchone()["id"]
+            db.execute(
+                "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team,session_generation) "
+                "VALUES(%s,%s,%s,0,%s)",
+                (active, character["id"], account, generation),
+            )
+            baseline = dict(
+                db.execute(
+                    "SELECT * FROM character_regeneration WHERE character_id=%s",
+                    (character["id"],),
+                ).fetchone()
+            )
+            receipt = dict(
+                db.execute(
+                    "SELECT * FROM combat_pve_withdrawals WHERE fight_id=%s AND character_id=%s",
+                    (fight.id, character["id"]),
+                ).fetchone()
+            )
+        self.assertIsNone(recover_pending(store, replacement))
+        self.assertEqual(store.character(account, character["id"]), before)
+        self.assertEqual(snapshot(shared.fight), combat_before)
+        with store.connection() as db:
+            self.assertEqual(
+                dict(
+                    db.execute(
+                        "SELECT * FROM character_regeneration WHERE character_id=%s",
+                        (character["id"],),
+                    ).fetchone()
+                ),
+                baseline,
+            )
+            self.assertEqual(
+                dict(
+                    db.execute(
+                        "SELECT * FROM combat_pve_withdrawals WHERE fight_id=%s AND character_id=%s",
+                        (fight.id, character["id"]),
+                    ).fetchone()
+                ),
+                receipt,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (active,)
+                ).fetchone()["status"],
+                "active",
+            )
+
+    def test_missing_malformed_or_older_regeneration_repairs_full_owned_cohort_without_healing(
+        self,
+    ):
+        from datetime import timedelta
+
+        values, _, hero = self.withdrawn(hero=True)
+        (
+            store,
+            account,
+            generation,
+            character,
+            fight,
+            adapter,
+            owner,
+            shared,
+            other_account,
+            _,
+            other,
+        ) = values
+        old_generation = generation
+        store.clock = lambda: 1005
+        generation = store.begin_session(account)
+        store.select_character(account, generation, character["id"])
+        replacement = replace(owner, generation=generation)
+        identities = [character["id"], hero["id"]]
+        before = {
+            identity: store.character(account, identity) for identity in identities
+        }
+        foreign = store.character(other_account, other["id"])
+        combat_before = snapshot(shared.fight)
+        with store.connection() as db:
+            exits = {
+                row["character_id"]: row["created_at"]
+                for row in db.execute(
+                    "SELECT character_id,created_at FROM fight_health_exits WHERE fight_id=%s AND character_id=ANY(%s)",
+                    (fight.id, identities),
+                )
+            }
+        for defect in ("missing", "malformed_damage", "older", "clock_regression"):
+            with self.subTest(defect=defect):
+                store.clock = (
+                    (lambda: 999) if defect == "clock_regression" else (lambda: 1005)
+                )
+                with store.connection() as db:
+                    db.execute(
+                        "UPDATE combat_pve_withdrawals SET returned_at=NULL,health_returned_at=NULL,session_generation=%s "
+                        "WHERE fight_id=%s AND account_id=%s",
+                        (old_generation, fight.id, account),
+                    )
+                    for identity in identities:
+                        db.execute(
+                            "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) "
+                            "VALUES(%s,0,%s,0,%s) ON CONFLICT(character_id) DO UPDATE SET "
+                            "initial_hp=excluded.initial_hp,started_at=excluded.started_at,coefficient=0,last_at=excluded.last_at",
+                            (identity, exits[identity], exits[identity]),
+                        )
+                    if defect == "missing":
+                        db.execute(
+                            "DELETE FROM character_regeneration WHERE character_id=ANY(%s)",
+                            (identities,),
+                        )
+                    elif defect == "malformed_damage":
+                        db.execute(
+                            "UPDATE character_regeneration SET initial_damage=initial_damage+7 WHERE character_id=ANY(%s)",
+                            (identities,),
+                        )
+                    else:
+                        db.execute(
+                            "UPDATE character_regeneration SET started_at=%s WHERE character_id=ANY(%s)",
+                            (min(exits.values()) - timedelta(seconds=2), identities),
+                        )
+                self.assertEqual(
+                    recover_pending(store, replacement), before[character["id"]]
+                )
+                self.assertIsNone(recover_pending(store, replacement))
+                for identity in identities:
+                    self.assertEqual(
+                        store.character(account, identity), before[identity]
+                    )
+                self.assertEqual(store.character(other_account, other["id"]), foreign)
+                self.assertEqual(snapshot(shared.fight), combat_before)
+                with store.connection() as db:
+                    for identity in identities:
+                        baseline = db.execute(
+                            "SELECT * FROM character_regeneration WHERE character_id=%s",
+                            (identity,),
+                        ).fetchone()
+                        self.assertEqual(
+                            (
+                                baseline["initial_hp"],
+                                baseline["initial_damage"],
+                                baseline["coefficient"],
+                            ),
+                            (0, before[identity]["hp_damage"], 0),
+                        )
+                        self.assertEqual(baseline["started_at"], store.now())
+                        self.assertEqual(baseline["last_at"], store.now())
+                        receipt = db.execute(
+                            "SELECT w.returned_at,w.health_returned_at,w.session_generation,e.return_acknowledged_at "
+                            "FROM combat_pve_withdrawals w JOIN fight_health_exits e USING(fight_id,character_id) "
+                            "WHERE w.fight_id=%s AND w.character_id=%s",
+                            (fight.id, identity),
+                        ).fetchone()
+                        self.assertIsNotNone(receipt["returned_at"])
+                        self.assertIsNotNone(receipt["health_returned_at"])
+                        self.assertEqual(receipt["session_generation"], generation)
+                        self.assertIsNone(receipt["return_acknowledged_at"])
+
     def test_all_owned_dead_heroes_recover_without_touching_foreign_owner(self):
         values, receipt, hero = self.withdrawn(hero=True)
         (

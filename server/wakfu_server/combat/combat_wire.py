@@ -221,6 +221,7 @@ def arena(
     surface_indices=None,
     border_cells=(),
     gap_surface_indices=None,
+    native_surfaces=None,
 ):
     """Build a bounded arena from prevalidated (x,y,z) client-map cells.
 
@@ -314,7 +315,7 @@ def arena(
             flags[index] = team
     if set(placement) != {0, 1}:
         raise ValueError("Both placement teams are required")
-    return dict(
+    result = dict(
         map_id=map_id,
         instance_id=instance_id,
         x=x0,
@@ -329,6 +330,11 @@ def arena(
         flag_S=0,
         team_values=teams,
     )
+    if native_surfaces is not None:
+        from .combat_qi_unavailable_surfaces import exclude_unavailable_surfaces
+
+        result = exclude_unavailable_surfaces(result, native_surfaces, cells)
+    return result
 
 
 def initial_timeline(actor_ids, order):

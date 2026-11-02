@@ -1,4 +1,4 @@
-"""Single-world-worker wakeups for already committed rift map transitions.
+"""Single-world-worker wakeups for committed travel and owned position refresh.
 
 Characters retain the durable destination. Login recovers it after a process
 restart; this queue only prompts existing sockets to hydrate that destination.
@@ -33,6 +33,34 @@ def queue(members, destination):
             _PENDING[(member["account_id"], member["generation"], member["id"])] = dict(
                 destination
             )
+
+
+def queue_owned_position_refresh(account_id, generation, character_id, location):
+    """Refresh a superseded travel presentation without replacing newer work.
+
+    The caller proved current selected ownership and committed supersession.
+    This is a wakeup, not a movement or successful-delivery acknowledgement.
+    The reader resolves the current owned location again before publication.
+    """
+    keys = ("map_id", "instance_id", "x", "y", "z")
+    if (
+        type(account_id) is not int
+        or type(character_id) is not int
+        or not isinstance(generation, str)
+        or not generation
+        or any(type(location.get(key)) is not int for key in keys)
+    ):
+        raise ValueError(
+            "Owned position refresh requires its actual lease and location"
+        )
+    with _LOCK:
+        _PENDING.setdefault(
+            (account_id, generation, character_id),
+            dict(
+                **{key: location[key] for key in keys},
+                refresh_current_owned_position=True
+            ),
+        )
 
 
 def supersede_recovered_sessions(sessions):

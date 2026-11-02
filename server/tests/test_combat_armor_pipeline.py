@@ -66,7 +66,17 @@ class NativeArmorPipelineTests(unittest.TestCase):
 
         def capture(instance, event, **kwargs):
             if getattr(event, "effect_action_id", None) == 1013:
-                seen.append((event.channel, event.value, event.uid, event.event_ids))
+                seen.append(
+                    (
+                        event.channel,
+                        event.value,
+                        event.uid,
+                        event.event_ids,
+                        event.manager_actor_id,
+                        event.caster_id,
+                        event.target_id,
+                    )
+                )
             return replay(instance, event, **kwargs)
 
         with patch.object(NativeEventReplay, "__call__", capture):
@@ -88,7 +98,17 @@ class NativeArmorPipelineTests(unittest.TestCase):
             initialized.actors[7].effect_stats[97],
         )
         self.assertTrue(seen)
-        self.assertEqual([row[0] for row in seen], [10, 1, 20, 2, 30, 3, 40, 4])
+        # Original Qe.L emits caster/target pairs; eZR.L then broadcasts to
+        # both actual fight PVs through channels11/21/31/41 at each boundary.
+        self.assertEqual(
+            [row[0] for row in seen],
+            [10, 1, 11, 11, 20, 2, 21, 21, 30, 3, 31, 31, 40, 4, 41, 41],
+        )
+        for channel in (11, 21, 31, 41):
+            self.assertCountEqual(
+                [row[4] for row in seen if row[0] == channel], [7, -7]
+            )
+        self.assertEqual({(row[5], row[6]) for row in seen}, {(7, 7)})
         self.assertEqual(len({row[2] for row in seen}), 1)
         self.assertTrue(all(0 in row[3] for row in seen))
         self.assertIn(13497, [opcode for opcode, _ in result.packets])

@@ -23,6 +23,11 @@ def preflight_main_selection(
     db.execute(
         "SELECT account_id FROM sessions WHERE account_id=%s FOR UPDATE", (account_id,)
     )
+    from wakfu_server.company_context_recovery import (
+        reconcile_public_dungeon_memberships,
+    )
+
+    reconcile_public_dungeon_memberships(db, account_id)
     row = db.execute(
         "SELECT leader_id FROM account_hero_rosters WHERE account_id=%s FOR UPDATE",
         (account_id,),

@@ -4,7 +4,7 @@ import os
 import threading
 from pathlib import Path
 
-from wakfu_bots.clients import JsonClient, LlmClient, ShopClient, WorldClient
+from wakfu_bots.clients import BuyerPriceClient, JsonClient, LlmClient, WorldClient
 from wakfu_bots.config import Profiles
 from wakfu_bots.http import make_server
 from wakfu_bots.runtime import Worker
@@ -33,8 +33,7 @@ def main():
         os.environ.get("WAKFU_WORLD_URL", "http://world:18081"),
         read_token("WAKFU_BOTS_TOKEN_FILE"),
     )
-    shop_url = os.environ.get("WAKFU_SHOP_URL", "http://shop:18083")
-    shop = ShopClient(JsonClient(shop_url)) if shop_url else None
+    shop = BuyerPriceClient(world)
     llm_url = os.environ.get("WAKFU_BOTS_LLM_URL", "")
     llm = (
         LlmClient(
