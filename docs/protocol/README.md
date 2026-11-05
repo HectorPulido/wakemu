@@ -2,7 +2,7 @@
 
 [Main wiki](../README.md)
 
-This section explains how Wakemu communicates with the **Wakfu 1.93.1+79** client and turns binary requests into game behavior. It documents this emulator's implementation, not Ankama's private server architecture or a complete specification of every Wakfu message.
+This section explains how Wakemu communicates with the **Wakfu 1.93.1+81** client (launcher build **`6.0_1.93.1.5367.336`**) and turns binary requests into game behavior. The existing protocol implementation passed basic gameplay checks with this version on macOS. It documents this emulator's implementation, not Ankama's private server architecture or a complete specification of every Wakfu message; wire compatibility does not establish complete gameplay-data compatibility.
 
 You do not need to understand every byte before reading. Start with the connection journey, then follow one request through decoding, validation, execution, and delivery.
 

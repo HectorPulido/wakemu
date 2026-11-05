@@ -137,7 +137,9 @@ This requires the original empty-database witness and permits only the verifier'
 
 The server does not need Java, Tk or game assets. These are requirements for the desktop that runs the client.
 
-Use macOS or Linux with a graphical desktop, Python 3 with Tk support, and JDK 21 or newer. Supply your own compatible **Wakfu 1.93.1+79** installation; other versions are unsupported.
+Use macOS or Linux with a graphical desktop, Python 3 with Tk support, and JDK 21 or newer. Supply your own **Wakfu 1.93.1+81** installation (launcher build **`6.0_1.93.1.5367.336`**). Basic gameplay with this version has been checked on macOS; other platforms and full content compatibility remain unverified.
+
+The +81 check used an isolated profile with version-specific planting and dungeon agents disabled. Those agents still require adaptation, and the server catalogs have not been fully migrated to the new client data. Read the [client compatibility scope](../README.md#client-compatibility-scope) before treating the regular launcher as a fully validated +81 setup.
 
 Put its files directly inside `client/`:
 

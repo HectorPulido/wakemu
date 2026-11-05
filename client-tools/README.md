@@ -4,7 +4,9 @@ Project-owned launchers, diagnostics, Java agents and patches. The official game
 
 ## Setup
 
-Supply Wakfu **1.93.1+79** in the sibling `../client/` directory. Its `config.properties`, `classpath`, `contents/`, `lib/` and `jre/` must be directly inside that directory. The local tools support macOS (`sandbox-exec`) and Linux (X11/XWayland `DISPLAY`), Python 3 with Tk support for account dialogs, a JDK 21 or newer, and the local server services. Linux uses the extracted `client/jre/bin/java` runtime.
+Supply Wakfu **1.93.1+81** (launcher build **`6.0_1.93.1.5367.336`**) in the sibling `../client/` directory. Its `config.properties`, `classpath`, `contents/`, `lib/` and `jre/` must be directly inside that directory. The local tools support macOS (`sandbox-exec`) and Linux (X11/XWayland `DISPLAY`), Python 3 with Tk support for account dialogs, a JDK 21 or newer, and the local server services. Linux uses the extracted `client/jre/bin/java` runtime.
+
+The +81 gameplay check was performed on macOS using an isolated profile with version-specific planting and dungeon agents disabled. Existing agents that refer to obfuscated client classes still need adaptation; the regular launcher's inclusion of those agents is not proof of their +81 compatibility. Linux +81 gameplay and complete content compatibility have not been verified. The launcher preserves the native Sentry factory and release while disabling telemetry, and supplies the authenticated local account identity to the client.
 
 From the repository root:
 
