@@ -37,7 +37,7 @@ A personal experiment in understanding game protocols and building a Python serv
 - **Social features:** finish validation of duels, private messaging, and specialized chat channels.
 - **Performance and reliability:** reduce combat latency and resolve remaining synchronization and client presentation issues.
 - **Fresh-clone setup:** replace private capture dependencies and automate the remaining runtime preparation.
-- **Broader compatibility:** extend supported content; only client version 1.93.1+79 is currently targeted.
+- **Broader compatibility:** extend validation beyond the basic gameplay tested with client **1.93.1+81**; full content and class compatibility remains incomplete.
 
 Developers and testers are welcome—report reproducible bugs, contribute fixes, or help make a fresh clone easier to run.
 
@@ -47,7 +47,7 @@ For more information, explore the [documentation](docs/README.md): follow the [s
 
 Requires Docker Compose, Git LFS, Python 3 with Tk, JDK 21+, and macOS or Linux with a graphical session.
 
-1. Supply your own lawfully obtained **Wakfu 1.93.1+79** client in `client/`, with `config.properties`, `classpath`, `contents/`, `lib/`, and `jre/` directly inside it. Other versions are unsupported.
+1. Supply your own lawfully obtained **Wakfu 1.93.1+81** client (launcher build **`6.0_1.93.1.5367.336`**) in `client/`, with `config.properties`, `classpath`, `contents/`, `lib/`, and `jre/` directly inside it. This version was tested on macOS; see the compatibility scope below.
 2. **Setup is not yet self-contained:** world requires catalogs and verified bootstrap records in PostgreSQL, plus matching private credentials at the configured service mounts. Follow the [setup prerequisites](docs/getting-started.md#current-setup-requirements) and [database guide](database/README.md) before starting. Runtime preparation alone does not supply all inputs.
 3. From the repository root:
 
@@ -61,6 +61,12 @@ Requires Docker Compose, Git LFS, Python 3 with Tk, JDK 21+, and macOS or Linux 
    ```
 
 The launcher requests local login when needed. See [client tools](client-tools/README.md) for launcher options and additional profiles. Inspect failures with `docker compose logs -f world`.
+
+### Client compatibility scope
+
+The macOS **1.93.1+81** checks covered login, character creation, map transitions, inventory movement and stack splitting, trading, monster movement and attacks, combat exit, and reconnection. They used an isolated launcher profile with version-specific planting and dungeon agents disabled. Those agents, other platforms, all classes, dungeon content, and victory rewards have not been fully validated with this client.
+
+The server catalogs have not yet been migrated to all of the new client's spell, effect, recipe, and loot changes. Basic connectivity is not a claim of full content compatibility. See [known limitations](docs/limitations.md).
 
 ## Client and third-party material
 
