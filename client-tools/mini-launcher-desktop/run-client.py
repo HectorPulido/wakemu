@@ -88,9 +88,12 @@ def prepare(name):
         r"^bugReport.enable=.*$", "bugReport.enable=false", config, flags=re.M
     )
     (target / "config.properties").write_text(config, encoding="utf-8")
-    (target / "sentry.properties").write_text(
-        "dsn=\nrelease=1.93.1+79\nenvironment=private\n", encoding="utf-8"
-    )
+    # Keep the native singleton Sentry context; its default thread-local replacement
+    # leaves the authentication handler without the user initialized on the UI thread.
+    sentry = (source / "sentry.properties").read_text(encoding="utf-8")
+    sentry = re.sub(r"^dsn=.*$", "dsn=", sentry, flags=re.M)
+    sentry = re.sub(r"^environment=.*$", "environment=private", sentry, flags=re.M)
+    (target / "sentry.properties").write_text(sentry, encoding="utf-8")
     logging = (
         (source / "log4j.properties")
         .read_text(encoding="utf-8")
