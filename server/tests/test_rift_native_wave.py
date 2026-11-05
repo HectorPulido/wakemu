@@ -1,5 +1,6 @@
 import copy
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from wakfu_server.monsters import owned_instance
@@ -17,6 +18,26 @@ from wakfu_server.rift_combat_adapter import creation_replay, world_snapshot
 
 
 class RiftNativeWaveTests(unittest.TestCase):
+    def test_fresh_rift_monster_without_initial_state_plan_has_bje_status(self):
+        monster = dict(id=-202, ref=5525, level=1, map_id=1134, x=4, y=0, z=0)
+        values = {
+            identity: {"current": 10, "maximum": 10}
+            for identity in (1, 2, 3, 4, 35)
+        }
+        with patch(
+            "wakfu_server.combat_actor_snapshot.native_npc_creation_values",
+            return_value=values,
+        ), patch(
+            "wakfu_server.combat_actor_snapshot.build_npc_snapshot",
+            return_value=SimpleNamespace(install=lambda actor: None),
+        ), patch(
+            "wakfu_server.combat_npc_initialization.initial_property_counts",
+            return_value={-202: {"fight": {}, "world": {}}},
+        ):
+            actor = prepare_wave_npcs([monster])[0]
+        self.assertEqual(actor.native_death_status["actor_kind"], "bje")
+        self.assertFalse(actor.native_death_status["mwD"])
+
     def test_wave_initialization_only_initializes_new_roster_and_preserves_history(
         self,
     ):

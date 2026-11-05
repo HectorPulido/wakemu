@@ -88,6 +88,16 @@ class NativeWalkSurfacePolicyTests(unittest.TestCase):
             fight.server_move(actor.id, [(2, 56, 0)])
         self.assertEqual(self._snapshot(fight, actor), before)
 
+    def test_fresh_ordinary_npc_without_innates_gets_constructor_status_for_walk(self):
+        from wakfu_server.combat_npc_initialization import install_initial_properties
+        from wakfu_server.combat_walk_surface_policy import require_native_walk_surfaces
+
+        fight, actor, *_ = self._planner_fixture()
+        del actor.native_death_status
+        install_initial_properties(actor, {"fight": {}, "world": {}})
+        self.assertEqual(actor.native_death_status["actor_kind"], "bje")
+        require_native_walk_surfaces(fight, actor, [(1, 55, 0)])
+
     def test_multistep_rejection_preserves_all_costs_and_event_history(self):
         fight, actor = self.fixture(special_jump=False)
         before = self._snapshot(fight, actor)

@@ -95,11 +95,18 @@ def initial_property_counts(monsters):
 
 
 def install_initial_properties(actor, properties):
-    """Install already preflighted fresh counters, without executing states."""
+    """Install fresh NPC constructor facts independently of innate states."""
     for kind in ("fight", "world"):
         counts = dict(properties[kind])
         setattr(actor, "native_" + kind + "_property_counts", counts)
         setattr(actor, "native_" + kind + "_properties", frozenset(counts))
+    # Every fresh bje owns this status, including monsters with no innate
+    # state plan. Walking and death predicates consume the constructor kind.
+    # A later state-initialization pass must preserve an already assigned status.
+    if not hasattr(actor, "native_death_status"):
+        from .combat_native_death_status import initialize_fresh_bje_death_status
+
+        initialize_fresh_bje_death_status(actor)
 
 
 def constructor_stat_context(fight, invocation):
@@ -218,7 +225,8 @@ def initialize_ordinary_npcs(fight, monsters, plans):
                 add_property(counts, prop)
             setattr(actor, "native_" + kind + "_property_counts", counts)
             setattr(actor, "native_" + kind + "_properties", frozenset(counts))
-        initialize_fresh_bje_death_status(actor)
+        if not hasattr(actor, "native_death_status"):
+            initialize_fresh_bje_death_status(actor)
         authority = replace(
             native_fresh_ordinary_instance_authority(
                 native_fresh_summon_authority(actor, reference)

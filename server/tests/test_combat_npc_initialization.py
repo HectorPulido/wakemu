@@ -194,8 +194,20 @@ class NpcInitializationTests(unittest.TestCase):
             "wakfu_server.combat_npc_initialization.initial_plans",
             return_value={},
         ), patch(
+            "wakfu_server.combat_npc_initialization.initial_property_counts",
+            return_value={actor.id: {"fight": {}, "world": {}}},
+        ), patch(
             "wakfu_server.combat_npc_initialization.initialize_ordinary_npcs"
-        ) as constructor:
+        ) as constructor, patch(
+            "wakfu_server.combat_npc_ai_initialization.initial_ai_actors",
+            return_value=frozenset(),
+        ), patch(
+            "wakfu_server.combat_automatic_npc_turn.initial_root_manifest",
+            return_value={},
+        ), patch(
+            "wakfu_server.combat_encounter_scene_states.prepare_scene_states",
+            return_value=(),
+        ):
             initialize_fight_snapshots(
                 fight,
                 characters={},
@@ -209,6 +221,27 @@ class NpcInitializationTests(unittest.TestCase):
         self.assertEqual(actor.hp, 7)
         self.assertEqual(fight.native_effect_uid_next, 1)
         self.assertFalse(hasattr(fight, "native_npc_initialization_receipts"))
+        self.assertEqual(actor.native_death_status["actor_kind"], "bje")
+
+    def test_constructor_properties_do_not_reset_existing_native_death_status(self):
+        from wakfu_server.combat_npc_initialization import install_initial_properties
+
+        actor = self.actor()
+        status = {
+            "source": "existing.native.transition",
+            "actor_kind": "bje",
+            "mwD": True,
+            "dtM_status": "restored-status",
+            "last_writer": "existing.native.transition",
+        }
+        actor.native_death_status = deepcopy(status)
+        install_initial_properties(
+            actor,
+            {"fight": {21: 1}, "world": {85: 1}},
+        )
+        self.assertEqual(actor.native_death_status, status)
+        self.assertEqual(actor.native_fight_properties, frozenset({21}))
+        self.assertEqual(actor.native_world_properties, frozenset({85}))
 
     def test_native_triples_inherit_descriptor_level_and_respect_activation(self):
         actor = self.actor()

@@ -167,7 +167,7 @@ def install_scene_states(fight, monsters, plans):
         if plan.actor_id in receipts:
             raise ValueError("Encounter scene states already initialized")
         factory, _ = _runtime(monsters, actor.id)
-        if actor.id not in getattr(fight, "native_npc_initialization_receipts", {}):
+        if not hasattr(actor, "native_death_status"):
             initialize_fresh_bje_death_status(actor)
         base = native_fresh_summon_authority(actor, plan.reference)
         authority = replace(
