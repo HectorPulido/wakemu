@@ -8,6 +8,7 @@ import struct
 import sys
 import tempfile
 import threading
+import types
 import unittest
 import urllib.error
 from unittest.mock import patch
@@ -16,6 +17,13 @@ TOOLS = Path(__file__).resolve().parents[2] / "client-tools/runtime"
 sys.path.insert(0, str(TOOLS))
 from local_launcher_auth import LauncherAuthentication, LauncherAuthenticationError
 
+DESKTOP_TOOLS = TOOLS.parent / "mini-launcher-desktop"
+_desktop_auth_spec = importlib.util.spec_from_file_location(
+    "desktop_local_launcher_auth_test", DESKTOP_TOOLS / "local_launcher_auth.py"
+)
+DESKTOP_AUTH = importlib.util.module_from_spec(_desktop_auth_spec)
+_desktop_auth_spec.loader.exec_module(DESKTOP_AUTH)
+
 
 class LocalLauncherAuthenticationTests(unittest.TestCase):
     def setUp(self):
@@ -23,11 +31,121 @@ class LocalLauncherAuthenticationTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.login = Path(self.directory.name) / "login-session.json"
         self.login.write_text(
-            json.dumps({"api_token": "expired", "account": {"id": 7}})
+            json.dumps(
+                {
+                    "api_token": "expired",
+                    "account": {"id": 7, "username": "wakemu#0001"},
+                }
+            )
         )
 
     def response(self, body):
         return io.BytesIO(json.dumps(body).encode())
+
+    def test_user_info_returns_native_account_identity_in_runtime_and_desktop_auth(self):
+        for name, auth_type in (
+            ("runtime", LauncherAuthentication),
+            ("desktop", DESKTOP_AUTH.LauncherAuthentication),
+        ):
+            with self.subTest(variant=name):
+                auth = auth_type(self.login, opener=lambda *args, **kwargs: None)
+                self.assertEqual(
+                    json.loads(auth.user_info()),
+                    {"id": 7, "nicknameWithTag": "wakemu#0001"},
+                )
+
+    def test_user_info_rejects_missing_or_invalid_account_identity_in_both_auth_variants(
+        self,
+    ):
+        invalid_accounts = (
+            None,
+            {},
+            {"id": 0, "username": "wakemu#0001"},
+            {"id": True, "username": "wakemu#0001"},
+            {"id": 7, "username": "  "},
+        )
+        for auth_type, error_type in (
+            (LauncherAuthentication, LauncherAuthenticationError),
+            (DESKTOP_AUTH.LauncherAuthentication, DESKTOP_AUTH.LauncherAuthenticationError),
+        ):
+            for account in invalid_accounts:
+                with self.subTest(variant=auth_type.__module__, account=account):
+                    self.login.write_text(
+                        json.dumps({"api_token": "valid", "account": account})
+                    )
+                    auth = auth_type(self.login, opener=lambda *args, **kwargs: None)
+                    with self.assertRaises(error_type):
+                        auth.user_info()
+
+    def test_user_info_rpc_returns_account_json(self):
+        self.login.write_text(
+            json.dumps(
+                {
+                    "api_token": "valid",
+                    "account": {"id": 7, "username": "wakemu#0001"},
+                }
+            )
+        )
+        with patch.dict(os.environ, WAKFU_GAME_LOGIN_FILE=str(self.login)):
+            spec = importlib.util.spec_from_file_location(
+                "launcher_bridge_user_info_test", TOOLS / "local-launcher-bridge.py"
+            )
+            bridge = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(bridge)
+        server, client = socket.socketpair()
+        self.addCleanup(client.close)
+        worker = threading.Thread(target=bridge.serve, args=(server,), daemon=True)
+        worker.start()
+        arguments = (
+            b"\x0b\x00\x01" + bridge.string(bridge.SESSION) + b"\x00"
+        )
+        client.sendall(
+            struct.pack(">I", 0x80010001)
+            + bridge.string("userInfo_get")
+            + struct.pack(">i", 9)
+            + arguments
+        )
+        self.assertEqual(struct.unpack(">I", bridge.receive(client, 4))[0], 0x80010002)
+        self.assertEqual(bridge.read_string(client), "userInfo_get")
+        self.assertEqual(bridge.receive(client, 4), struct.pack(">i", 9))
+        self.assertEqual(bridge.receive(client, 3), b"\x0b\x00\x00")
+        self.assertEqual(
+            json.loads(bridge.read_string(client)),
+            {"id": 7, "nicknameWithTag": "wakemu#0001"},
+        )
+        self.assertEqual(bridge.receive(client, 1), b"\x00")
+
+    def test_dropin_user_info_matches_native_identity_and_rejects_invalid_data(self):
+        dropin = TOOLS.parent / "dropin"
+        portable = types.ModuleType("portable_config")
+        portable.settings = lambda: {"server_host": "127.0.0.1", "api_url": "http://127.0.0.1:18081"}
+        portable.package_root = lambda: Path(self.directory.name)
+        portable.pin_dns = lambda config: None
+        self.login.write_text(
+            json.dumps(
+                {
+                    "api_token": "valid",
+                    "account": {"id": 7, "username": "wakemu#0001"},
+                }
+            )
+        )
+        with patch.dict(os.environ, WAKFU_GAME_LOGIN_FILE=str(self.login)), patch.dict(
+            sys.modules, {"portable_config": portable}
+        ):
+            spec = importlib.util.spec_from_file_location(
+                "dropin_launcher_bridge_user_info_test", dropin / "launcher-bridge.py"
+            )
+            bridge = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(bridge)
+        self.assertEqual(
+            json.loads(bridge.user_info()),
+            {"id": 7, "nicknameWithTag": "wakemu#0001"},
+        )
+        for account in (None, {}, {"id": 0, "username": "wakemu#0001"}, {"id": 7, "username": " "}):
+            with self.subTest(account=account):
+                bridge.LOGIN = {"account": account}
+                with self.assertRaises(ValueError):
+                    bridge.user_info()
 
     def test_401_renews_revocable_token_then_retries_and_writes_private_session(self):
         self.login.with_name("remember.json").write_text(

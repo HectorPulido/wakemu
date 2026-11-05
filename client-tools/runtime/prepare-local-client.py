@@ -53,7 +53,12 @@ config = re.sub(
 config = re.sub(r"^bugReport.enable=.*$", "bugReport.enable=false", config, flags=re.M)
 assert not re.search(r"https?://(?!127\.0\.0\.1)", config)
 (target / "config.properties").write_text(config)
-(target / "sentry.properties").write_text("dsn=\n")
+# Keep the native singleton Sentry context; its default thread-local replacement
+# leaves the authentication handler without the user initialized on the UI thread.
+sentry = (source / "sentry.properties").read_text(encoding="utf-8")
+sentry = re.sub(r"^dsn=.*$", "dsn=", sentry, flags=re.M)
+sentry = re.sub(r"^environment=.*$", "environment=private", sentry, flags=re.M)
+(target / "sentry.properties").write_text(sentry, encoding="utf-8")
 logging = (source / "log4j.properties").read_text()
 logging = logging.replace("INFO, stdout, mainLog, Sentry", "INFO, stdout, mainLog")
 (target / "log4j.properties").write_text(logging)
