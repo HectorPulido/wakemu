@@ -84,7 +84,21 @@ def _exit(
                 repaired = rift_runtime.abort_bound_fight(db, run["fight_id"])
                 if repaired is not None:
                     run = repaired
-        if run["status"] == "running" or (
+        departed_company = False
+        if run["status"] == "running":
+            # Other accounts keep the encounter and its immutable reward roster.
+            # Only this account's completely returned company may leave early.
+            departing_ids = company | {character_id}
+            returned = db.execute(
+                "SELECT character_id FROM combat_pve_withdrawals "
+                "WHERE fight_id=%s AND account_id=%s AND character_id=ANY(%s) "
+                "AND returned_at IS NOT NULL AND health_returned_at IS NOT NULL",
+                (run["fight_id"], account_id, sorted(departing_ids)),
+            ).fetchall()
+            departed_company = {
+                row["character_id"] for row in returned
+            } == departing_ids
+        if (run["status"] == "running" and not departed_company) or (
             fighting is not None and fighting(character_id)
         ):
             raise ValueError("Cannot leave a running rift fight")
@@ -137,7 +151,12 @@ def _exit(
         ):
             raise ValueError("Rift exit membership changed or entered combat")
         if db.execute(
-            "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id WHERE p.character_id=ANY(%s) AND f.status IN('placement','active') LIMIT 1",
+            "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+            "WHERE p.character_id=ANY(%s) AND f.status IN('placement','active') "
+            "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w "
+            "WHERE w.fight_id=p.fight_id AND w.character_id=p.character_id "
+            "AND w.account_id=p.account_id AND w.returned_at IS NOT NULL "
+            "AND w.health_returned_at IS NOT NULL) LIMIT 1",
             (list(ids),),
         ).fetchone():
             raise ValueError("Rift member has a durable active fight")

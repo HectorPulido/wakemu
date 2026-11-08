@@ -6,6 +6,65 @@ server publisher is unavailable. Step timing and null-source delivery are
 explicit server policy, independent of damage, push and teleport events.
 """
 from .combat_event_replay import NativeExternalEvent
+from contextlib import contextmanager
+
+
+@contextmanager
+def _movement_read_scope(dispatcher, fight, calendar_callbacks):
+    from .combat_effect_dispatch import EffectDispatcher
+    from .combat_external_read_pass import external_read_pass, external_recipient_read
+    from .combat_ordinary_events import _fallback_phase_read_pass
+
+    # Capture only ordinary instance fields. Custom dispatchers and calendar
+    # filtering preserve independent full reads, including nested callers.
+    plain = (
+        type(dispatcher) is EffectDispatcher
+        and EffectDispatcher.__getattribute__ is object.__getattribute__
+        and all(
+            name not in EffectDispatcher.__dict__
+            for name in ("replay_event", "native_clone_authority", "native_retention")
+        )
+    )
+    fields = vars(dispatcher) if plain else {}
+    expected = tuple(
+        fields.get(name)
+        for name in ("replay_event", "native_clone_authority", "native_retention")
+    )
+    replay, authority, retention = expected
+    scope = (
+        external_read_pass(fight, replay, authority, retention)
+        if plain and not calendar_callbacks
+        else _fallback_phase_read_pass(None)
+    )
+
+    def recipient_boundary(identity):
+        # A preceding clone may replace dispatcher callouts. Never let its
+        # replacement inherit a view accredited to the previous native owner.
+        if (
+            plain
+            and type(dispatcher) is EffectDispatcher
+            and EffectDispatcher.__getattribute__ is object.__getattribute__
+            and all(
+                name not in EffectDispatcher.__dict__
+                for name in (
+                    "replay_event",
+                    "native_clone_authority",
+                    "native_retention",
+                )
+            )
+            and all(
+                vars(dispatcher).get(name) is value
+                for name, value in zip(
+                    ("replay_event", "native_clone_authority", "native_retention"),
+                    expected,
+                )
+            )
+        ):
+            return external_recipient_read(fight, identity, replay)
+        return _fallback_phase_read_pass(None)
+
+    with scope:
+        yield recipient_boundary
 
 
 def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell, action_id):
@@ -75,61 +134,68 @@ def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell, acti
     hour = current_hour_movement_boundary(fight, actor_id, from_cell, to_cell)
     if hour is not None:
         context["hour_boundary"] = dict(hour)
-    with committed_movement_recipient_scope(fight, context):
+    with committed_movement_recipient_scope(fight, context), _movement_read_scope(
+        dispatcher, fight, calendar_callbacks
+    ) as recipient_boundary:
         for identity, channel in recipients:
-            replay_options = {}
-            relevant_callbacks = tuple(
-                row for row in calendar_callbacks if row["channel"] == channel
-            )
-            if relevant_callbacks:
-                entries = tuple(dispatcher.native_retention.view().entries)
-                excluded = set()
-                manager = fight.actors.get(identity)
-                receipt = getattr(fight, "native_npc_initialization_receipts", {}).get(
-                    identity, {}
+            with recipient_boundary(identity):
+                replay_options = {}
+                relevant_callbacks = tuple(
+                    row for row in calendar_callbacks if row["channel"] == channel
                 )
-                for callback in relevant_callbacks:
-                    if (
-                        manager is None
-                        or receipt.get("ref") != callback["owner_reference"]
-                    ):
-                        continue
-                    carriers = {
-                        state.uid
-                        for state in manager.state_ledger.entries
-                        if state.reference == callback["owner_state"]
-                        and state.caster_id == identity
-                        and state.target_id == identity
-                    }
-                    for entry in entries:
+                if relevant_callbacks:
+                    entries = tuple(dispatcher.native_retention.view().entries)
+                    excluded = set()
+                    manager = fight.actors.get(identity)
+                    receipt = getattr(
+                        fight, "native_npc_initialization_receipts", {}
+                    ).get(identity, {})
+                    for callback in relevant_callbacks:
                         if (
-                            entry.manager_id != identity
-                            or entry.generic_effect != callback["effect_reference"]
+                            manager is None
+                            or receipt.get("ref") != callback["owner_reference"]
                         ):
                             continue
-                        original = (
-                            getattr(fight, "native_owned_group_effects", {})
-                            .get(entry.uid, {})
-                            .get("invocation", {})
+                        carriers = {
+                            state.uid
+                            for state in manager.state_ledger.entries
+                            if state.reference == callback["owner_state"]
+                            and state.caster_id == identity
+                            and state.target_id == identity
+                        }
+                        for entry in entries:
+                            if (
+                                entry.manager_id != identity
+                                or entry.generic_effect != callback["effect_reference"]
+                            ):
+                                continue
+                            original = (
+                                getattr(fight, "native_owned_group_effects", {})
+                                .get(entry.uid, {})
+                                .get("invocation", {})
+                            )
+                            if (
+                                original.get("reference")
+                                == callback["effect_reference"]
+                                and original.get("state_uid") in carriers
+                                and original.get("caster_id") == identity
+                                and original.get("target_id") == identity
+                            ):
+                                excluded.add(entry.uid)
+                    if excluded:
+                        replay_options["eligible_uids"] = frozenset(
+                            entry.uid for entry in entries if entry.uid not in excluded
                         )
-                        if (
-                            original.get("reference") == callback["effect_reference"]
-                            and original.get("state_uid") in carriers
-                            and original.get("caster_id") == identity
-                            and original.get("target_id") == identity
-                        ):
-                            excluded.add(entry.uid)
-                if excluded:
-                    replay_options["eligible_uids"] = frozenset(
-                        entry.uid for entry in entries if entry.uid not in excluded
+                outcomes.extend(
+                    dispatcher.replay_event(
+                        NativeExternalEvent(
+                            identity,
+                            (1005,),
+                            channel,
+                            movement_boundary_context=context,
+                        ),
+                        authority=dispatcher.native_clone_authority,
+                        **replay_options,
                     )
-            outcomes.extend(
-                dispatcher.replay_event(
-                    NativeExternalEvent(
-                        identity, (1005,), channel, movement_boundary_context=context
-                    ),
-                    authority=dispatcher.native_clone_authority,
-                    **replay_options,
                 )
-            )
     return tuple(outcomes)

@@ -1,4 +1,5 @@
 """eYO fixed-PC assignments: setters clamp, removal never reverses them."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_parameters import parameter_value
 from .combat_maximum_resource import _snapshot, _int32, effective_maximum
 from .combat_parameter_maximum import _write
@@ -201,7 +202,7 @@ class NativeForcedCharacteristicHandler:
             current=after,
         )
         if ctx.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=caster.id,

@@ -95,6 +95,38 @@ def checked_actions(reply, request):
             yield action
 
 
+_NATIVE_CHECKED_ACTIONS = checked_actions
+_NATIVE_ACTION_KEY = action_key
+
+
+def _exact_json_tree(value, *, max_depth=64):
+    """Prove reply traversal has no custom Python callbacks before reusing identity."""
+    active = set()
+
+    def visit(node, depth):
+        if depth > max_depth:
+            return False
+        if node is None or type(node) in (bool, int, float, str):
+            return True
+        if type(node) not in (list, dict):
+            return False
+        identity = id(node)
+        if identity in active:
+            return False
+        active.add(identity)
+        try:
+            if type(node) is list:
+                return all(visit(item, depth + 1) for item in node)
+            return all(
+                type(key) is str and visit(item, depth + 1)
+                for key, item in node.items()
+            )
+        finally:
+            active.remove(identity)
+
+    return visit(value, 0)
+
+
 def run_prepared_turn(
     runtime,
     oracle,
@@ -247,11 +279,14 @@ def run_prepared_turn(
             with _slow_native_stage("identity_reply", actor_id, turn_id), bounded(
                 deadline
             ):
-                if (
-                    oracle.state_identity(runtime)
-                    != request["source"]["nativeIdentity"]
-                ):
+                reply_identity = oracle.state_identity(runtime)
+                if reply_identity != request["source"]["nativeIdentity"]:
                     raise ValueError("Native source changed during Jondo decision")
+            reusable_reply_identity = (
+                _exact_json_tree(reply)
+                and checked_actions is _NATIVE_CHECKED_ACTIONS
+                and action_key is _NATIVE_ACTION_KEY
+            )
             candidates = list(checked_actions(reply, request))
             # An end-turn suggestion is used after this reply's concrete
             # alternatives have had their own native validation opportunity.
@@ -263,10 +298,17 @@ def run_prepared_turn(
                     continue
                 if action.get("type") == "end_turn" and rejected and retry < 2:
                     continue
-                with _slow_native_stage(
-                    "identity_candidate", actor_id, turn_id, action.get("spellId")
-                ), bounded(deadline):
-                    before = oracle.state_identity(runtime)
+                if reusable_reply_identity:
+                    # A decoded JSON reply has no user callbacks between the
+                    # post-RPC source guard and first candidate. Reuse the
+                    # identity once; later candidates get a fresh guard.
+                    before = reply_identity
+                    reusable_reply_identity = False
+                else:
+                    with _slow_native_stage(
+                        "identity_candidate", actor_id, turn_id, action.get("spellId")
+                    ), bounded(deadline):
+                        before = oracle.state_identity(runtime)
                 try:
                     destination = None
                     if action.get("type") == "move" and action.get("path"):
@@ -401,6 +443,7 @@ def run_npc_turn(
         if shared_adapter is None:
             raise ValueError("Shared Jondo AI requires its encounter coordinator")
         from .world_shared import run_shared_turn
+        from ..native.native_commit_capability import _WORLD_NATIVE_RUNNER
 
         yield from run_shared_turn(
             runtime,
@@ -413,6 +456,7 @@ def run_npc_turn(
                 monsters=monsters,
                 stats_serializer=stats_serializer,
             ),
+            native_runner_authority=_WORLD_NATIVE_RUNNER,
         )
         return
     if (

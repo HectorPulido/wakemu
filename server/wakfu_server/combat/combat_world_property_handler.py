@@ -1,4 +1,5 @@
 """Native eWw449: distinct eHQ counters and asymmetric mapped-ffe removal."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_stat_handler import StatExecutionContext
 from .combat_parameters import parameter_value
@@ -152,7 +153,7 @@ class NativeWorldPropertyHandler:
             timing_payload=ctx.timing_payload,
         )
         if ctx.retained:
-            self.fight.owned_stat_effects[runner.uid] = dict(
+            self.fight.owned_stat_effects[runner.uid] = OwnedStateSourceRow(
                 uid=runner.uid,
                 effect_class=449,
                 family="eWw",

@@ -4,6 +4,7 @@ No actor characteristic changes. A retained instance belongs to the caster's
 manager; the wire target is absent and must never be replaced with that owner.
 Subscribed cell listeners require separate native clone registration support.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_effects import _integer, _varint
 from .combat_displacement import position_payload
 from .combat_stat_effects import null_execution_status
@@ -93,7 +94,7 @@ class NativeCellNullHandler:
             running_effect_payload=payload,
         )[:-16]
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 effect_class=402,
                 family="eXG",

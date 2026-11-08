@@ -166,6 +166,33 @@ def _native_casting_eligibility(hooks, flags):
     return "twD"
 
 
+class _TracedCastingHooks:
+    """Per-query delegation without a closure-owning dynamic class."""
+
+    def __init__(self, hooks, trace):
+        self._hooks = hooks
+        self._trace = trace
+
+    def __getattr__(self, name):
+        callback = getattr(self._hooks, name, None)
+        trace = self._trace
+        if not callable(callback):
+            return callback
+
+        def consumed(*args):
+            row = dict(stage=name, arguments=list(args))
+            trace.append(row)
+            try:
+                value = callback(*args)
+            except ValueError as error:
+                row["error"] = str(error)
+                raise
+            row["value"] = value
+            return value
+
+        return consumed
+
+
 def native_casting_eligibility(hooks, flags, *, trace=None):
     """Optionally capture consumed native hooks, without replaying a query."""
     if trace is None:
@@ -173,27 +200,8 @@ def native_casting_eligibility(hooks, flags, *, trace=None):
     if not isinstance(trace, list):
         raise ValueError("Native casting trace must be a list")
 
-    class TracedHooks:
-        def __getattr__(self, name):
-            callback = getattr(hooks, name, None)
-            if not callable(callback):
-                return callback
-
-            def consumed(*args):
-                row = dict(stage=name, arguments=list(args))
-                trace.append(row)
-                try:
-                    value = callback(*args)
-                except ValueError as error:
-                    row["error"] = str(error)
-                    raise
-                row["value"] = value
-                return value
-
-            return consumed
-
     try:
-        result = _native_casting_eligibility(TracedHooks(), flags)
+        result = _native_casting_eligibility(_TracedCastingHooks(hooks, trace), flags)
     except ValueError as error:
         error.native_casting_trace = trace
         raise

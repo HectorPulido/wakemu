@@ -231,10 +231,14 @@ def terminal_event(runtime):
         or not callable(getattr(runtime, "_prefix", None))
     ):
         raise ValueError("Native terminal event requires a resolved fight")
-    winners = [
-        actor.id for actor in fight.actors.values() if actor.team == fight.winner
-    ]
-    losers = [actor.id for actor in fight.actors.values() if actor.team != fight.winner]
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    # The native byte count describes client participants, not every historical
+    # reinforcement kept on the server for sources and reward attribution.
+    hidden = hidden_snapshot_actor_ids(fight)
+    visible = [actor for actor in fight.actors.values() if actor.id not in hidden]
+    winners = [actor.id for actor in visible if actor.team == fight.winner]
+    losers = [actor.id for actor in visible if actor.team != fight.winner]
     if max(len(winners), len(losers)) > 127:
         raise ValueError("Too many result participants")
     body = runtime._prefix() + b"\x00"

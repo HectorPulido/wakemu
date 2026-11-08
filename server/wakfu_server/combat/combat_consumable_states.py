@@ -317,6 +317,14 @@ def restore_checkpoint_projection(fight, snapshot):
         owners.setdefault(identity, [])
     for key, rows in owners.items():
         identity = int(key)
+        if (
+            snapshot.get("checkpoint_schema") == "wakemu.fight-checkpoint.v2"
+            and not rows
+            and not external_by_actor.get(identity)
+        ):
+            # Empty initialization rows carry no state authority. Compact v2
+            # intentionally omits their unrelated actor ledger entirely.
+            continue
         actor = fight.actors.get(identity)
         if actor is None or not actor.controlled or not isinstance(rows, list):
             raise ValueError("Checkpoint consumable owner is unavailable")

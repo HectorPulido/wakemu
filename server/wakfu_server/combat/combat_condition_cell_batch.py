@@ -6,6 +6,7 @@ Every cell still resolves its actual target, builds its full context and runs
 the original evaluator in order against one transaction-owned working input.
 """
 import ast
+from .combat_retained_collections import OwnedMap
 from types import MethodType
 from .combat_native_criterion_failure import (
     NativeCriterionRuntimeFailure,
@@ -70,6 +71,61 @@ def _inert(value, depth=0):
     if kind is NativeSpellBook:
         return all(_inert(v, depth + 1) for v in vars(value).values())
     return False
+
+
+def _native_area_population_inert(fight):
+    """Admit only current owned native maps; keep arbitrary mappings opaque."""
+    from .combat_retained_collections import bound_collections, bound_area_collections
+    from .combat_area_membership import OwnedAreaRow
+    from .combat_state_ledger import StateLedger, RunningState
+
+    rows = getattr(fight, "native_effect_areas", {})
+    if type(rows) is dict:
+        return _inert(rows)
+    if type(rows) is not OwnedMap:
+        return False
+    owner = bound_collections(vars(fight))
+    if owner is None or not bound_area_collections(vars(fight), owner):
+        return False
+    # Range/area consumers use normal reads after admission. A native outer
+    # class alone does not certify an overridden getter or iterator.
+    for name in ("get", "items", "values", "keys", "__iter__", "__getitem__"):
+        if name in vars(rows) or getattr(OwnedMap, name) is not getattr(dict, name):
+            return False
+        if getattr(OwnedAreaRow, name) is not getattr(dict, name):
+            return False
+    for identity, row in dict.items(rows):
+        if type(identity) is not int or type(row) is not OwnedAreaRow:
+            return False
+        if any(
+            name in getattr(row, "__dict__", {})
+            for name in ("get", "items", "values", "keys", "__iter__", "__getitem__")
+        ):
+            return False
+        for key, value in dict.items(row):
+            if type(key) is not str:
+                return False
+            if key != "state_ledger":
+                if not _inert(value):
+                    return False
+                continue
+            if (
+                type(value) is not StateLedger
+                or _overridden(value)
+                or type(value.actor_id) is not int
+                or value.actor_id != identity
+                or type(value._entries) not in (tuple, list)
+                or any(
+                    type(entry) is not RunningState
+                    or any(
+                        type(getattr(entry, field)) is not int
+                        for field in ("reference", "level", "caster_id")
+                    )
+                    for entry in value._entries
+                )
+            ):
+                return False
+    return True
 
 
 def pure_cell_criteria(criteria):
@@ -237,12 +293,11 @@ def _source_reason(adapter, fight):
         )
     ):
         return "custom_nested_source"
-    if (
-        type(fight.actors) is not dict
-        or type(getattr(fight, "native_effect_areas", {})) is not dict
-    ):
+    if (type(fight.actors) is not dict and type(fight.actors) is not OwnedMap) or type(
+        getattr(fight, "native_effect_areas", {})
+    ) not in (dict, OwnedMap):
         return "custom_population"
-    if not _inert(getattr(fight, "native_effect_areas", {})):
+    if not _native_area_population_inert(fight):
         return "custom_area_records"
     if any(
         not _inert(getattr(fight, name, None))
@@ -414,6 +469,16 @@ class LegacyConditionCellBatch:
 
 
 class NativeCellBatchFactory:
+    @property
+    def dispatcher(self):
+        from .combat_runtime_backrefs import resolved_owner
+
+        return resolved_owner(self._dispatcher_owner)
+
+    @dispatcher.setter
+    def dispatcher(self, value):
+        self._dispatcher_owner = value
+
     def __init__(self, adapter, fight, plan, dispatcher):
         self.adapter, self.fight, self.plan, self.dispatcher = (
             adapter,

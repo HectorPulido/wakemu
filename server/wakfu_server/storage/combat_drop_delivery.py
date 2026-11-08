@@ -160,24 +160,47 @@ def _temporary_item_form(item):
     return item_form(item)
 
 
-def temporary_section(db, character_id):
-    """Encode signed-short length + lP ProtoTemporaryInventory for bootstrap."""
-    from wakfu_server.wire import proto_field
+# Conservative packet budget, including the six-byte outer frame header.
+# cwO/12691 itself has no signed-short payload length or event count.
+_TEMPORARY_FRAME_LIMIT = 32767
 
-    character_id = _integer(character_id, "temporary inventory owner", 1)
-    rows = db.execute(
+
+def _temporary_rows(db, character_id):
+    return db.execute(
         "SELECT uid,character_id,reference,quantity,damage_elements,resistance_elements,bound "
         "FROM temporary_combat_items WHERE character_id=%s ORDER BY uid",
         (character_id,),
     ).fetchall()
+
+
+def _temporary_section_rows(rows):
+    from wakfu_server.wire import proto_field
+
     payload = b"".join(proto_field(10, _item_proto(dict(row))) for row in rows)
-    if not payload:
-        return b"\x00\x00"
-    if len(payload) > 32767:
-        raise ValueError(
-            "Temporary inventory section exceeds native signed-short length"
-        )
-    return struct.pack(">h", len(payload)) + payload
+    return None if len(payload) > 32767 else struct.pack(">h", len(payload)) + payload
+
+
+def temporary_section(db, character_id):
+    """Encode the bounded lP bootstrap section; overflow needs follow-up events."""
+    character_id = _integer(character_id, "temporary inventory owner", 1)
+    section = _temporary_section_rows(_temporary_rows(db, character_id))
+    if section is None:
+        raise ValueError("Temporary inventory section requires incremental bootstrap")
+    return section
+
+
+def temporary_bootstrap(db, character_id):
+    """One durable snapshot: bootstrap lP or empty lP then complete cwO events.
+
+    fmH replaces the model, so follow-ups MUST follow the entity bootstrap.
+    CLEAR occurs once; later packets append complete ADD_ITEM events by UID.
+    """
+    character_id = _integer(character_id, "temporary inventory owner", 1)
+    rows = _temporary_rows(db, character_id)
+    section = _temporary_section_rows(rows)
+    if section is not None:
+        return section, []
+    return b"\x00\x00", _temporary_update_rows(rows, character_id)
 
 
 def _equipped_uids(store, account_id, character_id, db):
@@ -507,23 +530,35 @@ def apply(store, db, batch):
     return results
 
 
-def temporary_update(db, character_id):
-    """12691/CLEAR + complete ADD_ITEM snapshot for a live lease refresh."""
-    rows = db.execute(
-        "SELECT uid,character_id,reference,quantity,damage_elements,resistance_elements,bound "
-        "FROM temporary_combat_items WHERE character_id=%s ORDER BY uid",
-        (character_id,),
-    ).fetchall()
-    body = bytearray(struct.pack(">q", _integer(character_id, "temporary owner", 1)))
-    body.append(3)  # Native CLEAR event has an empty payload.
+def _temporary_update_rows(rows, character_id):
+    header = struct.pack(">q", _integer(character_id, "temporary owner", 1))
+    body = bytearray(header + b"\x03")  # CLEAR exactly once per full snapshot.
+    packets = []
+    body_limit = _TEMPORARY_FRAME_LIMIT - 6
     for row in rows:
-        body.append(0)  # Native ADD_ITEM event contains a vj binary item.
-        item = dict(row)
-        if item["damage_elements"] is None and item["resistance_elements"] is None:
-            item.pop("damage_elements")
-            item.pop("resistance_elements")
-        body.extend(_temporary_item_form(item))
-    return (12691, bytes(body))
+        event = b"\x00" + _temporary_item_form(dict(row))
+        if len(header) + len(event) > body_limit:
+            raise ValueError("Temporary item event exceeds native replay packet budget")
+        if len(body) + len(event) > body_limit:
+            packets.append((12691, bytes(body)))
+            body = bytearray(header)  # Continuation: never CLEAR previous items.
+        body.extend(event)
+    packets.append((12691, bytes(body)))
+    return packets
+
+
+def temporary_updates(db, character_id):
+    """Bounded CLEAR+ADD sequence for rewards, claims, recycling and replay."""
+    character_id = _integer(character_id, "temporary owner", 1)
+    return _temporary_update_rows(_temporary_rows(db, character_id), character_id)
+
+
+def temporary_update(db, character_id):
+    """Compatibility for single-packet callers; production uses temporary_updates."""
+    packets = temporary_updates(db, character_id)
+    if len(packets) != 1:
+        raise ValueError("Temporary inventory refresh requires multiple packets")
+    return packets[0]
 
 
 def discard(store, account_id, generation, character_id, body):
@@ -583,7 +618,7 @@ def discard(store, account_id, generation, character_id, body):
             _record_transfer(db, character_id, 3, receipt_body, character_id)
         return {
             "applied": bool(rows) and not already_discarded,
-            "packets": [temporary_update(db, character_id)],
+            "packets": temporary_updates(db, character_id),
         }
 
 
@@ -808,13 +843,26 @@ def claim(store, account_id, generation, character_id, body):
     request = decode_claim(body)
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
+        from wakfu_server.inventory_owner import lock_inventory_character
+
+        destination = db.execute(
+            "SELECT character_id FROM inventory_containers WHERE uid=%s",
+            (request["destination_uid"],),
+        ).fetchone()
+        if destination is None:
+            raise ValueError("Temporary item or destination is unavailable")
+        # The target bag identifies the loaded inventory, even when the
+        # temporary UID was consumed by an earlier successful request.
+        character_id = lock_inventory_character(
+            store, db, account_id, generation, destination["character_id"]
+        )
         if _prior_transfer(db, character_id, 1, body, character_id):
             character, packets = _inventory_snapshot(
                 store, account_id, character_id, db
             )
             return dict(
                 character=character,
-                packets=packets + [temporary_update(db, character_id)],
+                packets=packets + temporary_updates(db, character_id),
                 applied=False,
             )
         source = db.execute(
@@ -978,7 +1026,7 @@ def claim(store, account_id, generation, character_id, body):
         character, packets = _inventory_snapshot(store, account_id, character_id, db)
         return dict(
             character=character,
-            packets=packets + [temporary_update(db, character_id)],
+            packets=packets + temporary_updates(db, character_id),
             applied=True,
         )
 
@@ -1000,10 +1048,13 @@ def bulk_transfer(store, account_id, generation, character_id, body):
     from wakfu_server.inventory_items import _lease
 
     request = decode_bulk_transfer(body)
-    if request["source_character"] != character_id:
-        raise ValueError("12294 source must be the selected character")
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
+        from wakfu_server.inventory_owner import lock_inventory_character
+
+        character_id = lock_inventory_character(
+            store, db, account_id, generation, request["source_character"]
+        )
         owner = db.execute(
             "SELECT id FROM characters WHERE id=%s AND account_id=%s FOR UPDATE",
             (request["destination_character"], account_id),
@@ -1021,7 +1072,7 @@ def bulk_transfer(store, account_id, generation, character_id, body):
                 source=source_character,
                 destination=destination_character,
                 packets=source_packets
-                + [temporary_update(db, character_id)]
+                + temporary_updates(db, character_id)
                 + destination_packets,
                 applied=False,
             )
@@ -1040,7 +1091,7 @@ def bulk_transfer(store, account_id, generation, character_id, body):
             return dict(
                 source=character,
                 destination=character,
-                packets=packets + [temporary_update(db, character_id)],
+                packets=packets + temporary_updates(db, character_id),
                 applied=True,
             )
         containers = [
@@ -1118,7 +1169,7 @@ def bulk_transfer(store, account_id, generation, character_id, body):
             source=source_character,
             destination=destination_character,
             packets=source_packets
-            + [temporary_update(db, character_id)]
+            + temporary_updates(db, character_id)
             + destination_packets,
             applied=True,
         )

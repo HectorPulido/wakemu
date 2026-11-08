@@ -4,6 +4,7 @@ This module never calls gameplay validators, providers, clocks or catalogs.
 It does not repair state or veto adoption. Missing native authority is reported
 as unknown coverage, independently of contradictions in available facts.
 """
+from .combat_retained_collections import OwnedMap
 from dataclasses import dataclass
 import sys
 
@@ -173,7 +174,9 @@ def check_prepared_boundary(
         checked.append("runtime.fight_alias")
     checked.append("boundary.stable")
     actors = state.get("actors")
-    if type(actors) is not dict or len(actors) > 4096:
+    if (type(actors) is not dict and type(actors) is not OwnedMap) or len(
+        actors
+    ) > 4096:
         issue("actor.population", "fight.actors", "Invalid or oversized roster")
         return BoundaryReport(
             boundary, tuple(findings), tuple(checked), 0, resource_identity

@@ -37,11 +37,17 @@ def freeze_terrain(fight):
 
 
 def source_snapshot(fight):
+    from .rift_combat_adapter import creation_deliveries_snapshot
+
     state = {
         key: (
             value
             if key in ("walkable", "edges") and isinstance(value, ImmutableTerrainSet)
-            else _plain(value)
+            else _plain(
+                creation_deliveries_snapshot(value)
+                if key == "native_rift_creation_deliveries"
+                else value
+            )
         )
         for key, value in fight.__dict__.items()
         if key not in EPHEMERAL_FIGHT_FIELDS

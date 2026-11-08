@@ -1,4 +1,5 @@
 """eXA802 reciprocal pGN relation; no invented movement of its partner."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_stat_handler import StatExecutionContext
 from .combat_stat_effects import owned_effect_payload, owned_effect_application
@@ -109,7 +110,7 @@ class NativeMovementLinkHandler:
         # Qf registration follows application deliveries; the current Qe is
         # not part of the retained population while its L3/L4 are replayed.
         if ctx.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 effect_class=802,
                 family="eXA",

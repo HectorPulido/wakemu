@@ -134,9 +134,16 @@ def _outside_combat(db, identities):
 
 def _idle(db, identities):
     _outside_combat(db, identities)
+    # Historical reward membership survives surrender. Release only a fully
+    # returned owner; exterior position alone also occurs during admission.
     if db.execute(
-        "SELECT 1 FROM rift_instances WHERE status IN ('entered','running') "
-        "AND EXISTS(SELECT 1 FROM jsonb_array_elements_text(members) m WHERE m::bigint=ANY(%s)) LIMIT 1",
+        "SELECT 1 FROM rift_instances r JOIN characters c "
+        "ON r.members @> jsonb_build_array(c.id) "
+        "WHERE r.status IN ('entered','running') AND c.id=ANY(%s) "
+        "AND NOT(c.instance_id<>r.instance_id AND EXISTS("
+        "SELECT 1 FROM combat_pve_withdrawals w WHERE w.fight_id=r.fight_id "
+        "AND w.character_id=c.id AND w.account_id=c.account_id "
+        "AND w.returned_at IS NOT NULL AND w.health_returned_at IS NOT NULL)) LIMIT 1",
         (list(identities),),
     ).fetchone():
         raise ValueError("Hero roster is frozen by an active rift")
@@ -465,10 +472,15 @@ def _switch_instance_authority(db, main_character_id, hero_id, *, update_owner=T
     ):
         raise ValueError("Selected hero does not share the active dungeon membership")
     runs = db.execute(
-        "SELECT instance_id,owner_character_id,members FROM rift_instances "
-        "WHERE status IN ('entered','running') AND EXISTS("
-        "SELECT 1 FROM jsonb_array_elements_text(members) m "
-        "WHERE m::bigint=ANY(%s)) ORDER BY instance_id FOR UPDATE",
+        "SELECT r.instance_id,r.owner_character_id,r.members FROM rift_instances r "
+        "WHERE r.status IN ('entered','running') AND EXISTS("
+        "SELECT 1 FROM characters c WHERE c.id=ANY(%s) "
+        "AND r.members @> jsonb_build_array(c.id) "
+        "AND NOT(c.instance_id<>r.instance_id AND EXISTS("
+        "SELECT 1 FROM combat_pve_withdrawals w WHERE w.fight_id=r.fight_id "
+        "AND w.character_id=c.id AND w.account_id=c.account_id "
+        "AND w.returned_at IS NOT NULL AND w.health_returned_at IS NOT NULL))) "
+        "ORDER BY r.instance_id FOR UPDATE",
         (identities,),
     ).fetchall()
     for run in runs:

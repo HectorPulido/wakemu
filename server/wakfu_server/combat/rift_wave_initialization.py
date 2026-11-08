@@ -2,6 +2,16 @@
 
 
 def initialize_registered_wave(dispatcher, *, actors, monsters, player_ids):
+    from .combat_structural_qf_scope import admission_scope
+    from .native_cache_fill_batch import verified_cache_fill_scope
+
+    with verified_cache_fill_scope(), admission_scope(dispatcher):
+        return _initialize_registered_wave(
+            dispatcher, actors=actors, monsters=monsters, player_ids=player_ids
+        )
+
+
+def _initialize_registered_wave(dispatcher, *, actors, monsters, player_ids):
     """Stage native gameplay and equipment reactions on the accepted preview.
 
     All ordinary actors, QI slots and innate sources already exist. The caller

@@ -1,4 +1,5 @@
 """Native eWM250: caster maximum percentage and actual target HP PA."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_maximum_resource import NativeMaximumResourceHandler, _snapshot, _int32
 from .combat_stat_handler import StatExecutionContext
 from .combat_parameters import parameter_value
@@ -215,7 +216,7 @@ class NativeCasterHPMaximumHandler(NativeMaximumResourceHandler):
 
         payload = payload_for(actual)
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=invocation.target_id,
                 caster_id=invocation.caster_id,

@@ -90,6 +90,7 @@ class SharedFight:
     dispatch_lock: object = field(default_factory=Lock)
     checkpoint_revision: object = None
     checkpoint_terminal: bool = False
+    checkpoint_publication: object = None
     disconnect_abort_pending: bool = False
     withdrawals: dict = field(default_factory=dict)
     pending_world_recoveries: dict = field(default_factory=dict)
@@ -438,9 +439,16 @@ class Registry:
         packets = self._synchronize_defeated_current(
             shared, candidate, runtime, packets
         )
+        from .combat_retained_gc_boundary import prepare_retired_gc
+
+        prepare_retired_gc(shared.fight, candidate, runtime, packets)
         ack = self._accepted_ack(shared, runtime)
         observe_prepared_boundary(candidate, runtime, operation=operation, ack=ack)
-        return PreparedPublication(candidate, runtime, self._packets(packets), ack)
+        prepared = PreparedPublication(candidate, runtime, self._packets(packets), ack)
+        from .combat_checkpoint_publication import persist_prepared
+
+        persist_prepared(shared, candidate, runtime, prepared.packets)
+        return prepared
 
     @staticmethod
     def _synchronize_defeated_current(shared, candidate, runtime, packets):
@@ -987,7 +995,9 @@ class Registry:
                     )
                 except Exception:
                     pass
-            with incident_context as incident:
+            from .native_cache_fill_batch import verified_cache_fill_scope
+
+            with incident_context as incident, verified_cache_fill_scope():
                 self._member(shared, session)
                 if session.account_id in shared.reconnect_presentations:
                     raise ValueError(
@@ -1011,10 +1021,17 @@ class Registry:
                     shared.fight.current is None or shared.fight.current.id != actor_id
                 ):
                     raise ValueError("Not current owned turn")
-                candidate, runtime = deepcopy((shared.fight, shared.runtime))
-                candidate, runtime, packets = self._transition(
-                    operation(candidate, runtime), candidate, runtime
+                from .combat_preview_copy import scalar_actor_memo
+
+                candidate, runtime = deepcopy(
+                    (shared.fight, shared.runtime), scalar_actor_memo(shared.fight)
                 )
+                from .combat_owned_native_spell_entry import registry_private_spell_pair
+
+                with registry_private_spell_pair(candidate, runtime):
+                    candidate, runtime, packets = self._transition(
+                        operation(candidate, runtime), candidate, runtime
+                    )
                 if incident is not None:
                     incident.packets(packets)
                 prepared = self._prepare_publication(
@@ -1030,6 +1047,16 @@ class Registry:
                     incident.result(sequence)
                 return sequence
 
+    def execute_prepared_server(self, fight_id, actor_id, transition, **publication):
+        """Publish an already-private native pair through the ordinary boundary.
+
+        Only the native runner success path transfers ownership here. Rejection
+        discards the supplied transition; the authoritative shared pair remains.
+        """
+        return self.execute_server(
+            fight_id, actor_id, None, _prepared_transition=transition, **publication
+        )
+
     def execute_server(
         self,
         fight_id,
@@ -1037,6 +1064,7 @@ class Registry:
         operation,
         *,
         expected_sequence,
+        _prepared_transition=None,
         incident_runtime=None,
         incident_packets=(),
         incident_session=None,
@@ -1064,16 +1092,44 @@ class Registry:
                     )
                 except Exception:
                     pass
-            with incident_context as incident:
+            from .native_cache_fill_batch import verified_cache_fill_scope
+
+            with incident_context as incident, verified_cache_fill_scope():
                 if expected_sequence != shared.sequence:
                     raise ValueError("Stale server combat sequence")
                 actor = shared.fight.current
                 if actor is None or actor.id != actor_id or actor.controlled:
                     raise ValueError("Not current server-controlled turn")
-                candidate, runtime = deepcopy((shared.fight, shared.runtime))
-                candidate, runtime, packets = self._transition(
-                    operation(candidate, runtime), candidate, runtime
-                )
+                if _prepared_transition is not None:
+                    from .combat_state import Fight
+                    from .combat_runtime_messages import RuntimeMessages
+
+                    transition = _prepared_transition
+                    if type(transition) is not Transition:
+                        raise ValueError("Prepared native transition required")
+                    candidate, runtime = transition.fight, transition.runtime
+                    if (
+                        operation is not None
+                        or type(candidate) is not Fight
+                        or type(runtime) is not RuntimeMessages
+                        or candidate is shared.fight
+                        or runtime is shared.runtime
+                        or runtime.fight is not candidate
+                        or candidate.id != shared.fight.id
+                    ):
+                        raise ValueError("Prepared native transition is not private")
+                    candidate, runtime, packets = self._transition(
+                        transition, candidate, runtime
+                    )
+                else:
+                    from .combat_preview_copy import scalar_actor_memo
+
+                    candidate, runtime = deepcopy(
+                        (shared.fight, shared.runtime), scalar_actor_memo(shared.fight)
+                    )
+                    candidate, runtime, packets = self._transition(
+                        operation(candidate, runtime), candidate, runtime
+                    )
                 if incident is not None:
                     incident.transition(candidate, runtime, packets)
                 prepared = self._prepare_publication(
@@ -1193,7 +1249,13 @@ class Registry:
                     # produce another12502 while releasing this barrier.
                     # Release only the old private copy and stage that new
                     # runtime barrier before adopting or publishing anything.
+                    from .combat_retained_gc_boundary import prepare_retired_gc
+
+                    prepare_retired_gc(shared.fight, candidate, runtime, packets)
                     ack = self._accepted_ack(shared, runtime, release_previous=True)
+                    from .combat_checkpoint_publication import persist_prepared
+
+                    persist_prepared(shared, candidate, runtime, packets)
                 except Exception:
                     shared.ack = prior_ack
                     raise
@@ -1252,6 +1314,7 @@ class Registry:
                 # unpublished fight/runtime/ACK still remain untouched below.
                 shared.checkpoint_revision = view.checkpoint_revision
                 shared.checkpoint_terminal = view.checkpoint_terminal
+                shared.checkpoint_publication = view.checkpoint_publication
             shared.fight = prepared.fight
             shared.runtime = prepared.runtime
             shared.ack = prepared.ack
@@ -1361,6 +1424,9 @@ class Registry:
             )
             from .combat_delivery_boundary import accepted_ack
 
+            from .combat_retained_gc_boundary import prepare_retired_gc
+
+            prepare_retired_gc(shared.fight, candidate, runtime, packets)
             next_ack = accepted_ack(shared, runtime, self._lease_live)
             shared.fight = candidate
             shared.runtime = runtime
@@ -1527,6 +1593,14 @@ class Registry:
                 or getattr(shared.runtime, "abandon_owner", None) is not None
             ):
                 raise ValueError("Fresh world recovery requires unsettled terminal PvE")
+            if (
+                fresh_world
+                and getattr(shared.runtime, "awaiting_ack", None) is not None
+                and not callable(persist_takeover)
+            ):
+                raise ValueError(
+                    "Terminal presentation retirement requires durable takeover"
+                )
             from .combat_delivery_boundary import prepare_reconnect
 
             from .combat_instance_publication_recovery import (
@@ -1554,6 +1628,7 @@ class Registry:
                     session,
                     bootstrap_packets,
                     recover_disconnected=recover_disconnected,
+                    fresh_world=fresh_world,
                     now_ms=int(time.time() * 1000),
                     prepare_authority=prepare_authority,
                 )
@@ -1710,6 +1785,11 @@ class Registry:
             for account, owner_packets in staged_packets.items():
                 shared.connected.add(account)
                 owner = shared.participants[account]
+                # A retained last-owner ACK can belong to an earlier staged
+                # reconnect, not the socket completing the cohort. Rebind only
+                # existing barrier membership after every takeover committed.
+                if shared.ack is not None and account in shared.ack.expected:
+                    shared.ack.expected[account] = owner.generation
                 shared.reconnect_presentations.pop(account, None)
                 shared.completed_reconnect_presentations.pop(account, None)
                 if account in staged_presentations:
@@ -1763,7 +1843,43 @@ class Registry:
                         shared.pending_publication_recoveries = staged
                     shared.connected.discard(session.account_id)
                     shared.outboxes[session.account_id].clear()
-                    if shared.connected and shared.ack.turn is not None:
+                    from .combat_delivery_boundary import (
+                        prepare_reconnect,
+                        terminal_presentation_has_recipients,
+                    )
+
+                    retire_world_only = (
+                        shared.connected
+                        and shared.ack.turn is not None
+                        and shared.fight.phase == "finished"
+                        and not shared.settlement_ready
+                        and not getattr(shared, "is_duel", False)
+                        and getattr(shared.runtime, "abandon_owner", None) is None
+                        and not terminal_presentation_has_recipients(shared)
+                    )
+                    if retire_world_only:
+                        # Remaining sockets have authenticated world-only
+                        # recovery tokens, never the departed native scene.
+                        # Retire that presentation without a vacuous ACK.
+                        prepared = prepare_reconnect(
+                            shared,
+                            shared.participants[next(iter(shared.connected))],
+                            lambda *args: (),
+                            recover_disconnected=True,
+                            fresh_world=True,
+                            now_ms=int(time.time() * 1000),
+                        )
+                        from .combat_checkpoint_publication import persist_prepared
+
+                        persist_prepared(shared, prepared.fight, prepared.runtime, ())
+                        shared.fight, shared.runtime, shared.ack = (
+                            prepared.fight,
+                            prepared.runtime,
+                            prepared.ack,
+                        )
+                        shared.reconnect_turn_end_packets = None
+                        shared.reconnect_remaining_turn_seconds = None
+                    elif shared.connected and shared.ack.turn is not None:
                         # The departed transport cannot finish presentation.
                         # Retain every remaining recipient's real ACK; never
                         # synthesize one or clear a last-owner reconnect pause.
@@ -1777,6 +1893,14 @@ class Registry:
                             # Transport departure is already committed. Keep
                             # its membership fence even if private turn release
                             # fails, so a remaining owner's real ACK can retry.
+                            if (
+                                not barrier.expected
+                                and shared.fight.phase == "finished"
+                                and shared.pending_world_recoveries
+                            ):
+                                raise ValueError(
+                                    "Terminal departure lacks current world-return ownership"
+                                )
                             shared.ack = barrier
                             if barrier.complete:
                                 import struct
@@ -1788,8 +1912,33 @@ class Registry:
                                 packets = self._packets(
                                     runtime.acknowledge_turn(struct.pack(">i", counter))
                                 )
-                                barrier.release()
-                                shared.fight, shared.runtime = candidate, runtime
+                                candidate, runtime, packets = self._prepare_accepted(
+                                    shared, candidate, runtime, packets
+                                )
+                                # Departure may release an already-acknowledged
+                                # turn, including a skipped successor's new ACK.
+                                # Preserve the same checkpoint/publication path
+                                # used by a real final participant ACK.
+                                from .combat_retained_gc_boundary import (
+                                    prepare_retired_gc,
+                                )
+
+                                prepare_retired_gc(
+                                    shared.fight, candidate, runtime, packets
+                                )
+                                ack = self._accepted_ack(
+                                    shared, runtime, release_previous=True
+                                )
+                                from .combat_checkpoint_publication import (
+                                    persist_prepared,
+                                )
+
+                                persist_prepared(shared, candidate, runtime, packets)
+                                shared.fight, shared.runtime, shared.ack = (
+                                    candidate,
+                                    runtime,
+                                    ack,
+                                )
                                 self._retire_join_aliases_locked(shared)
                                 self._broadcast(shared, packets)
                     if (
@@ -1836,6 +1985,9 @@ class Registry:
                 if not fights:
                     registry.join_aliases.pop(actor_id, None)
         shared.join_aliases.clear()
+        from .combat_closed_fight_observation import record_removed
+
+        record_removed(registry, shared)
 
     def withdraw_pve(
         self, session, *, persist, placement_ready=None, owned_teardown=None
@@ -1903,6 +2055,13 @@ class Registry:
                 public += self._packets(
                     withdrawal.runtime.acknowledge_turn(struct.pack(">i", counter))
                 )
+            # Start-of-turn reactions can immediately end another fighter.
+            # Stage that successor barrier for the remaining transports before
+            # persistence; a rejected withdrawal must discard it with the FSM.
+            remaining = copy(shared)
+            remaining.ack = barrier
+            remaining.connected = shared.connected - {session.account_id}
+            barrier = self._accepted_ack(remaining, withdrawal.runtime)
             if owned_teardown is not None:
                 if not callable(owned_teardown):
                     raise ValueError("Missing owned teardown callback")

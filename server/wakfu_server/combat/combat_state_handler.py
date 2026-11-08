@@ -54,6 +54,9 @@ class NativeStateHandler:
         state_random=None,
     ):
         self.fight, self.packets, self.catalog = fight, packets, catalog
+        from .combat_published_row_cache import PublishedJsonRowCache
+
+        self._published_rows = PublishedJsonRowCache()
         self.action_id, self.allocate_uid = action_id, allocate_uid
         self.context, self.execute_child = context, execute_child
         self.remove_child_effect = remove_child_effect
@@ -429,7 +432,9 @@ class NativeStateHandler:
         304's separate chance gate belongs to its parameter interpreter;321
         reapplication has no invented304 parameters and uses its own context.
         """
-        if str(reference) not in self.catalog["states"]:
+        reference_key = str(reference)
+        state_rows = self.catalog["states"]
+        if reference_key not in state_rows:
             from .combat_state_resistance_metadata import native_state_absence_proven
 
             if native_state_absence_proven(reference):
@@ -479,13 +484,19 @@ class NativeStateHandler:
             del self.fight.state_wire_payloads[old.uid]
 
         uid = self.allocate_uid()
+        # Preserve the historical lookup order: only the sealed published-row
+        # path fetches its cached row here. Custom mappings stay untouched until
+        # Fight.apply_state performs its original ledger lookup.
+        catalog_for_apply = self._published_rows.catalog_with_published_row(
+            self.catalog, "states", reference_key
+        )
         change = self.fight.apply_state(
             invocation.caster_id,
             invocation.target_id,
             reference,
             level,
             uid=uid,
-            catalog=self.catalog,
+            catalog=catalog_for_apply,
             applying_effect_has_delay=context.applying_effect_has_delay,
             timeline=context.timeline,
             protected=protected,
@@ -535,7 +546,7 @@ class NativeStateHandler:
         )
         with scope:
             for child_id in entry.effect_ids:
-                child = self.catalog["effects"][str(child_id)]
+                child, _ = self._published_rows.row(self.catalog, "effects", child_id)
                 masks = child.get("target_masks")
                 if masks is None or len(masks) != 7:
                     raise UnsupportedEffectExecution(

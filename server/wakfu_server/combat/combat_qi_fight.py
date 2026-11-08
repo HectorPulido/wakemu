@@ -1,5 +1,150 @@
 """QI population produced by fresh owned placement and explicit QK events."""
 from .combat_qi_registry import NativeQIRegistry
+from .combat_state import Actor, Fight
+from .combat_retained_collections import OwnedMap
+from .combat_global_pv_read_view import NativeGlobalPVReadView
+from . import combat_carrying as _carrying_module
+from . import combat_forced_retirement as _forced_retirement_module
+from . import combat_global_pv_collections as _pv_collections_module
+from . import combat_global_pv_read_view as _pv_view_module
+
+_SOURCE_PV_VIEW_STATE = NativeGlobalPVReadView._state
+_SOURCE_PV_VIEW_GUARDS = NativeGlobalPVReadView.guards
+_SOURCE_PV_VIEW_INIT = NativeGlobalPVReadView.__init__
+_SOURCE_CARRYING_RELATIONS = _carrying_module.carrying_relations
+_SOURCE_CARRY_PAIRS = _carrying_module._pairs
+_SOURCE_CARRY_POPULATION = _carrying_module._population
+_SOURCE_FORCED_TRANSITION = _forced_retirement_module.forced_retirement_transition
+_SOURCE_FORCED_TRANSITIONS = _forced_retirement_module._TRANSITIONS
+_SOURCE_GLOBAL_FIGHTER_GUARDS = _pv_collections_module.global_fighter_guards
+_NO_CLASS_FIELD = object()
+_SOURCE_FIGHT_ACTORS_FIELD = Fight.__dict__.get("actors", _NO_CLASS_FIELD)
+_SOURCE_ACTOR_FIELDS = {
+    name: Actor.__dict__.get(name, _NO_CLASS_FIELD)
+    for name in (
+        "id",
+        "hp",
+        "position",
+        "native_obstacle_id",
+        "physical_radius",
+        "native_carrier_id",
+        "native_carried_actor_id",
+    )
+}
+
+
+def _current_registry_pv_view_allowed(fight, registry):
+    """Prove the loop uses only native, callback-free PV readers."""
+    fields = (
+        object.__getattribute__(fight, "__dict__") if type(fight) is Fight else None
+    )
+    if fields is None or Fight.__getattribute__ is not object.__getattribute__:
+        return False
+    if Fight.__dict__.get("actors", _NO_CLASS_FIELD) is not _SOURCE_FIGHT_ACTORS_FIELD:
+        return False
+    if any(
+        Actor.__dict__.get(name, _NO_CLASS_FIELD) is not value
+        for name, value in _SOURCE_ACTOR_FIELDS.items()
+    ):
+        return False
+    actors = fields.get("actors")
+    if (
+        type(actors) is not OwnedMap
+        or type(actors).get is not dict.get
+        or OwnedMap.__dict__.get("__getattribute__", object.__getattribute__)
+        is not object.__getattribute__
+        or "get" in object.__getattribute__(actors, "__dict__")
+        or Actor.__getattribute__ is not object.__getattribute__
+        or _pv_collections_module._collections
+        is not _pv_collections_module._SOURCE_COLLECTIONS
+        or _pv_collections_module.NativeTroveLongMap
+        is not _pv_collections_module._SOURCE_TROVE_TYPE
+        or any(
+            _pv_collections_module.NativeTroveLongMap.__dict__.get(name) is not method
+            for name, method in _pv_collections_module._SOURCE_TROVE_METHODS.items()
+        )
+        or _pv_view_module._collections
+        is not _pv_collections_module._SOURCE_COLLECTIONS
+        or _pv_view_module.NativeTroveLongMap
+        is not _pv_collections_module._SOURCE_TROVE_TYPE
+        or NativeGlobalPVReadView._state is not _SOURCE_PV_VIEW_STATE
+        or NativeGlobalPVReadView.guards is not _SOURCE_PV_VIEW_GUARDS
+        or NativeGlobalPVReadView.__init__ is not _SOURCE_PV_VIEW_INIT
+        or _pv_collections_module.global_fighter_guards
+        is not _SOURCE_GLOBAL_FIGHTER_GUARDS
+        or _carrying_module.carrying_relations is not _SOURCE_CARRYING_RELATIONS
+        or _carrying_module._pairs is not _SOURCE_CARRY_PAIRS
+        or _carrying_module._population is not _SOURCE_CARRY_POPULATION
+        or _forced_retirement_module.forced_retirement_transition
+        is not _SOURCE_FORCED_TRANSITION
+        or _forced_retirement_module._TRANSITIONS is not _SOURCE_FORCED_TRANSITIONS
+    ):
+        return False
+    # Python dict lookup can call an opaque stored key's equality method even
+    # when the queried identity is an int. Prove map keys once per operation,
+    # before sharing the native Trove validation across actor lookups.
+    if any(type(key) is not int for key in dict.keys(actors)):
+        return False
+    state = fields.get("native_global_pv_collections")
+    if type(state) is not dict:
+        return False
+    if any(type(key) is not str for key in dict.keys(state)):
+        return False
+    topology = state.get("fighters")
+    if (
+        type(topology) is not dict
+        or any(type(key) is not str for key in dict.keys(topology))
+        or type(topology.get("keys")) is not list
+        or type(topology.get("states")) is not list
+        or type(state.get("fighter_status")) is not dict
+        or type(state.get("retired_fighters")) is not list
+    ):
+        return False
+    statuses = state["fighter_status"]
+    if any(
+        type(key) is not str or type(value) is not str
+        for key, value in dict.items(statuses)
+    ):
+        return False
+    pairs = fields.get("native_carry_pairs", {})
+    if type(pairs) is not dict or pairs or _forced_retirement_module._TRANSITIONS.get():
+        return False
+    return type(registry) is NativeQIRegistry and type(registry.slots) is list
+
+
+def _current_registry_actor_row_native(row):
+    return (
+        type(row) is dict
+        and type(row.get("identity")) is list
+        and len(row["identity"]) == 2
+        and type(row["identity"][0]) is str
+        and type(row["identity"][1]) is int
+        and type(row.get("position")) in (list, tuple)
+        and len(row["position"]) == 2
+        and all(type(value) is int for value in row["position"])
+        and type(row.get("radius")) is int
+        and type(row.get("indexed")) is bool
+    )
+
+
+def _current_registry_actor_values_native(actor, identity):
+    if type(actor) is not Actor:
+        return False
+    fields = object.__getattribute__(actor, "__dict__")
+    position = fields.get("position")
+    return (
+        type(fields.get("id")) is int
+        and fields["id"] == identity
+        and type(fields.get("hp")) is int
+        and fields["hp"] > 0
+        and type(fields.get("native_obstacle_id")) is int
+        and type(fields.get("physical_radius")) is int
+        and type(position) is tuple
+        and len(position) == 3
+        and all(type(value) is int for value in position)
+        and fields.get("native_carrier_id") is None
+        and fields.get("native_carried_actor_id") is None
+    )
 
 
 def prepare_fresh_actor_slots(fight, *, physical_radii):
@@ -139,10 +284,19 @@ def current_registry(fight, *, pending_area_id=None):
     retired_summons = retired_summon_ids(fight, registry=registry)
     seen_areas = set()
     areas = getattr(fight, "native_effect_areas", {})
+    share_pv_view = _current_registry_pv_view_allowed(fight, registry)
+    pv_view = None
     for slot, row in enumerate(registry.slots):
         if row is None:
             continue
+        if not _current_registry_actor_row_native(row):
+            pv_view = None
+            share_pv_view = False
         if row["identity"][0] == "effect_area":
+            # Area verification can enter native constructors. Do not carry a
+            # PV validation across that callback boundary.
+            pv_view = None
+            share_pv_view = False
             identity = row["identity"][1]
             area = areas.get(identity)
             contract = (
@@ -182,12 +336,32 @@ def current_registry(fight, *, pending_area_id=None):
         if identity in retired or identity in retired_summons:
             raise ValueError("Retired native QK remains registered")
         actor = fight.actors.get(identity)
+        actor_values_native = (
+            share_pv_view
+            and _current_registry_actor_row_native(row)
+            and type(identity) is int
+            and _current_registry_actor_values_native(actor, identity)
+        )
+        if not actor_values_native:
+            pv_view = None
+            share_pv_view = False
         life = None
         transitioning = forced_retirement_transition(fight, identity, slot)
         if actor is not None and hasattr(fight, "native_global_pv_collections"):
             from .combat_global_pv_collections import global_fighter_guards
 
-            life = global_fighter_guards(fight, identity)
+            native_row = _current_registry_actor_row_native(row)
+            if share_pv_view and native_row and actor_values_native:
+                if pv_view is None:
+                    pv_view = NativeGlobalPVReadView(fight)
+                life = pv_view.guards(fight, identity)
+            else:
+                # HP-zero verification and opaque rows may read event or
+                # relation providers; their later iterations must rebuild the
+                # PV proof through the original callback-aware route.
+                pv_view = None
+                share_pv_view = False
+                life = global_fighter_guards(fight, identity)
             if life["baK"] and not transitioning:
                 # Native OUT_OF_PLAY H performs QI.g and M(-1), including
                 # actors whose HP is positive. A remaining slot is stale.

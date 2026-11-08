@@ -1,4 +1,5 @@
 """Owned eVZ48/55; calculation, lifecycle, wire and secondary state are separate."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_parameters import parameter_value
 from .combat_stat_handler import StatExecutionContext, _bounds, _current
@@ -301,7 +302,7 @@ class NativeResourceLossHandler:
         # policy. Do not weaken the positive-reference codec for ordinary PKs.
         payload = None if self.delivery is not None else make_payload(plan.actual)
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=invocation.target_id,
                 caster_id=invocation.caster_id,

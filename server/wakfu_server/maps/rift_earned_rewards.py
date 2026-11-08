@@ -13,7 +13,7 @@ POLICY = {
     "multiplier_per_wave": 10,
     "outcomes": ["won", "lost"],
     "require_defeated_native_monsters": True,
-    "withdrawals": "none",
+    "withdrawals": "earned_native_kills",
 }
 
 

@@ -49,7 +49,9 @@ def finish_accepted_action(
         runtime.pending = []
         runtime.turn_deadline = runtime.deadline_turn = None
         return Transition(fight, runtime, tuple(packets))
-    monsters = next_roster(fight, pending)
+    # The same deterministic wave selection was just used for the capacity
+    # check above; pass it through instead of revalidating/reselecting here.
+    monsters = next_roster(fight, pending, references=next_refs)
     sources = getattr(fight, "rift_monsters", None)
     if not isinstance(sources, dict):
         raise ValueError("Rift accepted action lacks ordinary monster sources")
@@ -80,4 +82,8 @@ def finish_accepted_action(
         added,
         actor_ids=state["wave_actor_ids"],
     )
+    from wakfu_server.combat_materialized_event_history import prune_materialized_events
+
+    if getattr(runtime, "_native_delivery_depth", 0) == 0:
+        prune_materialized_events(fight)
     return Transition(fight, runtime, published)

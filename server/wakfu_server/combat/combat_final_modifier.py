@@ -1,4 +1,5 @@
 """eZJ1093 and faq.SX over an execution-local source runner, never actor stats."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from wakfu_server import native_catalog as protocol_catalog
 import json
 from pathlib import Path
@@ -141,7 +142,7 @@ class NativeFinalModifierHandler:
             timing_payload=context.timing_payload,
         )
         if context.retained and invocation.native_running_uid is None:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=invocation.target_id,
                 caster_id=invocation.caster_id,

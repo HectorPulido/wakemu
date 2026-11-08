@@ -1,4 +1,5 @@
 """Native eXl934: inherited eZR packets and exact fighter retirement domain."""
+from .combat_source_parent_index import OwnedStateSourceRow
 
 
 class NativeForcedRetirementHandler:
@@ -163,7 +164,7 @@ class NativeForcedRetirementHandler:
             )
             self.packets.append((13497, packet))
             if context.retained:
-                self.fight.owned_stat_effects[runner.uid] = dict(
+                self.fight.owned_stat_effects[runner.uid] = OwnedStateSourceRow(
                     uid=runner.uid,
                     effect_class=934,
                     family="eXl",

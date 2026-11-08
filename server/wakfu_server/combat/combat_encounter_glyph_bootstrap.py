@@ -341,7 +341,9 @@ def prepare_declared_glyphs(fight, arena, terrain_identity, definitions):
 def point_glyph_row(source, definition):
     """Materialize the unchanged null-owner Qq/fbm/faY constructor fields."""
     cell = tuple(source["cell"])
-    return dict(
+    from .combat_area_membership import OwnedAreaRow
+
+    return OwnedAreaRow(
         uid=source["uid"],
         reference=source["reference"],
         cell=cell,

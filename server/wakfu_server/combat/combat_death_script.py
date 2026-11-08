@@ -1,4 +1,5 @@
 """Native eWE1099: retained death-presentation script assignment and reset."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_parameters import parameter_value
 from .combat_stat_handler import StatExecutionContext
@@ -156,7 +157,7 @@ class NativeDeathScriptHandler:
             }
         )
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,

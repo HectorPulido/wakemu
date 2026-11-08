@@ -1,4 +1,6 @@
 """Owned native effect areas, kept separate from the actor roster (Qs/Qq)."""
+from .combat_source_parent_index import OwnedStateSourceRow
+
 from wakfu_server import native_catalog as protocol_catalog
 from .combat_state_ledger import StateLedger
 import json
@@ -307,7 +309,7 @@ class NativeEffectAreaHandler:
                 owned = self.fight.native_owned_area_effects = {}
             if constructor.runner_uid in owned:
                 raise ValueError("Duplicate private native eYJ runner")
-            record = dict(
+            record = OwnedStateSourceRow(
                 uid=constructor.runner_uid,
                 area_uid=constructor.area_uid,
                 effect_class=338,
@@ -526,7 +528,9 @@ class NativeEffectAreaHandler:
             self.fight.native_effect_areas = areas
         if area_uid in areas:
             raise ValueError("Duplicate native area UID")
-        areas[area_uid] = dict(
+        from .combat_area_membership import OwnedAreaRow
+
+        areas[area_uid] = OwnedAreaRow(
             uid=area_uid,
             reference=ref,
             level=level,
@@ -621,7 +625,7 @@ class NativeEffectAreaHandler:
             if owned is None:
                 owned = {}
                 self.fight.native_owned_area_effects = owned
-            owned[uid] = dict(
+            owned[uid] = OwnedStateSourceRow(
                 uid=uid,
                 area_uid=area_uid,
                 effect_class=family,

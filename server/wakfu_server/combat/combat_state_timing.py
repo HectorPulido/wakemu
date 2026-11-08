@@ -42,6 +42,12 @@ class StateTimer:
     expiration_round: int
     phase: Literal["start", "end"]
 
+    def __deepcopy__(self, memo):
+        if _immutable_state_timer(self):
+            memo[id(self)] = self
+            return self
+        return _copy_state_value(self, memo)
+
     def expires_at_round_cleanup(self, round_number: int) -> bool:
         """TC.c(short,SU) dispatches prior-round buckets for all actors."""
         return self.expiration_round == _short(round_number - 1)
@@ -121,3 +127,28 @@ def state_requires_retention(
     )
     native_timed = indefinite or turn_duration > 0 or realtime_duration > 0
     return native_timed or applying_effect_has_delay
+
+
+def _immutable_state_timer(value):
+    return (
+        type(value) is StateTimer
+        and len(vars(value)) == 3
+        and all(
+            name in vars(value) for name in ("actor_id", "expiration_round", "phase")
+        )
+        and type(value.actor_id) is int
+        and type(value.expiration_round) is int
+        and type(value.phase) is str
+    )
+
+
+def _copy_state_value(value, memo):
+    """Retain ordinary deepcopy reduction for custom or mutable payloads."""
+    from copy import _reconstruct
+    from copyreg import dispatch_table
+
+    reducer = dispatch_table.get(type(value))
+    reduced = reducer(value) if reducer is not None else value.__reduce_ex__(4)
+    if isinstance(reduced, str):
+        return value
+    return _reconstruct(value, memo, *reduced)

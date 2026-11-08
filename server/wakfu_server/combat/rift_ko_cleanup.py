@@ -243,3 +243,7 @@ def cleanup_population(effect, invocation, actors, *, direct_policy):
             "Rift KO cleanup requires the complete registered opponent population"
         )
     return tuple(actor for actor in actors if actor.id in expected)
+
+
+# Original native consumers of a stored listener invocation.
+_GROUP_HISTORY_FUNCTIONS = (("cleanup_scope", cleanup_scope),)

@@ -6,8 +6,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock
-from wakfu_server.storage.gc_pause_monitor import GCPauseMonitor
-from wakfu_server.storage.performance_monitor import write_report
+from wakfu_server.gc_pause_monitor import GCPauseMonitor
+from wakfu_server.performance_monitor import write_report
 
 
 class GCPauseMonitorTests(unittest.TestCase):
@@ -147,12 +147,80 @@ class GCPauseMonitorTests(unittest.TestCase):
             )
             payload = json.loads(path.read_text())
         history = payload["gc_pause_history"]
+        self.assertIs(type(payload["python_allocated_blocks"]), int)
+        self.assertGreater(payload["python_allocated_blocks"], 0)
+        self.assertGreater(payload["memory_sampled_at_utc_epoch_seconds"], 0)
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0]["generation"], 1)
         self.assertEqual(history[0]["started_at_utc_epoch_seconds"], 1_800_000_100.0)
         self.assertEqual(history[0]["ended_at_utc_epoch_seconds"], 1_800_000_100.5)
         self.assertAlmostEqual(history[0]["duration_seconds"], 0.25)
         self.assertAlmostEqual(history[0]["thread_cpu_seconds"], 0.1)
+
+    def test_long_pause_history_survives_short_churn_and_is_exported_bounded(self):
+        now = [0.0, 50.0]
+        utc = itertools.count(1_800_000_200.0)
+        monitor = GCPauseMonitor(
+            capacity=2,
+            callbacks=[],
+            wall_clock=lambda: now[0],
+            cpu_clock=lambda: now[1],
+            utc_clock=lambda: next(utc),
+        )
+
+        def collect(generation, wall_delta, cpu_delta, collected, uncollectable):
+            info = {
+                "generation": generation,
+                "collected": collected,
+                "uncollectable": uncollectable,
+            }
+            monitor.callback("start", info)
+            now[0] += wall_delta
+            now[1] += cpu_delta
+            monitor.callback("stop", info)
+
+        collect(2, 0.025, 0.004, 10, 1)
+        for _ in range(40):
+            collect(0, 0.001, 0.0002, 1, 0)
+        # The ordinary history and the profiler queue have both churned past
+        # the first pause, but the separately bounded long history retains it.
+        self.assertEqual(len(monitor.history), 32)
+        self.assertEqual(len(monitor.records), 2)
+        self.assertEqual(len(monitor.long_pause_history_snapshot()), 1)
+        self.assertEqual(monitor.long_pause_history_snapshot()[0]["collected"], 10)
+
+        for index in range(35):
+            collect(index % 3, 0.02, 0.003, 100 + index, index % 2)
+
+        history = monitor.long_pause_history_snapshot()
+        self.assertEqual(len(history), 32)
+        self.assertEqual([row["collected"] for row in history], list(range(103, 135)))
+        self.assertEqual(
+            [row["generation"] for row in history],
+            [index % 3 for index in range(3, 35)],
+        )
+        self.assertEqual(
+            [row["uncollectable"] for row in history], [i % 2 for i in range(3, 35)]
+        )
+        for row in history:
+            self.assertAlmostEqual(row["duration_seconds"], 0.02)
+            self.assertAlmostEqual(row["thread_cpu_seconds"], 0.003)
+        starts = [row["started_at_utc_epoch_seconds"] for row in history]
+        self.assertEqual(starts, sorted(starts))
+        self.assertTrue(
+            all(
+                row["ended_at_utc_epoch_seconds"] > row["started_at_utc_epoch_seconds"]
+                for row in history
+            )
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "performance.json"
+            write_report(
+                Mock(snapshot=lambda: {"features": []}), path, gc_monitor=monitor
+            )
+            payload = json.loads(path.read_text())
+        self.assertEqual(payload["gc_long_pause_history"], history)
 
 
 if __name__ == "__main__":

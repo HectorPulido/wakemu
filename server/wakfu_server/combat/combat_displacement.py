@@ -379,9 +379,13 @@ class NativeDisplacementHandler:
     def _teleport_free(self, actor, cell):
         """QI.a(amP,aBn): test every cell of the actual QK square footprint."""
         from .combat_qi_fight import current_registry
+        from .combat_pointer_qi_registry import (
+            registered_obstacle,
+            registered_population,
+        )
 
         registry = current_registry(self.fight)
-        qi = registry.snapshot()
+        qi, population = registered_population(registry)
         if not qi.aK(*cell[:2]):
             return False
         override = getattr(self.fight, "native_qi_movement_override", None)
@@ -396,14 +400,15 @@ class NativeDisplacementHandler:
         if (
             type(own_slot) is not int
             or not 0 <= own_slot <= 126
-            or registry.slots[own_slot]["identity"] != ["actor", actor.id]
+            or registered_obstacle(registry, own_slot)["identity"]
+            != ["actor", actor.id]
         ):
             raise ValueError("Missing actual teleport QK registration")
         radius = actor.physical_radius
         if (
             type(radius) is not int
             or not -128 <= radius <= 127
-            or registry.slots[own_slot]["radius"] != radius
+            or registered_obstacle(registry, own_slot)["radius"] != radius
         ):
             raise ValueError("Missing actual teleport QK footprint")
         x0, y0 = cell[:2]
@@ -427,8 +432,8 @@ class NativeDisplacementHandler:
                 if not override and any(
                     slot != own_slot
                     and slot not in ignored
-                    and registry.slots[slot]["movement_blocking"]
-                    for slot in (qi.U(x, y) or ())
+                    and registered_obstacle(registry, slot)["movement_blocking"]
+                    for slot in population(x, y)
                 ):
                     return False
         return True
@@ -441,9 +446,13 @@ class NativeDisplacementHandler:
         Trove insertion/deletion topology; singleton order is unambiguous.
         """
         from .combat_qi_fight import current_registry
+        from .combat_pointer_qi_registry import (
+            registered_obstacle,
+            registered_population,
+        )
 
         registry = current_registry(self.fight)
-        qi = registry.snapshot()
+        qi, population = registered_population(registry)
         own = registry._owned(actor.native_obstacle_id, ("actor", actor.id))
         if not own["movement_blocking"]:
             return False, None
@@ -451,7 +460,7 @@ class NativeDisplacementHandler:
         index = qi._int32(
             qi._int32(qi._int32(y - qi.y) * qi.width) + qi._int32(x - qi.x)
         )
-        slots = qi.U(x, y) or ()
+        slots = population(x, y)
         if not 0 <= index < len(qi.masks):
             obstructed = True
         elif qi.masks[index] & 768:
@@ -466,7 +475,8 @@ class NativeDisplacementHandler:
             ):
                 raise ValueError("Missing actual QI temporarily ignored obstacle IDs")
             obstructed = not override and any(
-                slot not in ignored and registry.slots[slot]["movement_blocking"]
+                slot not in ignored
+                and registered_obstacle(registry, slot)["movement_blocking"]
                 for slot in slots
             )
         if not obstructed:
@@ -474,7 +484,7 @@ class NativeDisplacementHandler:
         if not slots:
             return True, None
         order = registry.ordered_U(x, y) if len(slots) > 1 else tuple(slots)
-        row = registry.slots[order[0]]
+        row = registered_obstacle(registry, order[0])
         kind, identity = row["identity"]
         if kind == "actor":
             # faz.c ignores its own QK returned by QI.V, including footprint

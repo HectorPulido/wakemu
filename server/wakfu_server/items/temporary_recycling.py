@@ -58,7 +58,7 @@ def _result_packets(store, db, account_id, character_id, recovered, destroyed):
     return character, [
         inventory_move.synchronization(character),
         inventory_items.equipment_inventory(character),
-        combat_drop_delivery.temporary_update(db, character_id),
+        *combat_drop_delivery.temporary_updates(db, character_id),
         recycling_wire.result(recovered, destroyed),
     ]
 
@@ -71,10 +71,8 @@ def recycle(store, account_id, generation, character_id, body, *, rng=None):
     server policy; retrying the same canonical request never draws again.
     """
     request_data = decode_request(OPCODE, body)
-    if request_data["character_id"] != character_id:
-        raise ValueError("Temporary recycling character does not match session")
     uids = sorted(request_data["uids"])
-    canonical_body = _canonical_body(character_id, uids)
+    canonical_body = _canonical_body(request_data["character_id"], uids)
     digest = hashlib.sha256(b"temporary-recycle\0" + canonical_body).digest()
     random_draw = secrets.SystemRandom().random if rng is None else rng
 
@@ -82,6 +80,11 @@ def recycle(store, account_id, generation, character_id, body, *, rng=None):
 
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
+        from wakfu_server.inventory_owner import lock_inventory_character
+
+        character_id = lock_inventory_character(
+            store, db, account_id, generation, request_data["character_id"]
+        )
         prior = db.execute(
             "SELECT * FROM temporary_item_recycling_receipts "
             "WHERE account_id=%s AND character_id=%s AND request_hash=%s",
@@ -108,7 +111,9 @@ def recycle(store, account_id, generation, character_id, body, *, rng=None):
         if (
             db.execute(
                 "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
-                "WHERE p.character_id=%s AND f.status IN ('placement','active') LIMIT 1",
+                "WHERE p.character_id=%s AND f.status IN ('placement','active') "
+                "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w "
+                "WHERE w.fight_id=p.fight_id AND w.character_id=p.character_id) LIMIT 1",
                 (character_id,),
             ).fetchone()
             is not None

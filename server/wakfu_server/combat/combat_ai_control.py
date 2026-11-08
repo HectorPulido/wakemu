@@ -1,4 +1,5 @@
 """Native eYH325 scalar computation and eGj.lx/dpR control mutation."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 
 from .combat_parameters import parameter_value
@@ -157,7 +158,7 @@ class NativeAIControlHandler:
             if target is not None:
                 set_native_ai_control(target, runner.value == 1)
             if context.retained:
-                self.fight.owned_stat_effects[uid] = dict(
+                self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                     uid=uid,
                     effect_class=325,
                     family="eYH",

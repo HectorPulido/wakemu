@@ -68,19 +68,20 @@ class TimelineRecoveryCheckpointCASTests(PostgresCase):
         )
         checkpoints = Checkpoints(self.store)
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"
-        callback = next(
+        callbacks = [
             node
             for node in ast.walk(ast.parse(source.read_text()))
             if isinstance(node, ast.FunctionDef)
-            and node.name == "checkpoint_accepted_rift"
-        )
+            and node.name in ("checkpoint_accepted_rift", "checkpoint_final_rift")
+        ]
         namespace = {"STORE": self.store, "CHECKPOINTS": checkpoints}
         exec(
-            compile(ast.Module(body=[callback], type_ignores=[]), str(source), "exec"),
+            compile(ast.Module(body=callbacks, type_ignores=[]), str(source), "exec"),
             namespace,
         )
         shared.join_context = {
-            "rift_accepted_action": namespace["checkpoint_accepted_rift"]
+            "rift_accepted_action": namespace["checkpoint_accepted_rift"],
+            "rift_checkpoint_action": namespace["checkpoint_final_rift"],
         }
         boundaries = {
             "wakfu_server.rift_dispatch_lifecycle": SimpleNamespace(
@@ -151,10 +152,10 @@ class TimelineRecoveryCheckpointCASTests(PostgresCase):
             self.assertEqual(vars(shared.ack), vars(old_ack))
             self.assertEqual(shared.sequence, old_sequence)
             self.assertTrue(all(not queue for queue in shared.outboxes.values()))
-            self.assertEqual((shared.checkpoint_revision, durable_revision()), (6, 6))
+            self.assertEqual((shared.checkpoint_revision, durable_revision()), (5, 5))
             self.assertFalse(shared.checkpoint_terminal)
             self.assertEqual(
                 checkpoints.save_shared(shared, two.account_id, two.generation),
-                (7, False),
+                (6, False),
             )
-            self.assertEqual(durable_revision(), 7)
+            self.assertEqual(durable_revision(), 6)

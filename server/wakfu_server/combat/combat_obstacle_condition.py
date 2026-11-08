@@ -25,6 +25,54 @@ def footprint(position, radius, *, query=False):
     )
 
 
+def _native_is_obstacle(fight, selected, viewer, actor_authority):
+    from .combat_qi_fight import current_registry
+    from .combat_pointer_qi_registry import registered_obstacle
+    from .combat_area_remove import movement_blocking_area
+    from .combat_casting_los import native_area_visibility
+
+    # One owned QI lookup; no reconstructed historical actor/terrain population.
+    registry = current_registry(fight)
+    actor_authority(fight, viewer)
+    for cell in footprint(selected.position, selected.physical_radius, query=True):
+        order = registry.ordered_U(*cell)
+        if not order:
+            continue
+        row = registered_obstacle(registry, order[0])
+        if row is None:
+            continue  # QI.V returns the first slot value, including null.
+        kind, identity = row["identity"]
+        if kind == "effect_area":
+            area = fight.native_effect_areas.get(identity)
+            if area is None:
+                raise ValueError("Missing registered native obstacle area")
+            # eOp short-circuits bcP before evaluating bcQ.
+            if movement_blocking_area(area) or native_area_visibility(fight, identity):
+                return True
+            continue
+        if kind != "actor":
+            raise ValueError("Unknown registered native obstacle kind")
+        actor = fight.actors.get(identity)
+        if actor is None:
+            raise ValueError("Missing registered native obstacle actor")
+        metadata = actor_authority(fight, actor)
+        if metadata.targeting.get("is_eHH") is not True:
+            raise ValueError("Missing native big obstacle class authority")
+        properties = frozenset(actor_authority.properties(fight, actor))
+        affiliation = getattr(actor, "native_fight_affiliation", actor.team)
+        viewer_affiliation = getattr(viewer, "native_fight_affiliation", viewer.team)
+        if any(
+            type(value) is not int or not -128 <= value < 128
+            for value in (affiliation, viewer_affiliation)
+        ):
+            raise ValueError("Missing native signed-byte viewer affiliation")
+        if any(
+            blocking_flags(properties, viewer_ally=affiliation == viewer_affiliation)
+        ):
+            return True
+    return False
+
+
 def is_obstacle(fight, *, selected_id, viewer_id, actor_authority):
     if selected_id is None:
         return False  # eOp null selected eHg, with no ePy fallback in this entry.
@@ -35,6 +83,18 @@ def is_obstacle(fight, *, selected_id, viewer_id, actor_authority):
         raise ValueError("Missing native dnz active fight membership")
     if viewer_id not in fight.actors:
         raise ValueError("Missing explicit native obstacle viewer")
+    from .combat_state import Fight
+
+    if type(fight) is Fight and (
+        hasattr(fight, "native_pointer_checkpoint")
+        or (hasattr(fight, "native_qi_snapshot") and hasattr(fight, "native_qi_slots"))
+    ):
+        from .combat_obstacle_authority import _native_authority
+
+        if _native_authority(actor_authority):
+            return _native_is_obstacle(
+                fight, selected, fight.actors[viewer_id], actor_authority
+            )
     static = getattr(fight, "native_obstacle_cells", None)
     if static is None or static:
         raise ValueError("Missing complete native static QK flag population")

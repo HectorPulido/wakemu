@@ -12,6 +12,7 @@ import json
 from datetime import date, datetime
 from decimal import Decimal
 from collections import deque
+from weakref import ReferenceType
 
 from .native_context import (
     _instance_fields,
@@ -65,6 +66,15 @@ class _CompletePickler(pickle.Pickler):
             return _record, ("decimal", str(value))
         if isinstance(value, memoryview):
             return _record, ("memoryview", bytes(value))
+        if kind is ReferenceType:
+            # Exact builtin dereference only reads its current referent. It does
+            # not invoke the finalization callback. Keep both graph edges in
+            # the pickler memo rather than omitting derived native owners.
+            return _record, ("weakref", value(), value.__callback__)
+        if isinstance(value, ReferenceType):
+            raise ValueError(
+                "Unsupported complete fingerprint type: " + kind.__qualname__
+            )
         fields = _instance_fields(value)
         descriptor = kind.__module__, kind.__qualname__
         if isinstance(value, dict):

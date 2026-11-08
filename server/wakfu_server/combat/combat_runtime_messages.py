@@ -154,6 +154,18 @@ class RuntimeMessages:
 
         if fight.id != self.fight.id:
             raise ValueError("Delivery preview belongs to another fight")
+        from .combat_owned_spell_delivery import owns_spell_delivery
+
+        if owns_spell_delivery(self, fight, action_id, operation):
+            self.fight = fight
+            self.action_id = action_id
+            delivery = self.prepare_delivery(packets)
+            observe_prepared_boundary(self.fight, self, operation=operation)
+            # Preserve all preflight/owner checks, including pending-restoration
+            # adoption, without replacing this already private preview graph.
+            adopt_fight(fight, self.fight)
+            self.fight = fight
+            return delivery
         candidate_fight = deepcopy(fight)
         candidate = deepcopy(self, {id(self.fight): candidate_fight})
         candidate.fight = candidate_fight
@@ -278,9 +290,9 @@ class RuntimeMessages:
         ):
             return []
         from .combat_timed_expiration import expire_timed_effects
-        from .combat_characteristic_reconciliation import characteristic_signatures
+        from .combat_characteristic_reconciliation import _capture_characteristics
 
-        before = characteristic_signatures(self.fight)
+        before = _capture_characteristics(self.fight)
         next_action = self.action_id + 1
         if next_action >= 2**31:
             raise ValueError("Fight action sequence exhausted")
@@ -292,6 +304,7 @@ class RuntimeMessages:
             round_cleanup=round_cleanup,
             action_id=next_action,
             runtime_factory=self.expiration_runtime_factory,
+            _owned_runtime=self,
         )
         packets = list(packets) + self._changed_stat_packets(before)
         if packets:
@@ -304,10 +317,11 @@ class RuntimeMessages:
                 actor_id=actor.id, round_number=timeline_round(self.fight), phase="end"
             )
         from .combat_timed_expiration import prepare_timed_expiration
-        from .combat_characteristic_reconciliation import characteristic_signatures
+        from .combat_characteristic_reconciliation import _capture_characteristics
 
-        before = characteristic_signatures(self.fight)
+        before = _capture_characteristics(self.fight)
         next_action = self.action_id + 1
+        previous_ids = set(self.fight.actors)
         candidate, events = self.turn_end_provider(
             self.fight, actor_id=actor.id, action_id=next_action
         )
@@ -321,8 +335,8 @@ class RuntimeMessages:
                 phase="end",
                 action_id=next_action,
                 runtime_factory=self.expiration_runtime_factory,
+                _owned_runtime=self,
             )
-        previous_ids = set(self.fight.actors)
         candidate_ids = set(candidate.actors)
         if previous_ids - candidate_ids:
             raise ValueError("Turn-end policy removed an actor")
@@ -400,9 +414,9 @@ class RuntimeMessages:
             return packets
         boundary = (self.fight.turn_id, actor.id)
         if self.turn_start_provider is not None and self.area_started_turn != boundary:
-            from .combat_characteristic_reconciliation import characteristic_signatures
+            from .combat_characteristic_reconciliation import _capture_characteristics
 
-            before_callbacks = characteristic_signatures(self.fight)
+            before_callbacks = _capture_characteristics(self.fight)
             action_id = self.action_id + 1
             candidate, callbacks = self.turn_start_provider(
                 self.fight, actor_id=actor.id, action_id=action_id

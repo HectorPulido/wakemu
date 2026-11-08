@@ -1,4 +1,5 @@
 """Native eWn649 temporary spell registry and shortcut, independent of breed."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
@@ -140,7 +141,7 @@ class NativeSpellGrantHandler:
                 reference, dict(uid=reference, reference=reference, level=level)
             )
         if ctx.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,

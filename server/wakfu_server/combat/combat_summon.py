@@ -277,7 +277,17 @@ class RegisteredSummonAuthority:
         preview.native_summon_registrations = {**records, actor_id: row}
         preview.order, preview.turn_index = list(new_order), new_turn_index
 
-    def _ordinary_view(self, preview):
+    def _ordinary_view(self, preview, *, _pure_callback=None):
+        from .combat_ordinary_authority import pure_ordinary_callback
+        from .combat_ordinary_events import _ordinary_phase_facts
+
+        facts = (
+            _ordinary_phase_facts(preview, authority=self.ordinary)
+            if pure_ordinary_callback(self.ordinary, _pure_callback)
+            else None
+        )
+        if facts is not None and self in facts["views"]:
+            return facts["views"][self]
         records = getattr(preview, "native_summon_registrations", {})
         if any(
             i not in preview.actors or row["actor_id"] != i
@@ -286,6 +296,8 @@ class RegisteredSummonAuthority:
             raise ValueError("Stale summon roster registration")
         view = copy(preview)
         view.actors = {i: a for i, a in preview.actors.items() if i not in records}
+        if facts is not None:
+            facts["views"][self] = view
         return view
 
     def _call_ordinary(self, preview, callback, *args):
@@ -293,10 +305,21 @@ class RegisteredSummonAuthority:
 
         # Keep the ordinary ownership roster strict, while reciprocal physical
         # relations still resolve both actors from the real transaction.
-        with carry_population_scope(preview):
-            return callback(self._ordinary_view(preview), *args)
+        from .combat_ordinary_authority import pure_ordinary_callback
+        from .combat_ordinary_events import _fallback_phase_read_pass
+        from contextlib import nullcontext
 
-    def __call__(self, preview, actor):
+        scope = (
+            nullcontext()
+            if pure_ordinary_callback(self.ordinary, callback)
+            else _fallback_phase_read_pass(None)
+        )
+        with carry_population_scope(preview), scope:
+            return callback(
+                self._ordinary_view(preview, _pure_callback=callback), *args
+            )
+
+    def __call__(self, preview, actor, *, _include_summon_counts=True):
         from .combat_native_actor_lookup import detached_authority
 
         construction = detached_authority(preview, actor)
@@ -354,11 +377,22 @@ class RegisteredSummonAuthority:
         else:
             from .combat_carrying import carry_population_scope
 
-            with carry_population_scope(preview):
-                metadata = self.ordinary(self._ordinary_view(preview), actor)
+            from .combat_ordinary_authority import pure_ordinary_callback
+            from .combat_ordinary_events import _fallback_phase_read_pass
+            from contextlib import nullcontext
+
+            scope = (
+                nullcontext()
+                if pure_ordinary_callback(self.ordinary, self.ordinary)
+                else _fallback_phase_read_pass(None)
+            )
+            with carry_population_scope(preview), scope:
+                metadata = self.ordinary(
+                    self._ordinary_view(preview, _pure_callback=self.ordinary), actor
+                )
         # dTB/GF eligibility is an explicit native provider, not merely the
         # number of registrations: statuses/properties may exclude summons.
-        if records:
+        if records and _include_summon_counts:
             metadata = replace(
                 metadata,
                 summon_count=None,
@@ -366,6 +400,7 @@ class RegisteredSummonAuthority:
                 native_summon_counts_complete=False,
             )
             from .combat_summon_count import registered_summon_counts
+            from .combat_ordinary_authority import OrdinaryActorAuthority
 
             from .combat_carrying import carry_population_scope
 
@@ -375,7 +410,14 @@ class RegisteredSummonAuthority:
                     actor.id,
                     records,
                     self.ordinary,
-                    self._ordinary_view(preview),
+                    self._ordinary_view(
+                        preview,
+                        _pure_callback=(
+                            self.ordinary.summon_count_flags
+                            if type(self.ordinary) is OrdinaryActorAuthority
+                            else None
+                        ),
+                    ),
                 )
             if counts is not None:
                 metadata = replace(
@@ -509,7 +551,7 @@ class RegisteredSummonAuthority:
             if live is None:
                 raise ValueError("Missing detached native fight-property source")
             return frozenset(live)
-        self(preview, actor)
+        authority_without_summon_counts(self, preview, actor)
         return self._condition_fight_properties(preview, actor)
 
     def _condition_fight_properties(self, preview, actor):
@@ -638,3 +680,204 @@ def ordinary_roster_authority(authority):
         isinstance(authority, RegisteredSummonAuthority)
         and isinstance(authority.ordinary, OrdinaryActorAuthority)
     )
+
+
+_EVENT_RECIPIENT_CALL = RegisteredSummonAuthority.__call__
+_EVENT_RECIPIENT_VIEW = RegisteredSummonAuthority._ordinary_view
+_EVENT_RECIPIENT_RELATIONSHIPS = RegisteredSummonAuthority._fresh_relationships
+from .combat_retained_collections import OwnedMap as _OwnedMap
+
+_EVENT_ACTOR_GET = _OwnedMap.get
+from .combat_ordinary_authority import OrdinaryActorAuthority as _OrdinaryActorAuthority
+
+_EVENT_RECIPIENT_LOCAL_FACTS = _OrdinaryActorAuthority._recipient_creation_facts
+from .combat_carrying import carrying_relations as _EVENT_CARRYING_RELATIONS
+from .combat_carrying import carry_population_scope as _EVENT_CARRY_SCOPE
+from .combat_ordinary_death import owned_fighter_guards as _EVENT_LIFE_GUARDS
+from .combat_controller_registry import current_native_controller as _EVENT_CONTROLLER
+from .combat_native_actor_lookup import detached_authority as _EVENT_DETACHED_AUTHORITY
+
+
+def _project_event_recipient(authority, preview, actor):
+    """Validate only lifecycle recipient facts for exact native providers."""
+    from .combat_state import Fight
+    from .combat_retained_collections import OwnedMap
+    from .combat_ordinary_authority import (
+        OrdinaryActorAuthority,
+        pure_ordinary_callback,
+        _immutable_property_catalog,
+    )
+    from .combat_controller_registry import current_native_controller
+    from .combat_ordinary_death import owned_fighter_guards
+    from .combat_carrying import carrying_relations, carry_population_scope
+    from .combat_native_actor_lookup import detached_authority
+
+    if (
+        type(preview) is not Fight
+        or Fight.__getattribute__ is not object.__getattribute__
+        or type(actor) is not Actor
+        or Actor.__getattribute__ is not object.__getattribute__
+    ):
+        return False
+    actor_map = vars(preview).get("actors")
+    if (
+        type(actor_map) is not OwnedMap
+        or OwnedMap.get is not _EVENT_ACTOR_GET
+        or "get" in vars(actor_map)
+        or dict.get(actor_map, actor.id) is not actor
+        or getattr(actor, "pve_withdrawn", False)
+    ):
+        return False
+
+    if type(authority) is OrdinaryActorAuthority:
+        if (
+            OrdinaryActorAuthority.__getattribute__ is not object.__getattribute__
+            or "__getattr__" in OrdinaryActorAuthority.__dict__
+            or OrdinaryActorAuthority._recipient_creation_facts
+            is not _EVENT_RECIPIENT_LOCAL_FACTS
+            or "_recipient_creation_facts" in vars(authority)
+            or not pure_ordinary_callback(authority, authority)
+        ):
+            return False
+        ordinary = authority
+        wrapper = None
+        records = None
+    elif type(authority) is RegisteredSummonAuthority:
+        if (
+            RegisteredSummonAuthority.__call__ is not _EVENT_RECIPIENT_CALL
+            or RegisteredSummonAuthority._ordinary_view is not _EVENT_RECIPIENT_VIEW
+            or RegisteredSummonAuthority._fresh_relationships
+            is not _EVENT_RECIPIENT_RELATIONSHIPS
+            or RegisteredSummonAuthority.__getattribute__ is not object.__getattribute__
+            or "__getattr__" in RegisteredSummonAuthority.__dict__
+            or "__call__" in vars(authority)
+            or "_ordinary_view" in vars(authority)
+            or "_fresh_relationships" in vars(authority)
+        ):
+            return False
+        ordinary = authority.ordinary
+        if (
+            type(ordinary) is not OrdinaryActorAuthority
+            or OrdinaryActorAuthority.__getattribute__ is not object.__getattribute__
+            or "__getattr__" in OrdinaryActorAuthority.__dict__
+            or OrdinaryActorAuthority._recipient_creation_facts
+            is not _EVENT_RECIPIENT_LOCAL_FACTS
+            or "_recipient_creation_facts" in vars(ordinary)
+            or not pure_ordinary_callback(ordinary, ordinary)
+            or ordinary.catalog is not _immutable_property_catalog()
+        ):
+            return False
+        wrapper = authority
+        records = getattr(preview, "native_summon_registrations", {})
+        if type(records) is not dict:
+            return False
+    else:
+        return False
+
+    if (
+        ordinary.catalog is not _immutable_property_catalog()
+        or detached_authority is not _EVENT_DETACHED_AUTHORITY
+        or detached_authority(preview, actor) is not None
+        or carrying_relations is not _EVENT_CARRYING_RELATIONS
+        or carry_population_scope is not _EVENT_CARRY_SCOPE
+        or owned_fighter_guards is not _EVENT_LIFE_GUARDS
+        or current_native_controller is not _EVENT_CONTROLLER
+    ):
+        return False
+
+    if wrapper is not None and actor.id in records:
+        registration = records[actor.id]
+        if (
+            type(registration) is not dict
+            or type(registration.get("authority")) is not dict
+            or type(registration.get("authority", {}).get("targeting")) is not dict
+        ):
+            return False
+        if registration.get("actor_id") != actor.id:
+            raise ValueError("Stale native summon actor registration")
+        from .combat_runtime_adapter import NativeActorAuthority
+
+        metadata = NativeActorAuthority(**registration["authority"])
+        carrying = carrying_relations(preview, actor)
+        if any(carrying.values()):
+            original = copy(actor)
+            original.native_carrier_id = None
+            original.native_carried_actor_id = None
+            wrapper._fresh_relationships(original, registration, metadata)
+        else:
+            wrapper._fresh_relationships(actor, registration, metadata)
+        ai_control = getattr(actor, "native_controlled_by_ai", None)
+        if ai_control is not None and type(ai_control) is not bool:
+            raise ValueError("Invalid native summon AI control flag")
+        if registration["controller_id"] not in preview.actors:
+            raise ValueError("Native summon controller no longer registered")
+        owned_fighter_guards(preview, actor)
+        if hasattr(preview, "native_controller_registry"):
+            current_native_controller(preview, actor.id)
+        return True
+
+    if wrapper is None:
+        if ordinary._recipient_creation_facts(preview, actor) is None:
+            return False
+        return True
+
+    with carry_population_scope(preview):
+        # Resolve only this recipient's source. Other registrations remain
+        # available to the current carry/controller checks below.
+        if ordinary._recipient_creation_facts(preview, actor) is None:
+            return False
+    # The full consumer checks life and current-controller sources again after
+    # ordinary metadata construction. The returned metadata is discarded here.
+    owned_fighter_guards(preview, actor)
+    if hasattr(preview, "native_controller_registry"):
+        current_native_controller(preview, actor.id)
+    return True
+
+
+def verify_event_recipient(authority, preview, actor):
+    """Validate the actual recipient without computing unused GF aggregates.
+
+    This consumer discards metadata. Conditions and targeting still call the
+    complete authority and receive fresh summon counts on every invocation.
+    """
+    from .combat_ordinary_authority import (
+        pure_ordinary_callback,
+        _immutable_property_catalog,
+    )
+
+    if _project_event_recipient(authority, preview, actor):
+        return
+    if (
+        type(authority) is RegisteredSummonAuthority
+        and RegisteredSummonAuthority.__call__ is _EVENT_RECIPIENT_CALL
+        and "__call__" not in vars(authority)
+        and pure_ordinary_callback(authority.ordinary, authority.ordinary)
+        and authority.ordinary.catalog is _immutable_property_catalog()
+    ):
+        _EVENT_RECIPIENT_CALL(authority, preview, actor, _include_summon_counts=False)
+    else:
+        authority(preview, actor)
+
+
+def authority_without_summon_counts(authority, preview, actor):
+    """Read native actor facts for consumers that never inspect GF counts.
+
+    Use the same exact-provider gate as event-recipient verification. Opaque
+    providers retain their full call contract; no aggregate is cached.
+    """
+    from .combat_ordinary_authority import (
+        pure_ordinary_callback,
+        _immutable_property_catalog,
+    )
+
+    if (
+        type(authority) is RegisteredSummonAuthority
+        and RegisteredSummonAuthority.__call__ is _EVENT_RECIPIENT_CALL
+        and "__call__" not in vars(authority)
+        and pure_ordinary_callback(authority.ordinary, authority.ordinary)
+        and authority.ordinary.catalog is _immutable_property_catalog()
+    ):
+        return _EVENT_RECIPIENT_CALL(
+            authority, preview, actor, _include_summon_counts=False
+        )
+    return authority(preview, actor)

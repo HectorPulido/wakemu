@@ -7,6 +7,7 @@ gameplay operation. Snapshots contain private facts and belong in private files.
 from contextlib import contextmanager
 from contextvars import ContextVar
 from copy import deepcopy
+import datetime
 import math
 import random
 import time
@@ -250,7 +251,20 @@ class CombatInputObservation:
             budget[0] -= len(item) if type(item) in (bytes, str) else 16
             if budget[0] < 0 or budget[1] < 0:
                 raise ValueError("Observation value exceeds bounds")
-            if item is None or type(item) in (bool, int, str, bytes):
+            if type(item) in (datetime.datetime, datetime.time):
+                tzinfo = item.tzinfo
+                if tzinfo is not None and type(tzinfo) is not datetime.timezone:
+                    raise TypeError("Observation requires a supported fixed timezone")
+                return item
+            if item is None or type(item) in (
+                bool,
+                int,
+                str,
+                bytes,
+                datetime.date,
+                datetime.timedelta,
+                datetime.timezone,
+            ):
                 return item
             if type(item) is float and math.isfinite(item):
                 return item

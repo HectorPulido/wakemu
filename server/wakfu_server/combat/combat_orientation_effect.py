@@ -1,4 +1,5 @@
 """eWF303: native orientation modes, no reversal when the effect is removed."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_displacement import cardinal_vector
 from .combat_stat_handler import StatExecutionContext
@@ -200,7 +201,7 @@ class NativeOrientationHandler:
             effect_reference=invocation.reference,
         )
         if ctx.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 effect_class=303,
                 family="eWF",

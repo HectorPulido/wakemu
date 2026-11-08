@@ -33,6 +33,65 @@ class EventReplayReadPassTests(unittest.TestCase):
         result.setUp()
         return result
 
+    def test_manager_index_preserves_order_and_bounds_historical_visits(self):
+        from wakfu_server.combat_retained_effects import NativeRetainedEffectView
+
+        visits = []
+
+        class Entry:
+            def __init__(self, manager, uid):
+                self.manager, self.uid = manager, uid
+
+            @property
+            def manager_id(self):
+                visits.append(self.uid)
+                return self.manager
+
+        # Index-only unit: full population validation is independently owned
+        # by the view constructor and remains unchanged by this optimization.
+        view = NativeRetainedEffectView.__new__(NativeRetainedEffectView)
+        view.entries = tuple(Entry(-i, i) for i in range(1, 1001)) + (
+            Entry(7, 1001),
+            Entry(-7, 1002),
+            Entry(7, 1003),
+        )
+        expected = tuple(entry for entry in view.entries if entry.manager_id == 7)
+        visits.clear()
+        for _ in range(20):
+            self.assertEqual(view.manager_entries(7), expected)
+            self.assertEqual(view.manager_entries(2000), ())
+        self.assertEqual(len(visits), len(view.entries))
+        view.entries = view.entries + (Entry(7, 1004),)
+        self.assertEqual([e.uid for e in view.manager_entries(7)], [1001, 1003, 1004])
+        view.entries = list(view.entries)
+        self.assertEqual([e.uid for e in view.manager_entries(7)], [1001, 1003, 1004])
+        view.entries.append(Entry(7, 1005))
+        self.assertEqual(
+            [e.uid for e in view.manager_entries(7)], [1001, 1003, 1004, 1005]
+        )
+
+    def test_indexed_replay_matches_complete_population_scan(self):
+        from wakfu_server.combat_retained_effects import NativeRetainedEffectView
+
+        results = []
+        for indexed in (False, True):
+            f = self.fixture()
+            select = NativeRetainedEffectView.manager_entries
+            observed = []
+
+            def entries(view, identity):
+                chosen = select(view, identity) if indexed else view.entries
+                observed.append((len(view.entries), len(chosen)))
+                return chosen
+
+            with patch.object(NativeRetainedEffectView, "manager_entries", entries):
+                outcome = f.replay(f.source(), authority=f.authority)
+            self.assertTrue(observed)
+            results.append(
+                (outcome, f.packets, f.fight.actors[7].hp, f.fight.actors[-7].hp)
+            )
+        self.assertEqual(results[0], results[1])
+
     def test_plain_area_proof_rejects_anchored_malformed_and_custom_authority(self):
         from test_combat_fake_fighter_area import NativeFakeFighterAreaTests
         from wakfu_server.combat_ordinary_events import _pure_area_recipient_read

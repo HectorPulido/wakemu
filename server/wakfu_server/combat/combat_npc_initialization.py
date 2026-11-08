@@ -271,7 +271,11 @@ def initialize_ordinary_npcs(fight, monsters, plans):
         finally:
             actor.team = team
             fight.actors[identity] = actor
-            fight.actors = {key: fight.actors[key] for key in actor_order}
+            from .combat_retained_collections import replace_collection
+
+            replace_collection(
+                fight, "actors", {key: fight.actors[key] for key in actor_order}
+            )
         receipts[identity] = dict(
             ref=reference,
             descriptor_level=actor.effective_level,

@@ -1,4 +1,5 @@
 """eZF316 snapshots one PV's Qf and removes only eVi.rtZ/rua runners."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_retained_effects import NativeRetainedEffectView, NativeRetainedRemoval
 
 
@@ -168,7 +169,7 @@ class NativeAuraRemovalHandler:
             removal.remove(selected)
             self.packets.append((13497, packet))
             if context.retained:
-                self.fight.owned_stat_effects[runner.uid] = dict(
+                self.fight.owned_stat_effects[runner.uid] = OwnedStateSourceRow(
                     uid=runner.uid,
                     effect_class=316,
                     family="eZF",

@@ -359,12 +359,16 @@ def distribute_unclaimed_artifacts(dispatcher, *, before_wave):
         # Pending opponent obligations have priority over new player grants.
         while len(group["remaining"]) >= 2 and not group.get("pending_pairs"):
             candidates = []
+            from wakfu_server.rift_artifact_recovery import _native_iteration_rosters
+
+            rosters = _native_iteration_rosters(fight, dispatcher.native_area_events)
             for uid in group["remaining"]:
                 player = eligible_representative(
                     fight,
                     roles.player_team,
                     area_uid=uid,
                     area_events=dispatcher.native_area_events,
+                    _rosters=rosters,
                 )
                 if player is None:
                     continue
@@ -375,6 +379,7 @@ def distribute_unclaimed_artifacts(dispatcher, *, before_wave):
                         roles.npc_team,
                         area_uid=other,
                         area_events=dispatcher.native_area_events,
+                        _rosters=rosters,
                     )
                     is not None
                     for other in group["remaining"]

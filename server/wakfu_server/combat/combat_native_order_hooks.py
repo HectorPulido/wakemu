@@ -4,6 +4,7 @@ Installed eGj consumers are empty in every installed actor subtype. Running
 identity, notifications, lifetime, serialization and removal remain observable.
 No server AI command is inferred from the native order operand.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import dataclass, replace
 
 FAMILIES = {327: "eVX", 328: "eVY", 342: "eXB"}
@@ -229,7 +230,7 @@ class NativeOrderHookHandler:
             # and the actual synchronous PR.f value callback below.
             self.packets.append((13497, packet))
             if ctx.retained:
-                self.fight.owned_stat_effects[runner.uid] = dict(
+                self.fight.owned_stat_effects[runner.uid] = OwnedStateSourceRow(
                     uid=runner.uid,
                     effect_class=family,
                     family=FAMILIES[family],

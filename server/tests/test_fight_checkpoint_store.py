@@ -11,6 +11,40 @@ from wakfu_server.combat_shared import SharedFight
 
 
 class CheckpointTests(PostgresCase):
+    def test_prepared_terminal_receipt_requires_persisted_finished_phase_and_revision(
+        self,
+    ):
+        from wakfu_server.fight_checkpoint_store import snapshot
+
+        state = snapshot(self.fight)
+        revision = self.checkpoints.save(self.account, self.generation, self.fight)
+        with self.store.connection() as db:
+            db.execute("UPDATE combat_fights SET status='finished' WHERE id=77")
+            db.execute("UPDATE fight_checkpoints SET status='ended' WHERE fight_id=77")
+
+        def save(expected=revision, allowed=True):
+            return self.checkpoints.save_prepared(
+                self.account,
+                self.generation,
+                self.fight,
+                state,
+                expected_revision=expected,
+                allow_terminal_receipt=allowed,
+            )
+
+        with self.assertRaisesRegex(ValueError, "Stale or foreign"):
+            save()
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE fight_checkpoints SET snapshot=jsonb_set(snapshot,'{phase}',"
+                "'\"finished\"'::jsonb) WHERE fight_id=77"
+            )
+        self.assertEqual(save(), dict(revision=revision, terminal=True))
+        with self.assertRaisesRegex(ValueError, "Stale or foreign"):
+            save(expected=revision + 1)
+        with self.assertRaisesRegex(ValueError, "Stale or foreign"):
+            save(allowed=False)
+
     def test_reconcile_missing_and_identical_committed_snapshot(self):
         from wakfu_server.fight_checkpoint_store import snapshot
 
@@ -233,9 +267,17 @@ class CheckpointTests(PostgresCase):
             db.execute(
                 "INSERT INTO settings(name,value) VALUES('rift_atomic_probe','1')"
             )
+            return (dict(wave=3),)
 
         with patch("wakfu_server.rift_runtime.persist_progress", side_effect=persist):
             self.checkpoints.save(self.account, self.generation, self.fight)
+        self.assertEqual(self.fight.rift_wave_state["persisted_wave"], 3)
+        self.assertNotIn(
+            "persisted_wave",
+            self.checkpoints.read(self.account, self.fight.id)["snapshot"][
+                "rift_wave_state"
+            ],
+        )
         with self.store.connection() as db:
             self.assertIsNotNone(
                 db.execute(
@@ -262,6 +304,7 @@ class CheckpointTests(PostgresCase):
         with patch("wakfu_server.rift_runtime.persist_progress", side_effect=fail):
             with self.assertRaisesRegex(ValueError, "rift receipt rejected"):
                 self.checkpoints.save(self.account, self.generation, self.fight)
+        self.assertNotIn("persisted_wave", self.fight.rift_wave_state)
         with self.store.connection() as db:
             self.assertIsNone(
                 db.execute(

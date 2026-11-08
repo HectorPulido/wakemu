@@ -45,6 +45,9 @@ class _OriginalPublication:
             "player.source_effects", compiled.source_effects, "native_json"
         )
         effects = collection("player.effects", compiled.effects, "frozen_effect")
+        entries = collection(
+            "player.entry_effects", compiled.entry_effects, "native_json"
+        )
         self.manifest["states"] = collection(
             "shared.states", compiled.source_states["states"], "native_json"
         )
@@ -55,14 +58,20 @@ class _OriginalPublication:
         # checks aliases, not the complete four production variant universes.
         self.manifest["original_output_index"] = {}
         for variant in ("player", "npc_imported", "npc_baseline", "weapon"):
-            for field, origin in (("source_effects", sources), ("effects", effects)):
+            for field, origin in (
+                ("source_effects", sources),
+                ("effects", effects),
+                ("entry_effects", entries),
+            ):
                 name = variant + "." + field
                 self.collections[name] = self.collections[origin]
                 self.manifest["collections"][name] = dict(
                     self.manifest["collections"][origin]
                 )
             self.manifest["variants"][variant] = dict(
-                source_effects=variant + ".source_effects", effects=variant + ".effects"
+                source_effects=variant + ".source_effects",
+                effects=variant + ".effects",
+                entry_effects=variant + ".entry_effects",
             )
             self.manifest["original_output_index"][variant] = self.output_index
         self.generation = hashlib.sha256(
@@ -184,6 +193,20 @@ class PublishedCompiledConsumerTests(unittest.TestCase):
                 for variant in publication.manifest["variants"]:
                     current = CompiledEffects.from_published(variant)
                     self.assertIs(current.source_states, state_document)
+                    self.assertEqual(
+                        tuple(current.entry_effects), tuple(eager.entry_effects)
+                    )
+                    self.assertTrue(
+                        all(value is True for value in current.entry_effects.values())
+                    )
+                    self.assertTrue(set(current.entry_effects) <= set(current.effects))
+                    self.assertEqual(
+                        tuple(current.source_effects), tuple(eager.source_effects)
+                    )
+                    self.assertEqual(
+                        tuple(original_output_index(current.effects)),
+                        tuple(original_output_index(eager.effects)),
+                    )
                 current = CompiledEffects.from_published()
                 self.assertEqual(tuple(current.effects), tuple(eager.effects))
                 self.assertEqual(dict(current.effects), dict(eager.effects))

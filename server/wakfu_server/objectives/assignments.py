@@ -33,6 +33,22 @@ def ensure_for_character(
         (account_id, character_id),
     ).fetchone():
         return 0
+    if not wait_for_lock:
+        # Foreground writers hold parent rows before taking this advisory lock.
+        # Acquire FK-compatible parent locks first without waiting on a player.
+        for query, values in (
+            (
+                "SELECT id FROM accounts WHERE id=%s FOR KEY SHARE SKIP LOCKED",
+                (account_id,),
+            ),
+            (
+                "SELECT id FROM characters WHERE id=%s AND account_id=%s "
+                "AND deleted_at IS NULL FOR KEY SHARE SKIP LOCKED",
+                (character_id, account_id),
+            ),
+        ):
+            if db.execute(query, values).fetchone() is None:
+                return 0
     lock_key = "objective-assignments:" + str(account_id)
     if wait_for_lock:
         db.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (lock_key,))

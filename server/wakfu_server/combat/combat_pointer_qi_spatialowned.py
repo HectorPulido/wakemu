@@ -4,11 +4,12 @@ The public mapping is serializable. A JSON copy cannot restore the live runner
 or its exact retained target/context, just like the canonical QI checkpoint.
 """
 from copy import deepcopy
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_pointer_qi_lifecycle import NativeRunner937
 from .combat_effect_removal import _identity_fields
 
 
-class NativeSpatialRecord(dict):
+class NativeSpatialRecord(OwnedStateSourceRow):
     def __init__(self, runner, *, caster_id, state_uid, payload):
         if not isinstance(runner, NativeRunner937):
             raise ValueError("Actual native eYa runner required")
@@ -28,6 +29,7 @@ class NativeSpatialRecord(dict):
             payload=payload.hex(),
         )
         self._identity = dict(self)
+        self._notify()
 
     def validate(self, fight):
         if dict(self) != self._identity:
@@ -57,6 +59,16 @@ class NativeSpatialRecord(dict):
         ):
             raise ValueError("Retained eYa wire ownership differs from actual runner")
         return runner
+
+    def __copy__(self):
+        clone = type(self).__new__(type(self))
+        dict.__init__(clone, self)
+        clone.__dict__.update(
+            (key, value)
+            for key, value in vars(self).items()
+            if key != "_parent_watchers"
+        )
+        return clone
 
     def __deepcopy__(self, memo):
         clone = type(self).__new__(type(self))
@@ -90,11 +102,18 @@ def validate_spatial_record(fight, row, entry=None):
     return runner
 
 
-def register_spatial_removals(removal, *, packets, action_id):
-    """Use the actual central complete Qf view's removal order, never a subset."""
+def register_spatial_removals(removal, *, packets, action_id, _view_provider=None):
+    """Preserve full legacy view or certified complete removal-closure order."""
     from .combat_effect_removal import running_effect_removal
 
     fight = removal.fight
+    if _view_provider is None:
+
+        def current_view():
+            return removal.view
+
+    else:
+        current_view = _view_provider
     rows = getattr(fight, "native_owned_spatial_effects", {})
     if not rows:
         return
@@ -113,7 +132,7 @@ def register_spatial_removals(removal, *, packets, action_id):
 
     def remove(uid):
         row = rows[uid]
-        payload = validate(removal.view.by_uid[uid])
+        payload = validate(current_view().by_uid[uid])
         runner = row.validate(fight)
         runner.dispose()  # bbR restores the exact retained QK before release.
         if uid in rows:
@@ -123,3 +142,6 @@ def register_spatial_removals(removal, *, packets, action_id):
     removal.register(
         937, exists=lambda uid: uid in rows, remove=remove, validate=validate
     )
+
+
+_SOURCE_REGISTER_SPATIAL_REMOVALS = register_spatial_removals

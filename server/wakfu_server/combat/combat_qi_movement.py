@@ -16,12 +16,47 @@ def movement_blocked_cells(fight, actor, cells):
         return _legacy_footprint_blocked_cells(fight, actor, cells)
 
     from .combat_qi_fight import current_registry
-    from .combat_pointer_qi_registry import registered_obstacle, registered_population
+    from .combat_pointer_qi_registry import registered_population
 
     registry = current_registry(fight)
     qi, population = registered_population(registry)
-    override = getattr(fight, "native_qi_movement_override", None)
-    ignored = getattr(fight, "native_qi_ignored_slots", None)
+    return _movement_blocked_cells(
+        registry,
+        actor,
+        cells,
+        qi,
+        population,
+        override=getattr(fight, "native_qi_movement_override", None),
+        ignored=getattr(fight, "native_qi_ignored_slots", None),
+    )
+
+
+def movement_blocked_cells_from_registry(registry, actor, cells, *, override, ignored):
+    """Pure passability over an explicitly supplied native registry snapshot.
+
+    Production callers still attest lifecycle through current_registry first.
+    Read-only tooling can consume serialized legacy QI without inventing Fight
+    ownership, applying movement, or reconstructing canonical pointer owners.
+    """
+    from .combat_pointer_qi_registry import registered_population
+
+    qi, population = registered_population(registry)
+    return _movement_blocked_cells(
+        registry,
+        actor,
+        cells,
+        qi,
+        population,
+        override=override,
+        ignored=ignored,
+    )
+
+
+def _movement_blocked_cells(
+    registry, actor, cells, qi, population, *, override, ignored
+):
+    from .combat_pointer_qi_registry import registered_obstacle
+
     own_slot = getattr(actor, "native_obstacle_id", None)
     own_row = (
         registered_obstacle(registry, own_slot)

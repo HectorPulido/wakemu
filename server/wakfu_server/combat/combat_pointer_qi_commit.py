@@ -34,7 +34,18 @@ class PointerCommitBinding:
         # with these exact candidate Qq rows, preserving their identity.
         for row in self.areas.values():
             memo[id(row)] = row
-        checkpoint, collection = deepcopy((self.checkpoint, self.collection), memo)
+        from .combat_retained_collections import OwnedMap
+
+        if type(self.collection) is OwnedMap:
+            # This publication transports only spatial payload ownership. A
+            # standalone map copy must not clone the whole retained registry.
+            collection = {}
+            memo[id(self.collection)] = collection
+            checkpoint = deepcopy(self.checkpoint, memo)
+            for uid, row in self.collection.items():
+                collection[deepcopy(uid, memo)] = deepcopy(row, memo)
+        else:
+            checkpoint, collection = deepcopy((self.checkpoint, self.collection), memo)
         self.staged = (destination, checkpoint, collection)
         return self
 
@@ -42,7 +53,9 @@ class PointerCommitBinding:
         """Non-fallible publication following the existing actor commit."""
         destination, checkpoint, collection = self.staged
         destination.native_pointer_checkpoint = checkpoint
-        destination.native_owned_spatial_effects = collection
+        from .combat_retained_collections import replace_collection
+
+        replace_collection(destination, "native_owned_spatial_effects", collection)
 
     def adopt(self, destination):
         self.stage(destination)

@@ -5,6 +5,7 @@ native alias operations, pointer topology is kept independently rather than
 forcing it through the legacy unique-identity serialized-slot schema.
 """
 from copy import deepcopy
+from weakref import ref
 from dataclasses import dataclass
 from .combat_pointer_qi_model import PointerQI
 from .combat_trove_byte_set import NativeTroveByteSet
@@ -49,6 +50,74 @@ class AreaQK:
 
 
 class ActualActorQI(PointerQI):
+    @property
+    def fight(self):
+        from weakref import ReferenceType
+
+        reference = self._fight_ref
+        if type(reference) is not ReferenceType:
+            raise ValueError("Invalid native QI owner reference")
+        owner = reference()
+        if owner is None:
+            raise ReferenceError("Native QI fight owner is no longer alive")
+        return owner
+
+    @fight.setter
+    def fight(self, owner):
+        self._fight_ref = ref(owner)
+        # A checkpoint adopted by a live Fight no longer needs its standalone
+        # copy's lifetime lease. The property always exposes the actual owner.
+        self.__dict__.pop("_fight_anchor", None)
+
+    def __deepcopy__(self, memo):
+        owner = self.fight
+        standalone = id(owner) not in memo
+        checkpoint = vars(owner).get("native_pointer_checkpoint")
+        if standalone and getattr(checkpoint, "_qi", None) is self:
+            # Actor characteristic listeners can reach Fight while QK objects
+            # are being copied. Start from Fight so its memo entry exists before
+            # that recursion reaches the checkpoint's canonical pointer indexes.
+            copied_owner = deepcopy(owner, memo)
+            if id(self) in memo:
+                clone = memo[id(self)]
+                clone._fight_anchor = copied_owner
+                return clone
+            # A standalone checkpoint was already memoized by its own copier;
+            # Fight reused it without traversing QI, which is completed below.
+        clone = type(self).__new__(type(self))
+        memo[id(self)] = clone
+        # Copy canonical QK objects before the owner. A standalone owner copy
+        # can reach its checkpoint, whose pointer indexes use these memo entries.
+        for key, value in vars(self).items():
+            if key == "_fight_ref":
+                if standalone:
+                    # Reserve the logical fight field's historical ordinal.
+                    clone._fight_ref = None
+                else:
+                    clone.fight = memo[id(owner)]
+            elif key != "_fight_anchor":
+                setattr(clone, key, deepcopy(value, memo))
+        # Preserve optional subclass slot state as ordinary deepcopy would.
+        for cls in type(self).__mro__:
+            slots = cls.__dict__.get("__slots__", ())
+            if isinstance(slots, str):
+                slots = (slots,)
+            for name in slots:
+                if name in ("__dict__", "__weakref__"):
+                    continue
+                if name.startswith("__") and not name.endswith("__"):
+                    name = "_" + cls.__name__.lstrip("_") + name
+                if hasattr(self, name):
+                    setattr(clone, name, deepcopy(getattr(self, name), memo))
+        clone.fight = deepcopy(owner, memo)
+        if standalone:
+            clone._fight_anchor = clone.fight
+        clone.movement_blocking = {
+            id(memo[id(obj)]): self.movement_blocking[id(obj)]
+            for obj in (*self.objects.values(), *self.area_objects.values())
+        }
+        return clone
+
     def __init__(self, fight):
         registry = current_registry(fight)
         terrain = registry.terrain

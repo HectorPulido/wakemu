@@ -21,8 +21,7 @@ class RiftNativeWaveTests(unittest.TestCase):
     def test_fresh_rift_monster_without_initial_state_plan_has_bje_status(self):
         monster = dict(id=-202, ref=5525, level=1, map_id=1134, x=4, y=0, z=0)
         values = {
-            identity: {"current": 10, "maximum": 10}
-            for identity in (1, 2, 3, 4, 35)
+            identity: {"current": 10, "maximum": 10} for identity in (1, 2, 3, 4, 35)
         }
         with patch(
             "wakfu_server.combat_actor_snapshot.native_npc_creation_values",
@@ -178,6 +177,10 @@ class RiftNativeWaveTests(unittest.TestCase):
         install_native_wave(
             fight, [self.monster(-201, 3)], initialize_actor=lambda *a: []
         )
+        fight.native_rift_creation_deliveries[-201] = [
+            dict(opcode=opcode, payload_hex=payload.hex())
+            for opcode, payload in creation_replay(fight)
+        ]
         fight.native_rift_creation_deliveries[-201][1]["payload_hex"] = "00"
         before = snapshot(fight)
         with self.assertRaises(ValueError):

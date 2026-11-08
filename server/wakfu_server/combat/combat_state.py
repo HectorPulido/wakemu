@@ -58,6 +58,18 @@ class Actor:
         None  # eGj.frN/pGO; fresh snapshot initializes it.
     )
 
+    def __setattr__(self, name, value):
+        old = vars(self).get("state_ledger") if name == "state_ledger" else None
+        object.__setattr__(self, name, value)
+        if name == "id":
+            from .combat_state_membership import actor_identity_changed
+
+            actor_identity_changed(self)
+        if name == "state_ledger" and old is not None and old is not value:
+            from .combat_state_membership import actor_ledger_replaced
+
+            actor_ledger_replaced(self, old)
+
     def __post_init__(self):
         if any(
             type(n) is not int
@@ -89,6 +101,37 @@ class Actor:
 
 
 class Fight:
+    def __deepcopy__(self, memo):
+        # Preserve Python's ordinary reduction/state reconstruction order.
+        # Only an exact Fight with its actual registry suppresses the optional
+        # lifetime anchor used by standalone owned-container copies.
+        from copy import _reconstruct
+        from copyreg import dispatch_table
+        from .combat_retained_collections import _ROOTED_COPY, bound_collections
+
+        owner = bound_collections(vars(self)) if type(self) is Fight else None
+        key = (_ROOTED_COPY, id(owner))
+        missing = object()
+        previous = memo.get(key, missing)
+        if owner is not None:
+            memo[key] = True
+        try:
+            reducer = dispatch_table.get(type(self))
+            if reducer is not None:
+                reduced = reducer(self)
+            else:
+                reducer = getattr(self, "__reduce_ex__", None)
+                reduced = reducer(4) if reducer is not None else self.__reduce__()
+            if isinstance(reduced, str):
+                return self
+            return _reconstruct(self, memo, *reduced)
+        finally:
+            if owner is not None:
+                if previous is missing:
+                    memo.pop(key, None)
+                else:
+                    memo[key] = previous
+
     def __init__(self, fight_id, actors, walkable, placement_cells, valid_edges=None):
         actors = list(actors)
         self.actors = {a.id: a for a in actors}
@@ -171,9 +214,11 @@ class Fight:
 
         self.native_delay_queue = fresh_queue()  # Actual fresh SU/TC constructor.
         self.native_retained_records = {}
+        from .combat_owned_container_facts import OwnedContainerFacts
+
         self.native_owned_state_containers = (
-            {}
-        )  # Actual PL facts held by retained children.
+            OwnedContainerFacts()
+        )  # PL facts held by retained children.
         self.native_retained_order = []
         self.native_retained_tracking = not any(a.state_ledger.entries for a in actors)
         self.owned_stat_effects = {}
@@ -181,6 +226,25 @@ class Fight:
         self.native_active_spell_id = None  # Fresh fight: native PZ absent.
         self.native_spell_grants = {}  # Native temporary fyR spell UID pool.
         self.state_wire_payloads = {}  # UID -> original owned carrier payload hex
+        if self.native_retained_tracking:
+            # Fresh authoritative storage owns routing mutations. Payload rows
+            # and actual actors retain their original identities and aliases.
+            from .combat_retained_collections import (
+                RetainedCollections,
+                bind_fight_owner,
+            )
+
+            collections = RetainedCollections()
+            bind_fight_owner(self, collections)
+            collections.retired_tracking.bind_facts(self.native_owned_state_containers)
+            collections.actors.update(self.actors)
+            self.actors = collections.actors
+            self.native_retained_records = collections.records
+            self.native_retained_order = collections.order
+            for name, source in collections.area_sources.items():
+                setattr(self, name, source)
+            for name, source in collections.sources.items():
+                setattr(self, name, source)
         self._check_positions()
 
     def allocate_effect_uid(self):
@@ -191,19 +255,31 @@ class Fight:
         # Qe.bfx running-effect IDs and PV.Sn entity IDs are separate native
         # namespaces. An initial/retired Qq may have the same numeric ID;
         # only another owned runner can collide with this sequence.
-        occupied = (
-            set(self.state_wire_payloads)
-            | set(self.owned_stat_effects)
-            | set(self.native_owned_group_effects)
-            | set(getattr(self, "native_owned_area_effects", {}))
-            | set(getattr(self, "native_owned_spatial_effects", {}))
-        )
-        occupied.update(
-            entry.uid
-            for actor in self.actors.values()
-            for entry in actor.state_ledger.entries
-        )
-        if uid in occupied:
+        # Use the exact owner gateway when its source and actor-ledger indexes
+        # are both proven current. Restored/opaque collections retain the
+        # original exhaustive check below.
+        from .combat_retained_registration_scope import native_membership_owner
+        from .combat_state_membership import membership_actor_live
+
+        owner = native_membership_owner(self)
+        live_ledgers = None if owner is None else membership_actor_live(owner)
+        if owner is not None and live_ledgers is not None:
+            occupied = uid in owner.source_counts or uid in live_ledgers
+        else:
+            occupied_uids = (
+                set(self.state_wire_payloads)
+                | set(self.owned_stat_effects)
+                | set(self.native_owned_group_effects)
+                | set(getattr(self, "native_owned_area_effects", {}))
+                | set(getattr(self, "native_owned_spatial_effects", {}))
+            )
+            occupied_uids.update(
+                entry.uid
+                for actor in self.actors.values()
+                for entry in actor.state_ledger.entries
+            )
+            occupied = uid in occupied_uids
+        if occupied:
             raise ValueError("Native effect UID sequence collides with an owned effect")
         self.native_effect_uid_next = uid + 1
         return uid

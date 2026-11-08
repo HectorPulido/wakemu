@@ -371,10 +371,22 @@ def apply(
             "SELECT p.account_id,p.session_generation,p.team,f.status FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id WHERE p.fight_id=%s AND p.character_id=%s FOR UPDATE OF f",
             (run["fight_id"], cid),
         ).fetchone()
+        from wakfu_server.combat_reward_ownership import rift_withdrawal_result
+
+        withdrawing = (
+            member is not None
+            and rift_withdrawal_result(
+                db, fight, member["account_id"], member["session_generation"], cid
+            )
+            is not None
+        )
         if (
             member is None
             or member["team"] != roles.player_team
-            or member["status"] != "finished"
+            or (
+                member["status"] != "finished"
+                and not (withdrawing and member["status"] in ("placement", "active"))
+            )
             or not member["session_generation"]
         ):
             raise ValueError("Rift rewards require finished durable participant lease")
@@ -508,6 +520,6 @@ def delivery(db, store, instance_id, character_id):
         packets=[
             synchronization(saved),
             equipment_inventory(saved),
-            combat_drop_delivery.temporary_update(db, character_id),
+            *combat_drop_delivery.temporary_updates(db, character_id),
         ],
     )

@@ -75,9 +75,10 @@ class RetainedMetadataCacheTests(unittest.TestCase):
             native_retained_condition_effects(fight, 7)
 
     def test_cache_is_bounded(self):
-        for uid in range(1, 2200):
+        capacity = _cached_retained_record.cache_parameters()["maxsize"]
+        for uid in range(1, capacity + 152):
             _retained_record(asdict(RetainedEffect(uid, 7, 310, 42)))
-        self.assertEqual(_cached_retained_record.cache_info().currsize, 2048)
+        self.assertEqual(_cached_retained_record.cache_info().currsize, capacity)
 
     def test_warmed_hex_facts_still_validate_current_owned_target_and_population(self):
         from wakfu_server.combat_effect_removal import _cached_hex_identity_fields

@@ -318,10 +318,12 @@ def apply_ai(
 def _with_areas(runtime, provider, operation):
     from copy import deepcopy
     from .combat_area_boundary import adopt_fight, adopt_runtime
-    from .combat_characteristic_reconciliation import characteristic_signatures
+    from .combat_characteristic_reconciliation import _capture_characteristics
 
-    candidate = deepcopy(runtime)
-    before_callbacks = characteristic_signatures(candidate.fight)
+    from .combat_preview_copy import runtime_scalar_actor_memo
+
+    candidate = deepcopy(runtime, runtime_scalar_actor_memo(runtime))
+    before_callbacks = _capture_characteristics(candidate.fight)
     callbacks = []
     action_id = candidate.action_id + 2
 
@@ -337,7 +339,10 @@ def _with_areas(runtime, provider, operation):
         adopt_fight(fight, preview)
         callbacks.extend(packets)
 
-    packets, result = operation(candidate, deliver_step)
+    from .combat_owned_movement_step import movement_child_preview
+
+    with movement_child_preview(runtime, candidate, provider):
+        packets, result = operation(candidate, deliver_step)
     event = result.get("event", result)
     if event.get("path"):
         candidate.action_id += 1
@@ -396,3 +401,6 @@ def _with_areas(runtime, provider, operation):
             packets.append(candidate._flush())
     adopt_runtime(runtime, candidate)
     return packets, result
+
+
+_OWNED_APPLY_CLIENT = apply_client

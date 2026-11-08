@@ -18,6 +18,7 @@ def select_positions(fight, *, references, seed, wave):
         registered_population,
     )
     from wakfu_server.combat_qi_fight import current_registry
+    from wakfu_server.combat_global_pv_read_view import in_play_actors
 
     references = tuple(references)
     if (
@@ -34,8 +35,8 @@ def select_positions(fight, *, references, seed, wave):
     starts = sorted(
         {
             actor.position
-            for actor in fight.actors.values()
-            if actor.team == roles.player_team and fight._in_play(actor)
+            for actor in in_play_actors(fight)
+            if actor.team == roles.player_team
         }
     )
     if not starts or any(cell not in cells for cell in starts) or fight.edges is None:
@@ -45,13 +46,6 @@ def select_positions(fight, *, references, seed, wave):
         if origin not in cells or destination not in cells:
             raise ValueError("Rift native edge leaves its arena")
         outgoing.setdefault(origin, []).append(destination)
-    reached, pending = set(starts), deque(starts)
-    while pending:
-        for destination in outgoing.get(pending.popleft(), ()):
-            if destination not in reached:
-                reached.add(destination)
-                pending.append(destination)
-
     # Exactly one current registry/population projection per placement operation.
     # Memoize only operation-local physical facts, never mutable fight state.
     registry = current_registry(fight)
@@ -76,6 +70,16 @@ def select_positions(fight, *, references, seed, wave):
                     break
         free_cells[cell] = allowed
         return allowed
+
+    # Terrain connectivity alone can cross native walls or persistent QI
+    # obstacles. Admit only cells reachable through the current physical
+    # population; player origins themselves are necessarily occupied.
+    reached, pending = set(starts), deque(starts)
+    while pending:
+        for destination in outgoing.get(pending.popleft(), ()):
+            if destination not in reached and free(destination[:2]):
+                reached.add(destination)
+                pending.append(destination)
 
     profiles = native_actor_catalog()["npc_profiles"]
     radii = {}

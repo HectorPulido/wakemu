@@ -7,38 +7,54 @@ def retired_ordinary_qi_ids(fight, *, pv_view=None):
         from .combat_global_pv_read_view import NativeGlobalPVReadView
 
         pv_view = NativeGlobalPVReadView(fight)
-    from .combat_global_pv_collections import global_fighter_guards
-    from .combat_ordinary_death import registered_ordinary_death
-
     records = getattr(fight, "native_ordinary_qi_retirements", {})
     if not isinstance(records, dict):
         raise ValueError("Invalid ordinary QI retirement ledger")
     result = set()
     for key, row in records.items():
         actor = fight.actors.get(int(key))
-        if (
-            actor is None
-            or actor.hp != 0
-            or not isinstance(row, dict)
-            or row.get("source") != SOURCE
-            or row.get("actor_id") != actor.id
-            or getattr(actor, "native_ordinary_qi_retirement", None) != row
-            or actor.native_obstacle_id != -1
-            or (global_fighter_guards if pv_view is None else pv_view.guards)(
-                fight, actor.id
-            )["baK"]
-            is not True
-            or not registered_ordinary_death(
-                fight,
-                actor,
-                event_indices=(
-                    None if pv_view is None else pv_view.death_indices(fight, actor.id)
-                ),
-            )
-        ):
-            raise ValueError("Unverified ordinary QI retirement")
+        _validate_ordinary_qi_retirement(fight, actor, row, pv_view=pv_view)
         result.add(actor.id)
     return result
+
+
+def _validate_ordinary_qi_retirement(fight, actor, row, *, pv_view=None):
+    from .combat_global_pv_collections import global_fighter_guards
+    from .combat_ordinary_death import registered_ordinary_death
+
+    if (
+        actor is None
+        or actor.hp != 0
+        or not isinstance(row, dict)
+        or row.get("source") != SOURCE
+        or row.get("actor_id") != actor.id
+        or getattr(actor, "native_ordinary_qi_retirement", None) != row
+        or actor.native_obstacle_id != -1
+        or (global_fighter_guards if pv_view is None else pv_view.guards)(
+            fight, actor.id
+        )["baK"]
+        is not True
+        or not registered_ordinary_death(
+            fight,
+            actor,
+            event_indices=(
+                None if pv_view is None else pv_view.death_indices(fight, actor.id)
+            ),
+        )
+    ):
+        raise ValueError("Unverified ordinary QI retirement")
+
+
+def retired_ordinary_qi_actor(fight, actor_id):
+    """Validate only the requested actor's existing native retirement receipt."""
+    records = getattr(fight, "native_ordinary_qi_retirements", {})
+    if not isinstance(records, dict):
+        raise ValueError("Invalid ordinary QI retirement ledger")
+    key = str(actor_id)
+    if key not in records:
+        return False
+    _validate_ordinary_qi_retirement(fight, fight.actors.get(actor_id), records[key])
+    return True
 
 
 def complete_ordinary_qi_death(fight, actor, *, fighter_state=2):

@@ -27,16 +27,23 @@ def state_container_scope(fight, entries):
 
 
 def resolve_state_container(fight, uid):
-    entries = [
-        entry
-        for actor in state_managers(fight)
-        for entry in actor.state_ledger.entries
-        if entry.uid == uid
-    ]
-    if len(entries) > 1:
-        raise ValueError("Missing unique native state effect container")
-    if entries:
-        return entries[0]
+    from .combat_native_container_query import live_state_container
+
+    admitted, current = live_state_container(fight, uid)
+    if admitted:
+        if current is not None:
+            return current
+    else:
+        entries = [
+            entry
+            for actor in state_managers(fight)
+            for entry in actor.state_ledger.entries
+            if entry.uid == uid
+        ]
+        if len(entries) > 1:
+            raise ValueError("Missing unique native state effect container")
+        if entries:
+            return entries[0]
     for owner, scope, wire in reversed(_scopes.get()):
         if owner is fight and uid in scope:
             return scope[uid]
@@ -74,17 +81,21 @@ def capture_owned_state_container(fight, uid):
     from dataclasses import asdict
     from .combat_state_ledger import RunningState
 
+    from .combat_native_container_query import has_owned_container_users
+
     state = resolve_state_container(fight, uid)
     if (
         not isinstance(state, RunningState)
         or state.uid != uid
-        or not owned_container_users(fight, uid)
+        or not has_owned_container_users(fight, uid)
     ):
         raise ValueError("Missing actual retained child state container")
     facts = getattr(fight, "native_owned_state_containers", None)
     if not isinstance(facts, dict):
         raise ValueError("Missing own state container registry")
-    row = asdict(state)
+    from .combat_owned_container_row import OwnedContainerRow
+
+    row = OwnedContainerRow(asdict(state))
     if uid in facts and any(
         facts[uid].get(key) != row[key]
         for key in ("uid", "reference", "caster_id", "target_id")
@@ -98,12 +109,13 @@ def owned_state_container(fight, uid):
     from .combat_state_ledger import RunningState
     from .combat_state_timing import StateTimer
     from .combat_state_managers import registered_source_pv
+    from .combat_native_container_query import has_owned_container_users
 
     facts = getattr(fight, "native_owned_state_containers", None)
     if (
         not isinstance(facts, dict)
         or uid not in facts
-        or not owned_container_users(fight, uid)
+        or not has_owned_container_users(fight, uid)
     ):
         raise ValueError("Missing unique native state effect container")
     row = dict(facts[uid])

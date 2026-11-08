@@ -95,8 +95,19 @@ def _terminal_packets(planned, losing_team):
     # huN=true removes a participant, then aUH returns early when its removal
     # leaves fewer than fUM teams. Normal end lists bypass that branch and
     # restore local input/frames; the authoritative FSM still records abort.
-    winners = [a.id for a in planned.fight.actors.values() if a.team != losing_team]
-    losers = [a.id for a in planned.fight.actors.values() if a.team == losing_team]
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    hidden = hidden_snapshot_actor_ids(planned.fight)
+    winners = [
+        a.id
+        for a in planned.fight.actors.values()
+        if a.team != losing_team and a.id not in hidden
+    ]
+    losers = [
+        a.id
+        for a in planned.fight.actors.values()
+        if a.team == losing_team and a.id not in hidden
+    ]
     if not winners or max(len(winners), len(losers)) > 127:
         raise ValueError("Unsupported abandon team layout")
     payload = planned._prefix() + b"\x00"
@@ -223,6 +234,15 @@ def prepare(store, account_id, generation, character, runtime, body):
             reason="abort",
             db=db,
         )
+        from wakfu_server.rift_withdrawal_rewards import (
+            settle as settle_rift_withdrawal,
+        )
+
+        rewards = settle_rift_withdrawal(
+            store, db, runtime.fight, owner_ids={account_id}
+        )
+        if character["id"] in rewards:
+            exit_health["character"] = rewards[character["id"]]["character"]
         cursor = db.execute(
             "UPDATE combat_fights SET status='aborted' WHERE id=%s "
             "AND status IN ('placement','active','aborted')",
@@ -312,5 +332,9 @@ def return_to_world(
                     ),
                 ]
             )
+        if not duplicate:
+            from wakfu_server.rift_withdrawal_rewards import return_packets
+
+            packets.extend(return_packets(store, db, runtime.fight, saved))
     runtime.abandon_returned = True
     return dict(character=saved, packets=packets, applied=not duplicate)

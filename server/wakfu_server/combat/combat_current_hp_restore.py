@@ -1,4 +1,5 @@
 """Source-proven eXO196 calculation and additional data, without a runner route."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_effects import _integer
 from .combat_parameters import parameter_value
 from .combat_resource_loss import stochastic_native_round
@@ -295,7 +296,7 @@ class NativeCurrentHPRestoreHandler:
 
         payload = payload_for(runner.value)
         if context.retained:
-            self.fight.owned_stat_effects[runner.uid] = dict(
+            self.fight.owned_stat_effects[runner.uid] = OwnedStateSourceRow(
                 uid=runner.uid,
                 target_id=target.id,
                 caster_id=invocation.caster_id,

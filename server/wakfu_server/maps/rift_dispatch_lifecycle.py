@@ -188,7 +188,7 @@ def replenish_actor_ids(db, fight):
     return fresh
 
 
-def next_roster(fight, pending):
+def next_roster(fight, pending, *, references=None):
     """Pure accepted-action provider using a caller-reserved actor-ID pool.
 
     Frozen catalog/policy/seed and unused identities live in the checkpoint.
@@ -200,7 +200,11 @@ def next_roster(fight, pending):
 
     state = fight.rift_wave_state
     wave = pending["completed_wave"] + 1
-    refs = select_wave(state["catalog"], state["policy"], state["seed"], wave)
+    refs = (
+        select_wave(state["catalog"], state["policy"], state["seed"], wave)
+        if references is None
+        else references
+    )
     pool = state.get("actor_id_pool", [])
     if not isinstance(pool, list) or len(pool) < len(refs):
         raise ValueError("Rift actor ID reservation requires replenishment")
@@ -213,12 +217,10 @@ def next_roster(fight, pending):
     from wakfu_server.combat_encounter_roles import assigned_roles
 
     roles = assigned_roles(fight)
+    from wakfu_server.combat_global_pv_read_view import in_play_actors
+
     players = sorted(
-        (
-            a
-            for a in fight.actors.values()
-            if a.team == roles.player_team and fight._in_play(a)
-        ),
+        (a for a in in_play_actors(fight) if a.team == roles.player_team),
         key=lambda a: a.id,
     )
     if not players or fight.edges is None:

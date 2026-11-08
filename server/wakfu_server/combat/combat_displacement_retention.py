@@ -1,4 +1,5 @@
 """Owned eXK/eXJ retained runners; removal never reverses their movement."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_stat_handler import StatExecutionContext
 from .combat_stat_effects import owned_effect_payload, owned_effect_delivery
 from .combat_effects import _varint
@@ -55,7 +56,7 @@ def retain_displacement(
         payload += _varint(field << 3 | 2) + _varint(len(data)) + data
     if uid in handler.fight.owned_stat_effects:
         raise ValueError("Duplicate retained displacement UID")
-    handler.fight.owned_stat_effects[uid] = dict(
+    handler.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
         uid=uid,
         effect_class=effect["effect_class"],
         family="eXD",

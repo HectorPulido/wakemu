@@ -6,6 +6,7 @@ before admitting another command. No database or network work runs in previews.
 """
 
 from wakfu_server.combat_encounter_roles import assigned_roles
+from wakfu_server.combat_global_pv_read_view import in_play_actors
 
 
 def _state(fight):
@@ -40,7 +41,9 @@ def defer_wave_victory(fight, alive):
         for actor in fight.actors.values()
         if actor.team == assigned_roles(fight).npc_team
     ]
-    if not enemies or any(fight._in_play(fight.actors[uid]) for uid in enemies):
+    if not enemies or any(
+        actor.team == assigned_roles(fight).npc_team for actor in in_play_actors(fight)
+    ):
         raise ValueError("Rift wave is not cleared")
     # Initial identities and later wave identities remain registered for native
     # corpse/effect references. Only this wave belongs in its durable receipt.
@@ -107,16 +110,43 @@ def acknowledge_wave(fight, actor_ids, creation_packets, *, species_refs):
             )
         ):
             raise ValueError("Missing native rift NPC creation authority")
-        deliveries[identity] = [
-            dict(opcode=packet[0], payload_hex=packet[1].hex())
+        if (type(actor_packets) is tuple or type(actor_packets) is list) and all(
+            (type(packet) is tuple or type(packet) is list)
+            and len(packet) == 2
+            and type(packet[0]) is int
+            and type(packet[1]) is bytes
             for packet in actor_packets
-        ]
+        ):
+            delivery = tuple((packet[0], packet[1]) for packet in actor_packets)
+            # Fresh native bytes have no mutable aliases. Validate the same
+            # protocol identities before retaining the immutable birth facts.
+            deliveries[identity] = _validated_creation_delivery(
+                fight, identity, delivery
+            )
+        else:
+            # Historical/custom producers keep their original hex conversion.
+            deliveries[identity] = [
+                dict(opcode=packet[0], payload_hex=packet[1].hex())
+                for packet in actor_packets
+            ]
     receipts = state.setdefault("staged_receipts", [])
     if not isinstance(receipts, list):
         raise ValueError("Invalid staged rift receipts")
     existing = getattr(fight, "native_rift_creation_deliveries", {})
     if set(existing) & set(deliveries):
         raise ValueError("Rift actor identity was reused")
+    # Index only canonical receipt storage. Legacy/custom collections retain
+    # the existing replay path; no historical receipts are reconstructed here.
+    locations = None
+    if type(receipts) is list:
+        locations = getattr(fight, "native_rift_birth_locations", None)
+        if locations is None:
+            locations = {}
+        elif type(locations) is not dict:
+            raise ValueError("Invalid rift birth locations")
+        if any(identity in locations for identity in identities):
+            raise ValueError("Rift actor birth location was reused")
+        receipt_index = len(receipts)
     receipts.append(
         dict(
             state["pending_wave"],
@@ -124,6 +154,10 @@ def acknowledge_wave(fight, actor_ids, creation_packets, *, species_refs):
             next_species_refs=references,
         )
     )
+    if locations is not None:
+        for actor_offset, identity in enumerate(identities):
+            locations[identity] = (receipt_index, actor_offset)
+        fight.native_rift_birth_locations = locations
     state["wave"] += 1
     state["current_actor_ids"] = identities
     state["wave_actor_ids"] = identities
@@ -138,7 +172,7 @@ def finish_survival(fight):
     state = _state(fight)
     if state is None or fight.native_timeline_round <= state["turn_budget"]:
         return False
-    alive = {a.team for a in fight.actors.values() if fight._in_play(a)}
+    alive = {a.team for a in in_play_actors(fight)}
     fight.phase = "finished"
     roles = assigned_roles(fight)
     fight.winner = (
@@ -171,26 +205,47 @@ def finish_defeat(fight, alive):
     return True
 
 
-def creation_replay(fight, *, world_only=False):
-    """Replay stored births before a snapshot, without changing server state.
+def _frozen_creation_delivery(value):
+    return (
+        type(value) is tuple
+        and len(value) == 2
+        and all(
+            type(row) is tuple
+            and len(row) == 2
+            and type(row[0]) is int
+            and row[0] == opcode
+            and type(row[1]) is bytes
+            for row, opcode in zip(value, (12608, 13091))
+        )
+    )
 
-    A complete fight bootstrap already admits its participants. For that path
-    use world_only=True BEFORE bootstrap: ordinary NPC avatars must exist, but
-    replaying 13091 afterward would admit them twice. Incremental peers missing
-    the roster consume the complete ordered pair followed by current stats.
-    """
+
+def creation_deliveries_snapshot(value):
+    """Keep the historical full-evidence shape at the serialization boundary."""
+    if type(value) is not dict:
+        return value
+    return {
+        identity: (
+            [
+                dict(opcode=opcode, payload_hex=payload.hex())
+                for opcode, payload in deliveries
+            ]
+            if _frozen_creation_delivery(deliveries)
+            else deliveries
+        )
+        for identity, deliveries in value.items()
+    }
+
+
+def _validated_creation_delivery(fight, identity, deliveries):
     import struct
 
-    records = getattr(fight, "native_rift_creation_deliveries", {})
-    if not isinstance(records, dict):
-        raise ValueError("Invalid rift creation replay ledger")
-    from wakfu_server.combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
-
-    hidden = hidden_snapshot_actor_ids(fight)
-    packets = []
-    for identity, deliveries in records.items():
-        if type(identity) is not int or identity not in fight.actors:
-            raise ValueError("Rift creation replay actor is missing")
+    if type(identity) is not int or identity not in fight.actors:
+        raise ValueError("Rift creation replay actor is missing")
+    frozen = _frozen_creation_delivery(deliveries)
+    if frozen:
+        restored = deliveries
+    else:
         if not isinstance(deliveries, list) or len(deliveries) != 2:
             raise ValueError("Missing exact rift world and admission deliveries")
         restored = []
@@ -202,16 +257,44 @@ def creation_replay(fight, *, world_only=False):
             except (KeyError, TypeError, ValueError) as error:
                 raise ValueError("Invalid rift creation replay payload") from error
             restored.append((opcode, payload))
-        world = restored[0][1]
-        admission = restored[1][1]
-        if (
-            len(world) < 11
-            or world[:3] != b"\x00\x01\x01"
-            or struct.unpack_from(">q", world, 3)[0] != identity
-            or len(admission) < 12
-            or struct.unpack_from(">iq", admission)[0:2] != (fight.id, identity)
-        ):
-            raise ValueError("Rift replay delivery belongs to another actor or fight")
+    world = restored[0][1]
+    admission = restored[1][1]
+    if (
+        len(world) < 11
+        or world[:3] != b"\x00\x01\x01"
+        or struct.unpack_from(">q", world, 3)[0] != identity
+        or len(admission) < 12
+        or struct.unpack_from(">iq", admission)[0:2] != (fight.id, identity)
+    ):
+        raise ValueError("Rift replay delivery belongs to another actor or fight")
+    return tuple(restored)
+
+
+def creation_delivery(fight, identity):
+    """Validate one stored birth pair without scanning visibility or history."""
+    records = getattr(fight, "native_rift_creation_deliveries", {})
+    if not isinstance(records, dict):
+        raise ValueError("Invalid rift creation replay ledger")
+    return _validated_creation_delivery(fight, identity, records.get(identity))
+
+
+def creation_replay(fight, *, world_only=False):
+    """Replay stored births before a snapshot, without changing server state.
+
+    A complete fight bootstrap already admits its participants. For that path
+    use world_only=True BEFORE bootstrap: ordinary NPC avatars must exist, but
+    replaying 13091 afterward would admit them twice. Incremental peers missing
+    the roster consume the complete ordered pair followed by current stats.
+    """
+    records = getattr(fight, "native_rift_creation_deliveries", {})
+    if not isinstance(records, dict):
+        raise ValueError("Invalid rift creation replay ledger")
+    from wakfu_server.combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    hidden = hidden_snapshot_actor_ids(fight)
+    packets = []
+    for identity, deliveries in records.items():
+        restored = _validated_creation_delivery(fight, identity, deliveries)
         if identity not in hidden:
             packets.extend(restored[:1] if world_only else restored)
     return tuple(packets)

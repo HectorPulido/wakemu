@@ -441,6 +441,12 @@ class CombatSessionAdapter:
             ),
             previous_native_action_id=previous_native_action_id,
         )
+        if candidate_runtime is not None:
+            from .combat_retained_gc_authority import certify_ready_runtime
+
+            certify_ready_runtime(
+                self, candidate_runtime, stats_serializer, expiration_factory
+            )
         if withdrawn:
             from copy import deepcopy
 

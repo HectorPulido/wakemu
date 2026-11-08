@@ -7,6 +7,7 @@ AdditionalDatas31/32 store booleans;10 stores effective maximum delta.
 Raw/effective maxima and percentages follow fff.aYU with Java int overflow
 and division truncation; raw PA minima must be explicit, never inferred.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from wakfu_server import native_catalog as protocol_catalog
 from .combat_parameters import parameter_value
 from .combat_actor_snapshot import native_actor_catalog
@@ -428,7 +429,7 @@ class NativeMaximumResourceHandler:
         if runner is not None:
             runner.set_applied(actual)
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,
@@ -868,7 +869,7 @@ class NativeMaximumReductionHandler(NativeMaximumResourceHandler):
                 )
                 additional = _integer(34, int(restore)) + _integer(35, int(reduce))
                 payload += b"\x42" + _varint(len(additional)) + additional
-                self.fight.owned_stat_effects[uid] = dict(
+                self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                     uid=uid,
                     target_id=invocation.target_id,
                     caster_id=invocation.caster_id,
@@ -965,7 +966,7 @@ class NativeMaximumReductionHandler(NativeMaximumResourceHandler):
             _write(actor, stat, after, new_raw, new_maximum)
             notify_resource_pa(self.fight, actor, stat, before_current=after_maximum)
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,
@@ -1208,7 +1209,7 @@ class NativePercentageHPHandler:
             if not self.fight._resolution_depth:
                 self.fight._settle_deaths()
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,

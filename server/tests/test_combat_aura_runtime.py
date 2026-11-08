@@ -25,6 +25,13 @@ class AuraRuntimeTests(unittest.TestCase):
     def test_original338_creation_then316_removes_exact_retained_aura(self):
         f = fixtures.NativeDisplacementTests()
         f.setUp()
+        # Ordinary source authority requires an explicit native map identity.
+        for source in (
+            *f.authority.characters.values(),
+            *f.authority.monsters.values(),
+        ):
+            source["map_id"] = 1134
+            source["instance_id"] = 1134
         authority = RegisteredSummonAuthority(f.authority)
         # Native class profile3791 has an original empty cle INITIALSTATES list.
         # Its common builder installs actual NPC PA, controller and summon flags.

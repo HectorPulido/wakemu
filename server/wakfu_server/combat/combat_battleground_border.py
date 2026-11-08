@@ -155,7 +155,9 @@ def install_battleground_border(fight, arena, *, reference, identity):
     areas = fight.native_effect_areas
     if identity in areas:
         raise ValueError("Battleground border already registered")
-    row = dict(
+    from .combat_area_membership import OwnedAreaRow
+
+    row = OwnedAreaRow(
         uid=identity,
         reference=reference,
         level=0,

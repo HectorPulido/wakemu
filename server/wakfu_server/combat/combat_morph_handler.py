@@ -1,4 +1,5 @@
 """Native eWG933 temporary spellbook application and current-book removal."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_parameters import parameter_value
 from .combat_stat_handler import StatExecutionContext
@@ -140,7 +141,7 @@ class NativeMorphHandler:
         additional = _integer(14, int(own))  # Original il.en -> ij.mk field14.
         payload += b"\x42" + _varint(len(additional)) + additional
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 family="eWG",
                 effect_class=933,

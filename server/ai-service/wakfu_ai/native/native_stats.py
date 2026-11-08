@@ -32,6 +32,21 @@ class NativeStats:
 
         return current_monster_sources(fight, self.monsters, map_id=self.map_id)
 
+    def monster_source(self, fight, actor_id):
+        if (
+            type(self) is not _GC_STATS_TYPE
+            or type(self).monster_sources is not _GC_STATS_METHODS["monster_sources"]
+            or "monster_sources" in vars(self)
+        ):
+            return self.monster_sources(fight).get(actor_id)
+        from wakfu_server.combat_ordinary_reinforcement_sources import (
+            current_monster_source,
+        )
+
+        return current_monster_source(
+            fight, self.monsters, actor_id, map_id=self.map_id
+        )
+
     def __call__(self, actor, fight=None):
         from wakfu_server.combat_actor import (
             actual_actor_stats,
@@ -73,8 +88,10 @@ class NativeStats:
         source = (
             self.characters.get(actor.id)
             if actor.controlled
-            else (self.monsters if fight is None else self.monster_sources(fight)).get(
-                actor.id
+            else (
+                self.monsters.get(actor.id)
+                if fight is None
+                else self.monster_source(fight, actor.id)
             )
         )
         if source is None:
@@ -105,3 +122,16 @@ class NativeStats:
         if self.map_id is None:
             raise ValueError("Registered summon stats require owned encounter map")
         return registered_summon_stats(actor, fight, self.map_id)
+
+
+_GC_STATS_TYPE = NativeStats
+_GC_STATS_METHODS = {
+    name: getattr(NativeStats, name)
+    for name in (
+        "__call__",
+        "for_fight",
+        "monster_sources",
+        "monster_source",
+        "summon_stats",
+    )
+}

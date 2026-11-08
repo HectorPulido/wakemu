@@ -1,4 +1,5 @@
 """eXf667: literal native frN BitSet start/end suppression and retained removal."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_effects import _integer, _varint
 
 
@@ -147,7 +148,7 @@ class NativeTurnSuppressionHandler:
         if ctx.retained:
             if actor is None:
                 raise ValueError("Missing retained native eXf manager")
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 effect_class=667,
                 family="eXf",

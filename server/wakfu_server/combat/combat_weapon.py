@@ -234,8 +234,21 @@ def prepare_server_weapon(
         and not line_of_sight(actor.position, cell, fight)
     ):
         raise ValueError("Weapon target has no verified native line of sight")
-    source, preview = private_entry_preview(
-        fight, snapshot=source_snapshot, clone=deepcopy
+    # The old source graph preserved this value across AP/MP notifications.
+    # An owned in-place preview must retain the same scalar payment input.
+    from .combat_owned_native_spell_entry import owned_entry_preview
+
+    owned = owned_entry_preview(
+        fight,
+        producer=_OWNED_PREPARE_SERVER_WEAPON,
+        factory=factory,
+        action_id=action_id,
+    )
+    source_wp = stats[4] if owned is not None else None
+    source, preview = (
+        owned
+        if owned is not None
+        else private_entry_preview(fight, snapshot=source_snapshot, clone=deepcopy)
     )
     caster = preview.actors[actor.id]
     start = len(preview.events)
@@ -264,7 +277,13 @@ def prepare_server_weapon(
 
         notify_resource_pa(preview, caster, 2, before_current=before_ap)
         caster.mp -= costs["mp"]
-    caster.effect_stats.update({2: caster.ap, 3: caster.mp, 4: stats[4] - costs["wp"]})
+    caster.effect_stats.update(
+        {
+            2: caster.ap,
+            3: caster.mp,
+            4: (source_wp if owned is not None else stats[4]) - costs["wp"],
+        }
+    )
     from .combat_weapon_events import POLICY, weapon_event_scope
 
     plan["native_weapon_payment"] = dict(
@@ -310,3 +329,6 @@ def prepare_server_weapon(
         source,
         action_id,
     )
+
+
+_OWNED_PREPARE_SERVER_WEAPON = prepare_server_weapon

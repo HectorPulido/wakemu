@@ -465,7 +465,12 @@ def initialize_transaction(fight, actor_id, preparation, runtime_factory, *, own
                 raise ValueError(
                     "Missing live operation bindings for generic equipment"
                 )
-            if not isinstance(handlers, dict):
+            from .combat_versioned_handlers import NativeVersionedHandlers
+
+            if (
+                not isinstance(handlers, dict)
+                and type(handlers) is not NativeVersionedHandlers
+            ):
                 raise ValueError("Missing live handler table for generic equipment")
             for family, route in routes.routes.items():
                 if route.inline:

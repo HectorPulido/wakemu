@@ -135,9 +135,9 @@ def native_state_timeline(fight, clock_actor_id):
         raise ValueError("Inconsistent native current actor index")
     if clock_actor_id not in order and clock_actor_id not in excluded:
         # Native SU.eA uses Tb.biq().indexOf(clock), whose absent result is -1.
-        # An actual reversible OFF_PLAY actor retains its PV/Qf after leaving
-        # the active timeline; it can still own a timer. Numerical HP0 alone
-        # does not attest that missing-clock case.
+        # Registered OFF_PLAY and certified ordinary OUT_OF_PLAY actors can
+        # still own timers after leaving the timeline. Numerical HP0 alone
+        # does not attest either native lifecycle transition.
         from .combat_global_pv_collections import (
             global_fighter_registered,
             global_fighter_guards,
@@ -153,7 +153,16 @@ def native_state_timeline(fight, clock_actor_id):
             == dict(baF=False, baG=True, baK=False)
             and registered_ordinary_death(fight, clock_actor) is True
         )
-        if not registered_off_play:
+        registered_retired = False
+        if not registered_off_play and clock_actor is not None:
+            from .combat_ordinary_qi_retirement import retired_ordinary_qi_actor
+
+            registered_retired = retired_ordinary_qi_actor(fight, clock_actor_id)
+            if not registered_retired:
+                from .combat_summon_retirement import retired_summon_actor
+
+                registered_retired = retired_summon_actor(fight, clock_actor_id)
+        if not registered_off_play and not registered_retired:
             raise ValueError("Missing state clock actor")
     # SU.bhN counts cycles. A repeated activation increments turn_count but
     # must not advance retained timers, including after the base is restored.
@@ -172,6 +181,9 @@ def native_state_timeline(fight, clock_actor_id):
 class NativeEffectTimingProvider:
     def __init__(self, catalog):
         self.catalog = catalog
+        from .combat_published_row_cache import PublishedJsonRowCache
+
+        self._published_rows = PublishedJsonRowCache()
 
     def state(self, preview, plan, effect, invocation):
         count = effect["parameter_count"]
@@ -206,7 +218,10 @@ class NativeEffectTimingProvider:
         """
         if type(critical) is not bool:
             raise ValueError("Explicit native direct applicator critical flag required")
-        definition = self.catalog["states"][str(reference)]
+        reference_key = str(reference)
+        definition, cached_state = self._published_rows.row(
+            self.catalog, "states", reference_key
+        )
         from .combat_state_managers import state_manager
 
         target = state_manager(preview, invocation.target_id)
@@ -231,7 +246,14 @@ class NativeEffectTimingProvider:
         # A rejected application produces no carrier; use the requested level only
         # to validate its definition. The handler repeats this pure decision.
         level = application.level if application.accepted else requested_level
-        profile = state_profile(self.catalog, reference, level)
+        profile_catalog = (
+            self._published_rows.catalog_with_published_row(
+                self.catalog, "states", reference_key
+            )
+            if cached_state
+            else self.catalog
+        )
+        profile = state_profile(profile_catalog, reference, level)
         if profile["realtime_duration"] > 0:
             from .combat_consumable_handoff import source_binding
             from .combat_external_retained_state import (

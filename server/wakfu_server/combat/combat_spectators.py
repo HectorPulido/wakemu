@@ -368,6 +368,18 @@ class SpectatorRegistry:
             fight.observers[identity] = observer
             self.by_session[identity] = fight.fight_id
 
+    def has_subscribers(self, fight_id):
+        """Existing viewers and deferred entrants need ongoing snapshot work."""
+        with self.lock:
+            fight = self.fights.get(fight_id)
+            return bool(
+                (fight is not None and fight.observers)
+                or any(
+                    pending_id == fight_id
+                    for _, pending_id in self.pending_entries.values()
+                )
+            )
+
     def invalidate_snapshot(self, fight_id):
         """Fence new entrants without detaching initialized event subscribers."""
         with self.lock:

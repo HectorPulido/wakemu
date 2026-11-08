@@ -58,6 +58,13 @@ def award(
     earned_rift = db is not None and is_earned_rift_recipient(
         db, fight, account_id, generation, character_id
     )
+    from wakfu_server.combat_reward_ownership import rift_withdrawal_result
+
+    withdrawing = (
+        db is not None
+        and rift_withdrawal_result(db, fight, account_id, generation, character_id)
+        is not None
+    )
     actor = fight.actors.get(character_id)
     if (
         fight.phase != "finished"
@@ -89,7 +96,12 @@ def award(
             or participant["fight_kind"] != "pve"
             or participant["team"] != actor.team
             or (participant["team"] != fight.winner and not earned_rift)
-            or participant["status"] != "finished"
+            or (
+                participant["status"] != "finished"
+                and not (
+                    withdrawing and participant["status"] in ("placement", "active")
+                )
+            )
             or (_durable_member and participant["session_generation"] != generation)
         ):
             raise ValueError("Missing finished owned durable fight participant")
@@ -135,7 +147,11 @@ def award(
         if level != character["level"]:
             if _durable_member:
                 _initialize_health_for_durable_member(
-                    store, db, account_id, character_id
+                    store,
+                    db,
+                    account_id,
+                    character_id,
+                    preserve_dead_regeneration=withdrawing,
                 )
             else:
                 from . import health_store
@@ -200,7 +216,9 @@ def award_shared_member(
     )
 
 
-def _initialize_health_for_durable_member(store, db, account_id, character_id):
+def _initialize_health_for_durable_member(
+    store, db, account_id, character_id, *, preserve_dead_regeneration=False
+):
     """Reconfigure level-derived HP without requiring an offline session lease."""
     from wakfu_server.characters import health_policy, health_store
     from wakfu_server.equipment_stats import effective_character
@@ -208,6 +226,11 @@ def _initialize_health_for_durable_member(store, db, account_id, character_id):
     character = store.character(account_id, character_id, db)
     maximum = effective_character(character)["max_hp"]
     hp = health_policy.reconfigure(db, character, maximum)
+    if preserve_dead_regeneration and character["health_dead"]:
+        # Surrender already persisted the zero-HP abort baseline in this TX.
+        # Level-up changes maximum HP, not death or damage; preserve its
+        # timestamp so the authenticated return can certify that same exit.
+        return
     now = health_store.timestamp(int(store.clock() * 1000))
     db.execute(
         "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) "

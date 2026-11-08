@@ -26,7 +26,9 @@ def adopt_fight(destination, candidate):
         actors[uid] = actor
     destination.__dict__.clear()
     destination.__dict__.update(candidate.__dict__)
-    destination.actors = actors
+    from .combat_retained_collections import replace_collection
+
+    replace_collection(destination, "actors", actors)
     if pointer_binding is not None:
         pointer_binding.publish()
     for stats in bindings:
@@ -49,7 +51,9 @@ def atomic_area_turn(operation):
             runtime.turn_start_provider is None and runtime.turn_end_provider is None
         ) or getattr(runtime, "_area_atomic_depth", False):
             return operation(runtime, *args, **kwargs)
-        candidate = deepcopy(runtime)
+        from .combat_preview_copy import runtime_scalar_actor_memo
+
+        candidate = deepcopy(runtime, runtime_scalar_actor_memo(runtime))
         candidate._area_atomic_depth = True
         result = operation(candidate, *args, **kwargs)
         adopt_runtime(runtime, candidate)

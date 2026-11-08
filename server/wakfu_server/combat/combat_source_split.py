@@ -1,6 +1,7 @@
 """Native eZh401 splits the actual live source Qe, never a synthetic hit."""
 from dataclasses import dataclass, replace
 from copy import deepcopy
+from weakref import ReferenceType, ref
 from wakfu_server.combat_parameters import parameter_value
 from wakfu_server.combat_trigger_value_modifier import NativeRunnerAmount
 from wakfu_server.combat_runner_target import NativeRunnerTarget, bind_runner_target
@@ -100,6 +101,45 @@ class NativeCalculatedDamageCloneAuthority:
         self.context, self.interpreted = deepcopy(context), deepcopy(interpreted)
         self.runner, self.modifier = runner, modifier
 
+    @property
+    def runner(self):
+        if "_runner_owner" in self.__dict__:
+            return self._runner_owner
+        reference = self._runner_ref
+        if type(reference) is not ReferenceType:
+            raise ValueError("Unknown calculated source runner reference")
+        runner = reference()
+        if runner is None:
+            raise ReferenceError("Calculated source runner has expired")
+        return runner
+
+    @runner.setter
+    def runner(self, runner):
+        # A standalone authority owns its source. Only the native binding below
+        # makes this a backlink from an authority already owned by that source.
+        self._runner_owner = runner
+        self.__dict__.pop("_runner_ref", None)
+
+    def _attach_runner(self, runner):
+        self._runner_ref = ref(runner)
+        self.__dict__.pop("_runner_owner", None)
+
+    def __deepcopy__(self, memo):
+        clone = object.__new__(type(self))
+        memo[id(self)] = clone
+        runner = self.runner
+        standalone = id(runner) not in memo
+        copied_runner = deepcopy(runner, memo)
+        for name, value in self.__dict__.items():
+            if name not in ("_runner_ref", "_runner_owner"):
+                setattr(clone, name, deepcopy(value, memo))
+        if standalone:
+            # Preserve a caller-owned authority's source when copied alone.
+            clone.runner = copied_runner
+        else:
+            clone._attach_runner(copied_runner)
+        return clone
+
     def prepare(self, *, caster_id, target_id, amount):
         handler = self.handler
         runner = self.runner
@@ -159,9 +199,11 @@ def bind_calculated_damage_clone(
         or interpreted.get("native_no_resources")
     ):
         raise ValueError("Unknown actual calculated eXt source clone contract")
-    runner.native_calculated_clone = NativeCalculatedDamageCloneAuthority(
+    authority = NativeCalculatedDamageCloneAuthority(
         handler, effect, invocation, context, interpreted, runner, modifier
     )
+    authority._attach_runner(runner)
+    runner.native_calculated_clone = authority
 
 
 def split_actual_source(fight, invocation, ratio, cap, *, caster_code):

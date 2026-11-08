@@ -99,8 +99,12 @@ def complete_activation(
     for record in changes:
         uid = record["uid"]
         # Actual carrier PL/UID bytes, not a guessed applicator reference.
+        from .combat_retained_collections import TrackedRow
+
+        retained = runtime.fight.native_retained_records.get(uid)
+        # This receipt is an historical payload, not a live registry owner.
         record["retained_record"] = deepcopy(
-            runtime.fight.native_retained_records.get(uid)
+            dict(retained) if type(retained) is TrackedRow else retained
         )
         record["wire_payload"] = runtime.fight.state_wire_payloads.get(uid)
     receipt = dict(

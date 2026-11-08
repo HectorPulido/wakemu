@@ -46,11 +46,42 @@ def state_profile(catalog, reference, requested_level):
         protected=definition["protected"],
         realtime_duration=realtime,
         skip_turn_timer=definition["skip_turn_timer"],
-        effects=[
-            root
-            for root in definition["effect_ids"]
-            if catalog["effects"][str(root)]["minimum_level"]
+        effects=_state_effects(catalog, definition["effect_ids"], level),
+    )
+
+
+def _state_effects(catalog, roots, level):
+    from .combat_published_catalogs import (
+        PublishedStaticMapping,
+        static_catalog_descriptor,
+        static_row_scalar,
+    )
+
+    effects = catalog.get("effects") if type(catalog) is dict else None
+    sealed = (
+        type(level) is int
+        and type(effects) is PublishedStaticMapping
+        and static_catalog_descriptor(effects) is not None
+        and effects.representation == "native_json"
+    )
+    result = []
+    for root in roots:
+        if sealed and type(root) is int:
+            key = str(root)
+            minimum = static_row_scalar(effects, key, "minimum_level")
+            if type(minimum) is int:
+                if minimum > level:
+                    continue
+                maximum = static_row_scalar(effects, key, "maximum_level")
+                if type(maximum) is int:
+                    if level <= maximum:
+                        result.append(root)
+                    continue
+            # Missing/non-integer fields retain the native lookup/error contract.
+        if (
+            catalog["effects"][str(root)]["minimum_level"]
             <= level
             <= catalog["effects"][str(root)]["maximum_level"]
-        ],
-    )
+        ):
+            result.append(root)
+    return result

@@ -10,6 +10,8 @@ from ..native.native_stats import NativeStats
 
 def _oracle_boundary(callback, boundary, runtime, provider):
     """Accept the SDK's committed live boundary with its owned source data."""
+    from ..native.native_oracle import native_boundary_fight_id
+
     owner = getattr(callback, "__self__", None)
     kind = type(owner)
     module = sys.modules.get(kind.__module__)
@@ -23,8 +25,7 @@ def _oracle_boundary(callback, boundary, runtime, provider):
         or not kind.__module__.endswith(".native.native_oracle")
         or getattr(module, "NativeOracle", None) is not kind
         or getattr(callback, "__func__", None) is not vars(kind).get(expected)
-        or getattr(getattr(owner, "runtime", None), "fight", None) is None
-        or owner.runtime.fight.id != runtime.fight.id
+        or native_boundary_fight_id(owner) != runtime.fight.id
         or set(owner.characters) != set(provider.characters)
         or owner.decks != provider.decks
         or owner.viewer_id not in provider.characters
@@ -127,6 +128,13 @@ def bind_private_sources(runtime, session):
     """Bind only a private candidate while its shared authority is locked."""
     from wakfu_server.combat_expiration_provider import OwnedExpirationFactory
 
+    from ..native.native_callback_authority import (
+        capture_native_callbacks,
+        renew_native_callbacks,
+    )
+
+    provenance = capture_native_callbacks(runtime)
+
     provider = getattr(runtime, "expiration_runtime_factory", None)
     if type(provider) is not OwnedExpirationFactory:
         raise ValueError("Background native turn requires owned lifecycle providers")
@@ -184,6 +192,9 @@ def bind_private_sources(runtime, session):
                 flags=original.flags,
                 outcome_features=original.outcome_features_provider,
             )
+            from ..native.native_oracle import native_boundary_owner
+
+            oracle = native_boundary_owner(oracle, runtime)
             private_oracles[id(original)] = oracle
         setattr(
             runtime,
@@ -197,3 +208,4 @@ def bind_private_sources(runtime, session):
         )
     runtime.stats_serializer = serializer
     runtime.runtime_stats_serializer = serializer
+    renew_native_callbacks(runtime, provenance)

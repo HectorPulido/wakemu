@@ -8,6 +8,29 @@ from .combat_global_pv_collections import _collections
 from .combat_trove_long_map import NativeTroveLongMap
 
 
+def in_play_actors(fight):
+    """Read one stable population without revalidating its map per actor.
+
+    Return a materialized population so the view never survives a callback or
+    mutation. Custom participation hooks retain their original semantics.
+    """
+    from .combat_state import Fight
+
+    if (
+        hasattr(fight, "native_global_pv_collections")
+        and type(fight) is Fight
+        and "_in_play" not in fight.__dict__
+        and getattr(fight._in_play, "__func__", None) is Fight._in_play
+    ):
+        view = NativeGlobalPVReadView(fight)
+        return tuple(
+            actor
+            for actor in fight.actors.values()
+            if view.participates(fight, actor.id)
+        )
+    return tuple(actor for actor in fight.actors.values() if fight._in_play(actor))
+
+
 class NativeGlobalPVReadView:
     def __init__(self, fight):
         self.fight = fight

@@ -186,6 +186,7 @@ class CompiledEffects:
             ) != descriptor_for(publication, name):
                 raise ValueError("Published combat state source identity mismatch")
         compiled.effects = collection(rows["effects"])
+        compiled.entry_effects = collection(rows["entry_effects"])
         return compiled
 
     def __init__(self, effects, state_catalog):
@@ -197,6 +198,9 @@ class CompiledEffects:
         self.effects = ImmutableCatalog(
             merge_native_point_areas(_merge_effects(effects, state_catalog))
         )
+        # Entry admission needs exact original membership/order, not a second
+        # copy of the potentially large executable definition records.
+        self.entry_effects = ImmutableCatalog(dict.fromkeys(self.effects, True))
 
     def with_effect_sources(self, effects):
         """Validate source additions while sharing the qualified immutable base.
@@ -240,9 +244,15 @@ class CompiledEffects:
         extended = object.__new__(type(self))
         extended.source_effects = DefinitionOverlay(self.source_effects, dict(effects))
         extended.source_states = self.source_states
+        additional = ImmutableCatalog(merge_native_point_areas(effects))
         extended.effects = DefinitionOverlay(
             self.effects,
-            ImmutableCatalog(merge_native_point_areas(effects)),
+            additional,
+            iteration_source=extended.source_effects,
+        )
+        extended.entry_effects = DefinitionOverlay(
+            self.entry_effects,
+            dict.fromkeys(additional, True),
             iteration_source=extended.source_effects,
         )
         return extended

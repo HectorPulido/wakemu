@@ -379,6 +379,16 @@ class NativeExternalEvent:
 
 @dataclass(frozen=True)
 class NativeCloneAuthority:
+    def __getattribute__(self, name):
+        value = object.__getattribute__(self, name)
+        if name in ("executable", "condition_context"):
+            from .combat_runtime_backrefs import FactoryMethod
+
+            if type(value) is FactoryMethod:
+                owner = value.owner.get()
+                return value.function.__get__(owner, type(owner))
+        return value
+
     executable: object  # (effect, invocation, source) -> bool; eZR.i corpse/context guards
     condition_context: object  # (effect, invocation, source) -> current native criterion context
 
@@ -414,6 +424,16 @@ class NativeTriggerHistory:
 
 
 class NativeEventReplay:
+    @property
+    def dispatcher(self):
+        from .combat_runtime_backrefs import resolved_owner
+
+        return resolved_owner(self._dispatcher_owner)
+
+    @dispatcher.setter
+    def dispatcher(self, value):
+        self._dispatcher_owner = value
+
     def __init__(self, dispatcher, retention):
         self.dispatcher, self.retention = dispatcher, retention
         self.history = NativeTriggerHistory()
@@ -430,6 +450,7 @@ class NativeEventReplay:
         previous = self._read_pass
         if previous is not None:
             previous["view"] = None
+            previous.pop("ordinary_facts", None)
         current = {
             "retention": self.retention,
             "fight": self.retention.fight,
@@ -442,8 +463,10 @@ class NativeEventReplay:
         finally:
             try:
                 current["view"] = None
+                current.pop("ordinary_facts", None)
                 if previous is not None:
                     previous["view"] = None
+                    previous.pop("ordinary_facts", None)
                 self._read_pass = previous
             finally:
                 _READ_PASS_CONTEXTS.reset(token)
@@ -451,9 +474,18 @@ class NativeEventReplay:
     def invalidate_read_pass(self):
         if self._read_pass is not None:
             self._read_pass["view"] = None
+            self._read_pass.pop("ordinary_facts", None)
 
     @contextmanager
     def _callback_read_boundary(self, view=None):
+        from .combat_structural_qf_scope import callback_projection_boundary
+
+        with callback_projection_boundary(self.retention):
+            with self._legacy_callback_read_boundary(view):
+                yield
+
+    @contextmanager
+    def _legacy_callback_read_boundary(self, view=None):
         """Callbacks inherit no same-fight read snapshot, even within one call.
 
         A callback may open a fresh explicit callback-free read pass. Suspend
@@ -504,6 +536,7 @@ class NativeEventReplay:
                     continue
                 relevant.append(scope)
                 scope["view"] = None
+                scope.pop("ordinary_facts", None)
                 if replay._read_pass is scope and id(replay) not in visited:
                     visited.add(id(replay))
                     suspended.append((replay, scope))
@@ -511,30 +544,65 @@ class NativeEventReplay:
             # Also preserve callers that supplied a pre-existing current scope.
             if previous is not None and id(self) not in visited:
                 previous["view"] = None
+                previous.pop("ordinary_facts", None)
                 suspended.append((self, previous))
                 self._read_pass = None
             yield
         finally:
             for scope in relevant:
                 scope["view"] = None
+                scope.pop("ordinary_facts", None)
             for replay, scope in reversed(suspended):
                 scope["view"] = None
+                scope.pop("ordinary_facts", None)
                 replay._read_pass = scope
 
-    def _current_view(self):
+    def _current_view(self, manager_id=None):
+        from .combat_structural_qf_scope import event_frame
+        from .combat_structural_event_view import NativeRetainedEventPopulation
+        from .combat_retained_query import ReplayQueries, replay_queries
+
+        def build():
+            if manager_id is not None:
+                indexed = replay_queries(self.retention, indexed_only=True)
+                if indexed is not None:
+                    return indexed
+            if manager_id is not None and event_frame(self.retention) is not None:
+                return self.retention.event_population()
+            if manager_id is not None:
+                local = replay_queries(self.retention)
+                if local is not None:
+                    return local
+            return self.retention.view()
+
+        def selected(value):
+            if type(value) is ReplayQueries:
+                return (
+                    value.full_view()
+                    if manager_id is None
+                    else value.for_manager(manager_id)
+                )
+            if type(value) is NativeRetainedEventPopulation:
+                if manager_id is None:
+                    return self.retention.view()
+                return value.for_manager(manager_id)
+            return value
+
         current = self._read_pass
         if current is None:
-            return self.retention.view()
+            return selected(build())
         if (
             current["retention"] is not self.retention
             or current["fight"] is not self.retention.fight
         ):
-            # A changed service/preview cannot inherit a previous read scope.
             current["view"] = None
-            return self.retention.view()
+            current.pop("ordinary_facts", None)
+            return selected(build())
         if current["view"] is None:
-            current["view"] = self.retention.view()
-        return current["view"]
+            current["view"] = build()
+            if type(current["view"]) is ReplayQueries:
+                current["view"].enable_read_pass_cache()
+        return selected(current["view"])
 
     def __call__(self, source, *, authority, eligible_uids=None):
         if not isinstance(
@@ -551,7 +619,17 @@ class NativeEventReplay:
             authority.condition_context
         ):
             raise ValueError("Native clone callbacks required")
-        view = self._current_view()
+        from .combat_structural_qf_scope import qualify_replay
+
+        qualify_replay(self.dispatcher, self.retention, authority)
+        view = self._current_view(source.manager_actor_id)
+        from .combat_retained_effects import NativeRetainedEffectView
+
+        entries = (
+            view.manager_entries(source.manager_actor_id)
+            if type(view) is NativeRetainedEffectView
+            else view.entries
+        )
         from wakfu_server.combat_published_catalogs import static_catalog_descriptor
 
         group_metadata = self.retention.metadata["effects"]
@@ -592,7 +670,7 @@ class NativeEventReplay:
             group_metadata,
             (
                 str(row["invocation"]["reference"])
-                for entry in view.entries
+                for entry in entries
                 if (eligible_uids is None or entry.uid in eligible_uids)
                 and entry.manager_id == source.manager_actor_id
                 and (
@@ -610,7 +688,7 @@ class NativeEventReplay:
                 self.dispatcher.effects,
                 (
                     str(entry.generic_effect)
-                    for entry in view.entries
+                    for entry in entries
                     if (eligible_uids is None or entry.uid in eligible_uids)
                     and entry.manager_id == source.manager_actor_id
                     and self.retention.fight.native_owned_group_effects.get(entry.uid)
@@ -655,8 +733,8 @@ class NativeEventReplay:
                     limit = min(128, reader.backend.batch_size)
                     keys, positions, seen = [], [], set()
                     metadata_window_end = index
-                    for following in range(index, len(view.entries)):
-                        candidate = view.entries[following]
+                    for following in range(index, len(entries)):
+                        candidate = entries[following]
                         metadata_window_end = following + 1
                         if (
                             eligible_uids is not None
@@ -713,7 +791,7 @@ class NativeEventReplay:
                     return metadata_window.get(key)
             return effects.get(key)
 
-        for index, entry in enumerate(view.entries):
+        for index, entry in enumerate(entries):
             if eligible_uids is not None and entry.uid not in eligible_uids:
                 continue
             if entry.manager_id != source.manager_actor_id:
@@ -785,7 +863,9 @@ class NativeEventReplay:
         # Native eZX.a removes queued listeners before sorting/activating survivors.
         if remove:
             with self._callback_read_boundary(view):
-                self.retention.removal(view).remove(remove)
+                from .combat_retained_runtime import remove_now
+
+                remove_now(self.retention, view, remove)
                 if applied_scalar_removal:
                     # Concrete scalar handlers reverse and publish their owned
                     # effect; their central records normally prune lazily on the
@@ -1029,8 +1109,13 @@ class NativeEventReplay:
                     if original.state_uid is not None:
                         owner_scope = self.retention.container_scope(original)
                     from .rift_ko_cleanup import cleanup_scope
+                    from .combat_retained_departure_source import (
+                        retained_activation_scope,
+                    )
 
-                    with final_modifier_source(source), owner_scope, cleanup_scope(
+                    with retained_activation_scope(
+                        self.retention.fight, self.dispatcher, invocation
+                    ), final_modifier_source(source), owner_scope, cleanup_scope(
                         self.retention,
                         self.dispatcher,
                         source,
@@ -1209,3 +1294,10 @@ class NativeHealingEventEmitter:
         return tuple(
             self.replay(source, authority=self.authority.clone) for source in sources
         )
+
+
+# Original native consumers of a stored listener invocation.
+_GROUP_HISTORY_METHODS = tuple(
+    (NativeEventReplay, name, getattr(NativeEventReplay, name))
+    for name in ("__init__", "__call__", "__getattribute__")
+)

@@ -1,4 +1,5 @@
 """Native eZc309 reflects the actual triggering Qe cell at its source caster."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_parameters import parameter_value
 from .combat_stat_handler import StatExecutionContext
@@ -165,7 +166,7 @@ class NativeReflectRunnerHandler:
             timing_payload=ctx.timing_payload,
         )
         if ctx.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 family="eZc",
                 effect_class=309,

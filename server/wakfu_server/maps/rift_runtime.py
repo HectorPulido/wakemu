@@ -56,8 +56,13 @@ def enter(db, wave_id, owner_character_id, members, *, seed, authorize):
             (character_id,),
         )
         row = db.execute(
-            "SELECT 1 FROM rift_instances WHERE status IN('entered','running') AND members @> %s::jsonb",
-            (json.dumps([character_id]),),
+            "SELECT 1 FROM rift_instances r WHERE r.status IN('entered','running') "
+            "AND r.members @> %s::jsonb AND NOT EXISTS ("
+            "SELECT 1 FROM combat_pve_withdrawals w JOIN characters c ON c.id=w.character_id "
+            "WHERE w.fight_id=r.fight_id AND w.character_id=%s "
+            "AND w.account_id=c.account_id AND w.returned_at IS NOT NULL AND w.health_returned_at IS NOT NULL "
+            "AND c.instance_id<>r.instance_id)",
+            (json.dumps([character_id]), character_id),
         ).fetchone()
         if row:
             raise ValueError("Character already belongs to an active rift")
@@ -285,8 +290,13 @@ def persist_progress(db, fight):
     run = _run(db, state["instance_id"])
     if run["fight_id"] != fight.id:
         raise ValueError("Rift checkpoint belongs to another fight")
+    persisted_wave = state.get("persisted_wave", 0)
+    if type(persisted_wave) is not int or not 0 <= persisted_wave < run["wave"]:
+        raise ValueError("Invalid committed rift progress watermark")
     results = []
     for staged in state.get("staged_receipts", ()):
+        if staged["completed_wave"] <= persisted_wave:
+            continue
         receipt = record_wave(
             db,
             state["instance_id"],
@@ -347,6 +357,21 @@ def persist_progress(db, fight):
             )
         )
     return tuple(results)
+
+
+def mark_progress_committed(fight, receipts):
+    """Skip durable wave SQL only after the checkpoint transaction committed.
+
+    Birth receipts remain available to native reinforcement source validation.
+    The immutable checkpoint retains the preceding watermark, so recovery can
+    safely replay its last accepted wave through the existing idempotent path.
+    """
+    state = getattr(fight, "rift_wave_state", None)
+    if state is None or not receipts:
+        return
+    state["persisted_wave"] = max(
+        state.get("persisted_wave", 0), *(row["wave"] for row in receipts)
+    )
 
 
 def close_entered(db, instance_id, character_id):

@@ -1,4 +1,5 @@
 """eWt447 property counters, native retained ownership and exact resource writes."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
@@ -144,7 +145,7 @@ class NativeFightPropertyHandler:
         )
         side()
         if ctx.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 effect_class=447,
                 family="eWt",

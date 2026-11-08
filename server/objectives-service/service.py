@@ -337,10 +337,15 @@ def worker():
                 while True:
                     with connect() as db:
                         result = repository.process_batch(db)
+                    # Savepoints do not release transaction advisory/FK locks.
+                    # Each coordinator commits before a different domain starts.
+                    with connect() as db:
                         tick_coordinator(
                             db, "assignment_scheduler_error", assignments.ensure_online
                         )
+                    with connect() as db:
                         tick_coordinator(db, "hunt_scheduler_error", hunts.tick)
+                    with connect() as db:
                         tick_pvp(db)
                     if result["processed"] + result["failed"] >= 100:
                         continue

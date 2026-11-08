@@ -121,6 +121,16 @@ def published_original_output_index(value):
         raise TypeError("Original output proof requires a sealed static mapping")
     if value.representation != "frozen_effect":
         return MappingProxyType({})
+    with _LOCK:
+        cached = value._original_output_index
+        if cached is None:
+            cached = _read_original_output_index(value)
+            object.__setattr__(value, "_original_output_index", cached)
+        return cached
+
+
+def _read_original_output_index(value):
+    """Validate once before retaining only immutable producer identities."""
     rows = value._reader.original_output_index()
     if not isinstance(rows, (tuple, list)):
         raise ValueError("Missing published original output index")
@@ -228,7 +238,7 @@ def _remember(key, value, raw_size):
 class PublishedStaticMapping(Mapping):
     """Original ordered collection; construction never loads all its records."""
 
-    __slots__ = ("_descriptor", "_reader", "_seal")
+    __slots__ = ("_descriptor", "_reader", "_seal", "_original_output_index")
 
     def __init__(self, descriptor, reader, *, _seal=None):
         if _seal is not _SEAL:
@@ -236,6 +246,7 @@ class PublishedStaticMapping(Mapping):
         object.__setattr__(self, "_descriptor", MappingProxyType(dict(descriptor)))
         object.__setattr__(self, "_reader", reader)
         object.__setattr__(self, "_seal", _SEAL)
+        object.__setattr__(self, "_original_output_index", None)
 
     def __setattr__(self, name, value):
         raise TypeError("Published static mapping is immutable")

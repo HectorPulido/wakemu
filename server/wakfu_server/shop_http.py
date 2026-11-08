@@ -481,6 +481,7 @@ def make_server(domain, host="0.0.0.0", port=18083):
                     "status": 404,
                 }
             except (ValueError, TypeError, KeyError) as error:
+                LOG.info("Shop request rejected: %s", str(error))
                 status, result = 400, {
                     "title": "Invalid purchase",
                     "detail": str(error),

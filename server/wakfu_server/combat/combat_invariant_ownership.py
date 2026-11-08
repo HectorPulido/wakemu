@@ -4,6 +4,10 @@ No catalog, QI rebinding, state-manager refresh, callback, clock or deepcopy is
 used. Completeness assertions require the engine's actual tracking flag; legacy
 or absent authority is reported separately from contradictory supplied facts.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
+from .combat_owned_container_facts import OwnedContainerFacts
+from .combat_owned_container_row import OwnedContainerRow
+
 
 PV_SOURCE = "fresh.fdt_saq.Qs_bhs.fbX_rRc.default_Trove"
 LISTENER_SOURCE = "eWq.c_AP.a_eWr_fff.aZk"
@@ -13,6 +17,7 @@ LIMIT = 16384
 
 def check_ownership(fight, state, actors, issue, unknown, checked):
     """Inspect completed-boundary native participation and retained ownership."""
+    from .combat_retained_collections import OwnedMap, OwnedOrder, TrackedRow
     from .combat_state import Actor
     from .combat_state_ledger import StateLedger, RunningState
     from .combat_state_timing import StateTimer
@@ -25,7 +30,14 @@ def check_ownership(fight, state, actors, issue, unknown, checked):
 
     def bounded(values, path):
         nonlocal work
-        if type(values) not in (dict, list, tuple, set, frozenset):
+        if (
+            type(values) not in (dict, list, tuple, set, frozenset)
+            and type(values) is not OwnedMap
+            and type(values) is not OwnedOrder
+            and type(values) is not TrackedRow
+            and type(values) is not OwnedStateSourceRow
+            and type(values) is not OwnedContainerFacts
+        ):
             issue("ownership.population", path, "Unsupported owned population type")
             return False
         work += len(values)
@@ -293,7 +305,9 @@ def check_ownership(fight, state, actors, issue, unknown, checked):
     area_populations = []
     for name in ("native_effect_areas", "native_retired_area_managers"):
         population = state.get(name)
-        if type(population) is not dict or not bounded(population, "fight." + name):
+        if (
+            type(population) is not dict and type(population) is not OwnedMap
+        ) or not bounded(population, "fight." + name):
             unknown(
                 "retained.manager_authority",
                 "fight." + name,
@@ -396,8 +410,8 @@ def check_ownership(fight, state, actors, issue, unknown, checked):
         "native_retained_order"
     )
     if (
-        type(records) is not dict
-        or type(order) is not list
+        (type(records) is not dict and type(records) is not OwnedMap)
+        or (type(order) is not list and type(order) is not OwnedOrder)
         or not bounded(records, "fight.native_retained_records")
         or not bounded(order, "fight.native_retained_order")
     ):
@@ -432,7 +446,9 @@ def check_ownership(fight, state, actors, issue, unknown, checked):
         "state_wire_payloads",
     ):
         population = state.get(name)
-        if type(population) is not dict or not bounded(population, "fight." + name):
+        if (
+            type(population) is not dict and type(population) is not OwnedMap
+        ) or not bounded(population, "fight." + name):
             unknown(
                 "retained.population",
                 "fight." + name,
@@ -445,7 +461,11 @@ def check_ownership(fight, state, actors, issue, unknown, checked):
         if name == "state_wire_payloads":
             continue
         for uid, row in dict.items(population):
-            if type(uid) is not int or type(row) not in (dict, NativeSpatialRecord):
+            if type(uid) is not int or type(row) not in (
+                dict,
+                NativeSpatialRecord,
+                OwnedStateSourceRow,
+            ):
                 issue(
                     "retained.identity",
                     "fight." + name,
@@ -492,9 +512,9 @@ def check_ownership(fight, state, actors, issue, unknown, checked):
             "Carrier payload has no owned runner or ledger entry",
         )
     containers = state.get("native_owned_state_containers")
-    if type(containers) is not dict or not bounded(
-        containers, "fight.native_owned_state_containers"
-    ):
+    if (
+        type(containers) is not dict and type(containers) is not OwnedContainerFacts
+    ) or not bounded(containers, "fight.native_owned_state_containers"):
         unknown(
             "retained.container_authority",
             "fight.native_owned_state_containers",
@@ -502,7 +522,11 @@ def check_ownership(fight, state, actors, issue, unknown, checked):
         )
         containers = {}
     for uid, record in dict.items(records):
-        if type(uid) is not int or type(record) is not dict or record.get("uid") != uid:
+        if (
+            type(uid) is not int
+            or (type(record) is not dict and type(record) is not TrackedRow)
+            or record.get("uid") != uid
+        ):
             issue(
                 "retained.identity",
                 "fight.native_retained_records",
@@ -539,7 +563,11 @@ def check_ownership(fight, state, actors, issue, unknown, checked):
                 "Owned child lost its live or captured state container",
             )
     for uid, row in dict.items(containers):
-        if type(uid) is not int or type(row) is not dict or row.get("uid") != uid:
+        if (
+            type(uid) is not int
+            or (type(row) is not dict and type(row) is not OwnedContainerRow)
+            or row.get("uid") != uid
+        ):
             issue(
                 "retained.container",
                 "fight.native_owned_state_containers",

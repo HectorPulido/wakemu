@@ -58,6 +58,7 @@ def tackle_departure_preview(source_fight, preview, payment):
         yield
         return
     from .combat_movement_payment_events import WakemuMovementPolicy
+    from .combat_owned_movement_step import owns_step_preview
 
     receipt = scope["receipt"]
     actor_id = receipt["actor_id"]
@@ -68,14 +69,17 @@ def tackle_departure_preview(source_fight, preview, payment):
         or not isinstance(payment, WakemuMovementPolicy)
         or payment.source_fight is not source_fight
         or payment.publication
-        or preview is source_fight
+        or (preview is source_fight and not owns_step_preview(preview, payment))
         or preview.id != source_fight.id
         or scope["turn_id"] != source_fight.turn_id
         or preview.turn_id != scope["turn_id"]
         or preview.phase != "active"
         or actor is None
         or preview.current is not actor
-        or actor is source_fight.actors.get(actor_id)
+        or (
+            actor is source_fight.actors.get(actor_id)
+            and not owns_step_preview(preview, payment)
+        )
         or tuple(actor.position) != tuple(receipt["to_cell"])
         or payment.payer_id != actor_id
         or payment.receipt["origin"] != tuple(receipt["from_cell"])

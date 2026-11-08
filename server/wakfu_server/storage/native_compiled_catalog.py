@@ -11,10 +11,15 @@ import json
 import logging
 import os
 from pathlib import Path
+import threading
+import time
 
 from wakfu_server import native_catalog
-from .native_catalog_index import shared_byte_cache, redis_admit
+from .native_catalog_index import BoundedByteCache, shared_byte_cache, redis_admit
 from .native_source_singleflight import NativeSourceFlights
+
+_NATIVE_BYTE_GET = BoundedByteCache.get
+_NATIVE_BYTE_VERIFIED_GET = BoundedByteCache.get_verified_sha256
 
 LOG = logging.getLogger(__name__)
 PUBLICATION_POLICY = "wakemu.compiled-combat-catalog.v1"
@@ -195,6 +200,47 @@ class CompiledCatalogBackend:
         self.redis_max_record_bytes = redis_max_record_bytes
         self.ttl = ttl
         self._flights = NativeSourceFlights()
+        self._redis_lock = threading.Lock()
+        self._redis_retry_at = 0.0
+        self._redis_epoch = 0
+        self._redis_probe = False
+
+    def _redis_operation(self, operation, fallback, *, phase):
+        # Disposable cache failure must not charge every record another timeout.
+        # Healthy calls remain concurrent; only recovery probes are single-flight.
+        with self._redis_lock:
+            now = time.monotonic()
+            if now < self._redis_retry_at or self._redis_probe:
+                return fallback
+            if self._redis_retry_at:
+                self._redis_probe = True
+            epoch = self._redis_epoch
+        try:
+            result = operation()
+        except Exception as error:
+            with self._redis_lock:
+                log_failure = time.monotonic() >= self._redis_retry_at
+                self._redis_epoch += 1
+                self._redis_retry_at = time.monotonic() + 5.0
+                self._redis_probe = False
+            if log_failure:
+                LOG.warning(
+                    "Compiled Redis %s failed; bypassing for 5s: %s",
+                    phase,
+                    type(error).__name__,
+                )
+            return fallback
+        else:
+            with self._redis_lock:
+                # An earlier healthy request cannot cancel a newer failure.
+                if epoch == self._redis_epoch:
+                    self._redis_retry_at = 0.0
+                    self._redis_probe = False
+            return result
+        finally:
+            with self._redis_lock:
+                if epoch == self._redis_epoch:
+                    self._redis_probe = False
 
     @contextmanager
     def connection(self):
@@ -354,14 +400,30 @@ class CompiledCatalogBackend:
         return ordinal, checksum, size
 
     def _cached_bytes(self, descriptor, keys):
-        """Keep the same authoritative checksum checks on the local fast path."""
+        """Reuse native immutable-byte proofs; custom caches validate every read."""
         found, pending = {}, []
         for key in keys:
             authority = self._cached_authority(descriptor, key)
             if authority is not None:
                 ordinal, checksum, size = authority
-                raw = self.cache.get(self._raw_key(descriptor, key, checksum))
-                if raw is not None and len(raw) == size and _sha(raw) == checksum:
+                cache_key = self._raw_key(descriptor, key, checksum)
+                cache = self.cache
+                if (
+                    type(cache) is BoundedByteCache
+                    and BoundedByteCache.get is _NATIVE_BYTE_GET
+                    and BoundedByteCache.get_verified_sha256
+                    is _NATIVE_BYTE_VERIFIED_GET
+                    and "get" not in vars(cache)
+                    and "get_verified_sha256" not in vars(cache)
+                ):
+                    raw = _NATIVE_BYTE_VERIFIED_GET(cache, cache_key, checksum, size)
+                    valid = raw is not None
+                else:
+                    raw = cache.get(cache_key)
+                    valid = (
+                        raw is not None and len(raw) == size and _sha(raw) == checksum
+                    )
+                if valid:
                     found[key] = raw
                     continue
             pending.append(key)
@@ -430,23 +492,24 @@ class CompiledCatalogBackend:
             raise CompiledBatchLimit("Compiled record batch byte limit exceeded")
         ordered = [key for key in pending if key in authority]
         cache_keys = [self._raw_key(descriptor, key, authority[key]) for key in ordered]
-        try:
-            cached = (
-                self.redis_provider().eval(
-                    _BOUNDED_MGET,
-                    len(cache_keys),
-                    *cache_keys,
-                    *(source_sizes[key] for key in ordered),
-                    self.redis_max_record_bytes,
-                )
-                if cache_keys
-                else []
+
+        def read_cached():
+            values = self.redis_provider().eval(
+                _BOUNDED_MGET,
+                len(cache_keys),
+                *cache_keys,
+                *(source_sizes[key] for key in ordered),
+                self.redis_max_record_bytes,
             )
-            if len(cached) != len(ordered):
+            if len(values) != len(ordered):
                 raise ValueError("Compiled Redis batch population differs")
-        except Exception as error:
-            LOG.warning("Compiled Redis read failed: %s", type(error).__name__)
-            cached = [None] * len(ordered)
+            return values
+
+        cached = (
+            self._redis_operation(read_cached, [None] * len(ordered), phase="read")
+            if cache_keys
+            else []
+        )
         missing = []
         for key, cache_key, raw in zip(ordered, cache_keys, cached):
             if (
@@ -492,20 +555,25 @@ class CompiledCatalogBackend:
             if any(key not in found for key in missing):
                 raise ValueError("Published compiled record disappeared")
         if filled:
-            try:
-                pipe = self.redis_provider().pipeline(transaction=False)
-                for key, raw in filled:
-                    redis_admit(
-                        pipe,
-                        key,
-                        raw,
-                        self.ttl,
-                        max_record_bytes=self.redis_max_record_bytes,
-                    )
-                pipe.execute()
-            except Exception as error:
-                LOG.warning("Compiled Redis fill failed: %s", type(error).__name__)
+            from .native_cache_fill_batch import fill_or_defer
+
+            fill_or_defer(self, filled)
         return {key: found[key] for key in keys if key in found}
+
+    def _fill_cached_records(self, filled):
+        def fill_cached():
+            pipe = self.redis_provider().pipeline(transaction=False)
+            for key, raw in filled:
+                redis_admit(
+                    pipe,
+                    key,
+                    raw,
+                    self.ttl,
+                    max_record_bytes=self.redis_max_record_bytes,
+                )
+            pipe.execute()
+
+        self._redis_operation(fill_cached, None, phase="fill")
 
 
 class PublishedCollectionReader:

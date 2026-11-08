@@ -1,4 +1,5 @@
 """eYG320 capture into the actual caster eHP.drI component; no synthetic kills."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from copy import copy
 from wakfu_server.characters.captured_roster import OwnedCapturedRoster
@@ -211,7 +212,7 @@ class NativeCaptureHandler:
             executed=True,
         )
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 family="eYG",
                 effect_class=320,

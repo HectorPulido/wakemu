@@ -8,8 +8,13 @@ import time
 
 
 def serialize_detached(fight, *, runtime):
-    from .fight_checkpoint_store import snapshot
+    from .fight_checkpoint_store import recovery_snapshot, snapshot
 
+    prepared = getattr(fight, "_checkpoint_projection", None)
+    if prepared is not None:
+        return prepared
+    if getattr(fight, "phase", None) == "active":
+        return recovery_snapshot(fight, runtime=runtime)
     return snapshot(fight, runtime=runtime)
 
 
@@ -39,37 +44,183 @@ class PreparedJob:
     sequence: int
 
 
+def _checkpoint_fields(value):
+    """Detach owned metadata as plain payload, never traverse its owner index."""
+    from .combat_retained_collections import OwnedMap, OwnedOrder, TrackedRow
+    from .combat_area_membership import OwnedAreaRow
+
+    memo = {}
+
+    def copy_payload(current):
+        kind = type(current)
+        if (
+            kind is type(None)
+            or kind is bool
+            or kind is int
+            or kind is float
+            or kind is str
+            or kind is bytes
+        ):
+            return current
+        identity = id(current)
+        if identity in memo:
+            return memo[identity]
+        if (
+            kind is dict
+            or kind is OwnedMap
+            or kind is TrackedRow
+            or kind is OwnedAreaRow
+        ):
+            copied = {}
+            memo[identity] = copied
+            for key, item in dict.items(current):
+                copied[copy_payload(key)] = copy_payload(item)
+            return copied
+        if kind is list or kind is OwnedOrder:
+            copied = []
+            memo[identity] = copied
+            copied.extend(copy_payload(item) for item in list.__iter__(current))
+            return copied
+        if kind is tuple:
+            items = [copy_payload(item) for item in current]
+            # A tuple/list cycle can publish this tuple through its children.
+            if identity in memo:
+                return memo[identity]
+            copied = (
+                current
+                if all(old is new for old, new in zip(current, items))
+                else tuple(items)
+            )
+            memo[identity] = copied
+            return copied
+        # Opaque mapping/list subclasses keep their original copy protocol.
+        return deepcopy(current, memo)
+
+    try:
+        return copy_payload(value)
+    finally:
+        # Break the recursive closure cycle so its memo releases copied source
+        # payloads immediately rather than waiting for cyclic garbage cleanup.
+        copy_payload = None
+
+
 def detach(shared):
     """Copy supported gameplay fields under ownership; workers never read live FSMs."""
     with shared.lock:
-        fight = shared.fight
-        fields = deepcopy(
-            {
-                key: value
-                for key, value in fight.__dict__.items()
-                if key not in ("actors", "native_rail_movement_authority")
-            }
-        )
-        fields["actors"] = {
-            identity: SimpleNamespace(**deepcopy(actor.__dict__))
-            for identity, actor in fight.actors.items()
+        return _detach_full_locked(shared)
+
+
+def _detach_full_locked(shared):
+    fight = shared.fight
+    fields = _checkpoint_fields(
+        {
+            key: value
+            for key, value in fight.__dict__.items()
+            if key not in ("actors", "native_rail_movement_authority")
         }
-        frozen = SimpleNamespace(**fields)
-        runtime = None
-        if shared.runtime is not None:
-            runtime = SimpleNamespace(
-                fight=frozen,
+    )
+    fields["actors"] = {
+        identity: SimpleNamespace(**deepcopy(actor.__dict__))
+        for identity, actor in fight.actors.items()
+    }
+    frozen = SimpleNamespace(**fields)
+    runtime = None
+    if shared.runtime is not None:
+        runtime = SimpleNamespace(
+            fight=frozen,
+            **{
+                key: deepcopy(getattr(shared.runtime, key))
+                for key in (
+                    "action_id",
+                    "native_action_id",
+                    "awaiting_ack",
+                    "round",
+                    "duration",
+                )
+            },
+        )
+    return frozen, runtime, shared.checkpoint_revision
+
+
+def _detach_active_projection(shared):
+    """Freeze only active recovery fields while holding the shared lock."""
+    from .fight_checkpoint_store import (
+        _RIFT_RECOVERY_FIELDS,
+        recovery_snapshot,
+    )
+
+    with shared.lock:
+        source = shared.fight
+        if getattr(source, "phase", None) != "active":
+            return _detach_full_locked(shared)
+        state = recovery_snapshot(source, runtime=shared.runtime)
+        # Keep native key types for transaction validators. This copies only
+        # selected source/accounting maps; the recovery JSON remains the
+        # separately materialized projection above.
+        # Keep only fields used by save_prepared's roster, receipt, captured
+        # roster, consumable handoff, and score persistence calls.
+        persistence_fields = (
+            "id",
+            "phase",
+            "native_fight_model",
+            "native_summon_registrations",
+            "native_companion_sources",
+            "native_consumable_initializations",
+            "rift_monsters",
+        )
+        fields = {
+            key: _checkpoint_fields(getattr(source, key))
+            for key in persistence_fields
+            if hasattr(source, key)
+        }
+        wave = getattr(source, "rift_wave_state", None)
+        if isinstance(wave, dict):
+            fields["rift_wave_state"] = {
+                key: _checkpoint_fields(wave[key])
+                for key in _RIFT_RECOVERY_FIELDS
+                if key in wave
+            }
+        # These transaction queues are consumed while persisting; none carries
+        # the historical native effect graph.
+        for key in (
+            "native_captured_roster_updates",
+            "native_consumable_handoff_committed",
+            "boss_score_profile",
+            "boss_score_events",
+        ):
+            if hasattr(source, key):
+                fields[key] = _checkpoint_fields(getattr(source, key))
+        actors = {}
+        actor_fields = (
+            "id",
+            "controlled",
+            "owner_id",
+            "team",
+            "hp",
+            "max_hp",
+            "effective_level",
+            "is_summon",
+            "native_summon_source",
+            "native_companion_source",
+            "pve_withdrawn",
+        )
+        for identity, actor in source.actors.items():
+            actors[identity] = SimpleNamespace(
                 **{
-                    key: deepcopy(getattr(shared.runtime, key))
-                    for key in (
-                        "action_id",
-                        "native_action_id",
-                        "awaiting_ack",
-                        "round",
-                        "duration",
-                    )
-                },
+                    key: _checkpoint_fields(actor.__dict__[key])
+                    for key in actor_fields
+                    if key in actor.__dict__
+                }
             )
+        fields["actors"] = actors
+        frozen = SimpleNamespace(**fields)
+        frozen._checkpoint_projection = state
+        runtime_state = state.get("runtime")
+        runtime = (
+            None
+            if runtime_state is None
+            else SimpleNamespace(fight=frozen, **runtime_state)
+        )
         return frozen, runtime, shared.checkpoint_revision
 
 
@@ -491,7 +642,14 @@ class CheckpointWorker:
                 state = self.states[fight_id]
                 revision = state["revision"]
             try:
-                frozen, runtime, _ = detach(job.source or job.shared)
+                if (
+                    self.serializer is serialize_detached
+                    and job.status is None
+                    and job.source is None
+                ):
+                    frozen, runtime, _ = _detach_active_projection(job.shared)
+                else:
+                    frozen, runtime, _ = detach(job.source or job.shared)
                 prepared = self.serializer(frozen, runtime=runtime)
                 if state["recovery"] is not None:
                     previous = state["recovery"]
@@ -637,7 +795,10 @@ class CheckpointWorker:
                     except Exception:
                         pass
             finally:
-                frozen = runtime = prepared = None
+                # The worker can wait indefinitely before its next intent.
+                # Pending recovery already owns any job that must survive;
+                # successful terminal jobs must not pin departed fight graphs.
+                frozen = runtime = prepared = job = queued = None
                 with self.condition:
                     self.inflight.discard(fight_id)
                     self.condition.notify_all()

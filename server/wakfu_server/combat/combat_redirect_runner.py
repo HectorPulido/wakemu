@@ -1,4 +1,5 @@
 """Native eWK1000 redirects an actual triggering Qe, without changing bft."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_parameters import parameter_value
 from .combat_stat_handler import StatExecutionContext
@@ -133,7 +134,7 @@ class NativeRedirectRunnerHandler:
             timing_payload=ctx.timing_payload,
         )
         if ctx.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 family=self.runner_name,
                 effect_class=self.effect_family,

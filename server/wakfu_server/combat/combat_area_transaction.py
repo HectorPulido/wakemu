@@ -106,47 +106,57 @@ def prepare_area_movement(
     from .combat_movement_payment_events import consume_step_payment
 
     payment = consume_step_payment(fight, actor_id=actor_id, origin=origin, path=path)
-    preview = deepcopy(fight)
-    factory, _ = server_runtime(
-        character,
-        monsters,
-        deck_blob,
-        action_id=action_id,
-        critical=False,
-        rng=rng,
-        player_characters=player_characters,
-        deck_blobs=deck_blobs,
-    )
-    dispatcher, packets = factory(
-        preview, {"native_retained_container": {"present": False}}
-    )
-    previous = tuple(origin)
-    with tackle_departure_preview(fight, preview, payment), preview.effect_resolution():
-        from .combat_movement_payment_events import replay_movement_payment
+    from .combat_owned_movement_step import owned_step_preview
 
-        for index, cell in enumerate(path):
-            from .combat_qi_fight import move_registered_actor
+    with owned_step_preview(fight, payment) as owned:
+        preview = fight if owned else deepcopy(fight)
+        factory, _ = server_runtime(
+            character,
+            monsters,
+            deck_blob,
+            action_id=action_id,
+            critical=False,
+            rng=rng,
+            player_characters=player_characters,
+            deck_blobs=deck_blobs,
+        )
+        dispatcher, packets = factory(
+            preview, {"native_retained_container": {"present": False}}
+        )
+        previous = tuple(origin)
+        with tackle_departure_preview(
+            fight, preview, payment
+        ), preview.effect_resolution():
+            from .combat_movement_payment_events import replay_movement_payment
 
-            move_registered_actor(preview, preview.actors[actor_id], cell)
-            if index == 0:
-                replay_movement_payment(dispatcher, payment)
-                if preview.phase != "active" or preview.actors[actor_id].hp <= 0:
-                    break
-            from .combat_voluntary_movement_events import deliver_voluntary_movement
+            for index, cell in enumerate(path):
+                from .combat_qi_fight import move_registered_actor
 
-            deliver_voluntary_movement(
-                dispatcher,
-                actor_id=actor_id,
-                from_cell=previous,
-                to_cell=cell,
-                action_id=action_id,
-            )
-            dispatcher.native_area_events.movement(
-                actor_id, from_cell=previous, to_cell=cell
-            )
-            if (
-                preview.phase != "active" or preview.actors[actor_id].hp <= 0
-            ) and index != len(path) - 1:
-                raise ValueError("Early lethal area movement animation is unaudited")
-            previous = tuple(cell)
-    return preview, tuple(packets)
+                move_registered_actor(preview, preview.actors[actor_id], cell)
+                if index == 0:
+                    replay_movement_payment(dispatcher, payment)
+                    if preview.phase != "active" or preview.actors[actor_id].hp <= 0:
+                        break
+                from .combat_voluntary_movement_events import deliver_voluntary_movement
+
+                deliver_voluntary_movement(
+                    dispatcher,
+                    actor_id=actor_id,
+                    from_cell=previous,
+                    to_cell=cell,
+                    action_id=action_id,
+                )
+                dispatcher.native_area_events.movement(
+                    actor_id, from_cell=previous, to_cell=cell
+                )
+                if (
+                    preview.phase != "active" or preview.actors[actor_id].hp <= 0
+                ) and index != len(path) - 1:
+                    raise ValueError(
+                        "Early lethal area movement animation is unaudited"
+                    )
+                previous = tuple(cell)
+        return preview, tuple(packets)
+
+
+_OWNED_PREPARE_AREA_MOVEMENT = prepare_area_movement

@@ -7,6 +7,7 @@ from postgres_case import PostgresCase
 from wakfu_server import rift_runtime as rifts, rift_transition_delivery
 from wakfu_server.characters import heroes
 from wakfu_server.rift_policy import select_wave
+from wakfu_server.rift_encounter_roles import roles_for_catalog
 
 
 class RiftPostgresTests(PostgresCase):
@@ -32,8 +33,15 @@ class RiftPostgresTests(PostgresCase):
                 "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
             ).fetchone()["id"]
             db.execute(
-                "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team) VALUES(%s,%s,%s,0)",
-                (self.fight_id, self.character, self.account),
+                "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team) VALUES(%s,%s,%s,%s)",
+                (
+                    self.fight_id,
+                    self.character,
+                    self.account,
+                    roles_for_catalog(
+                        self.run["catalog"], self.run["policy"]
+                    ).player_team,
+                ),
             )
             rifts.start(db, self.run["instance_id"], self.character, self.fight_id)
             refs = select_wave(
@@ -47,6 +55,94 @@ class RiftPostgresTests(PostgresCase):
         return rifts.record_wave(
             db, self.run["instance_id"], 1, [-4, -3, -2, -1], turn=2
         )
+
+    def test_returned_withdrawal_reenters_without_retiring_other_players_run(self):
+        from wakfu_server.rift_entry_recovery import _runs
+        from wakfu_server.world_resurrection import _outside
+        import json
+
+        peer_account = self.store.register("rift-staying-peer", "test-password")["id"]
+        peer = self.store.create_character(peer_account, "Rift Staying Peer")["id"]
+        original_members = [*self.run["members"], peer]
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE rift_instances SET members=%s::jsonb WHERE instance_id=%s",
+                (json.dumps(original_members), self.run["instance_id"]),
+            )
+            db.execute(
+                "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team) "
+                "VALUES(%s,%s,%s,0)",
+                (self.fight_id, peer, peer_account),
+            )
+            db.execute(
+                "UPDATE characters SET instance_id=%s WHERE id=%s",
+                (self.run["instance_id"], self.character),
+            )
+            db.execute(
+                "INSERT INTO combat_pve_withdrawals "
+                "(fight_id,character_id,account_id,session_generation,created_at) "
+                "VALUES(%s,%s,%s,'withdrawn-session',now())",
+                (self.fight_id, self.character, self.account),
+            )
+            self.assertFalse(_outside(db, self.character))
+            self.assertEqual(1, len(_runs(db, [self.character])))
+            with self.assertRaisesRegex(ValueError, "already belongs"):
+                rifts.enter(
+                    db,
+                    3,
+                    self.character,
+                    [self.character],
+                    seed="new",
+                    authorize=lambda *_: True,
+                )
+            db.execute(
+                "UPDATE combat_pve_withdrawals SET returned_at=now(),health_returned_at=now() "
+                "WHERE fight_id=%s",
+                (self.fight_id,),
+            )
+            # A return receipt alone cannot bypass an actor still inside the run.
+            with self.assertRaisesRegex(ValueError, "already belongs"):
+                rifts.enter(
+                    db,
+                    3,
+                    self.character,
+                    [self.character],
+                    seed="new",
+                    authorize=lambda *_: True,
+                )
+            db.execute(
+                "UPDATE characters SET instance_id=0 WHERE id=%s", (self.character,)
+            )
+            self.assertTrue(_outside(db, self.character))
+            self.assertEqual((), _runs(db, [self.character]))
+            new = rifts.enter(
+                db,
+                3,
+                self.character,
+                [self.character],
+                seed="new",
+                authorize=lambda *_: True,
+            )
+            self.assertNotEqual(self.run["instance_id"], new["instance_id"])
+            # Admission reserves membership before the caller updates its location.
+            with self.assertRaisesRegex(ValueError, "already belongs"):
+                rifts.enter(
+                    db,
+                    3,
+                    self.character,
+                    [self.character],
+                    seed="duplicate",
+                    authorize=lambda *_: True,
+                )
+            old = rifts._run(db, self.run["instance_id"])
+            self.assertEqual(old["status"], "running")
+            self.assertEqual(old["members"], original_members)
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (self.fight_id,)
+                ).fetchone()["status"],
+                "active",
+            )
 
     def test_wave_receipt_replay_survives_reopen(self):
         with self.store.connection() as db:
@@ -206,6 +302,7 @@ class RiftPostgresTests(PostgresCase):
                 )
 
     def test_checkpoint_staging_persists_and_replays_all_wave_bindings(self):
+        from copy import deepcopy
         from types import SimpleNamespace
         from wakfu_server.rift_policy import select_wave
 
@@ -233,6 +330,18 @@ class RiftPostgresTests(PostgresCase):
                     "n"
                 ],
                 2,
+            )
+        recovered = deepcopy(fight)
+        rifts.mark_progress_committed(fight, first)
+        self.assertEqual(fight.rift_wave_state["persisted_wave"], 1)
+        with self.reopen().connection() as db:
+            self.assertEqual(rifts.persist_progress(db, fight), ())
+            self.assertEqual(rifts.persist_progress(db, recovered), first)
+            self.assertEqual(
+                db.execute("SELECT count(*) AS n FROM rift_wave_receipts").fetchone()[
+                    "n"
+                ],
+                1,
             )
 
     def test_server_instance_namespace_never_replaces_native_asset_map(self):

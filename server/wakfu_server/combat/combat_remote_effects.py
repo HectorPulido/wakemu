@@ -182,11 +182,12 @@ def _live_actor_effects(fight, actor_id, *, now_milliseconds=None):
 
     if pending_state_uids(fight):
         raise ValueError("Native active snapshot contains pending state registration")
-    # This validates the complete population, exact ownership, and stored order
-    # against all current state/stat/group/area payloads without mutating Fight.
-    native_retained_condition_effects(fight, actor_id)
+    # The validated manager projection already preserves current Qf order.
+    # Native owned storage resolves it through the existing manager index;
+    # opaque storage retains the validator's complete-population fallback.
+    selected = native_retained_condition_effects(fight, actor_id)
     carriers, ordinary = [], []
-    for uid in fight.native_retained_order:
+    for _, _, uid in selected:
         entry = fight.native_retained_records[uid]
         if entry["manager_id"] != actor_id:
             continue

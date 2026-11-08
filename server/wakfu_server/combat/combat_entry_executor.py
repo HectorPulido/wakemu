@@ -50,7 +50,14 @@ def entry_route(caster, authority):
 
 def private_entry_preview(fight, *, snapshot=source_snapshot, clone=deepcopy):
     """Capture the authoritative source before making an isolated preview."""
-    return snapshot(fight), clone(fight)
+    source = snapshot(fight)
+    if clone is deepcopy:
+        from .combat_preview_copy import scalar_actor_memo
+
+        preview = clone(fight, scalar_actor_memo(fight))
+    else:
+        preview = clone(fight)
+    return source, preview
 
 
 def execute_entry_roots(

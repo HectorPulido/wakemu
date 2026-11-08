@@ -92,19 +92,24 @@ def replay_paid_spell_costs(dispatcher, plan):
 
 class NativeCostPaymentEvents(OrdinaryHealingEvents):
     def __init__(self, *, adapter, preview, plan, replay, retention):
-        def actual_cost_source(source, *, authority):
-            costs = _payment.get()
-            if costs is None:
-                return replay(source, authority=authority)
-            return replay(replace(source, cost_source=dict(costs)), authority=authority)
-
         super().__init__(
             adapter=adapter,
             preview=preview,
             plan=plan,
-            replay=actual_cost_source,
+            replay=replay,
             retention=retention,
         )
+
+    def _replay_source(self, source, *, authority):
+        costs = _payment.get()
+        if costs is None:
+            return self.replay(source, authority=authority)
+        return self.replay(
+            replace(source, cost_source=dict(costs)), authority=authority
+        )
+
+    def _event_delivery_replay(self):
+        return self._replay_source
 
     @classmethod
     def from_healing(cls, source):
@@ -188,3 +193,6 @@ class NativeCostPaymentEvents(OrdinaryHealingEvents):
             return super().phase(effect, invocation, **kwargs)
         finally:
             _payment.reset(token)
+
+
+_SOURCE_COST_REPLAY_SOURCE = NativeCostPaymentEvents._replay_source

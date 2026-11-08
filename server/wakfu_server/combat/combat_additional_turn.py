@@ -1,4 +1,5 @@
 """Exact eWl/SQ/Tc current-cycle insertion; turn delivery remains caller-owned."""
+from .combat_source_parent_index import OwnedStateSourceRow
 
 
 def timeline_round(fight):
@@ -158,7 +159,7 @@ class NativeAdditionalTurnHandler:
         if ctx.retained:
             if actor is None:
                 raise ValueError("Missing retained native eWl manager")
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 effect_class=666,
                 family="eWl",

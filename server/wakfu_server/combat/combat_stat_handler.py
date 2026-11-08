@@ -4,6 +4,7 @@ All callbacks and outboxes belong to a transaction preview. Native guards,
 retention and timing are explicit; RESISTANCE_CAP uses the ordered owned stack.
 Owned removal reverses actual clamped deltas, never requested amounts.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import dataclass
 from .combat_stat_effects import (
     stat_parameters,
@@ -365,7 +366,7 @@ class NativeStatHandler:
                 current=after,
             )
         if context.retained and not clone:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=target.id,
                 caster_id=invocation.caster_id,
@@ -699,3 +700,6 @@ class NativeStatHandler:
             owned["payload"] = new_payload.hex()
         del self.fight.owned_stat_effects[uid]
         self.packets.append((13560, packet))
+
+
+_SOURCE_REMOVE = NativeStatHandler.remove

@@ -83,10 +83,45 @@ class BoundedByteCache:
 
     def get(self, key):
         with self._lock:
-            raw = self._cache.get(key)
-            if raw is not None:
+            entry = self._cache.get(key)
+            if entry is not None:
                 self._cache.move_to_end(key)
+                return entry[0]
+            return None
+
+    def get_verified_sha256(self, key, checksum, size):
+        """A digest proof belongs to the exact immutable byte-cache entry.
+
+        Replacement clears the proof. Eviction and clear remove bytes and proof
+        together; digest storage counts against the existing byte budget.
+        """
+        with self._lock:
+            raw = self.get(key)
+            if type(raw) is not bytes or len(raw) != size:
+                return None
+            entry = self._cache.get(key)
+            if entry is not None and entry[0] is raw and entry[1] == checksum:
+                return raw
+        # The previous implementation hashed outside the shared cache lock.
+        # Preserve concurrent readers while validating a newly observed entry.
+        if hashlib.sha256(raw).hexdigest() != checksum:
+            return None
+        with self._lock:
+            entry = self._cache.get(key)
+            if entry is not None and entry[0] is raw:
+                self._bytes += len(checksum) - (
+                    0 if entry[1] is None else len(entry[1])
+                )
+                self._cache[key] = (raw, checksum)
+                self._evict()
             return raw
+
+    def _evict(self):
+        while len(self._cache) > self.max_entries or self._bytes > self.max_bytes:
+            old_key, (old_raw, old_proof) = self._cache.popitem(last=False)
+            self._bytes -= len(old_key.encode()) + len(old_raw)
+            if old_proof is not None:
+                self._bytes -= len(old_proof)
 
     def put(self, key, raw):
         if type(key) is not str or type(raw) is not bytes:
@@ -97,12 +132,12 @@ class BoundedByteCache:
         with self._lock:
             old = self._cache.pop(key, None)
             if old is not None:
-                self._bytes -= len(key.encode()) + len(old)
-            self._cache[key] = raw
+                self._bytes -= len(key.encode()) + len(old[0])
+                if old[1] is not None:
+                    self._bytes -= len(old[1])
+            self._cache[key] = (raw, None)
             self._bytes += size
-            while len(self._cache) > self.max_entries or self._bytes > self.max_bytes:
-                old_key, old_raw = self._cache.popitem(last=False)
-                self._bytes -= len(old_key.encode()) + len(old_raw)
+            self._evict()
 
     def cache_info(self):
         with self._lock:

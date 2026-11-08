@@ -258,3 +258,7 @@ def movement_caster(fight, source, *, entry, original, definition, effect):
         ),
     }
     return participant.id
+
+
+# Original native consumers of a stored listener invocation.
+_GROUP_HISTORY_FUNCTIONS = (("movement_caster", movement_caster),)

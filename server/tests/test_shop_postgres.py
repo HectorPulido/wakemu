@@ -80,6 +80,162 @@ class ShopPostgresTests(PostgresCase):
             self.service.purchase(self.token, self.article_id + 1, "cart-key-1")
         self.assertEqual(4000, self.wallet())
 
+    def test_withdrawn_player_can_purchase_while_remaining_fight_stays_active(self):
+        with self.store.connection() as db:
+            fight_id = db.execute(
+                "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
+            ).fetchone()["id"]
+            db.execute(
+                "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team) "
+                "VALUES(%s,%s,%s,0)",
+                (fight_id, self.character["id"], self.account),
+            )
+        with self.assertRaisesRegex(ValueError, "during combat"):
+            self.service.purchase(self.token, self.article_id, "withdrawal-retry")
+        self.assertEqual(5000, self.wallet())
+        self.assertEqual(0, self.order_count())
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO combat_pve_withdrawals "
+                "(fight_id,character_id,account_id,session_generation,created_at) "
+                "VALUES(%s,%s,%s,%s,CURRENT_TIMESTAMP)",
+                (fight_id, self.character["id"], self.account, self.generation),
+            )
+        receipt = self.service.purchase(self.token, self.article_id, "withdrawal-retry")
+        self.assertEqual(2027, receipt["item"]["reference"])
+        self.assertEqual(4000, self.wallet())
+        self.assertEqual(1, self.order_count())
+        with self.store.connection() as db:
+            self.assertEqual(
+                "active",
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (fight_id,)
+                ).fetchone()["status"],
+            )
+
+    def test_native_http_purchase_in_rift_follows_selected_hero_with_existing_api_key(
+        self,
+    ):
+        import json
+        import urllib.request
+        from wakfu_server import heroes, rift_runtime
+        from wakfu_server.shop_http import make_server
+
+        hero = self.store.create_character(self.account, "Shop Rift Hero")
+        main_id = self.character["id"]
+        heroes.add(self.store, self.account, self.generation, main_id, hero["id"])
+        with self.store.connection() as db:
+            run = rift_runtime.enter(
+                db,
+                3,
+                main_id,
+                [main_id, hero["id"]],
+                seed="shop-hero",
+                authorize=lambda *_: True,
+            )
+            # A completed encounter still has its normal interior shop access.
+            db.execute(
+                "UPDATE rift_instances SET status='lost',ended_at=CURRENT_TIMESTAMP WHERE instance_id=%s",
+                (run["instance_id"],),
+            )
+            db.execute(
+                "UPDATE characters SET map_id=%s,instance_id=%s WHERE id=ANY(%s)",
+                (run["catalog"]["map_id"], run["instance_id"], [main_id, hero["id"]]),
+            )
+        heroes.switch_main(
+            self.store, self.account, self.generation, main_id, hero["id"]
+        )
+        selected = self.store.character(self.account, hero["id"])
+        main_inventory = self.inventory()
+        server = make_server(self.service, host="127.0.0.1", port=0)
+        worker = threading.Thread(
+            target=lambda: server.serve_forever(poll_interval=0.01), daemon=True
+        )
+        worker.start()
+
+        def close():
+            server.shutdown()
+            server.server_close()
+            worker.join(timeout=2)
+
+        self.addCleanup(close)
+        base = f"http://127.0.0.1:{server.server_port}/en/shops/WAKFU_INGAME/"
+
+        def post(route, payload):
+            request = urllib.request.Request(
+                base + route,
+                data=json.dumps(payload).encode(),
+                method="POST",
+                headers={
+                    "Authorization": "Bearer " + self.token,
+                    "Content-Type": "application/json",
+                },
+            )
+            with urllib.request.urlopen(request, timeout=5) as response:
+                self.assertEqual(200, response.status)
+                return json.load(response)
+
+        cart = post(
+            "carts",
+            {
+                "cart_details": [
+                    {
+                        "cart_detail_classic_request": {
+                            "article_id": str(self.article_id),
+                            "quantity": 1,
+                        }
+                    }
+                ]
+            },
+        )
+        order = post(
+            "carts/" + cart["id"] + "/orders",
+            {
+                "payment": {
+                    "discriminator": "VIRTUAL",
+                    "virtual_payment_request": {
+                        "payment_mode_id": "OG",
+                        "amount": 1000,
+                        "currency": "OGR",
+                    },
+                }
+            },
+        )
+        endpoint = "payment/providers/ankama/types/ogrine:create-payment"
+        paid = post(endpoint, {"order_id": order["id"]})
+        self.assertEqual(paid, post(endpoint, {"order_id": order["id"]}))
+        self.assertEqual(4000, self.wallet())
+        self.assertEqual(1, self.order_count())
+        self.assertEqual(main_inventory, self.inventory())
+        self.assertIsNone(
+            shop_refresh.pending(
+                self.store, self.account, self.character, self.generation
+            )
+        )
+        update = shop_refresh.pending(
+            self.store, self.account, selected, self.generation
+        )
+        self.assertEqual(hero["id"], update["character"]["id"])
+        self.assertEqual(run["instance_id"], update["character"]["instance_id"])
+        self.assertEqual(
+            1,
+            sum(
+                item["reference"] == 2027
+                for item in update["character"]["inventory_items"]
+            ),
+        )
+        shop_refresh.acknowledge(
+            self.store, self.account, hero["id"], update["order_ids"], self.generation
+        )
+        self.assertIsNone(
+            shop_refresh.pending(self.store, self.account, selected, self.generation)
+        )
+        self.assertTrue(
+            self.store.current_character_session(
+                self.account, self.generation, hero["id"]
+            )
+        )
+
     def test_failed_inventory_grant_rolls_back_wallet_and_order(self):
         before_items = self.inventory()
         with patch(
@@ -232,6 +388,76 @@ class ShopPostgresTests(PostgresCase):
         self.assertEqual(5000, self.wallet())
         self.assertEqual(before_items, self.inventory())
         self.assertEqual(0, self.order_count())
+
+        feedback = shop_refresh.pending(
+            self.store, self.account, self.character, self.generation
+        )
+        self.assertEqual([], feedback["order_ids"])
+        self.assertEqual([674], [opcode for opcode, _ in feedback["packets"]])
+        self.assertIn(self.character["name"].encode(), feedback["packets"][0][1])
+        self.assertIn(b"No se cobraron kamas", feedback["packets"][0][1])
+        self.assertIsNone(
+            shop_refresh.pending(
+                self.store, self.account, self.character, "stale-generation"
+            )
+        )
+        self.assertIsNone(
+            shop_refresh.pending(
+                self.store, self.account, dict(self.character, id=-1), self.generation
+            )
+        )
+        shop_refresh.acknowledge(
+            self.store,
+            self.account,
+            self.character["id"],
+            [],
+            self.generation,
+            feedback["feedback_revision"],
+        )
+        with self.assertRaisesRegex(ValueError, "Inventory full"):
+            self.service.purchase(self.token, self.article_id, "full-inventory")
+        self.assertIsNone(
+            shop_refresh.pending(
+                self.store, self.account, self.character, self.generation
+            )
+        )
+        with self.assertRaisesRegex(ValueError, "Inventory full"):
+            self.service.purchase(self.token, self.article_id, "full-inventory-next")
+        # A late ACK for the first cart cannot hide the next cart's rejection.
+        shop_refresh.acknowledge(
+            self.store,
+            self.account,
+            self.character["id"],
+            [],
+            self.generation,
+            feedback["feedback_revision"],
+        )
+        self.assertIsNotNone(
+            shop_refresh.pending(
+                self.store, self.account, self.character, self.generation
+            )
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE shop_purchase_feedback SET expires_at=now()-interval '1 second' "
+                "WHERE account_id=%s",
+                (self.account,),
+            )
+        self.assertIsNone(
+            shop_refresh.pending(
+                self.store, self.account, self.character, self.generation
+            )
+        )
+
+        with self.store.connection() as db:
+            db.execute(
+                "DELETE FROM inventory_items WHERE character_id=%s AND container=%s AND slot=0",
+                (self.character["id"], self.bag),
+            )
+        receipt = self.service.purchase(self.token, self.article_id, "full-inventory")
+        self.assertEqual(2027, receipt["item"]["reference"])
+        self.assertEqual(4000, self.wallet())
+        self.assertEqual(1, self.order_count())
 
     def test_concurrent_retry_key_has_one_charge_grant_and_receipt(self):
         barrier = threading.Barrier(2)

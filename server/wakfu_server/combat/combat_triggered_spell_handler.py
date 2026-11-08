@@ -1,4 +1,5 @@
 """eYZ runner; nested gameplay is an explicit atomic Wakemu server policy."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 
 from .combat_triggered_spell import native_triggered_spell_request
@@ -150,7 +151,7 @@ class NativeTriggeredSpellHandler:
                 )
             )
             if ctx.retained:
-                self.fight.owned_stat_effects[uid] = dict(
+                self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                     uid=uid,
                     effect_class=426,
                     family="eYZ",

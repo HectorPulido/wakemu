@@ -1703,6 +1703,16 @@ def evaluate_condition(
                 )
         if actor is None:
             if (
+                name in ("GetCharac", "GetCharacteristic")
+                and selector in ("triggeringcaster", "triggeringtarget")
+                and selector in context.null_actor_aliases
+            ):
+                # eJy.d returns -1 when eII.a resolves no eHg. An external
+                # turn/regeneration event has no triggering Qe; that proven
+                # null is different from missing actor authority. Do not apply
+                # this to target, whose native cell fallback is a separate path.
+                return -1
+            if (
                 name in ("GetCharacInPct", "GetCharacPct", "GetCharacteristicPct")
                 and selector == "target"
                 and context.effect_target_absent is True

@@ -72,6 +72,7 @@ def run_npc_turn(
         if shared_adapter is None:
             raise ValueError("Shared native AI requires its encounter coordinator")
         from .world_shared import run_shared_turn
+        from ..native.native_commit_capability import _WORLD_NATIVE_RUNNER
 
         yield from run_shared_turn(
             runtime,
@@ -84,6 +85,7 @@ def run_npc_turn(
                 monsters=monsters,
                 stats_serializer=stats_serializer,
             ),
+            native_runner_authority=_WORLD_NATIVE_RUNNER,
         )
         return
     if runtime.awaiting_ack is not None or runtime.pending:

@@ -159,7 +159,8 @@ class ReturnSelectionTests(PostgresCase):
             store, account, generation, character["id"], exploration=True
         )
         self.assertEqual(
-            (result["hp"], result["hp_damage"], result["health_dead"]), (1, 59, False)
+            (result["hp"], result["hp_damage"], result["health_dead"]),
+            (1, result["max_hp"] - 1, False),
         )
         for key in (
             "x",
@@ -180,13 +181,21 @@ class ReturnSelectionTests(PostgresCase):
             ).fetchone()
             self.assertEqual(
                 (regen["initial_hp"], regen["initial_damage"], regen["coefficient"]),
-                (1, 59, 2),
+                (1, result["max_hp"] - 1, 2),
             )
             audit = db.execute(
                 "SELECT count(*) AS n FROM admin_panel_audit WHERE action=%s",
                 (recovery.AUDIT_ACTION,),
             ).fetchone()
             self.assertEqual(audit["n"], 1)
+            # Recovery uses the original 60-HP fight proof. The later
+            # territorial projection may rebase wounds without healing.
+            recovery_audit = db.execute(
+                "SELECT after_data FROM admin_panel_audit WHERE action=%s AND target=%s",
+                (recovery.AUDIT_ACTION, str(character["id"])),
+            ).fetchone()["after_data"]
+            self.assertEqual(recovery_audit["hp_damage"], 59)
+            self.assertEqual(recovery_audit["hp"], 1)
         second = health_store.initialize(
             store, account, generation, character["id"], exploration=True
         )

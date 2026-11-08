@@ -147,9 +147,77 @@ class NativeDispelHandler:
             notify_runner_value(invocation, runner.value)
         return True  # eXe.c calls mu(true) even when no retained effect matches.
 
+    def _native_selection(self, values, identity):
+        """Read one manager only when native providers preserve local authority."""
+        from types import MethodType
+
+        if (
+            type(self) is not NativeDispelHandler
+            or NativeDispelHandler.__getattribute__ is not object.__getattribute__
+            or type(values) is not dict
+            or any(type(key) is not str for key in values)
+        ):
+            return None
+        parameters = values.get("parameters")
+        if type(parameters) not in (tuple, list) or any(
+            type(value) is not int for value in parameters
+        ):
+            return None
+        view_provider, removal_provider = self.view_provider, self.removal_provider
+        if (
+            type(view_provider) is not MethodType
+            or type(removal_provider) is not MethodType
+        ):
+            return None
+        from .combat_retained_runtime import (
+            NativeRetainedRuntime,
+            _SOURCE_VIEW,
+            _SOURCE_REMOVAL,
+            _SOURCE_SYNCHRONIZE,
+        )
+        from .combat_stat_handler import NativeStatHandler
+        from .combat_retained_query import manager_query
+
+        if (
+            view_provider.__func__ is not _SOURCE_VIEW
+            or removal_provider.__func__ is not _SOURCE_REMOVAL
+        ):
+            return None
+        retention = view_provider.__self__
+        if (
+            type(retention) is not NativeRetainedRuntime
+            or removal_provider.__self__ is not retention
+            or NativeRetainedRuntime.__getattribute__ is not object.__getattribute__
+        ):
+            return None
+        if (
+            getattr(retention.synchronize, "__func__", None) is not _SOURCE_SYNCHRONIZE
+            or type(retention.stat_handler) is not NativeStatHandler
+            or NativeStatHandler.__getattribute__ is not object.__getattribute__
+            or retention.stat_handler.fight is not retention.fight
+        ):
+            return None
+        selected = manager_query(retention.fight, identity)
+        return None if selected is None else (retention, selected)
+
     def _apply(self, values, invocation):
         if invocation.target_id is None:
             return  # Exact eXe.c null-PV early return, with mu(true) already set.
+        local = self._native_selection(values, invocation.target_id)
+        if local is not None:
+            retention, manager = local
+            selected = select_dispel(manager.entries, values["parameters"])
+            if not selected:
+                return
+            from .combat_retained_removal_query import removal_view
+
+            view = removal_view(retention, selected)
+            if view is not None:
+                removal = self.removal_provider(view)
+                if removal.view is not view:
+                    raise ValueError("Native dispel/removal views disagree")
+                removal.remove(entry.uid for entry in selected)
+                return
         view = self.view_provider()
         removal = self.removal_provider(view)
         if removal.view is not view:

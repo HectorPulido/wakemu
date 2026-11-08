@@ -1,4 +1,10 @@
 """Persisted central fresh-cast retention registry, including native groups."""
+from .combat_owned_container_facts import OwnedContainerFacts
+from .combat_owned_container_row import OwnedContainerRow
+
+from .combat_source_parent_index import OwnedStateSourceRow, SOURCE_MAPS
+
+from .combat_retained_collections import OwnedMap, OwnedOrder, TrackedRow
 from .combat_state_parameters import pack_state_identity
 
 from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
@@ -14,6 +20,9 @@ from .combat_native_container import (
     owned_container_users,
 )
 from functools import lru_cache
+from operator import is_
+from types import MappingProxyType
+from weakref import WeakKeyDictionary
 import json
 import struct
 from wakfu_server.paths import DATA_ROOT
@@ -31,6 +40,7 @@ from .combat_retained_effects import (
 from .combat_effect_removal import running_effect_removal, _identity_fields
 from .combat_stat_effects import owned_effect_delivery
 from .combat_pending_state import pending_state_registration, pending_state_uids
+from .combat_area_membership import OwnedAreaRow
 from .combat_execution_count import native_execution_count
 from .combat_subscription_runners import (
     SUBSCRIPTION_FAMILIES,
@@ -61,37 +71,149 @@ def _blob(field, data):
     return _varint(field << 3 | 2) + _varint(len(data)) + data
 
 
-class _UncacheableRetainedRecord(Exception):
-    pass
-
-
-@lru_cache(maxsize=2048, typed=True)
+@lru_cache(maxsize=8192, typed=True)
 def _cached_retained_record(**record):
-    # Keyword values are immediate LRU arguments, so typed=True distinguishes
-    # bool/int aliases without rebuilding three Python tuples on every hit.
-    # Only immutable, bounded metadata belongs here; live ownership is separate.
+    # Every caller certifies exact bounded primitives before the LRU lookup.
+    # A check inside this body alone cannot protect hits from custom hashes
+    # or metaclass equality masquerading as a canonical scalar type.
+    entry = RetainedEffect(**record)
+    # Python creates this kwargs dict for this call. Its certified scalars
+    # are immutable; the proxy prevents consumers from changing shared rows.
+    return (
+        MappingProxyType(record),
+        (tuple(record), tuple(map(type, record.values()))),
+        entry,
+    )
+
+
+def _retained_record(record):
+    """Reuse frozen metadata by content; never cache fight ownership or views."""
+    if not _cacheable_retained_record(record):
+        return RetainedEffect(**record)
+    return _cached_retained_record(**record)[2]
+
+
+_STR_KEY_TYPES = tuple((str,) * count for count in range(18))
+
+
+def _same_retained_record(record, cached):
+    keys, types = cached[1]
+    if len(record) != len(keys):
+        return False
+    # Cached rows are private detached copies of certified bounded scalars.
+    # Identical key/value objects prove their exact types and content without
+    # invoking equality or repeating type extraction for an unchanged row.
+    previous = cached[0]
+    if (
+        (type(record) is dict or type(record) is TrackedRow)
+        and (type(previous) is dict or type(previous) is MappingProxyType)
+        and all(map(is_, record, keys))
+        and all(map(is_, record.values(), previous.values()))
+    ):
+        return True
+    if not all(map(is_, map(type, record), _STR_KEY_TYPES[len(keys)])):
+        return False
+    if tuple(record) == keys:
+        same_types = all(map(is_, map(type, record.values()), types))
+    else:
+        # Mapping order is not semantic. Keep the original per-key type check
+        # for the uncommon case where an equal record was rebuilt differently.
+        by_key = dict(zip(keys, types))
+        same_types = all(
+            type(value) is by_key.get(key) for key, value in record.items()
+        )
+    return same_types and cached[0] == record
+
+
+_RETAINED_POPULATIONS = WeakKeyDictionary()
+_RETAINED_WIRE_POPULATIONS = WeakKeyDictionary()
+
+
+def _cacheable_retained_record(record):
+    """Recognize detached bounded scalar rows without repeated type calls."""
+    if (type(record) is not dict and type(record) is not TrackedRow) or len(
+        record
+    ) > 17:
+        return False
     for key, value in record.items():
         value_type = type(value)
         if (
             type(key) is not str
             or len(key) > 64
-            or value_type not in (int, bool, str, type(None))
+            or not (
+                value_type is int
+                or value_type is bool
+                or value_type is str
+                or value is None
+            )
             or (value_type is str and len(value) > 128)
             or (value_type is int and value.bit_length() > 64)
         ):
-            raise _UncacheableRetainedRecord
-    return RetainedEffect(**record)
+            return False
+    return True
 
 
-def _retained_record(record):
-    """Reuse frozen metadata by content; never cache fight ownership or views."""
-    if type(record) is not dict or len(record) > 17:
-        return RetainedEffect(**record)
-    try:
-        return _cached_retained_record(**record)
-    except (_UncacheableRetainedRecord, TypeError):
-        # Preserve constructor behavior for unsupported/unhashable inputs.
-        return RetainedEffect(**record)
+def _retained_population(owner, records, order):
+    """Reuse value records for one weak owner's current population.
+
+    The weak owner never enters the values. No cache is attached to a native
+    object graph, serialized, or carried into a combat transaction clone.
+    Full view authority checks still run after these frozen values are built.
+    """
+    previous = _RETAINED_POPULATIONS.get(owner, {})
+    current, entries = {}, []
+    for uid in order:
+        record = records[uid]
+        cached = (
+            previous.get(uid)
+            if type(uid) is int and (type(record) is dict or type(record) is TrackedRow)
+            else None
+        )
+        if cached is not None and _same_retained_record(record, cached):
+            current[uid] = cached
+            entries.append(cached[2])
+            continue
+        cacheable = type(uid) is int and _cacheable_retained_record(record)
+        if not cacheable:
+            entries.append(_retained_record(record))
+            continue
+        # Dict equality alone aliases True and 1; the hit guard also checks
+        # every value type against this detached, previously verified copy.
+        cached = _cached_retained_record(**record)
+        current[uid] = cached
+        entries.append(cached[2])
+    _RETAINED_POPULATIONS[owner] = current
+    return entries
+
+
+def _retained_read_population(fight, *, runtime=None):
+    """Share frozen values only; every caller still validates live ownership."""
+    from .combat_state import Fight
+
+    if (
+        type(fight) is Fight
+        and Fight.__getattribute__ is object.__getattribute__
+        and "native_retained_records" not in Fight.__dict__
+        and "native_retained_order" not in Fight.__dict__
+    ):
+        fields = vars(fight)
+        records, order = fields.get("native_retained_records"), fields.get(
+            "native_retained_order"
+        )
+        if (type(records) is dict or type(records) is OwnedMap) and (
+            type(order) is list or type(order) is OwnedOrder
+        ):
+            return _retained_population(fight, records, order)
+    # Do not pre-read custom attributes: condition's original comprehension
+    # retrieves the record mapping separately for every UID in the order.
+    if runtime is not None:
+        return _retained_population(
+            runtime, fight.native_retained_records, fight.native_retained_order
+        )
+    return [
+        _retained_record(fight.native_retained_records[uid])
+        for uid in fight.native_retained_order
+    ]
 
 
 def native_retained_condition_reader(fight):
@@ -101,6 +223,9 @@ def native_retained_condition_reader(fight):
     stored on Fight or reused across an effect, mutation or another query.
     """
     population = None
+    from .combat_retained_query import LocalQueries
+
+    local = LocalQueries(fight)
 
     def read(actor_id):
         nonlocal population
@@ -109,6 +234,16 @@ def native_retained_condition_reader(fight):
             or state_manager(fight, actor_id) is None
         ):
             raise ValueError("Unverified native retained condition population")
+        # A legacy fallback owns one immutable full-query projection. Custom
+        # callbacks during its construction must not re-enter old local routing.
+        if population is not None:
+            return population.get(actor_id, ())
+        selected = local.for_manager(actor_id)
+        if selected is not None:
+            return tuple(
+                (entry.generic_effect, entry.effect_class, entry.uid)
+                for entry in selected.entries
+            )
         if population is None:
             population = _native_retained_condition_population(fight)
         return population.get(actor_id, ())
@@ -142,10 +277,7 @@ def _native_retained_condition_population(fight):
         raise ValueError("Incomplete native retained condition population")
     view = NativeRetainedEffectView(
         fight,
-        [
-            _retained_record(fight.native_retained_records[uid])
-            for uid in fight.native_retained_order
-        ],
+        _retained_read_population(fight),
         population_verified_complete=True,
         _manager_pass=managers,
     )
@@ -221,7 +353,24 @@ def group_payload(
     )
 
 
+def _retained_definition_sequence(value):
+    """Share scalar definition sequences without changing custom iteration."""
+    if type(value) in (list, tuple) and all(type(item) is int for item in value):
+        return tuple(value)
+    return list(value)
+
+
 class NativeRetainedRuntime:
+    @property
+    def stat_handler(self):
+        from .combat_runtime_backrefs import resolved_owner
+
+        return resolved_owner(self._stat_handler_owner)
+
+    @stat_handler.setter
+    def stat_handler(self, value):
+        self._stat_handler_owner = value
+
     def __init__(
         self, fight, packets, *, plan, state_catalog, action_id, timing, metadata=None
     ):
@@ -245,7 +394,7 @@ class NativeRetainedRuntime:
             raise ValueError("Native retained population contains unregistered effects")
         self.container(None)
 
-    def _live(self, *, _manager_pass=None):
+    def _live(self, *, _manager_pass=None, _carrier_index=None):
         live = set(self.fight.owned_stat_effects)
         live.update(
             self.fight.state_wire_payloads,
@@ -253,49 +402,101 @@ class NativeRetainedRuntime:
             getattr(self.fight, "native_owned_area_effects", {}),
             getattr(self.fight, "native_owned_spatial_effects", {}),
         )
-        live.update(
-            e.uid
-            for a in (
-                state_managers(self.fight)
-                if _manager_pass is None
-                else _manager_pass.managers
-            )
-            for e in a.state_ledger.entries
+        managers = (
+            state_managers(self.fight)
+            if _manager_pass is None
+            else _manager_pass.managers
         )
+        if _carrier_index is None:
+            live.update(e.uid for actor in managers for e in actor.state_ledger.entries)
+        else:
+            for actor in managers:
+                for state in actor.state_ledger.entries:
+                    live.add(state.uid)
+                    _carrier_index.capture_carrier(actor, state)
         live.difference_update(pending_state_uids(self.fight))
         return live
 
-    def synchronize(self, *, _manager_pass=None):
-        live = self._live(_manager_pass=_manager_pass)
-        for uid in tuple(self.fight.native_retained_records):
-            if uid not in live:
-                del self.fight.native_retained_records[uid]
-        self.fight.native_retained_order[:] = [
-            uid for uid in self.fight.native_retained_order if uid in live
-        ]
+    def synchronize(self, *, _manager_pass=None, _uid_index=None):
+        from .combat_retained_registration_scope import native_membership_owner
+        from .combat_retained_reconciliation import reconcile_registered_uids
+        from . import combat_state_managers as manager_source
+
+        owner = None
+        if (
+            _manager_pass is None
+            and _uid_index is None
+            and type(self) is NativeRetainedRuntime
+            and state_managers is _SOURCE_STATE_MANAGERS
+            and manager_source.state_managers is _SOURCE_STATE_MANAGERS
+            and getattr(self._live, "__func__", None) is _SOURCE_LIVE
+        ):
+            owner = native_membership_owner(self.fight)
+        reconciled = owner is not None and reconcile_registered_uids(
+            owner, pending_state_uids(self.fight)
+        )
+        if not reconciled:
+            live = self._live(_manager_pass=_manager_pass)
+            for uid in tuple(self.fight.native_retained_records):
+                if uid not in live:
+                    del self.fight.native_retained_records[uid]
+            if _uid_index is None:
+                self.fight.native_retained_order[:] = [
+                    uid for uid in self.fight.native_retained_order if uid in live
+                ]
+            else:
+                order = []
+                for uid in self.fight.native_retained_order:
+                    if uid in live:
+                        order.append(uid)
+                        _uid_index.append(uid, self.fight.native_retained_records[uid])
+                self.fight.native_retained_order[:] = order
         facts = getattr(self.fight, "native_owned_state_containers", {})
-        users = set()
-        unhashable_users = []
-        if facts:
-            # These are fresh operation-local facts, not a retained cache.
-            # Scan owned children once instead of once per carrier snapshot.
-            for collection in (
-                self.fight.owned_stat_effects,
-                self.fight.native_owned_group_effects,
-                getattr(self.fight, "native_owned_area_effects", {}),
-                getattr(self.fight, "native_owned_spatial_effects", {}),
-            ):
-                for row in collection.values():
-                    state_uid = row.get("state_uid")
-                    try:
-                        users.add(state_uid)
-                    except TypeError:
-                        # Preserve legacy equality semantics for malformed
-                        # unhashable values; authority validation is separate.
-                        unhashable_users.append(state_uid)
-        for uid in tuple(facts):
-            if uid not in users and not any(value == uid for value in unhashable_users):
-                del facts[uid]
+        from .combat_retained_collections import bound_collections
+
+        source_owner = bound_collections(vars(self.fight))
+        facts_pruned = (
+            source_owner is not None
+            and source_owner.source_parents.prune_facts(
+                facts, {name: getattr(self.fight, name, None) for name in SOURCE_MAPS}
+            )
+        )
+        if not facts_pruned:
+            users = set()
+            unhashable_users = []
+            indexed_users = None
+            if facts:
+                from .combat_retained_collections import bound_collections
+
+                owner = bound_collections(vars(self.fight))
+                if owner is not None:
+                    indexed_users = owner.source_parents.parents(
+                        {name: getattr(self.fight, name, None) for name in SOURCE_MAPS}
+                    )
+            if indexed_users is not None:
+                users = indexed_users
+            elif facts:
+                # These are fresh operation-local facts, not a retained cache.
+                # Scan owned children once instead of once per carrier snapshot.
+                for collection in (
+                    self.fight.owned_stat_effects,
+                    self.fight.native_owned_group_effects,
+                    getattr(self.fight, "native_owned_area_effects", {}),
+                    getattr(self.fight, "native_owned_spatial_effects", {}),
+                ):
+                    for row in collection.values():
+                        state_uid = row.get("state_uid")
+                        try:
+                            users.add(state_uid)
+                        except TypeError:
+                            # Preserve legacy equality semantics for malformed
+                            # unhashable values; authority validation is separate.
+                            unhashable_users.append(state_uid)
+            for uid in tuple(facts):
+                if uid not in users and not any(
+                    value == uid for value in unhashable_users
+                ):
+                    del facts[uid]
         from .combat_state_managers import prune_retired_state_managers
 
         prune_retired_state_managers(self.fight)
@@ -467,7 +668,13 @@ class NativeRetainedRuntime:
             capture_owned_state_container(self.fight, entry.owner_uid)
         if uid in self.fight.native_retained_records:
             raise ValueError("Native effect already registered")
-        self.fight.native_retained_records[uid] = asdict(entry)
+        from .combat_retained_collections import OwnedMap
+
+        records = self.fight.native_retained_records
+        if type(records) is OwnedMap and records is records.owner.records:
+            records.install_owned(uid, asdict(entry))
+        else:
+            records[uid] = asdict(entry)
         self.fight.native_retained_order.append(uid)
 
     def _record_stat(self, uid, effect, invocation):
@@ -526,7 +733,7 @@ class NativeRetainedRuntime:
         ):
             raise ValueError("Missing exact native retained summon creation authority")
         container, _ = self.container(invocation)
-        self.fight.native_owned_group_effects[uid] = dict(
+        self.fight.native_owned_group_effects[uid] = OwnedStateSourceRow(
             uid=uid,
             target_id=None,
             effect_class=307,
@@ -715,9 +922,27 @@ class NativeRetainedRuntime:
         return fields[1] == 1
 
     def wrap(self, handler, *, state=False):
-        def execute_scoped(effect, values, invocation):
+        def execute_scoped(
+            effect, values, invocation, journal=None, indexed_owner=None
+        ):
             self.synchronize()
-            before = self._live()
+            before = self._live() if journal is None else journal
+
+            def candidates(name):
+                from .combat_retained_collections import bound_collections
+
+                if (
+                    indexed_owner is not None
+                    and indexed_owner.valid
+                    and bound_collections(vars(self.fight)) is indexed_owner
+                ):
+                    from .combat_retained_registration_scope import (
+                        registration_candidates,
+                    )
+
+                    return registration_candidates(indexed_owner, name)
+                return getattr(self.fight, name, {})
+
             post_registration = getattr(handler, "on_post_retention_registration", None)
             previous_area_uids = (
                 frozenset(getattr(self.fight, "native_effect_areas", {}))
@@ -845,13 +1070,13 @@ class NativeRetainedRuntime:
             # Register only finished carriers; native Qe.d inserts a carrier
             # after its eZk child iterator, not during that iterator.
             self.synchronize()
-            for uid in self.fight.state_wire_payloads:
+            for uid in candidates("state_wire_payloads"):
                 if (
                     uid not in self.fight.native_retained_records
                     and uid not in pending_state_uids(self.fight)
                 ):
                     self._record_carrier(uid, invocation)
-            for uid in self.fight.owned_stat_effects:
+            for uid in candidates("owned_stat_effects"):
                 if uid not in self.fight.native_retained_records:
                     if uid not in before:
                         self._record_stat(uid, effect, invocation)
@@ -859,9 +1084,8 @@ class NativeRetainedRuntime:
                         raise ValueError(
                             "Previously unregistered retained native stat effect"
                         )
-            for uid, row in getattr(
-                self.fight, "native_owned_area_effects", {}
-            ).items():
+            for uid in candidates("native_owned_area_effects"):
+                row = self.fight.native_owned_area_effects[uid]
                 if uid not in self.fight.native_retained_records:
                     if uid in before:
                         raise ValueError("Previously unregistered retained area effect")
@@ -900,7 +1124,28 @@ class NativeRetainedRuntime:
 
         def execute(effect, values, invocation):
             with self.container_scope(invocation):
-                return execute_scoped(effect, values, invocation)
+                from .combat_retained_registration_scope import (
+                    live_registration_scope,
+                    registration_owner,
+                )
+                from . import combat_state_managers as manager_source
+
+                owner = None
+                if (
+                    type(self) is NativeRetainedRuntime
+                    and state_managers is _SOURCE_STATE_MANAGERS
+                    and manager_source.state_managers is _SOURCE_STATE_MANAGERS
+                    and getattr(self._live, "__func__", None) is _SOURCE_LIVE
+                    and getattr(self.synchronize, "__func__", None)
+                    is _SOURCE_SYNCHRONIZE
+                ):
+                    owner = registration_owner(self.fight, handler)
+                if owner is None:
+                    return execute_scoped(effect, values, invocation)
+                with live_registration_scope(
+                    owner, pending_state_uids(self.fight)
+                ) as journal:
+                    return execute_scoped(effect, values, invocation, journal, owner)
 
         execute.native_runner_value_verified = getattr(
             handler, "native_runner_value_verified", False
@@ -1557,8 +1802,10 @@ class NativeRetainedRuntime:
             ),
             native_subscription_masks=effect["target_masks"],
             native_selector=effect["native_target_selector"],
-            native_effect_flags=list(effect["native_effect_flags"]),
-            children=list(effect["children"]),
+            native_effect_flags=_retained_definition_sequence(
+                effect["native_effect_flags"]
+            ),
+            children=_retained_definition_sequence(effect["children"]),
             variant=effect["variant"],
             record=record,
         )
@@ -1638,7 +1885,7 @@ class NativeRetainedRuntime:
             return
         if pending.get("native_null_qf") is True:
             return
-        row = dict(pending)
+        row = OwnedStateSourceRow(pending)
         record = row.pop("record")
         effect = row.pop("_delivery_effect")
         invocation = row.pop("_delivery_invocation")
@@ -1717,9 +1964,9 @@ class NativeRetainedRuntime:
             return None
 
         fight = self.fight
-        if (
-            type(fight.actors) is not dict
-            or type(fight.native_retained_order) is not list
+        if (type(fight.actors) is not dict and type(fight.actors) is not OwnedMap) or (
+            type(fight.native_retained_order) is not list
+            and type(fight.native_retained_order) is not OwnedOrder
         ):
             return None
         for actor in (*fight.actors.values(), *detached_actors(fight)):
@@ -1736,10 +1983,47 @@ class NativeRetainedRuntime:
             "native_retired_area_managers",
         ):
             rows = getattr(fight, name, {})
-            if type(rows) is not dict or any(
-                type(row) is not dict for row in rows.values()
+            if (
+                type(rows) is not dict
+                and type(rows) is not OwnedMap
+                and not (
+                    name == "native_owned_state_containers"
+                    and type(rows) is OwnedContainerFacts
+                )
             ):
                 return None
+            for row in rows.values():
+                if (
+                    type(row) is dict
+                    or type(row) is TrackedRow
+                    or type(row) is OwnedAreaRow
+                ):
+                    continue
+                native_source = (
+                    name in SOURCE_MAPS and type(row) is OwnedStateSourceRow
+                ) or (
+                    name == "native_owned_state_containers"
+                    and type(row) is OwnedContainerRow
+                )
+                if not native_source:
+                    return None
+                # Only the exact native mapping's ordinary reads are pure.
+                # Mutators notify indexes, but do not run during this view.
+                if any(
+                    getattr(type(row), method) is not getattr(dict, method)
+                    or method in vars(row)
+                    for method in (
+                        "get",
+                        "items",
+                        "keys",
+                        "values",
+                        "__iter__",
+                        "__getitem__",
+                        "__contains__",
+                        "__len__",
+                    )
+                ):
+                    return None
         for rows in (
             getattr(fight, "native_effect_areas", {}),
             getattr(fight, "native_retired_area_managers", {}),
@@ -1753,6 +2037,11 @@ class NativeRetainedRuntime:
 
     def view(self):
         managers = self._pure_view_manager_pass()
+        wire_pass = None
+        if managers is not None and type(self) is NativeRetainedRuntime:
+            from .combat_retained_effects import _RetainedWirePass
+
+            wire_pass = _RetainedWirePass(_RETAINED_WIRE_POPULATIONS.get(self, {}))
 
         def bindings():
             return tuple(
@@ -1781,15 +2070,65 @@ class NativeRetainedRuntime:
         ordered = set(self.fight.native_retained_order)
         if ordered != records or len(self.fight.native_retained_order) != len(ordered):
             raise ValueError("Native retained insertion order is inconsistent")
-        return NativeRetainedEffectView(
+        view = NativeRetainedEffectView(
             self.fight,
-            [
+            _retained_read_population(self.fight, runtime=self)
+            if type(self) is NativeRetainedRuntime
+            else [
                 _retained_record(self.fight.native_retained_records[uid])
                 for uid in self.fight.native_retained_order
             ],
             population_verified_complete=self.fight.native_retained_tracking,
             _manager_pass=managers,
+            _wire_pass=wire_pass,
         )
+        if wire_pass is not None:
+            _RETAINED_WIRE_POPULATIONS[self] = wire_pass.current
+        return view
+
+    def event_population(self):
+        from .combat_structural_qf_scope import event_frame
+        from .combat_structural_event_view import NativeRetainedEventPopulation
+        from .combat_structural_uid_index import UidIndex
+
+        frame = event_frame(self)
+        if frame is None:
+            return self.view()
+        managers = self._pure_view_manager_pass()
+        if managers is None:
+            # Opaque storage/lookup providers retain the complete legacy path,
+            # without index traversal or a second preliminary synchronize.
+            return self.view()
+        index = UidIndex(self.fight)
+
+        def bindings():
+            return tuple(
+                tuple((identity, id(row)) for identity, row in rows.items())
+                for rows in (
+                    self.fight.actors,
+                    getattr(self.fight, "native_effect_areas", {}),
+                    getattr(self.fight, "native_retired_area_managers", {}),
+                )
+            )
+
+        before = bindings()
+        self.synchronize(_manager_pass=managers, _uid_index=index)
+        # Pruning may remove a Qq. Such a pass must be discarded: its former
+        # target is no longer a valid PV even when its ledger was empty.
+        if bindings() != before:
+            managers = _RetainedManagerPass(self.fight)
+        records = set(self.fight.native_retained_records)
+        if self._live(_manager_pass=managers, _carrier_index=index) != records:
+            raise ValueError(
+                "Unregistered native retained effects prevent complete view"
+            )
+        ordered = set(self.fight.native_retained_order)
+        if ordered != records or len(self.fight.native_retained_order) != len(ordered):
+            raise ValueError("Native retained insertion order is inconsistent")
+        if not index.valid:
+            frame.counts["index_shape_fallbacks"] += 1
+            return self.view()
+        return NativeRetainedEventPopulation(self, index, managers, frame)
 
     def condition_effects(self, actor_id):
         """Qf-ordered (generic definition ID, action class, running UID) for one actor.
@@ -1805,7 +2144,16 @@ class NativeRetainedRuntime:
         remove_owned_group(self.fight, self.packets, action_id=self.action_id, uid=uid)
         self.synchronize()
 
-    def removal(self, view):
+    def removal(self, view, *, _fixed_view=False):
+        from .combat_structural_event_view import NativeRetainedEventView
+
+        if type(view) is NativeRetainedEventView:
+            view = self.view()
+        from .combat_retained_removal_query import NativeRetainedRemovalView
+
+        selected_entries = (
+            view.entries if type(view) is NativeRetainedRemovalView else None
+        )
         removal = NativeRetainedRemoval(view)
         register_owned_removals(
             removal,
@@ -1813,6 +2161,8 @@ class NativeRetainedRuntime:
             packets=self.packets,
             action_id=self.action_id,
             area_events=getattr(self, "area_events", None),
+            _selected_entries=selected_entries,
+            _fixed_view=_fixed_view,
         )
         from .combat_subscription_runners import SUBSCRIPTION_FAMILIES
 
@@ -1870,3 +2220,75 @@ def remove_owned_stat(handler, uid):
     from .combat_retained_mutation import retire_stat
 
     return retire_stat(handler, uid)
+
+
+_SOURCE_VIEW = NativeRetainedRuntime.view
+_SOURCE_LIVE = NativeRetainedRuntime._live
+
+_SOURCE_STATE_MANAGERS = state_managers
+
+_SOURCE_SYNCHRONIZE = NativeRetainedRuntime.synchronize
+
+_SOURCE_REMOVAL = NativeRetainedRuntime.removal
+_SOURCE_REGISTER_OWNED_REMOVALS = register_owned_removals
+
+
+_UNSET_REMOVAL_PROVIDER = object()
+
+
+def remove_now(
+    retention, view, uids, *, _snapshot_uids=False, _provider=_UNSET_REMOVAL_PROVIDER
+):
+    """Consume a private native removal handle without changing the public API."""
+    from types import MethodType
+    from .combat_structural_event_view import NativeRetainedEventView
+    from .combat_retained_removal_query import NativeRetainedRemovalView
+    from .combat_retained_effects import (
+        _SOURCE_REMOVAL_PLAN,
+        _SOURCE_REMOVAL_REMOVE,
+        _SOURCE_REMOVAL_INIT,
+        _SOURCE_REMOVAL_REGISTER,
+    )
+    from . import combat_pointer_qi_spatialowned as spatial
+
+    native = (
+        type(retention) is NativeRetainedRuntime
+        and NativeRetainedRuntime.__getattribute__ is object.__getattribute__
+        and type(view)
+        in (
+            NativeRetainedEffectView,
+            NativeRetainedEventView,
+            NativeRetainedRemovalView,
+        )
+        and NativeRetainedRemoval.plan is _SOURCE_REMOVAL_PLAN
+        and NativeRetainedRemoval.remove is _SOURCE_REMOVAL_REMOVE
+        and NativeRetainedRemoval.__init__ is _SOURCE_REMOVAL_INIT
+        and NativeRetainedRemoval.register is _SOURCE_REMOVAL_REGISTER
+        and register_owned_removals is _SOURCE_REGISTER_OWNED_REMOVALS
+        and spatial.register_spatial_removals
+        is spatial._SOURCE_REGISTER_SPATIAL_REMOVALS
+    )
+    provider = retention.removal if _provider is _UNSET_REMOVAL_PROVIDER else _provider
+    native = (
+        native
+        and type(provider) is MethodType
+        and provider.__self__ is retention
+        and provider.__func__ is _SOURCE_REMOVAL
+    )
+    removal = provider(view, _fixed_view=True) if native else provider(view)
+    return removal.remove(tuple(uids) if _snapshot_uids else uids)
+
+
+# Original native consumers of a stored listener invocation.
+_GROUP_HISTORY_METHODS = tuple(
+    (NativeRetainedRuntime, name, getattr(NativeRetainedRuntime, name))
+    for name in (
+        "__init__",
+        "__getattribute__",
+        "replay_container",
+        "_legacy_spell_container",
+        "_validate_replay_container",
+        "container_scope",
+        "container",
+    )
+)

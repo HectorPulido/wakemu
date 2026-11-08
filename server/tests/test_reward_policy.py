@@ -729,17 +729,23 @@ class RewardPolicyPostgresTests(PostgresCase):
             db.execute(
                 "UPDATE combat_fights SET status='active' WHERE id=%s", (self.fight_id,)
             )
-        with self.assertRaisesRegex(ValueError, "finished winning"):
-            with self.store.connection() as db:
-                resolve(
-                    self.store,
-                    db,
-                    account_id=self.account_id,
-                    generation=self.generation,
-                    character_id=self.character["id"],
-                    fight_id=self.fight_id,
-                    context=self.ctx,
-                )
+        from types import SimpleNamespace
+
+        for rift_fight in (None, SimpleNamespace(id=self.fight_id)):
+            with self.subTest(rift_fight=rift_fight), self.assertRaisesRegex(
+                ValueError, "finished winning"
+            ):
+                with self.store.connection() as db:
+                    resolve(
+                        self.store,
+                        db,
+                        account_id=self.account_id,
+                        generation=self.generation,
+                        character_id=self.character["id"],
+                        fight_id=self.fight_id,
+                        context=self.ctx,
+                        rift_fight=rift_fight,
+                    )
 
     def test_injected_caller_rollback_removes_policy_snapshot(self):
         with self.assertRaises(RuntimeError):

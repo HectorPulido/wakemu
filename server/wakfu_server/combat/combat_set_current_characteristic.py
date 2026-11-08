@@ -3,6 +3,7 @@
 The requested amount, mutable Qe value and immutable removal delta are distinct.
 No state or spell reference participates in dispatch.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from wakfu_server import native_catalog as protocol_catalog
 from dataclasses import replace
 from functools import lru_cache
@@ -242,7 +243,7 @@ class NativeSetCurrentCharacteristicHandler:
 
         payload = payload_for(after)
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=target.id,
                 caster_id=invocation.caster_id,

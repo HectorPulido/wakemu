@@ -16,6 +16,16 @@ SUPPORTED_AREA_EVENTS = frozenset({10000, 10001, 10002, 10006, 10008, 10011})
 
 
 class NativeAreaEventRuntime:
+    @property
+    def dispatcher(self):
+        from .combat_runtime_backrefs import resolved_owner
+
+        return resolved_owner(self._dispatcher_owner)
+
+    @dispatcher.setter
+    def dispatcher(self, value):
+        self._dispatcher_owner = value
+
     def __init__(
         self,
         fight,
@@ -560,7 +570,10 @@ class NativeAreaEventRuntime:
         live = [uid for uid in uids if uid in self.fight.native_retained_records]
         if live:
             retention = self.dispatcher.native_retention
-            retention.removal(retention.view()).remove(live)
+            from .combat_retained_runtime import remove_now
+
+            removal_provider = retention.removal
+            remove_now(retention, retention.view(), live, _provider=removal_provider)
             retention.synchronize()
         children.pop(str(target.id), None)
         return bool(live)
@@ -597,7 +610,10 @@ class NativeAreaEventRuntime:
             retention.synchronize()
             if uid not in self.fight.native_retained_records:
                 raise ValueError("Missing actual faV parent eYQ in Qf")
-            retention.removal(retention.view()).remove((uid,))
+            from .combat_retained_runtime import remove_now
+
+            removal_provider = retention.removal
+            remove_now(retention, retention.view(), (uid,), _provider=removal_provider)
             retention.synchronize()
         else:
             from .combat_effect_area import remove_owned_hour_area

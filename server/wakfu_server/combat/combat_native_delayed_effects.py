@@ -37,6 +37,16 @@ def timing_scope(effect, mode, uid=None, *, preflight_accepted=False):
 
 
 class NativeDelayedEffects:
+    @property
+    def dispatcher(self):
+        from .combat_runtime_backrefs import resolved_owner
+
+        return resolved_owner(self._dispatcher_owner)
+
+    @dispatcher.setter
+    def dispatcher(self, value):
+        self._dispatcher_owner = value
+
     def __init__(self, dispatcher, retention, lifecycle):
         if (
             retention is None

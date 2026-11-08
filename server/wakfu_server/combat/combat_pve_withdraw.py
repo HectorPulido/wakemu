@@ -173,6 +173,19 @@ def plan(session, fight, runtime):
     from .combat_summon_retirement import retired_summon_ids
 
     retired_summons = retired_summon_ids(candidate)
+    # A surviving teammate can retain a native artifact whose original caster
+    # leaves here. Capture its source facts before QI/PV retirement; active
+    # authority remains unavailable after departure.
+    from .combat_retained_departure_source import capture_departure_sources
+
+    factory = getattr(candidate_runtime, "expiration_runtime_factory", None)
+    if callable(factory):
+        source_factory = factory(action_id=candidate_runtime.action_id + 1)
+        capture_departure_sources(
+            candidate,
+            set(removed) - set(retired_summons),
+            getattr(source_factory, "summon_authority", None),
+        )
     for identity in removed:
         if identity in retired_summons:
             # Final descendants already released QI and captured availability.
@@ -262,8 +275,13 @@ def plan(session, fight, runtime):
         # Legacy domains without native topology retain their existing codec.
         private.fight.actors[session.character_id].pve_withdrawn = False
     losers = [session.character_id]
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    hidden = hidden_snapshot_actor_ids(fight)
     winners = [
-        member.id for member in fight.actors.values() if member.team != actor.team
+        member.id
+        for member in fight.actors.values()
+        if member.team != actor.team and member.id not in hidden
     ]
     if not winners or max(len(losers), len(winners)) > 127:
         raise ValueError("Unsupported PvE withdrawal result layout")

@@ -179,6 +179,37 @@ class PublicationSpool:
         return result
 
 
+def merge_resolution_definitions(variants, *, own=None):
+    """Keep destination definitions; resolve only missing foreign identities.
+
+    Existing variants can intentionally have different metadata completeness.
+    Never replace their admitted definition. An absent reference requires one
+    unambiguous foreign execution definition, independent of provider order.
+    """
+    from wakfu_server.combat_owned_equipment_pin import _execution_effect_definition
+
+    own = {} if own is None else own
+    merged = {reference: raw_value(own, reference) for reference in own}
+    for name, effects in variants:
+        for reference in effects:
+            if reference in own:
+                continue
+            effect = raw_value(effects, reference)
+            if reference in merged and (
+                native_json(_execution_effect_definition(merged[reference]))
+                != native_json(_execution_effect_definition(effect))
+            ):
+                raise ValueError(
+                    "Conflicting retained definition across variants: "
+                    + str(reference)
+                    + " ("
+                    + name
+                    + ")"
+                )
+            merged.setdefault(reference, effect)
+    return merged
+
+
 def compile_manifest(spool, identity):
     from wakfu_server import native_catalog
     from wakfu_server.paths import DATA_ROOT
@@ -208,18 +239,39 @@ def compile_manifest(spool, identity):
         ("npc_baseline", lambda: compile_npc_runtime_catalog_eager(imported=False)),
         ("weapon", compile_weapon_runtime_catalog_eager),
     )
-    for variant, constructor in constructors:
-        compiled = constructor()
-        source_name, effect_name = variant + ".source_effects", variant + ".effects"
-        spool.collection(source_name, compiled.source_effects)
-        spool.collection(effect_name, compiled.effects, representation="frozen_effect")
-        manifest["variants"][variant] = dict(
-            source_effects=source_name, effects=effect_name
+    compiled_variants = [
+        (variant, constructor()) for variant, constructor in constructors
+    ]
+    # A live Qf may contain a runner admitted by another actor's variant.
+    # Lookup must resolve that original definition without granting its entry
+    # roots to the current actor or changing the NPC activation policy.
+    from wakfu_server.combat_static_catalogs import ImmutableCatalog
+
+    for variant, compiled in compiled_variants:
+        # Original order and own rows remain byte-equivalent. Only references
+        # absent from this variant need a shared retained-resolution definition.
+        resolved = ImmutableCatalog(
+            merge_resolution_definitions(
+                (
+                    (name, foreign.effects)
+                    for name, foreign in compiled_variants
+                    if name != variant
+                ),
+                own=compiled.effects,
+            )
         )
-        index = original_output_index(compiled.effects)
+        index = original_output_index(resolved)
+        source_name, effect_name = variant + ".source_effects", variant + ".effects"
+        entry_name = variant + ".entry_effects"
+        spool.collection(source_name, compiled.source_effects)
+        spool.collection(entry_name, dict.fromkeys(compiled.effects, True))
+        spool.collection(effect_name, resolved, representation="frozen_effect")
+        manifest["variants"][variant] = dict(
+            source_effects=source_name, effects=effect_name, entry_effects=entry_name
+        )
         manifest["original_output_index"][variant] = [
             [str(reference), index[reference][0], sorted(index[reference][1])]
-            for reference in compiled.effects
+            for reference in resolved
             if reference in index
         ]
     for name in RAW_DOCUMENTS:

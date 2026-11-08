@@ -301,13 +301,15 @@ def replay_movement_payment(dispatcher, policy):
     """Publish actual paid MP once, without paying again or changing spell policy."""
     if policy is None:
         return ()
+    from .combat_owned_movement_step import owns_step_preview
+
     fight = dispatcher.native_retention.fight
     actor = fight.actors.get(policy.payer_id)
     receipt = policy.receipt
     if (
         actor is None
         or fight.phase != "active"
-        or fight is policy.source_fight
+        or (fight is policy.source_fight and not owns_step_preview(fight, policy))
         or policy.publication
         or fight.id != receipt["fight_id"]
         or fight.current is not actor

@@ -95,6 +95,8 @@ class AsyncDiagnosticLog:
                     self.dropped += dropped + original_count
                     self.write_errors += errors + 1
             finally:
+                # Do not retain the completed batch while the worker is idle.
+                rows = None
                 with self.condition:
                     self.active = False
                     self.condition.notify_all()

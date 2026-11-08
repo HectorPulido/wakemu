@@ -105,17 +105,127 @@ def set_global_fighter_status(fight, identity, status):
     state["fighter_status"][str(identity)] = status
 
 
+def _ordinary_topology_consumer_scope(fight):
+    """Suspend proofs before an opaque collection/provider can run or reenter."""
+    from contextlib import nullcontext
+    from .combat_ordinary_events import _fallback_phase_read_pass
+    from .combat_state import Fight
+
+    if (
+        type(fight) is not Fight
+        or NativeTroveLongMap is not _SOURCE_TROVE_TYPE
+        or _collections is not _SOURCE_COLLECTIONS
+        or any(
+            NativeTroveLongMap.__dict__.get(name) is not method
+            for name, method in _SOURCE_TROVE_METHODS.items()
+        )
+    ):
+        return _fallback_phase_read_pass(None)
+    storage = object.__getattribute__(fight, "__dict__")
+    state = storage.get("native_global_pv_collections")
+    if type(state) is not dict:
+        return _fallback_phase_read_pass(None)
+    topology = state.get("fighters")
+    if (
+        type(topology) is not dict
+        or type(topology.get("keys")) is not list
+        or type(topology.get("states")) is not list
+        or type(state.get("fighter_status")) is not dict
+        or type(state.get("retired_fighters")) is not list
+    ):
+        return _fallback_phase_read_pass(None)
+    return nullcontext()
+
+
+def _ordinary_fighter_topology(fight, state, *, native=False):
+    """Immutable topology facts inside the exact callback-free ordinary pass."""
+    from .combat_ordinary_events import _ordinary_phase_facts, _fallback_phase_read_pass
+
+    def uncached():
+        # Opaque fallbacks may mutate in place and then restore their provider.
+        # Discard prior proofs before such a boundary can revive them.
+        with _fallback_phase_read_pass(None):
+            pass
+        return None
+
+    if (
+        NativeTroveLongMap is not _SOURCE_TROVE_TYPE
+        or _collections is not _SOURCE_COLLECTIONS
+        or any(
+            NativeTroveLongMap.__dict__.get(name) is not method
+            for name, method in _SOURCE_TROVE_METHODS.items()
+        )
+    ):
+        return uncached()
+    if type(state) is not dict:
+        return uncached()
+    topology = state.get("fighters")
+    if (
+        type(topology) is not dict
+        or type(topology.get("keys")) is not list
+        or type(topology.get("states")) is not list
+    ):
+        return uncached()
+    facts = _ordinary_phase_facts(fight)
+    if facts is None:
+        return None
+    bindings = (fight, state, topology, topology["keys"], topology["states"])
+    populations = facts.setdefault("fighter_topologies", {})
+    previous = populations.get(id(fight))
+    if previous is not None and all(a is b for a, b in zip(previous[0], bindings)):
+        return previous[2] if native else previous[1]
+    if native:
+        return None  # Iterator reuse never creates an additional proof walk.
+    native = NativeTroveLongMap(topology)
+    order = native.order()
+    # A malformed slot placement may pass shape validation but fail contains.
+    # Do not replace its probing/error semantics with mere set membership.
+    if 0 not in topology["states"] or any(
+        not native.contains(identity) for identity in order
+    ):
+        return uncached()
+    result = (order, frozenset(order))
+    populations[id(fight)] = (bindings, result, native)
+    return result
+
+
+def _ordinary_fighter_contains(fight, state, identity):
+    from .combat_ordinary_events import _fallback_phase_read_pass
+
+    if type(identity) is not int or not -(1 << 63) <= identity < (1 << 63):
+        with _fallback_phase_read_pass(None):
+            return NativeTroveLongMap(state["fighters"]).contains(identity)
+    topology = _ordinary_fighter_topology(fight, state)
+    if topology is None:
+        with _fallback_phase_read_pass(None):
+            return NativeTroveLongMap(state["fighters"]).contains(identity)
+    return identity in topology[1]
+
+
+def ordinary_fighter_order(fight, state):
+    from .combat_ordinary_events import _fallback_phase_read_pass
+
+    topology = _ordinary_fighter_topology(fight, state)
+    if topology is None:
+        with _fallback_phase_read_pass(None):
+            return NativeTroveLongMap(state["fighters"]).order()
+    return topology[0]
+
+
 def global_fighter_guards(fight, identity):
     """eGj.baF/baG/baK project actual fdy status, independently of HP."""
-    state = _collections(fight)
-    if not NativeTroveLongMap(state["fighters"]).contains(identity):
-        raise ValueError("Actual native fdy registration required")
-    status = state["fighter_status"].get(str(identity))
-    if status not in ("IN_PLAY", "OFF_PLAY", "OUT_OF_PLAY"):
-        raise ValueError("Missing actual native fighter status")
-    return dict(
-        baF=status == "IN_PLAY", baG=status == "OFF_PLAY", baK=status == "OUT_OF_PLAY"
-    )
+    with _ordinary_topology_consumer_scope(fight):
+        state = _collections(fight)
+        if not _ordinary_fighter_contains(fight, state, identity):
+            raise ValueError("Actual native fdy registration required")
+        status = state["fighter_status"].get(str(identity))
+        if status not in ("IN_PLAY", "OFF_PLAY", "OUT_OF_PLAY"):
+            raise ValueError("Missing actual native fighter status")
+        return dict(
+            baF=status == "IN_PLAY",
+            baG=status == "OFF_PLAY",
+            baK=status == "OUT_OF_PLAY",
+        )
 
 
 def global_fighter_registered(fight, identity):
@@ -124,33 +234,35 @@ def global_fighter_registered(fight, identity):
     Owned registration follows eGj.a(fcb), which writes pGz=true; native
     withdrawal removes that registration. This is not an HP/baF projection.
     """
-    state = _collections(fight)
-    registered = NativeTroveLongMap(state["fighters"]).contains(identity)
-    if registered:
-        if identity in state["retired_fighters"]:
-            raise ValueError("Native fighter is both registered and retired")
-        global_fighter_guards(fight, identity)
-        return True
-    if (
-        identity in state["retired_fighters"]
-        and str(identity) not in state["fighter_status"]
-    ):
-        return False
-    raise ValueError("Missing actual native fighter registration authority")
+    with _ordinary_topology_consumer_scope(fight):
+        state = _collections(fight)
+        registered = _ordinary_fighter_contains(fight, state, identity)
+        if registered:
+            if identity in state["retired_fighters"]:
+                raise ValueError("Native fighter is both registered and retired")
+            global_fighter_guards(fight, identity)
+            return True
+        if (
+            identity in state["retired_fighters"]
+            and str(identity) not in state["fighter_status"]
+        ):
+            return False
+        raise ValueError("Missing actual native fighter registration authority")
 
 
 def global_fighter_participates(fight, identity):
     """Use actual fdy IN_PLAY or attested fdt removal, never current HP."""
-    state = _collections(fight)
-    registered = NativeTroveLongMap(state["fighters"]).contains(identity)
-    retired = identity in state["retired_fighters"]
-    if not registered:
-        if retired and str(identity) not in state["fighter_status"]:
-            return False
-        raise ValueError("Missing actual native fighter participation authority")
-    if retired:
-        raise ValueError("Native fighter is both registered and retired")
-    return global_fighter_guards(fight, identity)["baF"]
+    with _ordinary_topology_consumer_scope(fight):
+        state = _collections(fight)
+        registered = _ordinary_fighter_contains(fight, state, identity)
+        retired = identity in state["retired_fighters"]
+        if not registered:
+            if retired and str(identity) not in state["fighter_status"]:
+                return False
+            raise ValueError("Missing actual native fighter participation authority")
+        if retired:
+            raise ValueError("Native fighter is both registered and retired")
+        return global_fighter_guards(fight, identity)["baF"]
 
 
 def unregister_global_fighter(fight, identity):
@@ -191,7 +303,33 @@ def global_pv_iterator(fight, *, caster_id, caster_only=None):
     state = _collections(fight)
     if caster_only is None:
         caster_only = state["mode"] == "rRo" and caster_id is not None
-    fighters = NativeTroveLongMap(state["fighters"])
+    if (
+        caster_only is True
+        and type(caster_id) is int
+        and type(state) is dict
+        and type(state["mode"]) is str
+        and _collections is _SOURCE_COLLECTIONS
+        and NativeTroveLongMap is _SOURCE_TROVE_TYPE
+        and native_global_event_iterator is _SOURCE_NATIVE_GLOBAL_EVENT_ITERATOR
+    ):
+        # Native rRo emits its actual caster without consulting fcd membership
+        # or materializing the fdt/Qs/fbX segments. Invalid/custom inputs keep
+        # the original preparation and validation order below.
+        return native_global_event_iterator(
+            fighter_order=(),
+            area_order=(),
+            extra_order=(),
+            eligible=lambda identity: False,
+            caster_only=True,
+            caster_id=caster_id,
+        )
+    # The validated wrapper keeps the original live topology by reference.
+    # Reuse only an already-present proof from the existing ordinary pass;
+    # order and membership below still use the original native operations.
+    with _ordinary_topology_consumer_scope(fight):
+        fighters = _ordinary_fighter_topology(fight, state, native=True)
+    if fighters is None:
+        fighters = NativeTroveLongMap(state["fighters"])
     areas = NativeTroveLongMap(state["areas"])
     extras = NativeTroveLongMap(state["extras"])
     fighter_ids = set(fighters.order())
@@ -227,3 +365,14 @@ def global_pv_iterator(fight, *, caster_id, caster_only=None):
         caster_only=caster_only,
         caster_id=caster_id,
     )
+
+
+_SOURCE_TROVE_TYPE = NativeTroveLongMap
+_SOURCE_COLLECTIONS = _collections
+_SOURCE_TROVE_METHODS = {
+    name: NativeTroveLongMap.__dict__[name]
+    for name in ("__init__", "_slot", "contains", "order")
+}
+
+_SOURCE_GLOBAL_PV_ITERATOR = global_pv_iterator
+_SOURCE_NATIVE_GLOBAL_EVENT_ITERATOR = native_global_event_iterator

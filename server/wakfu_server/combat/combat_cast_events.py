@@ -65,6 +65,18 @@ def cast_boundary_context(fight, plan):
 
 
 def _deliver(dispatcher, plan, event_id, context=None, *, removal=False):
+    from .combat_external_read_pass import external_read_pass
+
+    with external_read_pass(
+        dispatcher.native_retention.fight,
+        dispatcher.replay_event,
+        dispatcher.native_clone_authority,
+        dispatcher.native_retention,
+    ):
+        return _deliver_scoped(dispatcher, plan, event_id, context, removal=removal)
+
+
+def _deliver_scoped(dispatcher, plan, event_id, context=None, *, removal=False):
     fight = dispatcher.native_retention.fight
     authority = dispatcher.native_clone_authority
     caster_id = plan["actor_id"]
@@ -85,27 +97,33 @@ def _deliver(dispatcher, plan, event_id, context=None, *, removal=False):
             )
         )
     if hasattr(fight, "native_global_pv_collections"):
-        from .combat_global_pv_collections import global_pv_iterator
+        from .combat_external_read_pass import external_global_iterator
         from .combat_state_managers import registered_area_pv
 
-        for identity in global_pv_iterator(fight, caster_id=caster_id):
-            if identity not in fight.actors:
-                manager = registered_area_pv(fight, identity)
-                if manager is None:
-                    raise ValueError("Cast event global PV manager absent")
-                if not manager.native_running_effect_manager:
-                    continue
-            outcomes.extend(
-                dispatcher.replay_event(
-                    NativeExternalEvent(
-                        identity,
-                        (event_id,),
-                        global_channel,
-                        cast_boundary_context=context,
-                    ),
-                    authority=authority,
-                )
-            )
+        from contextlib import closing
+
+        with closing(external_global_iterator(fight, caster_id)) as recipients:
+            for identity in recipients:
+                from .combat_external_read_pass import external_recipient_read
+
+                with external_recipient_read(fight, identity, dispatcher.replay_event):
+                    if identity not in fight.actors:
+                        manager = registered_area_pv(fight, identity)
+                        if manager is None:
+                            raise ValueError("Cast event global PV manager absent")
+                        if not manager.native_running_effect_manager:
+                            continue
+                    outcomes.extend(
+                        dispatcher.replay_event(
+                            NativeExternalEvent(
+                                identity,
+                                (event_id,),
+                                global_channel,
+                                cast_boundary_context=context,
+                            ),
+                            authority=authority,
+                        )
+                    )
     else:
         # Bare focused runtimes can have no global observers. Never invent
         # native map order from a Python roster when an observer does exist.

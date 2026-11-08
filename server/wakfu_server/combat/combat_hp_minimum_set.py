@@ -1,4 +1,5 @@
 """Native eXw830: PA.aZg on actual present HP, without KO-clock mutation."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_kill import NativeKillHandler
 from .combat_stat_handler import StatExecutionContext
@@ -179,7 +180,7 @@ class NativeHPMinimumSetHandler(NativeKillHandler):
 
                 set_global_fighter_status(self.fight, actor.id, "OFF_PLAY")
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=invocation.target_id,
                 caster_id=invocation.caster_id,

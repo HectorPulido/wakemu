@@ -96,8 +96,23 @@ def _prepare_spell_transaction(
         raise ValueError("Invalid spell action ID")
     if type(critical) is not bool:
         raise ValueError("Missing explicit critical branch")
-    source_state, preview = private_entry_preview(
-        fight, snapshot=source_snapshot, clone=deepcopy
+    from .combat_owned_native_spell_entry import owned_entry_preview
+    from .combat_server_spell import _OWNED_PREPARE_SERVER_SPELL
+
+    owned = (
+        owned_entry_preview(
+            fight,
+            producer=_OWNED_PREPARE_SERVER_SPELL,
+            factory=runtime_factory,
+            action_id=action_id,
+        )
+        if plan_builder is _OWNED_PLAN_BUILDER
+        else None
+    )
+    source_state, preview = (
+        owned
+        if owned is not None
+        else private_entry_preview(fight, snapshot=source_snapshot, clone=deepcopy)
     )
     plan = plan_builder(
         body,
@@ -253,3 +268,6 @@ def _prepare_spell_transaction(
         source_state,
         action_id,
     )
+
+
+_OWNED_PLAN_BUILDER = prepare_spell_cast

@@ -681,3 +681,8 @@ def prepare_server_terminal_cleanup(
     with preview.effect_resolution():
         deliver_terminal_helper_cleanup(dispatcher)
     return preview, tuple(packets)
+
+
+# Exact producers admitted by the private World cast ownership scope.
+_OWNED_PREPARE_SERVER_SPELL = prepare_server_spell
+_OWNED_SERVER_RUNTIME = server_runtime

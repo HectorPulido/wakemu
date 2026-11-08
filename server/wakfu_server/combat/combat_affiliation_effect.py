@@ -1,4 +1,5 @@
 """eYV1030 changes actual bcM affiliation and restores its saved signed byte."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_parameters import parameter_value
 from .combat_trigger_value_modifier import NativeRunnerAmount
@@ -175,7 +176,7 @@ class NativeAffiliationHandler:
 
         payload = payload_for(runner.value)
         if context.retained:
-            self.fight.owned_stat_effects[runner.uid] = dict(
+            self.fight.owned_stat_effects[runner.uid] = OwnedStateSourceRow(
                 uid=runner.uid,
                 target_id=target_id,
                 caster_id=invocation.caster_id,

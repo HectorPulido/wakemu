@@ -167,14 +167,24 @@ def _ko_current(actor):
 
 def retired_summon_ids(fight, *, registry=None, pv_view=None):
     """Validate persistent retirement records and return their actor IDs."""
-    if pv_view is None:
+    return _retired_summon_ids(fight, registry=registry, pv_view=pv_view)
+
+
+def retired_summon_actor(fight, actor_id):
+    """Validate one existing summon receipt with the shared native proof."""
+    return actor_id in _retired_summon_ids(fight, selected=actor_id)
+
+
+def _retired_summon_ids(fight, *, registry=None, pv_view=None, selected=None):
+    """Validate persistent retirement records and return their actor IDs."""
+    if pv_view is None and selected is None:
         from .combat_global_pv_read_view import NativeGlobalPVReadView
 
         pv_view = NativeGlobalPVReadView(fight)
     records = getattr(fight, "native_summon_retirements", {})
     if not isinstance(records, dict):
         raise ValueError("Malformed native summon retirement checkpoint")
-    if not records:
+    if not records or (selected is not None and selected not in records):
         return frozenset()
     if registry is None:
         arena = getattr(fight, "native_qi_snapshot", None)
@@ -196,7 +206,8 @@ def retired_summon_ids(fight, *, registry=None, pv_view=None):
                 byte_topology=getattr(fight, "native_qi_byte_topology", None),
             )
     result = set()
-    for actor_id, record in records.items():
+    rows = records.items() if selected is None else ((selected, records[selected]),)
+    for actor_id, record in rows:
         if (
             type(actor_id) is not int
             or not isinstance(record, dict)

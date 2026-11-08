@@ -323,6 +323,11 @@ class NativeEffectRuntimeFactory:
         return manifest, NativeFactoryEquipmentCapability(self, manifest)
 
     def __call__(self, preview, plan):
+        from .combat_runtime_backrefs import (
+            FactoryOwnerReference,
+            FactoryMethod,
+            FactoryCallback,
+        )
         from .combat_battleground_border import ensure_battleground_border
 
         ensure_battleground_border(preview)
@@ -592,7 +597,9 @@ class NativeEffectRuntimeFactory:
             damage.target_eligibility = target_eligibility
             healing.target_eligibility = target_eligibility
 
-        def undead_damage(effect, invocation, amount, runner):
+        def undead_damage(
+            healing, damage, actor_authority, effect, invocation, amount, runner
+        ):
             from .combat_undead_healing import apply_undead_healing
 
             return apply_undead_healing(
@@ -602,10 +609,15 @@ class NativeEffectRuntimeFactory:
                 invocation,
                 amount,
                 runner,
-                actor_authority=self.summon_authority,
+                actor_authority=actor_authority,
             )
 
-        healing.undead_damage = undead_damage
+        healing.undead_damage = FactoryCallback(
+            undead_damage,
+            FactoryOwnerReference(healing),
+            FactoryOwnerReference(damage),
+            self.summon_authority,
+        )
 
         stat = NativeStatHandler(
             preview,
@@ -653,7 +665,15 @@ class NativeEffectRuntimeFactory:
         collision_executor = None
         if retention is not None:
             retention.stat_handler = stat
-        handlers = {effect_class: damage for effect_class in DAMAGE_FAMILIES}
+        from .combat_versioned_handlers import NativeVersionedHandlers
+
+        # This private native handler table is fully assembled by this factory
+        # before admission/replay begins. The same mapping object is captured by
+        # dispatcher closures below, so runtime updates remain visible and
+        # increment the version observed by structural replay qualification.
+        handlers = NativeVersionedHandlers(
+            {effect_class: damage for effect_class in DAMAGE_FAMILIES}
+        )
         handlers.update({48: loss, 55: loss})
         handlers.update({family: resource_fill for family in RESOURCE_FILL_FAMILIES})
         handlers[635] = random_earth
@@ -1092,6 +1112,9 @@ class NativeEffectRuntimeFactory:
             from .combat_target_aura import NativeTargetAuraHandler
 
             target_aura = NativeTargetAuraHandler(area_handler, retention, rng=rng)
+            area_handler.target_aura_construction = FactoryMethod(
+                target_aura.constructor
+            )
             handlers[338] = target_aura
             handlers[315] = area_handler
             handlers[339] = area_handler
@@ -1691,6 +1714,8 @@ class NativeEffectRuntimeFactory:
             native_cell_batch_factory,
         )
 
+        from .combat_ordinary_events import bind_factory_event_authority
+
         dispatcher = EffectDispatcher(
             self.effects,
             handlers,
@@ -1709,9 +1734,7 @@ class NativeEffectRuntimeFactory:
             team_repeat_count=lambda invocation: native_team_repeat_count(
                 preview, invocation.caster_id
             ),
-            invocation_reconstruction=lambda effect, invocation, ancestors: rebind_original_boss_recipient(
-                dispatcher, effect, invocation, ancestors
-            ),
+            invocation_reconstruction=None,
             pt_preflight=lambda effect, invocation: native_pt_preflight(
                 effect,
                 invocation,
@@ -1748,6 +1771,10 @@ class NativeEffectRuntimeFactory:
         )
         # Rift reconstruction shares this exact transaction source. Native
         # group_random remains its scalar rounding callback, not a Random API.
+        dispatcher_owner = FactoryOwnerReference(dispatcher)
+        dispatcher.invocation_reconstruction = FactoryCallback(
+            rebind_original_boss_recipient, dispatcher_owner
+        )
         dispatcher.rift_artifact_rng = self.transaction_rng
         dispatcher.native_condition_cell_batch_factory = native_cell_batch_factory(
             provider, preview, plan, dispatcher
@@ -1755,10 +1782,13 @@ class NativeEffectRuntimeFactory:
         if self.displacement_authority is not None:
             from .combat_carry_release import execute_carry_release
 
-            displacement.carry_release_executor = (
-                lambda effect, invocation, actor: execute_carry_release(
-                    preview, self.effects, dispatcher.execute, invocation, actor
+            def carry_release(owner, fight, effects, effect, invocation, actor):
+                return execute_carry_release(
+                    fight, effects, owner.execute, invocation, actor
                 )
+
+            displacement.carry_release_executor = FactoryCallback(
+                carry_release, dispatcher_owner, preview, self.effects
             )
 
         state = NativeStateHandler(
@@ -1781,7 +1811,7 @@ class NativeEffectRuntimeFactory:
                 else lambda limit: self.contexts.state_random(preview, plan, limit)
             ),
             context=contextual("state"),
-            execute_child=dispatcher.execute,
+            execute_child=FactoryMethod(dispatcher.execute),
             remove_child_effect=stat.remove,
             applied_state_scope=None
             if retention is None
@@ -1791,9 +1821,9 @@ class NativeEffectRuntimeFactory:
             from .combat_retained_runtime import remove_owned_stat
 
             state.remove_child_effect = lambda uid: remove_owned_stat(stat, uid)
-            original_remove_children = state.remove_state_children
+            original_remove_children = FactoryMethod(state.remove_state_children)
 
-            def remove_children(uid):
+            def remove_children(preview, retention, original_remove_children, uid):
                 area_uids = tuple(
                     child_uid
                     for child_uid, row in getattr(
@@ -1804,14 +1834,24 @@ class NativeEffectRuntimeFactory:
                 if area_uids:
                     # eWu.aS removes old Qf carriers before creating the new
                     # carrier. Keep the actual old PL available to callbacks.
-                    retention.removal(retention.view()).remove(area_uids)
+                    from .combat_retained_runtime import remove_now
+
+                    removal_provider = retention.removal
+                    remove_now(
+                        retention,
+                        retention.view(),
+                        area_uids,
+                        _provider=removal_provider,
+                    )
                     retention.synchronize()
                 original_remove_children(uid)
                 for child_uid, row in tuple(preview.native_owned_group_effects.items()):
                     if row.get("state_uid") == uid:
                         retention.remove_group(child_uid)
 
-            state.remove_state_children = remove_children
+            state.remove_state_children = FactoryCallback(
+                remove_children, preview, retention, original_remove_children
+            )
         dispatcher.native_state_handler = state
         dispatcher.native_retention = retention
         if retention is not None:
@@ -1828,8 +1868,10 @@ class NativeEffectRuntimeFactory:
                     from .combat_cost_payment_events import NativeCostPaymentEvents
 
                     consume_resources.event_lifecycle_factory = (
-                        lambda: NativeCostPaymentEvents.from_healing(
-                            healing.event_lifecycle
+                        lambda: bind_factory_event_authority(
+                            NativeCostPaymentEvents.from_healing(
+                                healing.event_lifecycle
+                            )
                         )
                     )
                     dispatcher.native_cost_payment_events_factory = (
@@ -1838,8 +1880,10 @@ class NativeEffectRuntimeFactory:
                     from .combat_breeze_payment_events import NativeBreezePaymentEvents
 
                     dispatcher.native_breeze_payment_events_factory = (
-                        lambda: NativeBreezePaymentEvents.from_healing(
-                            healing.event_lifecycle
+                        lambda: bind_factory_event_authority(
+                            NativeBreezePaymentEvents.from_healing(
+                                healing.event_lifecycle
+                            )
                         )
                     )
                     state.event_lifecycle = healing.event_lifecycle
@@ -1892,6 +1936,7 @@ class NativeEffectRuntimeFactory:
                     )
                     random_earth.child_execution_gate = dispatcher_child_gate(
                         dispatcher,
+                        _factory_owned=True,
                         native_eligibility=ordinary_child_eligibility(
                             contextual("native_targets"),
                             fight=preview,
@@ -1974,6 +2019,7 @@ class NativeEffectRuntimeFactory:
                             healing.event_lifecycle
                         )
                         collision_lifecycle.synthetic_authority = collision_source
+                        bind_factory_event_authority(collision_lifecycle)
 
                         def collision_properties(actor):
                             authority = self.displacement_authority
@@ -2041,12 +2087,18 @@ class NativeEffectRuntimeFactory:
                             collision_definition,
                             characteristic_present=collision_characteristic,
                         )
-                        collision_loss.delivery = collision_executor.delivery
+                        collision_loss.delivery = FactoryMethod(
+                            collision_executor.delivery
+                        )
                         dispatcher.native_collision_resource_executor = (
                             collision_executor
                         )
 
                         def execute_collision(
+                            dispatcher,
+                            retention,
+                            collision_executor,
+                            allocate,
                             effect,
                             invocation,
                             *,
@@ -2076,7 +2128,13 @@ class NativeEffectRuntimeFactory:
                                 suppressed=False,
                             )
 
-                        displacement.collision_executor = execute_collision
+                        displacement.collision_executor = FactoryCallback(
+                            execute_collision,
+                            dispatcher_owner,
+                            retention,
+                            collision_executor,
+                            allocate,
+                        )
 
                 def prepare(effect, values, invocation):
                     if effect["effect_class"] in (635, 636):
@@ -2235,7 +2293,9 @@ class NativeEffectRuntimeFactory:
                 "Healing event replay requires a complete retained-effect runtime"
             )
         if retention is not None:
-            state.register_subscription = dispatcher.register_subscription
+            state.register_subscription = FactoryMethod(
+                dispatcher.register_subscription
+            )
         handlers[304] = state
         timing = NativeEffectTimingProvider(self.state_catalog)
 
@@ -2248,6 +2308,10 @@ class NativeEffectRuntimeFactory:
             )
 
         def resource_secondary(
+            retention,
+            state,
+            timing,
+            preview,
             resource_handler,
             effect,
             invocation,
@@ -2313,10 +2377,19 @@ class NativeEffectRuntimeFactory:
                 applying_effect=applying_effect,
             )
 
-        loss.secondary_state = lambda *args: resource_secondary(loss, *args)
+        loss_owner = FactoryOwnerReference(loss)
+        loss.secondary_state = FactoryCallback(
+            resource_secondary, retention, state, timing, preview, loss_owner
+        )
         if collision_loss is not None:
-            collision_loss.secondary_state = lambda *args: resource_secondary(
-                collision_loss, *args
+            collision_loss_owner = FactoryOwnerReference(collision_loss)
+            collision_loss.secondary_state = FactoryCallback(
+                resource_secondary,
+                retention,
+                state,
+                timing,
+                preview,
+                collision_loss_owner,
             )
 
         handlers[321] = NativeStateDecurseHandler(
@@ -2376,6 +2449,9 @@ class NativeEffectRuntimeFactory:
             order_hooks.event_lifecycle = healing.event_lifecycle
             for family in (327, 328, 342):
                 handlers[family] = order_hooks
+            for handler in handlers.values():
+                bind_factory_event_authority(vars(handler).get("event_lifecycle"))
+            bind_factory_event_authority(healing.event_lifecycle)
             for kind, handler in tuple(handlers.items()):
                 handlers[kind] = retention.wrap(handler, state=kind in (304, 321))
         from .combat_effect_area_events import NativeAreaEventRuntime
@@ -2397,8 +2473,8 @@ class NativeEffectRuntimeFactory:
             artifact_contact_eligible,
         )
 
-        dispatcher.native_area_events.artifact_collected = (
-            lambda **contact: apply_artifact_collection(dispatcher, **contact)
+        dispatcher.native_area_events.artifact_collected = FactoryCallback(
+            apply_artifact_collection, dispatcher_owner
         )
         dispatcher.native_area_events.artifact_contact_eligible = (
             lambda **contact: artifact_contact_eligible(preview, **contact)
@@ -2417,18 +2493,28 @@ class NativeEffectRuntimeFactory:
                     post_registration_activation,
                 )
 
-                area_handler.on_post_retention_registration = (
-                    lambda row: post_registration_activation(dispatcher, row)
+                area_handler.on_post_retention_registration = FactoryCallback(
+                    post_registration_activation, dispatcher_owner
                 )
                 from .combat_microbot_rails import synchronize_microbot_rails
                 from .combat_effect_area_codec import area_retirement
 
-                def publish_microbot_rails(owner_id):
+                area_handler_owner = FactoryOwnerReference(area_handler)
+
+                def publish_microbot_rails(
+                    preview,
+                    packets,
+                    action_id,
+                    allocate,
+                    area_handler,
+                    dispatcher,
+                    owner_id,
+                ):
                     synchronize_microbot_rails(
                         preview,
                         owner_id,
                         packets=packets,
-                        action_id=self.action_id,
+                        action_id=action_id,
                         allocate_uid=allocate,
                         allocate_area_uid=area_handler.allocate_area_uid,
                         affiliation=area_handler.area_affiliation(preview, owner_id),
@@ -2436,7 +2522,15 @@ class NativeEffectRuntimeFactory:
                     )
 
                 dispatcher.native_area_events.microbot_network_changed = (
-                    publish_microbot_rails
+                    FactoryCallback(
+                        publish_microbot_rails,
+                        preview,
+                        packets,
+                        self.action_id,
+                        allocate,
+                        area_handler_owner,
+                        dispatcher_owner,
+                    )
                 )
                 dispatcher.native_area_events.area_removed = (
                     lambda area_uid: packets.append(
@@ -2467,7 +2561,24 @@ class NativeEffectRuntimeFactory:
         if getattr(preview, "native_spirit_scene_admission", None) is not None:
             from .combat_encounter_objective_spirit import deliver_spirit_early_defeat
 
-            dispatcher.native_scene_root_observer = lambda: deliver_spirit_early_defeat(
-                dispatcher
+            dispatcher.native_scene_root_observer = FactoryCallback(
+                deliver_spirit_early_defeat, dispatcher_owner
             )
+        if retention is not None and any(
+            handler is stat or getattr(handler, "native_wrapped_handler", None) is stat
+            for handler in handlers.values()
+        ):
+            retention.stat_handler = FactoryOwnerReference(stat)
+        dispatcher._structural_index_factory = self
+        # These components are owned by this dispatcher. Reading their binding
+        # still returns the exact object, never a weak proxy.
+        for name in (
+            "native_area_events",
+            "replay_event",
+            "native_condition_cell_batch_factory",
+            "native_delays",
+        ):
+            component = getattr(dispatcher, name, None)
+            if component is not None:
+                component.dispatcher = dispatcher_owner
         return dispatcher, packets

@@ -51,6 +51,161 @@ def _instance_fields(item):
                 name = "_" + cls.__name__.lstrip("_") + name
             if name not in ("__dict__", "__weakref__") and hasattr(item, name):
                 values[name] = getattr(item, name)
+    # Factory backreferences expose their logical target, not weakref internals.
+    if "_reference" in values or "_dispatcher_owner" in values:
+        from weakref import ReferenceType
+        from wakfu_server.combat_runtime_backrefs import FactoryOwnerReference
+
+        if type(item) is FactoryOwnerReference and set(values) == {
+            "_reference",
+            "_escaped_owner",
+        }:
+            reference = values["_reference"]
+            if type(reference) is ReferenceType and reference.__callback__ is None:
+                owner = reference()
+                if (
+                    values["_escaped_owner"] is None
+                    or values["_escaped_owner"] is owner
+                ):
+                    values = {"owner": owner}
+        elif "_dispatcher_owner" in values:
+            from wakfu_server.combat_effect_area_events import NativeAreaEventRuntime
+            from wakfu_server.combat_event_replay import NativeEventReplay
+            from wakfu_server.combat_condition_cell_batch import NativeCellBatchFactory
+            from wakfu_server.combat_native_delayed_effects import NativeDelayedEffects
+
+            if any(
+                type(item) is kind
+                for kind in (
+                    NativeAreaEventRuntime,
+                    NativeEventReplay,
+                    NativeCellBatchFactory,
+                    NativeDelayedEffects,
+                )
+            ):
+                owner = values["_dispatcher_owner"]
+                if type(owner) is FactoryOwnerReference:
+                    owner = owner._reference()
+                values = {
+                    ("dispatcher" if key == "_dispatcher_owner" else key): (
+                        owner if key == "_dispatcher_owner" else value
+                    )
+                    for key, value in values.items()
+                }
+    if "_stat_handler_owner" in values:
+        from wakfu_server.combat_retained_runtime import NativeRetainedRuntime
+        from wakfu_server.combat_runtime_backrefs import FactoryOwnerReference
+
+        if type(item) is NativeRetainedRuntime:
+            owner = values["_stat_handler_owner"]
+            if type(owner) is FactoryOwnerReference:
+                owner = owner._reference()
+            values = {
+                ("stat_handler" if key == "_stat_handler_owner" else key): (
+                    owner if key == "_stat_handler_owner" else value
+                )
+                for key, value in values.items()
+            }
+    # Owned storage projects its historical logical owner edge. Weak indexes
+    # and the Fight's lifetime anchor are derived implementation details.
+    if any(name in values for name in ("_owner_ref", "_native_retained_owner")):
+        from weakref import ReferenceType
+        from wakfu_server.combat_retained_collections import (
+            OwnedMap,
+            OwnedOrder,
+            TrackedRow,
+            RetainedCollections,
+            bound_collections,
+        )
+        from wakfu_server.combat_state import Fight
+
+        kind = type(item)
+        if kind is OwnedMap or kind is OwnedOrder or kind is TrackedRow:
+            reference = values.get("_owner_ref")
+            if (
+                "owner" not in values
+                and "_owner_ref" in values
+                and (
+                    reference is None
+                    or type(reference) is ReferenceType
+                    and reference.__callback__ is None
+                )
+            ):
+                owner = None if reference is None else reference()
+                if owner is None or type(owner) is RetainedCollections:
+                    # Replace at the same ordinal; appending owner would change
+                    # the complete native fingerprint's ordered field stream.
+                    values = {
+                        ("owner" if name == "_owner_ref" else name): (
+                            owner if name == "_owner_ref" else value
+                        )
+                        for name, value in values.items()
+                    }
+                    if (
+                        type(owner) is RetainedCollections
+                        and values.get("_owner_anchor") is owner
+                    ):
+                        values.pop("_owner_anchor")
+        elif kind is Fight:
+            owner = values.get("_native_retained_owner")
+            if (
+                type(owner) is RetainedCollections
+                and bound_collections(values) is owner
+            ):
+                values.pop("_native_retained_owner")
+    if "_fight_ref" in values:
+        from weakref import ReferenceType
+        from wakfu_server.combat_characteristic_link import (
+            ObservableCharacteristicStats,
+        )
+        from wakfu_server.combat_pointer_qi_actor import ActualActorQI
+        from wakfu_server.combat_state import Fight
+
+        kind = type(item)
+        if kind is ObservableCharacteristicStats or kind is ActualActorQI:
+            logical = "_fight" if kind is ObservableCharacteristicStats else "fight"
+            reference = values["_fight_ref"]
+            if (
+                logical not in values
+                and type(reference) is ReferenceType
+                and reference.__callback__ is None
+            ):
+                fight = reference()
+                if type(fight) is Fight:
+                    values = {
+                        (logical if name == "_fight_ref" else name): (
+                            fight if name == "_fight_ref" else value
+                        )
+                        for name, value in values.items()
+                    }
+                    if values.get("_fight_anchor") is fight:
+                        values.pop("_fight_anchor")
+    # Exact native row eligibility is derived, never part of authority bytes.
+    if "_selected_scalar_proofs" in values:
+        from wakfu_server.combat_retained_collections import RetainedCollections
+        from wakfu_server.combat_selected_scalar_proof import SelectedScalarProofs
+
+        if (
+            type(item) is RetainedCollections
+            and type(values["_selected_scalar_proofs"]) is SelectedScalarProofs
+        ):
+            values.pop("_selected_scalar_proofs")
+    if "_scalar_eligibility" in values:
+        from wakfu_server.combat_retained_collections import TrackedRow
+        from wakfu_server.combat_source_parent_index import OwnedStateSourceRow
+
+        if type(item) is TrackedRow or type(item) is OwnedStateSourceRow:
+            proof = values["_scalar_eligibility"]
+            if proof is None or type(proof) is bool:
+                values.pop("_scalar_eligibility")
+    if "_retained_value" in values:
+        from wakfu_server.combat_retained_collections import TrackedRow
+        from wakfu_server.combat_retained_effects import RetainedEffect
+
+        if type(item) is TrackedRow:
+            cached = values["_retained_value"]
+            if cached is None or type(cached) is RetainedEffect:
+                values.pop("_retained_value")
     return values
 
 

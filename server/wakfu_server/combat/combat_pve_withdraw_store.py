@@ -92,6 +92,15 @@ def persist(
             session_character_id=session.character_id,
         )
         characters[identity] = health["character"]
+    from wakfu_server.rift_withdrawal_rewards import settle as settle_rift_withdrawal
+
+    rewards = settle_rift_withdrawal(
+        store, db, original_fight, owner_ids={session.account_id}
+    )
+    for identity, reward in rewards.items():
+        characters[identity] = reward["character"]
+    for member in members:
+        identity = member["character_id"]
         inserted = db.execute(
             "INSERT INTO combat_pve_withdrawals "
             "(fight_id,character_id,account_id,session_generation,created_at) "
@@ -111,6 +120,21 @@ def persist(
     if captured_departure_fight is not None:
         if captured_departure_fight.id != original_fight.id:
             raise ValueError("Captured teardown belongs to another fight")
+        if (
+            original_fight.phase == "placement"
+            and captured_departure_fight.phase == "active"
+            and row["status"] == "placement"
+        ):
+            # Removing the last unready owner can start the surviving team.
+            # Commit that Ready transition with the withdrawal, otherwise a
+            # reconnect sees an active FSM backed by a placement-only fight.
+            changed = db.execute(
+                "UPDATE combat_fights SET status='active' "
+                "WHERE id=%s AND status='placement'",
+                (original_fight.id,),
+            )
+            if changed.rowcount != 1:
+                raise ValueError("Withdrawal Ready lost its placement ownership")
         from .combat_captured_roster_checkpoint import persist_captured_roster_updates
 
         persist_captured_roster_updates(

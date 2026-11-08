@@ -23,7 +23,11 @@ def _outside(db, character_id):
     return (
         db.execute(
             "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
-            "WHERE p.character_id=%s AND (f.status IN ('placement','active') OR "
+            "WHERE p.character_id=%s AND NOT EXISTS ("
+            "SELECT 1 FROM combat_pve_withdrawals w WHERE w.fight_id=p.fight_id "
+            "AND w.character_id=p.character_id AND w.account_id=p.account_id AND w.returned_at IS NOT NULL "
+            "AND w.health_returned_at IS NOT NULL) "
+            "AND (f.status IN ('placement','active') OR "
             "(f.status='finished' AND NOT EXISTS(SELECT 1 FROM fight_health_exits e "
             "WHERE e.fight_id=f.id AND e.character_id=p.character_id "
             "AND (e.reason<>'return' OR e.return_acknowledged_at IS NOT NULL)))) LIMIT 1",

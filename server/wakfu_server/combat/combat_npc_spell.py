@@ -135,7 +135,7 @@ def prepare_npc_spell(
     compiled = npc_runtime_catalog(imported=imported)
     casting, index = native_casting_table(spell, spells[spell])
     roots = casting["levels"][index][2]
-    missing = [root for root in roots if str(root) not in compiled.effects]
+    missing = [root for root in roots if str(root) not in compiled.entry_effects]
     if missing:
         raise ValueError(
             "Unsupported native NPC effect roots: " + ",".join(map(str, missing[:8]))

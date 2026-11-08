@@ -113,7 +113,9 @@ class SceneStatesTests(unittest.TestCase):
             repeat_roots=(),
         )
 
-        def install_states(_fight, _actor, states, *, runtime_factory, application_results):
+        def install_states(
+            _fight, _actor, states, *, runtime_factory, application_results
+        ):
             application_results.extend(
                 dict(state_id=state.state_id, level=state.level, applied=True)
                 for state in states

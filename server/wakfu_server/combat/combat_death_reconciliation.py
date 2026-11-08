@@ -15,9 +15,9 @@ def prepare_death_reconciliation(fight):
     """Resolve native participation; HP alone never replaces in-play authority."""
     old_order = tuple(fight.order)
     current_id = old_order[fight.turn_index]
-    participating = {
-        actor.id for actor in fight.actors.values() if fight._in_play(actor)
-    }
+    from .combat_global_pv_read_view import in_play_actors
+
+    participating = {actor.id for actor in in_play_actors(fight)}
     return DeathReconciliationPlan(
         old_order,
         current_id,

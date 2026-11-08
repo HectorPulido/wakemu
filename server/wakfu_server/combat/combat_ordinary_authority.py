@@ -18,9 +18,11 @@ def ordinary_cell_obstacle(preview, plan, effect, invocation):
         return None
     from .combat_qi_fight import current_registry
 
+    from .combat_pointer_qi_registry import registered_obstacle
+
     registry = current_registry(preview)
     order = registry.ordered_U(*invocation.cell[:2])
-    return bool(order and registry.slots[order[0]] is not None)
+    return bool(order and registered_obstacle(registry, order[0]) is not None)
 
 
 @dataclass(frozen=True)
@@ -168,6 +170,16 @@ class OrdinaryActorAuthority:
 
     def _creation_population(self, preview):
         """Validate the common ordinary roster without querying one actor."""
+        from .combat_ordinary_events import _ordinary_phase_facts
+
+        facts = (
+            _ordinary_phase_facts(preview, authority=self)
+            if pure_ordinary_callback(self, self)
+            else None
+        )
+        key = (self, id(preview))
+        if facts is not None and key in facts["populations"]:
+            return facts["populations"][key]
         withdrawn = {
             identity
             for identity, candidate in preview.actors.items()
@@ -188,7 +200,10 @@ class OrdinaryActorAuthority:
             raise ValueError(
                 "Ordinary authority roster changed: summons/wrapped actors need native registration"
             )
-        return withdrawn, monsters
+        result = withdrawn, monsters
+        if facts is not None:
+            facts["populations"][key] = result
+        return result
 
     def _creation_identity(self, preview, actor, *, _population=None):
         """Attest current ordinary constructor identity without dynamic life facts."""
@@ -245,6 +260,60 @@ class OrdinaryActorAuthority:
 
             current_native_controller(preview, actor.id)
         return player, source, carrying, properties, life
+
+    def _recipient_creation_facts(self, preview, actor):
+        """Validate one lifecycle recipient without rebuilding the whole roster.
+
+        This is only used by the exact native event-recipient consumer. It
+        resolves the recipient's source from the same current source tables as
+        _monster_sources, then delegates every actor-specific check to the
+        existing _creation_facts implementation.
+        """
+        if type(self) is not OrdinaryActorAuthority or type(actor.id) is not int:
+            return None
+        characters = self.characters
+        if type(characters) is not dict:
+            return None
+        if actor.id in characters:
+            player_source = characters[actor.id]
+            if type(player_source) is not dict:
+                return None
+            companions = getattr(preview, "native_companion_sources", {})
+            if type(companions) is not dict:
+                return None
+            companion = companions.get(str(actor.id))
+            if companion is not None:
+                if type(companion) is not dict or str(companion.get("id")) != str(
+                    actor.id
+                ):
+                    raise ValueError("Invalid admitted companion source identity")
+                if player_source != companion:
+                    raise ValueError("Conflicting companion and NPC source")
+            local_monsters = {}
+        else:
+            if getattr(preview, "rift_wave_state", None) is None:
+                monsters = self.monsters
+            else:
+                monsters = getattr(preview, "rift_monsters", None)
+            companions = getattr(preview, "native_companion_sources", {})
+            if type(monsters) is not dict or type(companions) is not dict:
+                return None
+            source = monsters.get(actor.id)
+            companion = companions.get(str(actor.id))
+            if companion is not None:
+                if type(companion) is not dict or str(companion.get("id")) != str(
+                    actor.id
+                ):
+                    raise ValueError("Invalid admitted companion source identity")
+                if source is not None and source != companion:
+                    raise ValueError("Conflicting companion and NPC source")
+                source = companion
+            if source is None:
+                return None
+            if type(source) is not dict:
+                return None
+            local_monsters = {actor.id: source}
+        return self._creation_facts(preview, actor, _population=(set(), local_monsters))
 
     def summon_count_flags(self, preview, actor, *, _population=None):
         """Project native eGj/dTE only; this grants no spell or item authority.
@@ -334,8 +403,8 @@ class OrdinaryActorAuthority:
             from .combat_spell_level import NativeSpellBook, decoded_spell_levels
             from .combat_native_spell_casting import catalog as casting_catalog
 
-            levels = decoded_spell_levels(
-                owned_spell_records(source), casting_catalog()
+            levels = _phase_base_spell_levels(
+                self, preview, owned_spell_records(source), casting_catalog()
             )
             spellbook = NativeSpellBook(
                 levels, True, dict(levels), self.deck_caps[actor.id]
@@ -801,7 +870,10 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
 
         source = native_damage_source(p, i.caster_id)
         if not plain_area_source(source):
-            actors(p, source)
+            from .combat_retained_departure_source import retained_departure_source
+
+            if retained_departure_source(p, source, i) is None:
+                actors(p, source)
         target = native_damage_target(p, i.target_id)
         if target is None:
             raise ValueError("Native damage requires an actor or typed fbd PV target")
@@ -1052,3 +1124,85 @@ def _ordinary_npc_world_identity(fight, actor, source):
         world_actor=actor,
         fight=fight,
     )
+
+
+# Capture known read-only implementations, not arbitrary similarly named hooks.
+_PURE_ORDINARY_CALLBACKS = tuple(
+    OrdinaryActorAuthority.__dict__[name]
+    for name in (
+        "__call__",
+        "_condition_world_properties",
+        "_condition_fight_properties",
+        "world_property_counts",
+        "property_counts",
+        "has_equipment_type",
+        "has_weapon_type",
+        "item_quantity",
+        "summon_count_flags",
+    )
+)
+_PURE_POPULATION_METHODS = {
+    name: OrdinaryActorAuthority.__dict__[name]
+    for name in (
+        "__call__",
+        "_creation_population",
+        "_creation_identity",
+        "_creation_facts",
+        "_monster_sources",
+    )
+}
+
+
+def pure_ordinary_callback(authority, callback):
+    if type(authority) is not OrdinaryActorAuthority:
+        return False
+    if any(
+        name in vars(authority)
+        or OrdinaryActorAuthority.__dict__.get(name) is not implementation
+        for name, implementation in _PURE_POPULATION_METHODS.items()
+    ):
+        return False
+    if callback is authority:
+        callback = authority.__call__
+    return (
+        getattr(callback, "__self__", None) is authority
+        and getattr(callback, "__func__", None) in _PURE_ORDINARY_CALLBACKS
+    )
+
+
+from .combat_spell_level import decoded_spell_levels as _BASE_LEVEL_DECODER
+
+
+def _phase_base_spell_levels(authority, preview, records, definitions):
+    """Reuse immutable definition decoding only inside a certified read pass."""
+    from . import combat_spell_level
+    from .combat_ordinary_events import _ordinary_phase_facts
+    from .combat_published_catalogs import static_catalog_descriptor
+
+    decoder = combat_spell_level.decoded_spell_levels
+    if (
+        decoder is not _BASE_LEVEL_DECODER
+        or not pure_ordinary_callback(authority, authority)
+        or static_catalog_descriptor(definitions) is None
+        or type(records) is not tuple
+        or any(
+            type(row) is not tuple
+            or len(row) != 3
+            or any(type(value) is not int for value in row)
+            for row in records
+        )
+    ):
+        return decoder(records, definitions)
+    facts = _ordinary_phase_facts(preview, authority=authority)
+    if facts is None:
+        return decoder(records, definitions)
+    cache = facts.setdefault("base_spell_levels", {})
+    key = (id(definitions), records)
+    saved = cache.get(key)
+    if saved is None or saved[0] is not definitions:
+        levels = decoder(records, definitions)
+        cache[key] = (definitions, tuple(levels.items()))
+        return levels
+    # NativeSpellBook carries dictionaries. Never let a returned book mutate
+    # the operation-local decoded definitions shared by the next recipient.
+    return dict(saved[1])

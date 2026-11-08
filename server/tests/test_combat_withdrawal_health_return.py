@@ -11,6 +11,71 @@ from wakfu_server.combat_pve_withdraw_store import acknowledge, recover_pending
 
 
 class WithdrawalHealthReturnTests(PostgresCase):
+    def test_party_hud_pending_withdrawal_then_real_return_uses_exploration_health(
+        self,
+    ):
+        from wakfu_server import party_dispatch, player_parties
+        from wakfu_server.fight_checkpoint_store import Checkpoints
+        from wakfu_server.world import World
+        from test_party_snapshot import PartySnapshotTests
+
+        values, receipt, _ = self.withdrawn()
+        (
+            store,
+            account,
+            generation,
+            character,
+            fight,
+            adapter,
+            owner,
+            shared,
+            other_account,
+            other_generation,
+            other,
+        ) = values
+        token = player_parties.invite(
+            store, account, generation, character["id"], other["id"]
+        )
+        party_id = player_parties.answer(
+            store, other_account, other_generation, other["id"], token, True
+        )
+        Checkpoints(store).save(other_account, other_generation, shared.fight)
+        sent = []
+        world = World(
+            lambda c: ("spawn", c["id"]),
+            lambda c: ("remove", c["id"]),
+            lambda peer, opcode, body: sent.append((opcode, body)),
+        )
+        world.join(generation, object(), character)
+        world.join(other_generation, object(), other)
+        parties = party_dispatch.Parties(store, world)
+
+        def hud():
+            sent.clear()
+            self.assertTrue(parties._publish(party_id))
+            packets = [body for opcode, body in sent if opcode == 1184]
+            self.assertEqual(len(packets), 2)
+            self.assertEqual(packets[0], packets[1])
+            return {
+                row["id"]: row for row in PartySnapshotTests._decode_roster(packets[0])
+            }
+
+        pending = hud()
+        self.assertTrue(pending[character["id"]]["in_fight"])
+        self.assertEqual(pending[character["id"]]["hp"], 0)
+        returned = adapter.return_withdrawn_pve(
+            owner, fight.id, receipt["character"], struct.pack(">iB", fight.id, 1), wp=6
+        )
+        after = hud()
+        self.assertFalse(after[character["id"]]["in_fight"])
+        self.assertFalse(after[character["id"]]["dead"])
+        self.assertEqual(after[character["id"]]["hp"], returned["character"]["hp"])
+        self.assertGreater(after[character["id"]]["hp"], 0)
+        self.assertTrue(after[other["id"]]["in_fight"])
+        self.assertEqual(after[other["id"]]["hp"], shared.fight.actors[other["id"]].hp)
+        self.assertEqual(shared.fight.actors[character["id"]].hp, 0)
+        self.assertEqual(shared.fight.phase, "active")
+
     def withdrawn(self, *, hero=False):
         values = withdrawal_fixture.WithdrawalPostgresTests.state(self)
         (

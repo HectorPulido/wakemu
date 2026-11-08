@@ -279,6 +279,11 @@ def checkpoint(store, owner):
     state = row["snapshot"]
     if isinstance(state, str):
         state = json.loads(state)
+    if isinstance(state, dict) and state.get("checkpoint_schema"):
+        raise RuntimeError(
+            "Full fight snapshot required for Rift artifact journey diagnostics; "
+            "versioned recovery checkpoint omits native artifact graph data"
+        )
     return dict(row, snapshot=state)
 
 
@@ -295,6 +300,57 @@ def observed(state, owner):
         mp=actor["mp"],
         groups=deepcopy(rift.get("native_artifact_groups", {})),
         live_area_ids=sorted(int(uid) for uid in state.get("native_effect_areas", {})),
+    )
+
+
+def artifact_contact_cost(reference, before, after, *, areas=None, effects=None):
+    """Record native toll definitions without claiming their execution."""
+    from wakfu_server.combat_parameters import parameter_value
+
+    if areas is None:
+        from wakfu_server.combat_effect_area import native_effect_areas
+
+        areas = native_effect_areas()
+    if effects is None:
+        from wakfu_server.combat_effect_area_catalog import area_effect_catalog
+
+        effects = area_effect_catalog()["effects"]
+    ordered, tolls = [], []
+
+    def visit(identity, ancestors=()):
+        if identity in ancestors:
+            raise ValueError("Cyclic native artifact effect closure")
+        effect = effects[str(identity)]
+        ordered.append(identity)
+        parameters = effect.get("parameters", ())
+        if (
+            effect["effect_class"] == 48
+            and {19, 30}.issubset(effect.get("native_effect_flags", ()))
+            and len(parameters) == 2
+            and parameter_value(parameters, 0, 0) == 100
+            and parameters[1] == 0
+        ):
+            tolls.append(identity)
+        for child in effect.get("children", ()):
+            visit(child, (*ancestors, identity))
+
+    for identity in areas[str(reference)]["effect_ids"]:
+        visit(identity)
+    # The durable activation receipt observes state grants, not individual
+    # effect execution or resource debits. A preceding state sibling does not
+    # certify a later toll, and final MP includes triggered effects as well.
+    # Keep this diagnostic explicitly unverified rather than inventing proof.
+    return dict(
+        reference=reference,
+        native_effect_order=ordered,
+        whole_mp_toll_effects=tolls,
+        toll_present=bool(tolls),
+        toll_execution_verified=False,
+        toll_verification="execution_unproven" if tolls else "no_native_toll",
+        mp_before=before["mp"],
+        mp_after=after["mp"],
+        before=before["position"],
+        after=after["position"],
     )
 
 
@@ -752,14 +808,18 @@ def run(
             if action[0] == 12161 and after["groups"].get("1", {}).get(
                 "choices_made", 0
             ) > now["groups"].get("1", {}).get("choices_made", 0):
-                assert (
-                    after["mp"] == 0
-                ), "Native contact did not pay its original whole-MP toll"
-                receipt["native_contact_cost"] = dict(
-                    mp_before=now["mp"],
-                    mp_after=after["mp"],
-                    before=now["position"],
-                    after=after["position"],
+                prior = now["groups"]["1"]
+                assignments = after["groups"]["1"]["assignments"]
+                added = assignments[len(prior.get("assignments", ())) :]
+                contacts = [
+                    row
+                    for row in added
+                    if row["kind"] == "contact_pair" and row["collector"] == owner
+                ]
+                assert len(contacts) == 1, "Missing unique native contact assignment"
+                reference = prior["original"][str(contacts[0]["collected"])]
+                receipt["native_contact_cost"] = artifact_contact_cost(
+                    reference, now, after
                 )
             if action[0] == 13260 and after["ap"] < now["ap"]:
                 paid_casts.append(

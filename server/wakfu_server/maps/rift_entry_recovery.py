@@ -47,7 +47,11 @@ def _runs(db, identities):
         db.execute(
             "SELECT r.* FROM rift_instances r WHERE r.status IN('entered','running') "
             "AND EXISTS(SELECT 1 FROM jsonb_array_elements_text(r.members) member "
-            "WHERE member::bigint=ANY(%s)) ORDER BY r.instance_id",
+            "WHERE member::bigint=ANY(%s) AND NOT EXISTS ("
+            "SELECT 1 FROM combat_pve_withdrawals w JOIN characters c ON c.id=w.character_id "
+            "WHERE w.fight_id=r.fight_id AND w.character_id=member::bigint "
+            "AND w.account_id=c.account_id AND w.returned_at IS NOT NULL AND w.health_returned_at IS NOT NULL "
+            "AND c.instance_id<>r.instance_id)) ORDER BY r.instance_id",
             (list(identities),),
         ).fetchall()
     )
@@ -252,7 +256,10 @@ def _resume(store, plan, proof, pending_destination, options):
             raise ValueError("Pending native rift company changed")
         if db.execute(
             "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
-            "WHERE p.character_id=ANY(%s) AND f.status IN('placement','active') LIMIT 1",
+            "WHERE p.character_id=ANY(%s) AND f.status IN('placement','active') "
+            "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w "
+            "WHERE w.fight_id=p.fight_id AND w.character_id=p.character_id AND w.account_id=p.account_id "
+            "AND w.returned_at IS NOT NULL AND w.health_returned_at IS NOT NULL) LIMIT 1",
             (list(identities),),
         ).fetchone():
             raise ValueError("Pending rift owner belongs to a retained encounter")
@@ -322,7 +329,11 @@ def attempt(
         retained = db.execute(
             "SELECT 1 FROM rift_instances r WHERE r.status IN('entered','running') "
             "AND EXISTS(SELECT 1 FROM jsonb_array_elements_text(r.members) member "
-            "WHERE member::bigint=ANY(%s)) LIMIT 1",
+            "WHERE member::bigint=ANY(%s) AND NOT EXISTS ("
+            "SELECT 1 FROM combat_pve_withdrawals w JOIN characters c ON c.id=w.character_id "
+            "WHERE w.fight_id=r.fight_id AND w.character_id=member::bigint "
+            "AND w.account_id=c.account_id AND w.returned_at IS NOT NULL AND w.health_returned_at IS NOT NULL "
+            "AND c.instance_id<>r.instance_id)) LIMIT 1",
             (list(identities),),
         ).fetchone()
         dungeon = db.execute(

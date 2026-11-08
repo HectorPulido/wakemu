@@ -28,7 +28,7 @@ class NativeCompanyAbandonTests(PostgresCase):
         from wakfu_server.combat_state import Actor
         from wakfu_server.equipment_stats import combat_resources, effective_character
 
-        _, fight, _, companion_id = self._admitted_native_companion_and_hero_fixture()
+        run, fight, _, companion_id = self._admitted_native_companion_and_hero_fixture()
         main = self.store.character(self.account, self.ids[0])
         peer_account = self.store.register("native-abandon-peer", "peer-password")["id"]
         peer = self.store.create_character(peer_account, "Nativeabandonpeer")
@@ -101,6 +101,15 @@ class NativeCompanyAbandonTests(PostgresCase):
                     fight.id,
                     target_character_id=main["id"],
                     team=team,
+                )
+                # The reused Rift fixture froze only the original company.
+                # This test adds a real owner before Ready, so its durable Rift
+                # roster must include that owner just like actual admission.
+                from psycopg.types.json import Jsonb
+
+                db.execute(
+                    "UPDATE rift_instances SET members=%s WHERE instance_id=%s",
+                    (Jsonb([*run["members"], peer["id"]]), run["instance_id"]),
                 )
 
         # Placement presentation is outside this server/PG abort component;

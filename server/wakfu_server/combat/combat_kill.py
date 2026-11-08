@@ -1,4 +1,5 @@
 """Native eXc28 HP-minimum assignment, permanent KO-clock maximum and property."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_parameters import parameter_value
 from .combat_stat_handler import StatExecutionContext
@@ -312,7 +313,7 @@ class NativeKillHandler:
         actor.effect_base_maxima[14], actor.effect_maxima[14] = clock_raw, clock_max
         actor.effect_stats[14] = clock_after
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,

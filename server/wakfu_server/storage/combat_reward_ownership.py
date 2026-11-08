@@ -12,6 +12,7 @@ class _DurableSettlement:
     recipients: frozenset
     earned_rift_recipients: frozenset = frozenset()
     fight_identity: object = None
+    withdrawal_result: object = None
 
 
 _SETTLEMENT = ContextVar("combat_reward_durable_settlement", default=None)
@@ -185,3 +186,44 @@ def lock_recipient(store, db, account_id, generation, character_id, fight_id):
     ):
         raise ValueError("Combat loot recipient is not a frozen owned hero")
     store.lock_character(db, account_id, generation, character_id, selected=False)
+
+
+def rift_withdrawal_result(db, fight, account_id, generation, character_id):
+    """Expose progress only inside the exact authenticated withdrawal transaction."""
+    if not is_earned_rift_recipient(db, fight, account_id, generation, character_id):
+        return None
+    return _SETTLEMENT.get().withdrawal_result
+
+
+@contextmanager
+def _rift_withdrawal_scope(db, fight, participants, result):
+    """Called only after the surrender handler locks and authenticates its roster."""
+    from psycopg.pq import TransactionStatus
+
+    if (
+        db.info.transaction_status != TransactionStatus.INTRANS
+        or _SETTLEMENT.get() is not None
+    ):
+        raise ValueError("Missing exclusive Rift withdrawal transaction")
+    recipients = frozenset(
+        (row["account_id"], row["session_generation"], row["character_id"])
+        for row in participants
+    )
+    transaction = db.execute(
+        "SELECT pg_current_xact_id()::text AS transaction_id"
+    ).fetchone()
+    token = _SETTLEMENT.set(
+        _DurableSettlement(
+            db,
+            transaction["transaction_id"],
+            fight.id,
+            frozenset(),
+            recipients,
+            fight,
+            result,
+        )
+    )
+    try:
+        yield
+    finally:
+        _SETTLEMENT.reset(token)

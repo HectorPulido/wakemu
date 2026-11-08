@@ -1,5 +1,6 @@
 """Owned turn delivery planning, separate from retained callback execution."""
 from dataclasses import dataclass
+from contextlib import contextmanager, nullcontext
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,37 @@ def prepare_turn_delivery(fight, *, actor_id, phase, event_id, suppression_phase
     )
 
 
+@contextmanager
+def _turn_read_scope(dispatcher, fight, plan, authority):
+    from .combat_effect_dispatch import EffectDispatcher
+    from .combat_voluntary_movement_events import _movement_read_scope
+    from .combat_ordinary_events import _fallback_phase_read_pass
+
+    # Custom iterators may execute arbitrary callbacks while producing the next
+    # recipient. Certify storage without touching those iterators a second time.
+    plain_plan = (
+        type(plan) is TurnBoundaryPlan
+        and type(plan.recipients) is tuple
+        and all(
+            type(pair) is tuple
+            and len(pair) == 2
+            and all(type(value) is int for value in pair)
+            for pair in plan.recipients
+        )
+    )
+    same_authority = (
+        type(dispatcher) is EffectDispatcher
+        and EffectDispatcher.__getattribute__ is object.__getattribute__
+        and vars(dispatcher).get("native_clone_authority") is authority
+    )
+    if plain_plan and same_authority:
+        with _movement_read_scope(dispatcher, fight, False) as recipient_read:
+            yield recipient_read
+    else:
+        with _fallback_phase_read_pass(None):
+            yield lambda identity: nullcontext()
+
+
 def execute_turn_delivery(dispatcher, plan):
     """Replay one prepared boundary; publication remains the caller's duty."""
     from .combat_event_replay import NativeExternalEvent
@@ -80,36 +112,40 @@ def execute_turn_delivery(dispatcher, plan):
     outcomes = []
     authority = dispatcher.native_clone_authority
     with owned_turn_recipient_scope(fight, context):
-        for identity, channel in plan.recipients:
-            outcomes.extend(
-                dispatcher.replay_event(
-                    NativeExternalEvent(
-                        identity,
-                        (plan.event_id,),
-                        channel,
-                        turn_boundary_context=context,
-                    ),
-                    authority=authority,
-                )
-            )
+        with _turn_read_scope(dispatcher, fight, plan, authority) as recipient_read:
+            for identity, channel in plan.recipients:
+                with recipient_read(identity):
+                    outcomes.extend(
+                        dispatcher.replay_event(
+                            NativeExternalEvent(
+                                identity,
+                                (plan.event_id,),
+                                channel,
+                                turn_boundary_context=context,
+                            ),
+                            authority=authority,
+                        )
+                    )
         # Start/regeneration close the corresponding turn-scoped listeners.
         # Keep the original frozen manager order and the same owned boundary
         # facts; a null-source L6 notification alone cannot select mask2.
         if plan.event_id in (1001, 1037) and has_removal_subscription(
             dispatcher, plan.event_id
         ):
-            for identity, channel in removal_recipients(plan.recipients):
-                outcomes.extend(
-                    dispatcher.replay_event(
-                        NativeExternalEvent(
-                            identity,
-                            (plan.event_id,),
-                            channel,
-                            turn_boundary_context=context,
-                        ),
-                        authority=authority,
-                    )
-                )
+            with _turn_read_scope(dispatcher, fight, plan, authority) as recipient_read:
+                for identity, channel in removal_recipients(plan.recipients):
+                    with recipient_read(identity):
+                        outcomes.extend(
+                            dispatcher.replay_event(
+                                NativeExternalEvent(
+                                    identity,
+                                    (plan.event_id,),
+                                    channel,
+                                    turn_boundary_context=context,
+                                ),
+                                authority=authority,
+                            )
+                        )
     deliveries = dict(deliveries)
     deliveries[f"{plan.turn_id}:{plan.actor_id}:{plan.phase}"] = dict(
         actor_id=plan.actor_id,

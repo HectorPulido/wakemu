@@ -734,15 +734,26 @@ def initialize_fight_snapshots(
         pointer_binding = prepare_pointer_commit(fight)
         if pointer_binding is not None:
             pointer_binding.stage(original_fight)
-        original_actors = original_fight.actors
-        for identity, actor in fight.actors.items():
-            original_actors[identity].__dict__.clear()
-            original_actors[identity].__dict__.update(actor.__dict__)
-        fight.actors = original_actors
-        original_fight.__dict__.clear()
-        original_fight.__dict__.update(fight.__dict__)
-        if pointer_binding is not None:
-            pointer_binding.publish()
+        _adopt_initialized_fight(original_fight, fight, pointer_binding)
     if initialization_warnings is not None:
         initialization_warnings.extend(local_warnings)
     return prepared
+
+
+def _adopt_initialized_fight(destination, preview, pointer_binding):
+    """Publish initialization while preserving actual roster/actor aliases."""
+    from .combat_retained_collections import bind_adopted_actors
+    from .combat_characteristic_link import characteristic_adoption_bindings
+
+    bindings = characteristic_adoption_bindings(preview)
+    actual_actors = destination.actors
+    for identity, actor in preview.actors.items():
+        actual_actors[identity].__dict__.clear()
+        actual_actors[identity].__dict__.update(actor.__dict__)
+    bind_adopted_actors(preview, actual_actors)
+    destination.__dict__.clear()
+    destination.__dict__.update(preview.__dict__)
+    if pointer_binding is not None:
+        pointer_binding.publish()
+    for stats in bindings:
+        stats._fight = destination

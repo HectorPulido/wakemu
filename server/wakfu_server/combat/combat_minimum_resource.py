@@ -1,4 +1,5 @@
 """Native eWV minima: serialize the actual reversible PA minimum delta."""
+from .combat_source_parent_index import OwnedStateSourceRow
 import struct
 import math
 from .combat_parameters import parameter_value
@@ -135,7 +136,7 @@ class NativeMinimumResourceHandler:
         )
         write_minimum(actor, stat, amount, raw, new_min, after)
         if ctx.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,

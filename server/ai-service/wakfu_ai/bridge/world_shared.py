@@ -19,6 +19,26 @@ class _NoPublication(Exception):
     """Abort Registry adoption when the runner produced no public outcome."""
 
 
+def _publish_native_transition(registry, fight_id, actor_id, transition, **publication):
+    """Use transfer-of-private-ownership only for the native shared types."""
+    from wakfu_server.combat_shared import Registry, Transition
+    from wakfu_server.combat_state import Fight
+    from wakfu_server.combat_runtime_messages import RuntimeMessages
+
+    if (
+        type(registry) is Registry
+        and type(transition) is Transition
+        and type(transition.fight) is Fight
+        and type(transition.runtime) is RuntimeMessages
+    ):
+        return registry.execute_prepared_server(
+            fight_id, actor_id, transition, **publication
+        )
+    return registry.execute_server(
+        fight_id, actor_id, lambda candidate, runtime: transition, **publication
+    )
+
+
 def run_shared_turn(
     runtime,
     adapter,
@@ -29,6 +49,7 @@ def run_shared_turn(
     expected_turn=None,
     expected_sequence=None,
     started_at=None,
+    native_runner_authority=None,
 ):
     with turn_catalogue_scope(), turn_continuation.scope(publication_required=True):
         yield from _run_shared_turn(
@@ -40,6 +61,7 @@ def run_shared_turn(
             expected_turn=expected_turn,
             expected_sequence=expected_sequence,
             started_at=started_at,
+            native_runner_authority=native_runner_authority,
         )
 
 
@@ -53,6 +75,7 @@ def _run_shared_turn(
     expected_turn=None,
     expected_sequence=None,
     started_at=None,
+    native_runner_authority=None,
 ):
     from wakfu_server.combat_shared import Transition
 
@@ -130,6 +153,22 @@ def _run_shared_turn(
                 metadata = dict(vars(shared))
                 metadata["fight"] = dict(nativeReference="runtime.fight")
                 metadata["runtime"] = dict(nativeReference="runtime")
+                from wakfu_server.combat_checkpoint_publication import (
+                    CheckpointPublication,
+                )
+
+                receipt = shared.checkpoint_publication
+                if isinstance(receipt, CheckpointPublication):
+                    # This server-local persistence receipt proves identity,
+                    # not another gameplay snapshot. Encoding its runtime
+                    # would recursively embed the previous shared context.
+                    # Preserve stale receipts as stale, without rejecting them.
+                    metadata["checkpoint_publication"] = dict(
+                        revision=receipt.revision,
+                        sequence=receipt.sequence,
+                        matchesCurrentFight=receipt.fight is shared.fight,
+                        matchesCurrentRuntime=receipt.runtime is shared.runtime,
+                    )
                 metadata["lock"] = dict(
                     module=type(shared.lock).__module__,
                     name=type(shared.lock).__qualname__,
@@ -179,24 +218,32 @@ def _run_shared_turn(
                     )
                     transition = Transition(native.fight, native, tuple(packets))
                 else:
-                    iterator = iter(runner(native))
-                    try:
-                        for packets, diagnostic in iterator:
-                            diagnostics.append(
-                                dict(
-                                    diagnostic,
-                                    sharedPreparationMs=shared_preparation_ms,
+                    from ..native.native_commit_capability import shared_native_turn
+
+                    with shared_native_turn(
+                        native,
+                        claim,
+                        sequence,
+                        issuer=native_runner_authority,
+                    ) as native_commit_owned:
+                        iterator = iter(runner(native))
+                        try:
+                            for packets, diagnostic in iterator:
+                                diagnostics.append(
+                                    dict(
+                                        diagnostic,
+                                        sharedPreparationMs=shared_preparation_ms,
+                                    )
                                 )
-                            )
-                            if packets:
-                                transition = Transition(
-                                    native.fight, native, tuple(packets)
-                                )
-                                break
-                    finally:
-                        close = getattr(iterator, "close", None)
-                        if callable(close):
-                            close()
+                                if packets:
+                                    transition = Transition(
+                                        native.fight, native, tuple(packets)
+                                    )
+                                    break
+                        finally:
+                            close = getattr(iterator, "close", None)
+                            if callable(close):
+                                close()
                     if transition is None:
                         raise _NoPublication()
             except _NoPublication:
@@ -226,10 +273,11 @@ def _run_shared_turn(
                     continuation.discard()
                     continue
                 if failure is None:
-                    registry.execute_server(
+                    _publish_native_transition(
+                        registry,
                         shared.fight.id,
                         actor_id,
-                        lambda candidate, runtime: transition,
+                        transition,
                         expected_sequence=sequence,
                         incident_runtime=transition.runtime,
                         incident_packets=transition.packets,

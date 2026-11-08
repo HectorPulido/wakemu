@@ -245,3 +245,7 @@ def owned_start_caster(fight, source, *, entry, original, definition, effect):
         ),
     }
     return participant.id
+
+
+# Original native consumers of a stored listener invocation.
+_GROUP_HISTORY_FUNCTIONS = (("owned_start_caster", owned_start_caster),)

@@ -77,6 +77,31 @@ class RiftDispatchLifecycleTests(unittest.TestCase):
         )
         self.assertEqual(len({m["id"] for m in members}), 4)
 
+    def test_provider_reuses_preselected_wave_references(self):
+        fight = self.fight()
+        fake = SimpleNamespace(
+            reference=lambda ref: {"min_level": 21},
+            owned_instance=lambda ref, level, uid, **kwargs: dict(
+                ref=ref, level=level, id=uid, **kwargs
+            ),
+        )
+        # The accepted-action path already selected and validated this wave
+        # for capacity. The roster provider must not repeat that global work.
+        with patch.dict(sys.modules, {"wakfu_server.monsters": fake}), patch(
+            "wakfu_server.rift_reinforcement_placement.select_positions",
+            return_value=tuple((i, 0, 0) for i in range(1, 5)),
+        ), patch(
+            "wakfu_server.rift_policy.select_wave",
+            side_effect=AssertionError("wave references were selected twice"),
+        ):
+            members = next_roster(
+                fight,
+                dict(completed_wave=1),
+                references=(1, 1, 1, 1),
+            )
+        self.assertEqual(len(members), 4)
+        self.assertTrue(all(m["ref"] == 1 for m in members))
+
     def test_insufficient_or_reused_reservation_fails_without_consumption(self):
         fight = self.fight()
         fight.rift_wave_state["actor_id_pool"] = [-1]

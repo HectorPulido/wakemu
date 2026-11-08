@@ -262,6 +262,7 @@ def resolve(
     fight_id,
     context,
     kamas_roll_index=None,
+    rift_fight=None,
 ):
     """Freeze one reward calculation inside the caller's durable award TX.
 
@@ -285,9 +286,20 @@ def resolve(
         "WHERE p.fight_id=%s AND p.character_id=%s AND p.account_id=%s FOR UPDATE OF f",
         (fight_id, character_id, account_id),
     ).fetchone()
+    from wakfu_server.combat_reward_ownership import rift_withdrawal_result
+
+    withdrawing = (
+        rift_fight is not None
+        and rift_fight.id == fight_id
+        and rift_withdrawal_result(db, rift_fight, account_id, generation, character_id)
+        is not None
+    )
     if (
         participant is None
-        or participant["status"] != "finished"
+        or (
+            participant["status"] != "finished"
+            and not (withdrawing and participant["status"] == "active")
+        )
         or participant["team"] != normalized["winner_team"]
     ):
         raise ValueError("Reward policy requires the own finished winning participant")

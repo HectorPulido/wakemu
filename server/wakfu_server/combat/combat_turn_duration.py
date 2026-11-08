@@ -1,5 +1,65 @@
 """Native eWL668 marker; explicit Wakemu previous-granted-duration policy."""
+from .combat_source_parent_index import OwnedStateSourceRow
+
 POLICY = "wakemu.previous-granted-turn-duration-v1"
+
+
+def _local_duration_marker_presence(fight, actor_id):
+    """Return local marker presence, or None for unchanged legacy fallback.
+
+    The exact owned collections are a precondition so legacy/custom fights do
+    not pay for new validation. Requiring consistent owned membership makes
+    the manager index authoritative; no retained event view is built unless
+    the selected manager actually owns a stat marker.
+    """
+    from .combat_state import Fight
+    from .combat_retained_collections import OwnedMap, bound_collections
+
+    if (
+        type(fight) is not Fight
+        or Fight.__getattribute__ is not object.__getattribute__
+        or "__getattr__" in Fight.__dict__
+    ):
+        return None
+    fields = vars(fight)
+    if (
+        fields.get("native_retained_tracking") is not True
+        or type(fields.get("native_retained_records")) is not OwnedMap
+    ):
+        return None
+    owner = bound_collections(fields)
+    if owner is None:
+        return None
+    try:
+        from .combat_pending_state import pending_state_uids
+
+        if not owner.consistent(pending_state_uids(fight)):
+            return None
+        # The existing owner index selects only this manager's UIDs. The
+        # common no-marker case stops here without a full retained query.
+        rows = fields.get("owned_stat_effects")
+        if (
+            type(rows) is not OwnedMap
+            or rows.owner is not owner
+            or rows.name != "owned_stat_effects"
+        ):
+            return None
+        has_marker = False
+        for uid in owner.manager_uids(actor_id):
+            row = rows.get(uid)
+            if row is None:
+                continue
+            if type(row) is not dict:
+                return None
+            effect_class = row.get("effect_class")
+            if type(effect_class) is not int:
+                return None
+            has_marker = has_marker or effect_class == 668
+        return has_marker
+    except (ValueError, TypeError, KeyError, AttributeError):
+        # Preserve the established scan/query path for malformed or custom
+        # retained data. Import/programming errors are not silently hidden.
+        return None
 
 
 def duration_add_previous(parameters):
@@ -49,7 +109,13 @@ def current_turn_duration(fight, base):
     previous = None if state is None or fight.turn_index == 0 else state["duration_ms"]
     duration = turn_duration_policy(base, None, add_previous=False)
     rows = getattr(fight, "owned_stat_effects", {})
-    if any(row.get("effect_class") == 668 for row in rows.values()):
+    local_marker = _local_duration_marker_presence(fight, actor.id)
+    has_global_marker = (
+        local_marker
+        if local_marker is not None
+        else any(row.get("effect_class") == 668 for row in rows.values())
+    )
+    if has_global_marker:
         from .combat_retained_runtime import native_retained_condition_effects
 
         for _, family, uid in native_retained_condition_effects(fight, actor.id):
@@ -155,7 +221,7 @@ class NativeTurnDurationHandler:
         if ctx.retained:
             if actor is None:
                 raise ValueError("Missing retained native eWL manager")
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 effect_class=668,
                 family="eWL",

@@ -282,3 +282,9 @@ def replay_external_participant(dispatcher, source, *, entry, original):
     return declared_external_participant(
         lifecycle.preview, invocation, actor_authority=lifecycle.adapter.actor_authority
     )
+
+
+# Original native consumers of a stored listener invocation.
+_GROUP_HISTORY_FUNCTIONS = (
+    ("replay_external_participant", replay_external_participant),
+)

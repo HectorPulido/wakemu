@@ -1,4 +1,5 @@
 """Native eWQ/eWR runner lifecycle, independent of null400 and Qq effects."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from wakfu_server import native_catalog as protocol_catalog
 import json
 from pathlib import Path
@@ -335,7 +336,7 @@ def apply_current_stat_runner(handler, effect, values, invocation):
             current=result["current"],
         )
     if context.retained:
-        handler.fight.owned_stat_effects[uid] = dict(
+        handler.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
             uid=uid,
             target_id=target.id,
             caster_id=invocation.caster_id,

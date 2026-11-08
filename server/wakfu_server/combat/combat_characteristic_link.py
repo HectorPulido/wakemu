@@ -1,4 +1,5 @@
 """Native eWh1038 live PA links over explicitly owned characteristic snapshots."""
+from .combat_source_parent_index import OwnedStateSourceRow
 import copy
 from .combat_parameters import parameter_value
 from .combat_stat_handler import StatExecutionContext
@@ -27,6 +28,35 @@ def link_contribution(source, percent=100, upper=0, lower=-(1 << 31)):
 
 
 class ObservableCharacteristicStats(dict):
+    @property
+    def _fight(self):
+        reference = vars(self).get("_fight_ref")
+        if reference is None:
+            return vars(self).get("_fight")
+        from weakref import ReferenceType
+
+        if type(reference) is not ReferenceType:
+            raise ValueError("Invalid native characteristic owner reference")
+        fight = reference()
+        if fight is None:
+            raise ReferenceError("Native characteristic owner is no longer alive")
+        return fight
+
+    @_fight.setter
+    def _fight(self, fight):
+        from weakref import ref
+        from .combat_state import Fight
+
+        fields = vars(self)
+        fields.pop("_fight_anchor", None)
+        if type(fight) is Fight:
+            fields.pop("_fight", None)
+            fields["_fight_ref"] = ref(fight)
+        else:
+            # Generic/custom owners preserve their prior strong-field contract.
+            fields.pop("_fight_ref", None)
+            fields["_fight"] = fight
+
     def __init__(self, values, fight, identity):
         dict.__init__(self, values)
         self._fight, self._identity = fight, identity
@@ -36,7 +66,12 @@ class ObservableCharacteristicStats(dict):
         memo[id(self)] = clone
         dict.__init__(clone, copy.deepcopy(dict(self), memo))
         clone._identity = self._identity
-        clone._fight = copy.deepcopy(self._fight, memo)
+        fight = self._fight
+        standalone = id(fight) not in memo
+        copied = copy.deepcopy(fight, memo)
+        clone._fight = copied
+        if standalone and "_fight_ref" in vars(clone):
+            clone._fight_anchor = copied
         return clone
 
     def __setitem__(self, stat, value):
@@ -260,7 +295,7 @@ class NativeCharacteristicLinkHandler:
         )
         payload += b"\x42" + _varint(len(additional)) + additional
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=invocation.target_id,
                 caster_id=invocation.caster_id,

@@ -78,9 +78,15 @@ class _RetainedManagerPass:
     the consumer finishes; a later view must construct a new pass.
     """
 
-    def __init__(self, fight):
+    def __init__(self, fight, *, _selected_identities=None):
         self.fight = fight
-        self.managers = tuple(state_managers(fight))
+        self.managers = (
+            tuple(state_managers(fight))
+            if _selected_identities is None
+            else tuple(
+                state_manager(fight, identity) for identity in _selected_identities
+            )
+        )
         self.by_identity = {}
         self._consumed = False
         for manager in self.managers:
@@ -101,14 +107,78 @@ class _RetainedManagerPass:
         return self.by_identity[identity]
 
 
+class _RetainedWirePass:
+    """Borrow immutable wire facts for one freshly validated native view.
+
+    The caller owns the previous mapping through an ephemeral weak runtime.
+    Only payloads actually read in this construction survive in current.
+    No actor, fight, manager or ownership authority enters either mapping.
+    """
+
+    def __init__(self, previous):
+        self.previous = previous
+        self.current = {}
+        self._consumed = False
+
+    def consume(self):
+        if self._consumed:
+            raise ValueError("Retained wire pass already consumed")
+        self._consumed = True
+
+    def read(self, payload):
+        if type(payload) is not str or len(payload) > 8192:
+            return _readonly_hex_identity_fields(payload)
+        fields = self.current.get(payload)
+        if fields is None:
+            fields = self.previous.get(payload)
+        if fields is None:
+            fields = _readonly_hex_identity_fields(payload)
+        self.current[payload] = fields
+        return fields
+
+
+def validate_retained_entry_identity(entry, manager_pass, by_uid):
+    if (
+        not isinstance(entry, RetainedEffect)
+        or type(entry.uid) is not int
+        or not 0 < entry.uid < (1 << 63)
+    ):
+        raise ValueError("Invalid native retained effect record")
+    if entry.uid in by_uid:
+        raise ValueError("Duplicate native retained effect UID")
+    target_missing = False
+    if entry.target_id is not None:
+        target_missing = manager_pass.resolve(entry.target_id) is None
+    if target_missing or type(entry.effect_class) is not int or entry.effect_class <= 0:
+        raise ValueError("Invalid native retained effect owner/family")
+    if type(entry.generic_effect) is not int or not (
+        entry.generic_effect == -1 or 0 < entry.generic_effect < (1 << 31)
+    ):
+        raise ValueError("Invalid native retained generic definition ID")
+    by_uid[entry.uid] = entry
+
+
 class NativeRetainedEffectView:
     def __init__(
-        self, fight, entries, *, population_verified_complete, _manager_pass=None
+        self,
+        fight,
+        entries,
+        *,
+        population_verified_complete,
+        _manager_pass=None,
+        _wire_pass=None
     ):
         if population_verified_complete is not True:
             raise ValueError(
                 "Complete authoritative native running-effect population required"
             )
+        if _wire_pass is None:
+            wire_fields = _readonly_hex_identity_fields
+        else:
+            if type(_wire_pass) is not _RetainedWirePass:
+                raise ValueError("Invalid operation-local retained wire pass")
+            _wire_pass.consume()
+            wire_fields = _wire_pass.read
         self.fight = fight
         self.entries = tuple(entries)
         self.by_uid = {}
@@ -124,34 +194,13 @@ class NativeRetainedEffectView:
             raise ValueError("Invalid operation-local retained manager pass")
         _manager_pass.consume(fight)
         for entry in self.entries:
-            if (
-                not isinstance(entry, RetainedEffect)
-                or type(entry.uid) is not int
-                or not 0 < entry.uid < (1 << 63)
-            ):
-                raise ValueError("Invalid native retained effect record")
-            if entry.uid in self.by_uid:
-                raise ValueError("Duplicate native retained effect UID")
-            target_missing = False
-            if entry.target_id is not None:
-                target_missing = _manager_pass.resolve(entry.target_id) is None
-            if (
-                target_missing
-                or type(entry.effect_class) is not int
-                or entry.effect_class <= 0
-            ):
-                raise ValueError("Invalid native retained effect owner/family")
-            if type(entry.generic_effect) is not int or not (
-                entry.generic_effect == -1 or 0 < entry.generic_effect < (1 << 31)
-            ):
-                raise ValueError("Invalid native retained generic definition ID")
-            self.by_uid[entry.uid] = entry
+            validate_retained_entry_identity(entry, _manager_pass, self.by_uid)
         from .combat_pending_state import pending_state_uids
 
         pending = pending_state_uids(fight)
         known = {}
         for uid, row in fight.owned_stat_effects.items():
-            fields = _readonly_hex_identity_fields(row["payload"])
+            fields = wire_fields(row["payload"])
             generic = fields.get(3)
             known[uid] = (
                 row["target_id"],
@@ -166,13 +215,13 @@ class NativeRetainedEffectView:
                 payload = fight.state_wire_payloads.get(state.uid)
                 if payload is None:
                     raise ValueError("Missing native carrier wire ownership")
-                fields = _readonly_hex_identity_fields(payload)
+                fields = wire_fields(payload)
                 generic = fields.get(3)
                 if generic == (1 << 64) - 1:
                     generic = -1
                 known[state.uid] = (actor.id, 310, generic, None)
         for uid, row in getattr(fight, "native_owned_group_effects", {}).items():
-            fields = _readonly_hex_identity_fields(row["payload"])
+            fields = wire_fields(row["payload"])
             if row["target_id"] is None:
                 from .combat_subscription_runners import GROUP_SUBSCRIPTION_FAMILIES
 
@@ -210,7 +259,7 @@ class NativeRetainedEffectView:
             from .combat_private_target_aura import validate_private_target_aura
 
             validate_private_target_aura(fight, row)
-            fields = _readonly_hex_identity_fields(row["payload"])
+            fields = wire_fields(row["payload"])
             entry = self.by_uid.get(uid)
             manager = row["caster_id"]
             if row["effect_class"] == 338:
@@ -289,6 +338,29 @@ class NativeRetainedEffectView:
                         "Native retained child owner lacks actual PL authority"
                     )
         self.known = known
+
+    def manager_entries(self, identity):
+        """Preserve Qf insertion order within this validated immutable view."""
+        entries = self.entries
+        if type(entries) is not tuple or type(identity) is not int:
+            return tuple(entry for entry in entries if entry.manager_id == identity)
+        if getattr(self, "_manager_entries_source", None) is not entries:
+            managers = {}
+            for entry in entries:
+                manager = entry.manager_id
+                if manager is not None and type(manager) is not int:
+                    managers = None
+                    break
+                managers.setdefault(manager, []).append(entry)
+            self._entries_by_manager = (
+                None
+                if managers is None
+                else {manager: tuple(rows) for manager, rows in managers.items()}
+            )
+            self._manager_entries_source = entries
+        if self._entries_by_manager is None:
+            return tuple(entry for entry in entries if entry.manager_id == identity)
+        return self._entries_by_manager.get(identity, ())
 
     def owned_children(self, uid):
         """Index ownership only within this already validated immutable view."""
@@ -376,9 +448,14 @@ class NativeRetainedRemoval:
             seen.add(uid)
             result.append(entry)
 
-        for uid in uids:
-            visit(uid)
-        return tuple(result)
+        try:
+            for uid in uids:
+                visit(uid)
+            return tuple(result)
+        finally:
+            # Break the recursive closure even for an empty plan or failure;
+            # retaining its self cell would keep the view and Fight alive.
+            visit = None
 
     def remove(self, uids):
         plan = self.plan(
@@ -394,7 +471,14 @@ class NativeRetainedRemoval:
 
 
 def register_owned_removals(
-    removal, *, stat_handler, packets, action_id, area_events=None
+    removal,
+    *,
+    stat_handler,
+    packets,
+    action_id,
+    area_events=None,
+    _selected_entries=None,
+    _fixed_view=False
 ):
     """Wire existing stat reversal and carrier cleanup to the same preview.
 
@@ -402,6 +486,19 @@ def register_owned_removals(
     registered later. No state child can be silently discarded.
     """
     fight = removal.fight
+    if _selected_entries is None and not _fixed_view:
+        # Preserve standalone/custom callers that replace their view later.
+        def current_view():
+            return removal.view
+
+    else:
+        # The certified operation-local closure is fixed until its synchronous
+        # all-before-mutation plan completes; do not retain removal via callbacks.
+        bound_view = removal.view
+
+        def current_view():
+            return bound_view
+
     if stat_handler.fight is not fight:
         raise ValueError("Stat removal belongs to another preview")
 
@@ -421,7 +518,7 @@ def register_owned_removals(
 
     def stat_remove(uid):
         # Explicit view metadata is authoritative even for an external provider.
-        entry = removal.view.by_uid[uid]
+        entry = current_view().by_uid[uid]
         stat_handler.remove(uid)
         manager = entry.manager_id if entry.manager_id is not None else entry.target_id
         if manager != entry.target_id:
@@ -432,7 +529,16 @@ def register_owned_removals(
                 raise ValueError("Native stat removal outbox identity missing")
             packets[-1] = (opcode, payload[:-16] + struct.pack(">qq", manager, uid))
 
-    for kind in {row["effect_class"] for row in fight.owned_stat_effects.values()}:
+    stat_kinds = (
+        {row["effect_class"] for row in fight.owned_stat_effects.values()}
+        if _selected_entries is None
+        else {
+            entry.effect_class
+            for entry in _selected_entries
+            if entry.uid in fight.owned_stat_effects
+        }
+    )
+    for kind in stat_kinds:
         removal.register(
             kind,
             exists=lambda uid: uid in fight.owned_stat_effects,
@@ -472,7 +578,7 @@ def register_owned_removals(
 
     def area_remove(uid):
         row = fight.native_owned_area_effects[uid]
-        payload = area_validate(removal.view.by_uid[uid])
+        payload = area_validate(current_view().by_uid[uid])
         if (
             row["executed"]
             and not row["keep_after"]
@@ -488,10 +594,19 @@ def register_owned_removals(
         del fight.native_owned_area_effects[uid]
         packets.append((13560, payload))
 
-    for family in {
-        row["effect_class"]
-        for row in getattr(fight, "native_owned_area_effects", {}).values()
-    }:
+    area_kinds = (
+        {
+            row["effect_class"]
+            for row in getattr(fight, "native_owned_area_effects", {}).values()
+        }
+        if _selected_entries is None
+        else {
+            entry.effect_class
+            for entry in _selected_entries
+            if entry.uid in fight.native_owned_area_effects
+        }
+    )
+    for family in area_kinds:
         removal.register(
             family,
             exists=lambda uid: uid in fight.native_owned_area_effects,
@@ -501,15 +616,28 @@ def register_owned_removals(
 
     from .combat_pointer_qi_spatialowned import register_spatial_removals
 
-    register_spatial_removals(removal, packets=packets, action_id=action_id)
+    register_spatial_removals(
+        removal,
+        packets=packets,
+        action_id=action_id,
+        _view_provider=current_view
+        if _selected_entries is not None or _fixed_view
+        else None,
+    )
 
     def carrier_exists(uid):
+        if _selected_entries is not None:
+            if uid not in fight.state_wire_payloads:
+                return False
+            entry = current_view().by_uid[uid]
+            actor = state_manager(fight, entry.manager_id)
+            return any(state.uid == uid for state in actor.state_ledger.entries)
         return uid in fight.state_wire_payloads and any(
             e.uid == uid for a in state_managers(fight) for e in a.state_ledger.entries
         )
 
     def carrier_remove(uid):
-        entry = removal.view.by_uid[uid]
+        entry = current_view().by_uid[uid]
         packet = running_effect_removal(
             fight.id,
             action_id,
@@ -532,3 +660,10 @@ def register_owned_removals(
     removal.register(
         310, exists=carrier_exists, remove=carrier_remove, validate=validate
     )
+
+
+_SOURCE_REMOVAL_PLAN = NativeRetainedRemoval.plan
+_SOURCE_REMOVAL_REMOVE = NativeRetainedRemoval.remove
+
+_SOURCE_REMOVAL_INIT = NativeRetainedRemoval.__init__
+_SOURCE_REMOVAL_REGISTER = NativeRetainedRemoval.register

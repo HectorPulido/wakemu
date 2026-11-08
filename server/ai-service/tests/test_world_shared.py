@@ -120,6 +120,54 @@ class SharedNativeAiTests(unittest.TestCase):
         self.assertTrue(all(not queue for queue in self.shared.outboxes.values()))
         self.assertFalse(hasattr(self.shared.fight, "native_ai_team_context"))
 
+    def test_repeated_checkpoint_receipts_do_not_embed_previous_shared_context(self):
+        from wakfu_server.combat_checkpoint_publication import CheckpointPublication
+
+        lengths = []
+
+        def runner(native):
+            native.fight.turn_index = 1
+            yield [(12588, b"native-cast")], dict(action={"type": "cast"})
+
+        receipt = None
+        for step in range(12):
+            self.shared.fight.turn_index = 0
+            self.shared.fight.turn_id += 1
+            current = step % 2 == 0
+            if current:
+                receipt = CheckpointPublication(
+                    self.shared.fight, self.shared.runtime, step + 1, step
+                )
+            self.shared.checkpoint_publication = receipt
+            result = list(
+                run_shared_turn(self.shared.runtime, self.adapter, self.one, runner)
+            )
+            self.assertEqual(len(result), 1)
+            raw = gzip.decompress(self.shared.runtime.native_ai_shared_context)
+            lengths.append(len(raw))
+            graph = NativeGraph(raw)
+            fields = {
+                graph.plain(key): value
+                for key, value in graph.resolve(graph.data["root"])["entries"]
+            }
+            self.assertEqual(
+                graph.plain(fields["checkpoint_publication"]),
+                dict(
+                    revision=receipt.revision,
+                    sequence=receipt.sequence,
+                    matchesCurrentFight=current,
+                    matchesCurrentRuntime=current,
+                ),
+            )
+            self.assertNotIn(b"native_ai_shared_context", raw)
+            self.assertEqual(
+                graph.plain(fields["future_context"]),
+                {"full": b"future-native-authority"},
+            )
+            for session in (self.one, self.two):
+                self.registry.drain(99, session)
+        self.assertLess(max(lengths) - min(lengths), 512, lengths)
+
     def test_move_is_published_before_post_move_search_and_deadline_is_shared(self):
         calls = []
         closed = []

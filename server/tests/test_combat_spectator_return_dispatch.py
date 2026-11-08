@@ -147,6 +147,7 @@ class SpectatorTerminalDispatchTests(unittest.TestCase):
         registry = SimpleNamespace(
             fights={106: SimpleNamespace(revision=4)},
             invalidate_snapshot=lambda fight_id: invalidated.append(fight_id),
+            has_subscribers=lambda fight_id: True,
             publish_events=lambda fight_id, **kwargs: published.append(
                 (fight_id, kwargs)
             ),
@@ -189,6 +190,77 @@ class SpectatorTerminalDispatchTests(unittest.TestCase):
         self.assertEqual(invalidated, [106, 106])
         self.assertEqual(len(published), 1)
 
+    def test_unobserved_updates_skip_snapshot_and_fresh_entries_resume_publications(
+        self,
+    ):
+        from wakfu_server.combat_spectators import ObserverSession, SpectatorRegistry
+        from wakfu_server.performance_profiler import PROFILER
+        from test_combat_spectators import native_snapshot
+
+        owner = ObserverSession(1, 10, "owner", 1134, 7)
+        observer = ObserverSession(2, 20, "observer", 1134, 7)
+        registry = SpectatorRegistry(lambda session: session in (owner, observer))
+        registry.publish_fight(
+            900,
+            map_id=1134,
+            instance_id=7,
+            participant_sessions=(owner,),
+            revision=1,
+            snapshot_packets=(native_snapshot(900),),
+            visible=True,
+        )
+        snapshots = []
+
+        def snapshot(shared):
+            snapshots.append(shared.sequence)
+            return (native_snapshot(900, marker=str(shared.sequence).encode()),)
+
+        scope = dict(
+            COMBAT_TEST=True,
+            PROFILER=PROFILER,
+            SPECTATORS=registry,
+            spectator_waiting_for_ack=lambda _: False,
+            spectator_snapshot=snapshot,
+            ObserverSession=ObserverSession,
+            record=lambda **kwargs: self.fail(str(kwargs)),
+        )
+        function = _function(self.tree, "publish_spectator_state")
+        module = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
+        exec(compile(module, str(SERVER), "exec"), scope)
+        shared = SimpleNamespace(
+            fight=SimpleNamespace(id=900, phase="placement"),
+            participants={1: owner},
+            sequence=2,
+            map_id=1134,
+            instance_id=7,
+            lock=RLock(),
+        )
+        publish = scope["publish_spectator_state"]
+        for sequence in range(2, 32):
+            shared.sequence = sequence
+            publish(shared, ((13624, b"movement"),))
+        self.assertEqual(snapshots, [])
+        with self.assertRaisesRegex(ValueError, "snapshot is not current"):
+            registry.enter(observer, 900, authorize=lambda *_: True)
+        publish(shared, force_snapshot=True)
+        entered = registry.enter(observer, 900, authorize=lambda *_: True)
+        self.assertEqual(entered.revision, 31)
+        shared.sequence = 32
+        event = ((13624, b"observed-movement"),)
+        publish(shared, event)
+        self.assertEqual([batch.packets for batch in registry.poll(observer)], [event])
+        registry.leave(observer, 900)
+        shared.sequence = 33
+        publish(shared)
+        self.assertEqual(snapshots, [31, 32])
+        registry.defer_enter(observer, 900, authorize=lambda *_: True)
+        publish(shared)
+        self.assertEqual(snapshots, [31, 32, 33])
+        delivery = registry.poll(observer)
+        self.assertEqual(len(delivery), 1)
+        self.assertTrue(delivery[0].is_snapshot)
+        self.assertEqual(delivery[0].revision, 33)
+
     def test_initial_and_update_spectator_publications_serialize_under_shared_lock(
         self,
     ):
@@ -209,6 +281,9 @@ class SpectatorTerminalDispatchTests(unittest.TestCase):
                     raise AssertionError("Duplicate initial spectator publication")
                 self.fights[fight_id] = SimpleNamespace(revision=payload["revision"])
                 self.publications.append(("initial", payload["revision"], ()))
+
+            def has_subscribers(self, fight_id):
+                return True
 
             def publish_update(self, fight_id, **payload):
                 current = self.fights[fight_id]

@@ -210,7 +210,10 @@ class EffectDispatcher:
         observer_depth = self._scene_observer_depth
         self._scene_observer_depth += 1
         try:
-            result = self._execute(invocation, ancestors=ancestors)
+            from .combat_retained_departure_source import retained_descendant_scope
+
+            with retained_descendant_scope(self, invocation, ancestors):
+                result = self._execute(invocation, ancestors=ancestors)
             if observer_depth == 0:
                 observer = getattr(self, "native_scene_root_observer", None)
                 if observer is not None and observer():
@@ -1124,3 +1127,10 @@ def run_effect_transaction(fight, invocations, dispatcher_factory):
     with preview.effect_resolution():
         outcomes = tuple(dispatcher.execute(invocation) for invocation in invocations)
     return preview, outcomes
+
+
+# Original native consumers of a stored listener invocation.
+_GROUP_HISTORY_METHODS = tuple(
+    (EffectInvocation, name, getattr(EffectInvocation, name))
+    for name in ("__init__", "__getattribute__")
+)

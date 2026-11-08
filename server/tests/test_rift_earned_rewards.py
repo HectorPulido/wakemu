@@ -16,6 +16,466 @@ from wakfu_server.rift_policy import select_wave
 
 
 class RiftEarnedRewardTests(PostgresCase):
+    def test_startup_honors_committed_withdrawal_before_next_checkpoint(self):
+        from types import SimpleNamespace
+        from wakfu_server import combat_pve_withdraw_store
+
+        run, fight, characters, checkpoints, revision = self._interrupted_checkpoint()
+        session = SimpleNamespace(
+            account_id=self.account,
+            generation=self.generation,
+            character_id=self.ids[0],
+        )
+        # The same public durable operation used by Registry.withdraw_pve.
+        # Deliberately do not checkpoint the later detached withdrawal state.
+        combat_pve_withdraw_store.persist(
+            self.store,
+            session,
+            characters[self.ids[0]],
+            fight,
+        )
+        with self.store.connection() as db:
+            before = [self.store.character(self.account, i, db) for i in self.ids]
+            rewards = list(
+                db.execute(
+                    "SELECT * FROM fight_rewards WHERE fight_id=%s ORDER BY character_id",
+                    (fight.id,),
+                )
+            )
+            health = list(
+                db.execute(
+                    "SELECT * FROM fight_health_exits WHERE fight_id=%s ORDER BY character_id",
+                    (fight.id,),
+                )
+            )
+            self.assertEqual(len(rewards), len(self.ids))
+            saved = db.execute(
+                "SELECT snapshot,revision FROM fight_checkpoints WHERE fight_id=%s",
+                (fight.id,),
+            ).fetchone()
+            self.assertEqual(saved["revision"], revision)
+            self.assertFalse(
+                saved["snapshot"]["actors"][str(self.ids[0])].get("pve_withdrawn")
+            )
+        with patch.object(
+            combat_rewards,
+            "award_shared_member",
+            side_effect=AssertionError("withdrawn owner paid again"),
+        ):
+            self.assertEqual(checkpoints.recover_interrupted(), 1)
+            self.assertEqual(checkpoints.recover_interrupted(), 0)
+        with self.store.connection() as db:
+            self.assertEqual(
+                [self.store.character(self.account, i, db) for i in self.ids], before
+            )
+            self.assertEqual(
+                list(
+                    db.execute(
+                        "SELECT * FROM fight_rewards WHERE fight_id=%s ORDER BY character_id",
+                        (fight.id,),
+                    )
+                ),
+                rewards,
+            )
+            self.assertEqual(
+                list(
+                    db.execute(
+                        "SELECT * FROM fight_health_exits WHERE fight_id=%s ORDER BY character_id",
+                        (fight.id,),
+                    )
+                ),
+                health,
+            )
+            receipt = db.execute(
+                "SELECT result FROM rift_settlement_receipts WHERE instance_id=%s",
+                (run["instance_id"],),
+            ).fetchone()
+            self.assertEqual(receipt["result"]["recovery"]["recipient_ids"], [])
+
+    def test_startup_rejects_withdrawal_without_original_health_proof(self):
+        run, fight, _, checkpoints, revision = self._interrupted_checkpoint()
+        # A withdrawal row alone is not authenticated original health evidence.
+        with self.store.connection() as db:
+            for identity in self.ids:
+                db.execute(
+                    "INSERT INTO combat_pve_withdrawals "
+                    "(fight_id,character_id,account_id,session_generation,created_at) "
+                    "VALUES(%s,%s,%s,%s,%s)",
+                    (
+                        fight.id,
+                        identity,
+                        self.account,
+                        self.generation,
+                        self.store.now(),
+                    ),
+                )
+        with self.assertRaisesRegex(ValueError, "original-generation health proof"):
+            checkpoints.recover_interrupted()
+        with self.store.connection() as db:
+            self.assertEqual(
+                rift_runtime._run(db, run["instance_id"])["status"], "running"
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT status,revision FROM fight_checkpoints WHERE fight_id=%s",
+                    (fight.id,),
+                ).fetchone(),
+                dict(status="active", revision=revision),
+            )
+
+    def test_startup_accepts_placement_checkpoint_only_without_earned_progress(self):
+        from psycopg.types.json import Jsonb
+
+        run, fight, _, checkpoints, revision = self._interrupted_checkpoint(
+            no_kills=True
+        )
+        # Ready can commit SQL active before publishing its active checkpoint.
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE fight_checkpoints SET snapshot=jsonb_set(snapshot,'{phase}',%s) "
+                "WHERE fight_id=%s",
+                (Jsonb("placement"), fight.id),
+            )
+        with patch.object(
+            combat_rewards,
+            "award_shared_member",
+            side_effect=AssertionError("placement paid rewards"),
+        ):
+            self.assertEqual(checkpoints.recover_interrupted(), 1)
+        with self.store.connection() as db:
+            for table in ("fight_rewards", "fight_health_exits"):
+                self.assertEqual(
+                    db.execute(
+                        "SELECT count(*) AS n FROM " + table + " WHERE fight_id=%s",
+                        (fight.id,),
+                    ).fetchone()["n"],
+                    0,
+                )
+
+    def test_startup_rejects_placement_checkpoint_with_earned_progress(self):
+        from psycopg.types.json import Jsonb
+
+        run, fight, _, checkpoints, revision = self._interrupted_checkpoint()
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE fight_checkpoints SET snapshot=jsonb_set(snapshot,'{phase}',%s) "
+                "WHERE fight_id=%s",
+                (Jsonb("placement"), fight.id),
+            )
+        with self.assertRaisesRegex(ValueError, "Placement checkpoint cannot certify"):
+            checkpoints.recover_interrupted()
+        with self.store.connection() as db:
+            self.assertEqual(
+                rift_runtime._run(db, run["instance_id"])["status"], "running"
+            )
+
+    def test_startup_pays_surviving_owner_after_withdrawn_owner_reconnects(self):
+        from types import SimpleNamespace
+        from psycopg.types.json import Jsonb
+        from wakfu_server import combat_pve_withdraw_store
+        from wakfu_server.combat_encounter_roles import assigned_roles
+
+        run, fight, characters, checkpoints, revision = self._interrupted_checkpoint()
+        peer_owner = self.store.register("rift-startup-peer", "peer-password")["id"]
+        peer = self.store.create_character(peer_owner, "Riftstartuppeer")
+        generation = self.store.begin_session(peer_owner)
+        self.store.select_character(peer_owner, generation, peer["id"])
+        actor = Actor(
+            peer["id"],
+            assigned_roles(fight).player_team,
+            (100, 0, 0),
+            peer["hp"],
+            6,
+            3,
+            100,
+            peer["level"],
+            peer_owner,
+            True,
+        )
+        actor.effect_stats = {33: 0, 36: 20, 119: 100}
+        fight.actors[peer["id"]] = actor
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE rift_instances SET members=%s WHERE instance_id=%s",
+                (Jsonb([*self.ids, peer["id"]]), run["instance_id"]),
+            )
+            db.execute(
+                "INSERT INTO combat_fight_participants "
+                "(fight_id,character_id,account_id,team,session_generation,"
+                "entry_hp,entry_max_hp,entry_hp_damage,entry_health_dead) "
+                "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    fight.id,
+                    peer["id"],
+                    peer_owner,
+                    actor.team,
+                    generation,
+                    peer["hp"],
+                    peer["max_hp"],
+                    peer["hp_damage"],
+                    peer["health_dead"],
+                ),
+            )
+        checkpoints.save(
+            self.account, self.generation, fight, expected_revision=revision
+        )
+        session = SimpleNamespace(
+            account_id=peer_owner, generation=generation, character_id=peer["id"]
+        )
+        combat_pve_withdraw_store.persist(self.store, session, peer, fight)
+        replacement = self.store.begin_session(
+            peer_owner, previous_generation=generation
+        )
+        self.store.select_character(peer_owner, replacement, peer["id"])
+        session.generation = replacement
+        combat_pve_withdraw_store.recover(self.store, session, fight.id, generation)
+        with self.store.connection() as db:
+            before = self.store.character(peer_owner, peer["id"], db)
+            reward = db.execute(
+                "SELECT * FROM fight_rewards WHERE fight_id=%s AND character_id=%s",
+                (fight.id, peer["id"]),
+            ).fetchone()
+            health = db.execute(
+                "SELECT * FROM fight_health_exits WHERE fight_id=%s AND character_id=%s",
+                (fight.id, peer["id"]),
+            ).fetchone()
+        self.assertEqual(checkpoints.recover_interrupted(), 1)
+        with self.store.connection() as db:
+            self.assertEqual(self.store.character(peer_owner, peer["id"], db), before)
+            self.assertEqual(
+                db.execute(
+                    "SELECT * FROM fight_rewards WHERE fight_id=%s AND character_id=%s",
+                    (fight.id, peer["id"]),
+                ).fetchone(),
+                reward,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT * FROM fight_health_exits WHERE fight_id=%s AND character_id=%s",
+                    (fight.id, peer["id"]),
+                ).fetchone(),
+                health,
+            )
+            receipt = db.execute(
+                "SELECT result FROM rift_settlement_receipts WHERE instance_id=%s",
+                (run["instance_id"],),
+            ).fetchone()
+            self.assertEqual(
+                receipt["result"]["recovery"]["recipient_ids"], sorted(self.ids)
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_rewards WHERE fight_id=%s",
+                    (fight.id,),
+                ).fetchone()["n"],
+                len(self.ids) + 1,
+            )
+
+    def _interrupted_checkpoint(self, *, no_kills=False):
+        from wakfu_server.fight_checkpoint_store import Checkpoints
+
+        self._company()
+        run, fight, characters = self._fixture(terminal=False, no_kills=no_kills)
+        fight.phase = "active"
+        fight.native_timeline_round = 7
+        fight.actors[self.ids[0]].hp -= 7
+        fight.actors[self.ids[1]].hp = 0
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_fight_participants p SET entry_hp=c.hp,"
+                "entry_max_hp=c.max_hp,entry_hp_damage=c.hp_damage,"
+                "entry_health_dead=c.health_dead FROM characters c "
+                "WHERE p.character_id=c.id AND p.fight_id=%s",
+                (fight.id,),
+            )
+        checkpoints = Checkpoints(self.store)
+        revision = checkpoints.save(self.account, self.generation, fight)
+        return run, fight, characters, checkpoints, revision
+
+    def test_startup_interruption_pays_checkpoint_kills_and_health_atomically_once(
+        self,
+    ):
+        from wakfu_server.rift_interrupted_rewards import POLICY
+
+        run, fight, characters, checkpoints, revision = self._interrupted_checkpoint()
+        expected = sorted(
+            identity
+            for identity in fight.rift_monsters
+            if fight.actors[identity].hp <= 0
+        )
+        original_award = combat_rewards.award_shared_member
+
+        def fail_after_reward(*args, **kwargs):
+            original_award(*args, **kwargs)
+            raise RuntimeError("interruption rollback after reward")
+
+        with patch.object(combat_rewards, "award_shared_member", fail_after_reward):
+            with self.assertRaisesRegex(
+                ValueError, "interruption rollback after reward"
+            ):
+                checkpoints.recover_interrupted()
+        with self.store.connection() as db:
+            self.assertEqual(
+                rift_runtime._run(db, run["instance_id"])["status"], "running"
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT status,revision FROM fight_checkpoints WHERE fight_id=%s",
+                    (fight.id,),
+                ).fetchone(),
+                dict(status="active", revision=revision),
+            )
+            for table in (
+                "fight_rewards",
+                "fight_health_exits",
+                "rift_item_reward_receipts",
+            ):
+                self.assertEqual(
+                    db.execute(
+                        "SELECT count(*) AS n FROM " + table + " WHERE fight_id=%s",
+                        (fight.id,),
+                    ).fetchone()["n"],
+                    0,
+                )
+            for identity, character in characters.items():
+                saved = self.store.character(self.account, identity, db)
+                self.assertEqual(saved["hp_damage"], character["hp_damage"])
+        self.assertEqual(checkpoints.recover_interrupted(), 1)
+        with self.store.connection() as db:
+            receipt = db.execute(
+                "SELECT * FROM rift_settlement_receipts WHERE instance_id=%s",
+                (run["instance_id"],),
+            ).fetchone()
+            self.assertEqual(receipt["outcome"], "closed")
+            self.assertEqual(receipt["result"]["recovery"]["policy"], POLICY)
+            self.assertEqual(
+                receipt["result"]["recovery"]["defeated_actor_ids"], expected
+            )
+            self.assertEqual(
+                receipt["result"]["recovery"]["checkpoint_revision"], revision
+            )
+            before = [self.store.character(self.account, i, db) for i in self.ids]
+            self.assertEqual(
+                before[0]["hp_damage"], characters[self.ids[0]]["hp_damage"] + 7
+            )
+            self.assertFalse(before[0]["health_dead"])
+            self.assertTrue(before[1]["health_dead"])
+            rewards = list(
+                db.execute(
+                    "SELECT * FROM fight_rewards WHERE fight_id=%s ORDER BY character_id",
+                    (fight.id,),
+                )
+            )
+            self.assertEqual(len(rewards), len(self.ids))
+            self.assertTrue(all(row["xp"] > 0 for row in rewards))
+            for row in db.execute(
+                "SELECT snapshot FROM fight_reward_policy_receipts WHERE fight_id=%s",
+                (fight.id,),
+            ):
+                self.assertEqual(
+                    sorted(
+                        monster["actor_id"]
+                        for monster in row["snapshot"]["defeated_native_monsters"]
+                    ),
+                    expected,
+                )
+        with patch.object(
+            reward_policy.secrets, "randbelow", side_effect=AssertionError("reroll")
+        ):
+            self.assertEqual(checkpoints.recover_interrupted(), 0)
+        with self.store.connection() as db:
+            after = [self.store.character(self.account, i, db) for i in self.ids]
+            self.assertEqual(after, before)
+            self.assertEqual(
+                list(
+                    db.execute(
+                        "SELECT * FROM fight_rewards WHERE fight_id=%s ORDER BY character_id",
+                        (fight.id,),
+                    )
+                ),
+                rewards,
+            )
+
+    def test_startup_interruption_rejects_ambiguous_binding_without_aborting(self):
+        run, fight, _, checkpoints, revision = self._interrupted_checkpoint()
+        with self.store.connection() as db:
+            identity = min(fight.rift_monsters)
+            db.execute(
+                "UPDATE fight_checkpoints SET snapshot=jsonb_set(snapshot,%s,"
+                "to_jsonb(%s::integer)) WHERE fight_id=%s",
+                (
+                    ["rift_monsters", str(identity), "ref"],
+                    fight.rift_monsters[identity]["ref"] + 1,
+                    fight.id,
+                ),
+            )
+        with self.assertRaisesRegex(
+            ValueError, f"Interrupted Rift {fight.id} checkpoint {revision}"
+        ):
+            checkpoints.recover_interrupted()
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s",
+                    (fight.id,),
+                ).fetchone()["status"],
+                "active",
+            )
+            self.assertEqual(
+                rift_runtime._run(db, run["instance_id"])["status"], "running"
+            )
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM fight_health_exits WHERE fight_id=%s",
+                    (fight.id,),
+                ).fetchone()
+            )
+
+    def test_startup_zero_kills_aborts_without_inventing_rewards(self):
+        run, fight, _, checkpoints, _ = self._interrupted_checkpoint(no_kills=True)
+        self.assertEqual(checkpoints.recover_interrupted(), 1)
+        with self.store.connection() as db:
+            rift_runtime.reconcile_interrupted(db)
+            self.assertEqual(
+                rift_runtime._run(db, run["instance_id"])["status"], "closed"
+            )
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM fight_rewards WHERE fight_id=%s",
+                    (fight.id,),
+                ).fetchone()
+            )
+
+    def test_startup_never_rewards_a_preexisting_administrative_abort(self):
+        run, fight, _, checkpoints, _ = self._interrupted_checkpoint()
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_fights SET status='aborted' WHERE id=%s", (fight.id,)
+            )
+            rift_runtime.abort_bound_fight(db, fight.id)
+        checkpoints.recover_interrupted()
+        with self.store.connection() as db:
+            self.assertEqual(
+                rift_runtime._run(db, run["instance_id"])["status"], "closed"
+            )
+            for table in (
+                "fight_rewards",
+                "rift_item_reward_receipts",
+                "fight_health_exits",
+            ):
+                self.assertIsNone(
+                    db.execute(
+                        "SELECT 1 FROM " + table + " WHERE fight_id=%s",
+                        (fight.id,),
+                    ).fetchone()
+                )
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM rift_settlement_receipts WHERE instance_id=%s",
+                    (run["instance_id"],),
+                ).fetchone()
+            )
+
     def _assert_loot(self, db, fight_id, eligible_ids, multiplier):
         from wakfu_server import combat_drops
         from decimal import Decimal
@@ -89,7 +549,7 @@ class RiftEarnedRewardTests(PostgresCase):
                 fight_context=snapshot["fight_context"],
                 shop_consumable_factor=snapshot["shop_consumable_drop_factor"],
                 rng=native_draw,
-                **modifiers
+                **modifiers,
             )
             # Receipt splitting/quantity scaling adds no probability draws.
             self.assertEqual(len(snapshot["allocation"]["decisions"]), len(native))
@@ -302,7 +762,7 @@ class RiftEarnedRewardTests(PostgresCase):
         metadata = {
             identity: dict(
                 kind="player",
-                account_id=self.account,
+                account_id=character["account_id"],
                 name=character["name"],
                 breed=character["breed"],
                 is_male=character["sex"] == 0,
@@ -335,7 +795,9 @@ class RiftEarnedRewardTests(PostgresCase):
             policy_resolver=policy,
             loot_resolver=loot,
             group_settlement=group,
-            expected_accounts={self.account},
+            expected_accounts={
+                character["account_id"] for character in characters.values()
+            },
             owner_character_ids={self.account: self.ids[0]},
         )
 
@@ -946,3 +1408,256 @@ class RiftEarnedRewardTests(PostgresCase):
                 ).fetchone()["n"],
                 0,
             )
+
+    def test_surrender_pays_current_progress_once_without_ending_live_rift(self):
+        from wakfu_server.rift_withdrawal_rewards import settle
+        from wakfu_server.combat_encounter_roles import assigned_roles
+
+        self._company()
+        run, fight, characters = self._fixture(terminal=False)
+        fight.phase = "active"
+        fight.native_timeline_round = 7
+        expected_defeated_ids = {
+            identity
+            for identity in fight.rift_monsters
+            if fight.actors[identity].hp <= 0
+        }
+        # The fixture clears three policy-sized waves and kills one original
+        # enemy in the fourth; do not freeze the configurable company size.
+        self.assertEqual(len(expected_defeated_ids), run["defeated_monsters"] + 1)
+        # A separate real owner leaves while this account's company continues.
+        peer_account = self.store.register("rift-earned-peer", "peer-password")["id"]
+        peer = self.store.create_character(peer_account, "Riftearnedpeer")
+        generation = self.store.begin_session(peer_account)
+        self.store.select_character(peer_account, generation, peer["id"])
+        peer_actor = Actor(
+            peer["id"],
+            assigned_roles(fight).player_team,
+            (100, 0, 0),
+            peer["hp"],
+            6,
+            3,
+            100,
+            peer["level"],
+            peer_account,
+            True,
+        )
+        peer_actor.effect_stats = {33: 0, 36: 20, 119: 100}
+        fight.actors[peer["id"]] = peer_actor
+        with self.store.connection() as db:
+            from psycopg.types.json import Jsonb
+
+            db.execute(
+                "UPDATE rift_instances SET members=%s WHERE instance_id=%s",
+                (Jsonb([*self.ids, peer["id"]]), run["instance_id"]),
+            )
+            db.execute(
+                "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team,session_generation) VALUES(%s,%s,%s,%s,%s)",
+                (fight.id, peer["id"], peer_account, peer_actor.team, generation),
+            )
+        with self.assertRaisesRegex(RuntimeError, "rollback surrender"):
+            with self.store.connection() as db:
+                settle(self.store, db, fight, owner_ids={peer_account})
+                raise RuntimeError("rollback surrender")
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_rewards WHERE fight_id=%s",
+                    (fight.id,),
+                ).fetchone()["n"],
+                0,
+            )
+            rewards = settle(self.store, db, fight, owner_ids={peer_account})
+            self.assertEqual(set(rewards), {peer["id"]})
+            first = rewards[peer["id"]]
+            self.assertTrue(first["awarded"])
+            self.assertGreater(first["xp"], 0)
+            snapshot = db.execute(
+                "SELECT snapshot FROM fight_reward_policy_receipts WHERE fight_id=%s AND character_id=%s",
+                (fight.id, peer["id"]),
+            ).fetchone()["snapshot"]
+            self.assertEqual(snapshot["factor_policy"]["reached_wave"], 4)
+            self.assertEqual(
+                {row["actor_id"] for row in snapshot["defeated_native_monsters"]},
+                expected_defeated_ids,
+            )
+            self.assertEqual(
+                rift_runtime._run(db, run["instance_id"])["status"], "running"
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (fight.id,)
+                ).fetchone()["status"],
+                "active",
+            )
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM rift_settlement_receipts WHERE instance_id=%s",
+                    (run["instance_id"],),
+                ).fetchone()
+            )
+        self.assertEqual(fight.phase, "active")
+        self.assertIsNone(fight.winner)
+        with patch.object(
+            reward_policy,
+            "resolve",
+            side_effect=AssertionError("surrender rerolled currency"),
+        ), patch.object(
+            rift_rewards, "plan", side_effect=AssertionError("surrender rerolled loot")
+        ):
+            with self.store.connection() as db:
+                replay = settle(self.store, db, fight, owner_ids={peer_account})
+                self.assertFalse(replay[peer["id"]]["awarded"])
+                self.assertEqual(replay[peer["id"]]["xp"], first["xp"])
+        # Remaining owners settle normally; the departed peer keeps only their
+        # prior payout and does not acquire rewards for subsequent progress.
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO combat_pve_withdrawals(fight_id,character_id,account_id,session_generation,created_at) VALUES(%s,%s,%s,%s,%s)",
+                (fight.id, peer["id"], peer_account, generation, self.store.now()),
+            )
+        peer_actor.pve_withdrawn = True
+        peer_actor.hp = 0
+        fight.phase, fight.winner = "finished", assigned_roles(fight).npc_team
+        self._settle(run, fight, {**characters, peer["id"]: peer})
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_rewards WHERE fight_id=%s",
+                    (fight.id,),
+                ).fetchone()["n"],
+                4,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT xp FROM fight_rewards WHERE fight_id=%s AND character_id=%s",
+                    (fight.id, peer["id"]),
+                ).fetchone()["xp"],
+                first["xp"],
+            )
+
+    def test_surrender_without_defeated_monsters_has_no_rewards(self):
+        from wakfu_server.rift_withdrawal_rewards import settle
+
+        self._company()
+        run, fight, characters = self._fixture(no_kills=True, terminal=False)
+        fight.phase = "active"
+        fight.native_timeline_round = 1
+        with self.store.connection() as db:
+            self.assertEqual(
+                settle(self.store, db, fight, owner_ids={self.account}), {}
+            )
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM fight_rewards WHERE fight_id=%s", (fight.id,)
+                ).fetchone()
+            )
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM rift_item_reward_receipts WHERE fight_id=%s",
+                    (fight.id,),
+                ).fetchone()
+            )
+
+    def test_last_owner_surrender_commits_health_rewards_and_return_sync_together(self):
+        from wakfu_server.combat_abandon import prepare
+        from wakfu_server.rift_withdrawal_rewards import return_packets
+
+        self._company()
+        run, fight, characters = self._fixture(terminal=False)
+        fight.phase = "active"
+        fight.native_timeline_round = 7
+        runtime = RuntimeMessages(fight)
+        with patch.object(reward_policy.secrets, "randbelow", return_value=0):
+            result = prepare(
+                self.store,
+                self.account,
+                self.generation,
+                characters[self.ids[0]],
+                runtime,
+                b"",
+            )
+        self.assertTrue(result["applied"])
+        self.assertEqual(fight.phase, "finished")
+        self.assertIsNone(fight.winner)
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (fight.id,)
+                ).fetchone()["status"],
+                "aborted",
+            )
+            self.assertEqual(
+                rift_runtime._run(db, run["instance_id"])["status"], "closed"
+            )
+            for table in (
+                "fight_rewards",
+                "rift_item_reward_receipts",
+                "fight_health_exits",
+            ):
+                self.assertEqual(
+                    db.execute(
+                        "SELECT count(*) AS n FROM " + table + " WHERE fight_id=%s",
+                        (fight.id,),
+                    ).fetchone()["n"],
+                    3,
+                )
+            packets = return_packets(self.store, db, fight, result["character"])
+            self.assertIn(13021, [opcode for opcode, _ in packets])
+            self.assertIn(13873, [opcode for opcode, _ in packets])
+            self.assertNotIn(13613, [opcode for opcode, _ in packets])
+            for identity in self.ids:
+                saved = self.store.character(self.account, identity, db)
+                self.assertGreater(saved["xp"], characters[identity]["xp"])
+        with patch.object(
+            reward_policy, "resolve", side_effect=AssertionError("abandon rerolled")
+        ):
+            duplicate = prepare(
+                self.store,
+                self.account,
+                self.generation,
+                result["character"],
+                runtime,
+                b"",
+            )
+        self.assertFalse(duplicate["applied"])
+
+    def test_dead_surrendering_owner_can_return_after_reward_level_up(self):
+        from wakfu_server.combat_pve_withdraw_store import persist, acknowledge
+        from wakfu_server.combat_shared import Session
+
+        self._company()
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE character_progression SET xp=%s WHERE character_id=%s",
+                (level_xp(31) - 1, self.ids[0]),
+            )
+        run, fight, characters = self._fixture(terminal=False)
+        fight.phase = "active"
+        fight.native_timeline_round = 7
+        fight.actors[self.ids[0]].hp = 0
+        main = characters[self.ids[0]]
+        session = Session(
+            self.account,
+            main["id"],
+            self.generation,
+            main["map_id"],
+            main.get("instance_id", 0),
+        )
+        initialize = combat_rewards._initialize_health_for_durable_member
+        original_clock = self.store.clock
+
+        def initialize_later(*args, **kwargs):
+            with patch.object(self.store, "clock", lambda: original_clock() + 1):
+                return initialize(*args, **kwargs)
+
+        with patch.object(
+            combat_rewards,
+            "_initialize_health_for_durable_member",
+            side_effect=initialize_later,
+        ):
+            result = persist(self.store, session, main, fight)
+        self.assertGreater(result["character"]["level"], main["level"])
+        returned = acknowledge(self.store, session, fight.id)
+        self.assertFalse(returned["health_dead"])
+        self.assertGreater(returned["hp"], 0)

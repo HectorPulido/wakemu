@@ -73,6 +73,62 @@ class StagedPartyPublicationRecoveryTests(unittest.TestCase):
             ),
         )
 
+    def test_staged_last_disconnected_owner_rebinds_retained_birth_ack_lease(self):
+        from wakfu_server.combat_reconnect_birth_stage import (
+            BirthPresentation,
+            StagedReconnectPackets,
+        )
+
+        fixture, first, source1, second, source2 = self.fixture(active=True)
+        shared = fixture.shared
+        # The retained last-disconnected owner reconnects FIRST and is staged.
+        self.assertEqual(shared.ack.expected, {1: fixture.one.generation})
+        shared.fight.native_summon_registrations = {999: {}}
+        original = ((12502, struct.pack(">iiiqii", 99, 30, -1, 10, -1, 0)),)
+
+        def bootstrap(fight, view, owner):
+            return StagedReconnectPackets(
+                original,
+                BirthPresentation(
+                    counter=1,
+                    actor_ids=(999,),
+                    resume_packets=((12053, b"recovered"),),
+                    marker_packets=original,
+                    canonical_marker=True,
+                ),
+            )
+
+        self.takeover(fixture, first, source1, bootstrap=bootstrap)
+        self.takeover(fixture, second, source2, bootstrap=bootstrap)
+        self.assertEqual(shared.ack.expected, {1: first.generation})
+        self.assertFalse(shared.ack.received)
+        self.assertEqual(shared.runtime.awaiting_ack, 1)
+        released = []
+
+        def release(fight, runtime, body):
+            released.append(body)
+            runtime.awaiting_ack = None
+            return ()
+
+        with self.assertRaises(ValueError):
+            fixture.registry.acknowledge(99, fixture.one, struct.pack(">i", 1), release)
+        self.assertEqual(released, [])
+        # The other owner's private witness cannot join/release this barrier.
+        self.assertFalse(
+            fixture.registry.acknowledge(99, second, struct.pack(">i", 1), release)
+        )
+        self.assertEqual(released, [])
+        self.assertTrue(
+            fixture.registry.acknowledge(99, first, struct.pack(">i", 1), release)
+        )
+        self.assertEqual(released, [struct.pack(">i", 1)])
+        self.assertIsNone(shared.runtime.awaiting_ack)
+        self.assertIsNone(shared.ack.turn)
+        self.assertFalse(
+            fixture.registry.acknowledge(99, first, struct.pack(">i", 1), release)
+        )
+        self.assertEqual(released, [struct.pack(">i", 1)])
+
     def test_default_configuration_stages_real_sources_until_last_owner_returns(self):
         # Production previously defaulted this flag to zero, creating a cycle:
         # neither replacement source could be retained before the other arrived.
@@ -474,9 +530,10 @@ class StagedPartyPublicationRecoveryTests(unittest.TestCase):
             + "\n    return refresh_shared_combat, lambda: fight_started_at\n"
         )
         namespace = {
+            "recover_expired_combat_presentation": lambda **kwargs: False,
             "COMBAT_SESSIONS": SimpleNamespace(
                 registry=SimpleNamespace(lookup=lambda *args, **kwargs: shared)
-            )
+            ),
         }
         exec(compile(source, "<actual-shared-placement-refresh>", "exec"), namespace)
         deadline = Deadline()

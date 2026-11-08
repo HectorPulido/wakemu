@@ -38,6 +38,7 @@ class SelectionStoreSpy:
 
 def compile_dispatcher(source, namespace):
     """Use complete production23664 and33 bodies, including the retry continue."""
+    namespace.setdefault("request_trace", SimpleNamespace(finish=lambda: None))
     tree = ast.parse(source.read_text())
     selection = next(
         node
@@ -66,6 +67,7 @@ def compile_dispatcher(source, namespace):
         if route != 3:
             raise ValueError("Invalid native route")
         body = receive(connection, length - 7)
+        active_request = request_trace
 """
     ).body[0]
     branch = copy.deepcopy(selection)

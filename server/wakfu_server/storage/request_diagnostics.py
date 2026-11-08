@@ -114,7 +114,60 @@ def current_request():
     return _current.get()
 
 
-def state_summary(character, fight, runtime=None):
+def movement_summary(actor_id, path, actor=None):
+    """Describe already-decoded movement inputs without retaining wire bytes."""
+    result = dict(
+        movement_actor_id=actor_id,
+        requested_path=[list(point) for point in path[:64]],
+        requested_path_total=len(path),
+        requested_path_omitted=max(0, len(path) - 64),
+    )
+    if actor is not None:
+        result.update(
+            actor_position=list(actor.position),
+            actor_mp=actor.mp,
+            movement_state_stage="before_apply",
+        )
+    return result
+
+
+def state_summary(character, fight, runtime=None, *, detailed=True):
+    if not detailed:
+        result = {}
+        if character is not None:
+            result["character"] = {
+                key: character.get(key)
+                for key in (
+                    "id",
+                    "breed",
+                    "level",
+                    "map_id",
+                    "instance_id",
+                    "x",
+                    "y",
+                    "z",
+                    "hp",
+                    "max_hp",
+                )
+            }
+            result["inventory_units"] = len(character.get("inventory_items", ()))
+        if fight is not None:
+            current = fight.current
+            result["fight"] = dict(
+                id=fight.id,
+                phase=fight.phase,
+                turn_id=fight.turn_id,
+                current_actor=None if current is None else current.id,
+                winner=getattr(fight, "winner", None),
+                actor_total=len(fight.actors),
+            )
+            if runtime is not None:
+                result["fight"].update(
+                    awaiting_ack=runtime.awaiting_ack,
+                    action_id=runtime.action_id,
+                    pending_packets=len(runtime.pending),
+                )
+        return result
     result = {}
     if character is not None:
         result["character"] = {
@@ -163,15 +216,30 @@ def state_summary(character, fight, runtime=None):
                 result["equipment_summary_error"] = "Invalid stored equipment encoding"
         result["equipment_omitted"] = max(0, equipment_count - 96)
     if fight is not None:
+        current = fight.current
+        current_id = None if current is None else current.id
         result["fight"] = {
             "id": fight.id,
             "phase": fight.phase,
             "turn_id": fight.turn_id,
-            "current_actor": None if fight.current is None else fight.current.id,
+            "current_actor": current_id,
             "winner": getattr(fight, "winner", None),
             "actors": [],
         }
-        actors = sorted(fight.actors.values(), key=lambda a: a.id)
+        # Retained wave history must not hide the actor executing this request.
+        actors = sorted(
+            fight.actors.values(),
+            key=lambda actor: (
+                0
+                if actor.id == current_id
+                else 1
+                if actor.controlled
+                else 2
+                if actor.hp > 0
+                else 3,
+                actor.id,
+            ),
+        )
         result["fight"]["actor_total"] = len(actors)
         result["fight"]["actors_omitted"] = max(0, len(actors) - 64)
         for actor in actors[:64]:
@@ -221,6 +289,7 @@ class RequestTrace:
         service,
         connection_id,
         snapshot,
+        failure_snapshot=None,
         action=None,
         clock=time.monotonic,
         effect_scope=None,
@@ -234,6 +303,9 @@ class RequestTrace:
         self.action = action or ACTIONS.get(opcode, "opcode_" + str(opcode))
         self.sink = sink
         self.snapshot = snapshot
+        self.failure_snapshot = (
+            snapshot if failure_snapshot is None else failure_snapshot
+        )
         self.clock = clock
         self.started = clock()
         self.cpu_started = time.thread_time()
@@ -289,7 +361,11 @@ class RequestTrace:
                 status=status or ("rejected" if self.rejections else "completed"),
                 elapsed_ms=round((self.clock() - self.started) * 1000, 3),
                 state_before=self.before,
-                state_after=safe_snapshot(self.snapshot),
+                state_after=safe_snapshot(
+                    self.failure_snapshot
+                    if self.rejections or status not in (None, "completed")
+                    else self.snapshot
+                ),
                 rejections=self.rejections[:16],
             )
         finally:

@@ -18,6 +18,67 @@ def _due(timer, actor_id, round_number, phase, round_cleanup):
     )
 
 
+def _native_expiration_retention(preview, retention):
+    from types import MethodType
+    from .combat_retained_runtime import (
+        NativeRetainedRuntime,
+        _SOURCE_VIEW,
+        _SOURCE_REMOVAL,
+        _SOURCE_SYNCHRONIZE,
+        _SOURCE_LIVE,
+    )
+    from .combat_stat_handler import _SOURCE_REMOVE
+    from . import combat_state_managers as manager_source
+
+    if (
+        state_managers is not _EXPIRATION_STATE_MANAGERS
+        or manager_source.state_managers is not _EXPIRATION_STATE_MANAGERS
+        or type(retention) is not NativeRetainedRuntime
+        or NativeRetainedRuntime.__getattribute__ is not object.__getattribute__
+        or retention.fight is not preview
+        or type(retention.stat_handler) is not NativeStatHandler
+        or NativeStatHandler.__getattribute__ is not object.__getattribute__
+        or retention.stat_handler.fight is not preview
+    ):
+        return False
+    for name, original in (
+        ("view", _SOURCE_VIEW),
+        ("removal", _SOURCE_REMOVAL),
+        ("synchronize", _SOURCE_SYNCHRONIZE),
+        ("_live", _SOURCE_LIVE),
+    ):
+        provider = getattr(retention, name)
+        if (
+            type(provider) is not MethodType
+            or provider.__self__ is not retention
+            or provider.__func__ is not original
+        ):
+            return False
+    remove = retention.stat_handler.remove
+    return (
+        type(remove) is MethodType
+        and remove.__self__ is retention.stat_handler
+        and remove.__func__ is _SOURCE_REMOVE
+    )
+
+
+def _reconcile_expiration_records(preview, retention):
+    """The old final union includes pending carriers; preserve that distinction."""
+    from . import combat_state_managers as manager_source
+
+    if (
+        not _native_expiration_retention(preview, retention)
+        or state_managers is not _EXPIRATION_STATE_MANAGERS
+        or manager_source.state_managers is not _EXPIRATION_STATE_MANAGERS
+    ):
+        return False
+    from .combat_retained_registration_scope import native_membership_owner
+    from .combat_retained_reconciliation import reconcile_registered_uids
+
+    owner = native_membership_owner(preview)
+    return owner is not None and reconcile_registered_uids(owner, frozenset())
+
+
 def _remove_owned_areas(preview, packets, handler, action_id, uids, retention=None):
     """Remove actual owned area runners through their native Qf callbacks."""
     from .combat_retained_effects import (
@@ -26,6 +87,29 @@ def _remove_owned_areas(preview, packets, handler, action_id, uids, retention=No
         NativeRetainedRemoval,
         register_owned_removals,
     )
+
+    if (
+        _native_expiration_retention(preview, retention)
+        and type(uids) is tuple
+        and all(type(uid) is int for uid in uids)
+    ):
+        # Native synchronize already reconciles source/ledger membership and
+        # prunes retired managers. Do not build and discard a second full view.
+        retention.synchronize()
+        removal_provider = retention.removal
+        from types import SimpleNamespace
+        from .combat_retained_removal_query import removal_view
+        from .combat_retained_runtime import remove_now
+
+        # These are requested identities, not authority: removal_view resolves
+        # and validates their actual transitive, cross-manager removal closure.
+        view = removal_view(retention, tuple(SimpleNamespace(uid=uid) for uid in uids))
+        if view is None:
+            view = retention.view()
+        remove_now(
+            retention, view, uids, _snapshot_uids=True, _provider=removal_provider
+        )
+        return
 
     # Earlier due carriers can already have removed their child
     # runners. Preserve a complete view of the remaining Qf rows.
@@ -41,9 +125,17 @@ def _remove_owned_areas(preview, packets, handler, action_id, uids, retention=No
             for entry in manager.state_ledger.entries
         }
     )
-    preview.native_retained_records = {
-        key: row for key, row in preview.native_retained_records.items() if key in live
-    }
+    from .combat_retained_collections import replace_collection
+
+    replace_collection(
+        preview,
+        "native_retained_records",
+        {
+            key: row
+            for key, row in preview.native_retained_records.items()
+            if key in live
+        },
+    )
     preview.native_retained_order[:] = [
         key for key in preview.native_retained_order if key in live
     ]
@@ -57,13 +149,22 @@ def _remove_owned_areas(preview, packets, handler, action_id, uids, retention=No
     )
     if retention is not None:
         retention.synchronize()
-        removal = retention.removal(retention.view())
+        from .combat_retained_runtime import remove_now
+
+        removal_provider = retention.removal
+        remove_now(
+            retention,
+            retention.view(),
+            uids,
+            _snapshot_uids=True,
+            _provider=removal_provider,
+        )
     else:
         removal = NativeRetainedRemoval(view)
         register_owned_removals(
             removal, stat_handler=handler, packets=packets, action_id=action_id
         )
-    removal.remove(tuple(uids))
+        removal.remove(tuple(uids))
 
 
 def _prepare_timed_expiration_shared(
@@ -75,10 +176,13 @@ def _prepare_timed_expiration_shared(
     action_id,
     round_cleanup=False,
     registry=None,
-    runtime_factory=None
+    runtime_factory=None,
+    _owned_runtime=None,
 ):
-    """Return successful preview/outbox; no mutation or emission on failure.
+    """Return successful preview/outbox without publishing partial effects.
 
+    Standalone callers retain atomic previews. An explicitly attested native
+    delivery may reuse its private fight; its outer owner discards it on error.
     Call round_cleanup once on a new round, then start/end for the actual actor.
     No timer is inferred from durations or from a missing owned metadata record.
     """
@@ -90,7 +194,11 @@ def _prepare_timed_expiration_shared(
         raise ValueError("Explicit native clock phase/round required")
     if actor_id not in fight.actors or fight.phase != "active":
         raise ValueError("Invalid native expiration actor/fight")
-    preview = deepcopy(fight)
+    preview = (
+        fight
+        if _owns_expiration_preview(fight, _owned_runtime, runtime_factory)
+        else deepcopy(fight)
+    )
     packets = []
     if registry is None:
         registry = protocol_catalog.load(
@@ -205,24 +313,33 @@ def _prepare_timed_expiration_shared(
                 reason="expiration",
             )
             packets.append((13560, packet))
-    live = (
-        set(preview.owned_stat_effects)
-        | set(preview.state_wire_payloads)
-        | set(preview.native_owned_group_effects)
-        | set(getattr(preview, "native_owned_area_effects", {}))
-        | set(getattr(preview, "native_owned_spatial_effects", {}))
-        | {
-            entry.uid
-            for manager in state_managers(preview)
-            for entry in manager.state_ledger.entries
-        }
-    )
-    preview.native_retained_records = {
-        uid: row for uid, row in preview.native_retained_records.items() if uid in live
-    }
-    preview.native_retained_order[:] = [
-        uid for uid in preview.native_retained_order if uid in live
-    ]
+    if not _reconcile_expiration_records(preview, retention):
+        live = (
+            set(preview.owned_stat_effects)
+            | set(preview.state_wire_payloads)
+            | set(preview.native_owned_group_effects)
+            | set(getattr(preview, "native_owned_area_effects", {}))
+            | set(getattr(preview, "native_owned_spatial_effects", {}))
+            | {
+                entry.uid
+                for manager in state_managers(preview)
+                for entry in manager.state_ledger.entries
+            }
+        )
+        from .combat_retained_collections import replace_collection
+
+        replace_collection(
+            preview,
+            "native_retained_records",
+            {
+                uid: row
+                for uid, row in preview.native_retained_records.items()
+                if uid in live
+            },
+        )
+        preview.native_retained_order[:] = [
+            uid for uid in preview.native_retained_order if uid in live
+        ]
     return preview, packets
 
 
@@ -232,10 +349,37 @@ def prepare_timed_expiration(fight, **clock):
 
 
 def expire_timed_effects(fight, **clock):
+    previous_ids = set(fight.actors)
     preview, packets = prepare_timed_expiration(fight, **clock)
-    if set(fight.actors) != set(preview.actors):
+    if previous_ids != set(preview.actors):
         raise ValueError("Expiration changed actor roster")
     from .combat_area_boundary import adopt_fight
 
     adopt_fight(fight, preview)
     return packets
+
+
+def _owns_expiration_preview(fight, runtime, factory):
+    """Borrow only the exact fight already covered by native delivery rollback."""
+    from .combat_runtime_messages import RuntimeMessages
+    from .combat_state import Fight
+    from .combat_expiration_provider import OwnedExpirationFactory
+    from .combat_retained_gc_authority import capture_native_callbacks
+    from .combat_native_action_ids import owned_native_delivery_fight
+
+    if (
+        type(runtime) is not RuntimeMessages
+        or type(fight) is not Fight
+        or RuntimeMessages.__getattribute__ is not object.__getattribute__
+        or "fight" in vars(RuntimeMessages)
+        or vars(runtime).get("fight") is not fight
+        or type(factory) is not OwnedExpirationFactory
+        or vars(runtime).get("expiration_runtime_factory") is not factory
+        or vars(runtime).get("_native_delivery_depth") != 1
+        or capture_native_callbacks(runtime) is None
+    ):
+        return False
+    return owned_native_delivery_fight(runtime, fight) is fight
+
+
+_EXPIRATION_STATE_MANAGERS = state_managers

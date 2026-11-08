@@ -4,6 +4,7 @@ eZf.C reads amount/category parameters; eZe.c adds -amount to eHl.pOJ,
 eZe.d adds amount back. eHl uses Java int adjustOrPutValue, retaining zero.
 AdditionalDatas ij.getValue is protobuf field10 and outer iN.value is amount.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_parameters import parameter_value
 from .combat_stat_handler import StatExecutionContext
 from .combat_stat_effects import owned_effect_payload, owned_effect_application
@@ -99,7 +100,7 @@ class NativeSpellCostHandler:
             range_modifier=range_modifier,
         )
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,

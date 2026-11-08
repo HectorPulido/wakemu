@@ -1,4 +1,5 @@
 """Native eZy1049 with captured PA values and ordered reversible shifts."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 
 from .combat_characteristic_swap import swap_characteristics, swap_additional_payload
@@ -150,7 +151,7 @@ class NativeCharacteristicSwapHandler:
             timing_payload=context.timing_payload,
         ) + swap_additional_payload(first, second, captured)
         if context.retained:
-            self.fight.owned_stat_effects[runner.uid] = dict(
+            self.fight.owned_stat_effects[runner.uid] = OwnedStateSourceRow(
                 uid=runner.uid,
                 effect_class=1049,
                 family="eZy",

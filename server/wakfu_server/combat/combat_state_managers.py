@@ -3,6 +3,7 @@
 An area is not a fighter and never receives invented HP, resources or turns.
 The view is execution-local; only its owned StateLedger is checkpointed in Qq.
 """
+from .combat_retained_collections import OwnedMap, TrackedRow
 from types import SimpleNamespace
 from functools import lru_cache
 from importlib import import_module
@@ -14,6 +15,48 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 
 _area_pv_scopes = ContextVar("native_area_pv_scopes", default=())
+_prune_shadow_sources = ContextVar("native_prune_shadow_sources", default=())
+
+
+@contextmanager
+def qualified_prune_shadow(fight, owner):
+    """Attest unchanged owner maps while validating an isolated Fight shadow."""
+    token = _prune_shadow_sources.set((*_prune_shadow_sources.get(), (fight, owner)))
+    try:
+        yield
+    finally:
+        _prune_shadow_sources.reset(token)
+
+
+def _shadow_prune_callbacks_known(fight):
+    """Keep later pruning reads callback-free before trusting a source index."""
+    from .combat_owned_container_row import OwnedContainerRow
+    from .combat_retained_collections import TrackedRow
+
+    fields = vars(fight)
+    facts = fields.get("native_owned_state_containers", {})
+    records = fields.get("native_retained_records", {})
+    for row in dict.values(facts):
+        if type(row) is dict:
+            continue
+        if (
+            type(row) is not OwnedContainerRow
+            or type(row).get is not dict.get
+            or type(row).__getattribute__ is not dict.__getattribute__
+            or "get" in vars(row)
+        ):
+            return False
+    for row in dict.values(records):
+        if type(row) is dict:
+            continue
+        if (
+            type(row) is not TrackedRow
+            or type(row).get is not dict.get
+            or type(row).__getattribute__ is not dict.__getattribute__
+            or "get" in vars(row)
+        ):
+            return False
+    return True
 
 
 @lru_cache(maxsize=16)
@@ -283,17 +326,23 @@ def state_managers(fight):
         yield state_manager(fight, identity)
 
 
-def _retained_manager_users(records):
+def _retained_manager_users(records, *, _native_owned=False):
     """Index plain native references for this one callback-free prune pass.
 
     Custom mappings and unusual identity values retain the equality-based
     per-manager scan. This index never certifies ownership or survives a call.
     """
-    if type(records) is not dict:
+    if type(records) is not dict and type(records) is not OwnedMap:
         return None
     users = set()
     for record in records.values():
-        if type(record) is not dict:
+        if type(record) is not dict and type(record) is not TrackedRow:
+            return None
+        if (
+            _native_owned
+            and type(record) is TrackedRow
+            and (type(record).get is not dict.get or "get" in vars(record))
+        ):
             return None
         manager, caster = record.get("manager_id"), record.get("caster_id")
         kind = record.get("container_kind")
@@ -316,20 +365,128 @@ def _retained_manager_users(records):
     return users
 
 
+def _native_prune_owner(fight):
+    """Certify current native map bindings without traversing retained rows."""
+    from .combat_state import Fight
+    from .combat_retained_collections import bound_collections, bound_area_collections
+
+    if (
+        type(fight) is not Fight
+        or Fight.__getattribute__ is not object.__getattribute__
+    ):
+        return None
+    fields = vars(fight)
+    owner = bound_collections(fields)
+    if owner is None or not owner.valid or not bound_area_collections(fields, owner):
+        return None
+    if any(
+        type(rows).values is not dict.values or "values" in vars(rows)
+        for rows in (owner.records, *owner.sources.values())
+    ):
+        return None
+    return owner
+
+
 def _owned_container_state_users(fight):
     """Index PL users only for this callback-free manager-pruning pass."""
+    from .combat_source_parent_index import OwnedStateSourceRow
+    from .combat_pointer_qi_spatialowned import NativeSpatialRecord
+
+    owner = _native_prune_owner(fight)
+    shadow_owner = next(
+        (
+            source_owner
+            for shadow, source_owner in reversed(_prune_shadow_sources.get())
+            if shadow is fight
+        ),
+        None,
+    )
+    from .combat_retained_collections import RetainedCollections
+
+    shadow_owner_fields = (
+        vars(shadow_owner)
+        if (
+            type(shadow_owner) is RetainedCollections
+            and RetainedCollections.__getattribute__ is object.__getattribute__
+            and "__getattr__" not in RetainedCollections.__dict__
+        )
+        else {}
+    )
     users = set()
-    for collection in (
-        fight.owned_stat_effects,
-        fight.native_owned_group_effects,
-        getattr(fight, "native_owned_area_effects", {}),
-        getattr(fight, "native_owned_spatial_effects", {}),
+    names = (
+        "owned_stat_effects",
+        "native_owned_group_effects",
+        "native_owned_area_effects",
+        "native_owned_spatial_effects",
+    )
+    if shadow_owner is not None:
+        fields = vars(fight)
+        collections = tuple(fields.get(name, {}) for name in names)
+    else:
+        collections = (
+            fight.owned_stat_effects,
+            fight.native_owned_group_effects,
+            getattr(fight, "native_owned_area_effects", {}),
+            getattr(fight, "native_owned_spatial_effects", {}),
+        )
+    if (
+        owner is None
+        and shadow_owner is not None
+        and shadow_owner_fields.get("valid") is True
+        and _shadow_prune_callbacks_known(fight)
     ):
-        if type(collection) is not dict:
+        # _full_check shadows replace registry maps, but these source maps are
+        # unchanged. Trust them only under the narrow scope established from a
+        # currently bound source Fight, and only while each exact map/row uses
+        # its original builtin readers. Unknown/custom data keeps legacy scans.
+        owner_fields = shadow_owner_fields
+        source_maps = owner_fields.get("sources")
+        if type(source_maps) is not dict:
+            return None
+        for name, collection in zip(names, collections):
+            collection_fields = vars(collection) if type(collection) is OwnedMap else {}
+            if (
+                type(collection) is not OwnedMap
+                or collection_fields.get("name") != name
+                or dict.get(source_maps, name) is not collection
+                or type(collection).values is not dict.values
+                or type(collection).__getattribute__ is not dict.__getattribute__
+                or "values" in vars(collection)
+            ):
+                return None
+        from .combat_source_parent_index import SOURCE_MAPS, SourceParentIndex
+        from .combat_native_container_query import _SOURCE_PARENTS
+
+        index = owner_fields.get("source_parents")
+        if (
+            type(index) is not SourceParentIndex
+            or SourceParentIndex.parents is not _SOURCE_PARENTS
+            or SourceParentIndex.__getattribute__ is not object.__getattribute__
+            or "__getattr__" in SourceParentIndex.__dict__
+            or "parents" in vars(index)
+        ):
+            return None
+        indexed = index.parents(
+            {name: dict.__getitem__(source_maps, name) for name in SOURCE_MAPS}
+        )
+        return None if indexed is None else set(indexed)
+    for name, collection in zip(names, collections):
+        if type(collection) is not dict and type(collection) is not OwnedMap:
             return None
         for row in collection.values():
             if type(row) is not dict:
-                return None
+                if (
+                    owner is None
+                    or collection is not owner.sources[name]
+                    or not (
+                        type(row) is OwnedStateSourceRow
+                        or type(row) is NativeSpatialRecord
+                    )
+                    or type(row).get is not dict.get
+                    or "get" in vars(row)
+                    or any(type(key) is not str for key in row)
+                ):
+                    return None
             identity = row.get("state_uid")
             if identity is not None and type(identity) is not int:
                 return None
@@ -341,6 +498,10 @@ def prune_retired_state_managers(fight):
     """Release removed Qq objects only after their actual Qf/PL users vanish."""
     retired = getattr(fight, "native_retired_area_managers", {})
     if not retired:
+        return
+    from .combat_retired_area_tracking import prune_indexed_retired
+
+    if prune_indexed_retired(fight):
         return
     records = getattr(fight, "native_retained_records", {})
     facts = getattr(fight, "native_owned_state_containers", {})
@@ -366,9 +527,16 @@ def prune_retired_state_managers(fight):
         if not isinstance(ledger, StateLedger) or ledger.actor_id != identity:
             raise ValueError("Missing actual state carrier ledger authority")
         source_ids.update(entry.caster_id for entry in ledger.entries)
+    native_owner = _native_prune_owner(fight)
     manager_users = (
-        _retained_manager_users(records)
-        if type(retired) is dict
+        _retained_manager_users(records, _native_owned=type(retired) is OwnedMap)
+        if (
+            type(retired) is dict
+            or (
+                native_owner is not None
+                and retired is native_owner.area_sources["native_retired_area_managers"]
+            )
+        )
         and len(retired) > 1
         and all(type(identity) is int for identity in retired)
         else None

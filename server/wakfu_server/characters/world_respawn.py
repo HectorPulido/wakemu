@@ -107,9 +107,13 @@ def request(
                     (identities,),
                 ).fetchone()
                 or db.execute(
-                    "SELECT 1 FROM rift_instances WHERE status IN('entered','running') "
-                    "AND EXISTS(SELECT 1 FROM jsonb_array_elements_text(members) member "
-                    "WHERE member::bigint=ANY(%s)) LIMIT 1",
+                    "SELECT 1 FROM rift_instances r WHERE r.status IN('entered','running') "
+                    "AND EXISTS(SELECT 1 FROM jsonb_array_elements_text(r.members) member "
+                    "WHERE member::bigint=ANY(%s) AND NOT EXISTS ("
+                    "SELECT 1 FROM combat_pve_withdrawals w JOIN characters c ON c.id=w.character_id "
+                    "WHERE w.fight_id=r.fight_id AND w.character_id=member::bigint "
+                    "AND w.account_id=c.account_id AND w.returned_at IS NOT NULL AND w.health_returned_at IS NOT NULL "
+                    "AND c.instance_id<>r.instance_id)) LIMIT 1",
                     (identities,),
                 ).fetchone()
             ):

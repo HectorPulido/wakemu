@@ -1,5 +1,7 @@
 """Local rift selection is deterministic and never claims official balancing."""
 import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 from wakfu_server.rift_policy import select_wave, validate
 
 
@@ -18,6 +20,39 @@ def policy():
         key_requirements=False,
         rewards="callback_only",
     )
+
+
+class RiftCommittedProgressTests(unittest.TestCase):
+    def test_committed_history_skips_database_replay_without_removing_births(self):
+        from wakfu_server.rift_runtime import persist_progress, mark_progress_committed
+
+        history = [dict(completed_wave=wave) for wave in range(1, 201)]
+        fight = SimpleNamespace(
+            id=7,
+            phase="active",
+            rift_wave_state=dict(instance_id=9, staged_receipts=history),
+        )
+        mark_progress_committed(fight, [dict(wave=200)])
+        db = Mock()
+        with patch(
+            "wakfu_server.rift_runtime._run", return_value=dict(fight_id=7, wave=201)
+        ), patch("wakfu_server.rift_runtime.record_wave") as record:
+            self.assertEqual(persist_progress(db, fight), ())
+        record.assert_not_called()
+        db.execute.assert_not_called()
+        self.assertIs(fight.rift_wave_state["staged_receipts"], history)
+
+    def test_commit_marker_never_advances_without_successful_receipts(self):
+        from wakfu_server.rift_runtime import mark_progress_committed, persist_progress
+
+        fight = SimpleNamespace(id=7, rift_wave_state=dict(instance_id=9))
+        mark_progress_committed(fight, ())
+        self.assertNotIn("persisted_wave", fight.rift_wave_state)
+        fight.rift_wave_state["persisted_wave"] = 4
+        with patch(
+            "wakfu_server.rift_runtime._run", return_value=dict(fight_id=7, wave=4)
+        ), self.assertRaisesRegex(ValueError, "watermark"):
+            persist_progress(Mock(), fight)
 
 
 class RiftPolicyTests(unittest.TestCase):

@@ -105,12 +105,12 @@ class RiftActorReservationTests(PostgresCase):
         shared.checkpoint_revision = baseline_revision
 
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"
-        node = next(
+        nodes = [
             node
             for node in ast.walk(ast.parse(source.read_text()))
             if isinstance(node, ast.FunctionDef)
-            and node.name == "checkpoint_accepted_rift"
-        )
+            and node.name in ("checkpoint_accepted_rift", "checkpoint_final_rift")
+        ]
         reject = [True]
         attempts = []
 
@@ -127,7 +127,7 @@ class RiftActorReservationTests(PostgresCase):
         )
         exec(
             compile(
-                ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
+                ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[])),
                 str(source),
                 "exec",
             ),
@@ -135,6 +135,9 @@ class RiftActorReservationTests(PostgresCase):
         )
         shared.join_context["rift_accepted_action"] = namespace[
             "checkpoint_accepted_rift"
+        ]
+        shared.join_context["rift_checkpoint_action"] = namespace[
+            "checkpoint_final_rift"
         ]
 
         def observed_wave(candidate, runtime, packets, **kwargs):

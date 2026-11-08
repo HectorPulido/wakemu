@@ -29,10 +29,12 @@ def commit_spell_transaction(
         raise ValueError("Previous combat action is not synchronized")
     if transaction.action_id != runtime.action_id + 1:
         raise ValueError("Prepared spell action sequence is stale")
+    from .combat_owned_native_spell_entry import owns_entry_commit
+
+    owned_entry = owns_entry_commit(runtime, transaction, stats_serializer)
     started = time.monotonic()
-    if (
-        transaction.fight.id != runtime.fight.id
-        or source_snapshot(runtime.fight) != transaction.source_state
+    if transaction.fight.id != runtime.fight.id or (
+        not owned_entry and source_snapshot(runtime.fight) != transaction.source_state
     ):
         raise ValueError("Combat changed after preparing the spell")
     stage("validate_source", started)
@@ -66,12 +68,15 @@ def commit_spell_transaction(
     packets.append(runtime._flush())
     # Serialization callbacks cannot invalidate the original source silently.
     started = time.monotonic()
-    if source_snapshot(runtime.fight) != transaction.source_state:
+    if not owned_entry and source_snapshot(runtime.fight) != transaction.source_state:
         raise ValueError("Combat changed while serializing the spell")
     stage("revalidate_source", started)
-    return runtime.prepare_fight_delivery(
-        packets,
-        transaction.fight,
-        action_id=transaction.action_id,
-        operation="commit_spell_transaction",
-    )
+    from .combat_owned_spell_delivery import validated_spell_delivery
+
+    with validated_spell_delivery(runtime, transaction):
+        return runtime.prepare_fight_delivery(
+            packets,
+            transaction.fight,
+            action_id=transaction.action_id,
+            operation="commit_spell_transaction",
+        )

@@ -15,6 +15,12 @@ from wakfu_server.position_buffer import Positions
 
 class ClosedRiftLoginRecoveryTests(PostgresCase):
     def test_aborted_company_recovers_once_and_failed_transport_retains_intent(self):
+        self._recover_company()
+
+    def test_certified_startup_reward_receipt_keeps_company_login_exit(self):
+        self._recover_company(interrupted_receipt=True)
+
+    def _recover_company(self, *, interrupted_receipt=False):
         tree = ast.parse(
             (Path(__file__).resolve().parents[1] / "local_game_server.py").read_text()
         )
@@ -156,6 +162,40 @@ class ClosedRiftLoginRecoveryTests(PostgresCase):
         with self.assertRaises((ValueError, PermissionError)):
             recover(self.store, positions, account, "stale", current)
         self.assertEqual(snapshot(), before)
+        if interrupted_receipt:
+            from psycopg.types.json import Jsonb
+            from wakfu_server.rift_interrupted_rewards import POLICY
+
+            with self.store.connection() as db:
+                db.execute(
+                    "UPDATE rift_instances SET status='closed',ended_at=CURRENT_TIMESTAMP "
+                    "WHERE instance_id=%s",
+                    (run["instance_id"],),
+                )
+                db.execute(
+                    "INSERT INTO rift_settlement_receipts(instance_id,fight_id,outcome,result) "
+                    "VALUES(%s,%s,'closed',%s)",
+                    (run["instance_id"], fight_id, Jsonb({})),
+                )
+            # An unrelated closure receipt must not authorize login travel.
+            self.assertIsNone(
+                recover(self.store, positions, account, generation, current)
+            )
+            with self.store.connection() as db:
+                db.execute(
+                    "UPDATE rift_settlement_receipts SET result=%s WHERE instance_id=%s",
+                    (
+                        Jsonb(
+                            dict(
+                                recovery=dict(
+                                    policy=POLICY,
+                                    reason="startup_interruption",
+                                )
+                            )
+                        ),
+                        run["instance_id"],
+                    ),
+                )
         recovered = recover(self.store, positions, account, generation, current)
         with self.store.connection() as db:
             self.assertEqual(
@@ -245,6 +285,10 @@ class ClosedRiftLoginRecoveryTests(PostgresCase):
             generation=generation,
             fight=None,
             combat_session=None,
+            # This isolated login fixture has no in-memory encounter or
+            # entry-retirement token to consume; production's nested helper is
+            # outside the AST-extracted delivery function.
+            consume_rift_entry_combat_retirement=lambda: False,
             STORE=self.store,
             POSITIONS=positions,
             WORLD=SimpleNamespace(leave=Mock()),

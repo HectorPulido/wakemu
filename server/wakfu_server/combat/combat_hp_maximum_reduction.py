@@ -3,6 +3,7 @@
 The caller owns original Qe guards, chance, parameter evaluation, events and
 retention. This primitive never authorizes a family or manufactures raw HP.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_casting_range import int32
 from .combat_hp_raw import (
     hp_raw_current,
@@ -214,7 +215,7 @@ class NativeHPMaximumReductionHandler(NativeMaximumResourceHandler):
         additional = _integer(34, int(restore)) + _integer(35, int(reduce))
         payload += b"\x42" + _varint(len(additional)) + additional
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,

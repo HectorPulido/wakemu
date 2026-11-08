@@ -6,6 +6,7 @@ native application scope exists. These plain source facts survive retirement,
 checkpointing and private-preview copies; they never alter native owner_uid,
 wire fields, removal cascades, clocks or execution order.
 """
+from .combat_source_provenance_entries import SourceProvenanceEntries
 from collections.abc import Mapping
 from types import MappingProxyType
 
@@ -171,12 +172,17 @@ def capture_state_source(fight, state, invocation, container):
         raise ValueError("Actual applied state source required")
     ledger = getattr(fight, "native_state_source_provenance", None)
     if ledger is None:
-        ledger = fight.native_state_source_provenance = dict(policy=POLICY, entries={})
+        ledger = fight.native_state_source_provenance = dict(
+            policy=POLICY, entries=SourceProvenanceEntries()
+        )
     if (
         type(ledger) is not dict
         or set(ledger) != {"policy", "entries"}
         or ledger["policy"] != POLICY
-        or type(ledger["entries"]) is not dict
+        or (
+            type(ledger["entries"]) is not dict
+            and type(ledger["entries"]) is not SourceProvenanceEntries
+        )
     ):
         raise ValueError("Invalid state source provenance ledger")
     records = ledger["entries"]
@@ -240,7 +246,10 @@ def state_source_provenance(fight):
         type(ledger) is not dict
         or set(ledger) != {"policy", "entries"}
         or ledger["policy"] != POLICY
-        or type(ledger["entries"]) is not dict
+        or (
+            type(ledger["entries"]) is not dict
+            and type(ledger["entries"]) is not SourceProvenanceEntries
+        )
     ):
         raise ValueError("Invalid state source provenance ledger")
     result = {}

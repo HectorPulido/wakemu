@@ -12,6 +12,40 @@ from wakfu_server.wire import proto_fields
 
 
 class FightResultTests(unittest.TestCase):
+    def test_terminal_packet_projects_history_for_six_distinct_owners(self):
+        from unittest.mock import patch
+
+        fight, runtime, _ = self.state()
+        for owner in range(2, 7):
+            fight.actors[100 + owner] = Actor(
+                100 + owner, 0, (0, 0, 0), 60, 6, 3, 100, 1, owner, True
+            )
+        hidden = set(range(-1000, -870))
+        for identity in hidden:
+            fight.actors[identity] = Actor(identity, 1, (1, 0, 0), 1, 4, 2, 10, 1)
+            fight.actors[identity].hp = 0
+        original_ids = set(fight.actors)
+        with patch(
+            "wakfu_server.combat_snapshot_actor_visibility.hidden_snapshot_actor_ids",
+            return_value=hidden,
+        ) as projection:
+            opcode, payload = terminal_event(runtime)
+        projection.assert_called_once_with(fight)
+        self.assertEqual(opcode, 12238)
+        offset = len(runtime._prefix()) + 1
+        count = struct.unpack_from(">b", payload, offset)[0]
+        self.assertEqual(count, 6)
+        winners = struct.unpack_from(">" + "q" * count, payload, offset + 1)
+        self.assertEqual(set(winners), original_ids - hidden - {-200})
+        offset += 1 + 8 * count
+        self.assertEqual(struct.unpack_from(">bq", payload, offset), (1, -200))
+        self.assertEqual(set(fight.actors), original_ids)
+        with patch(
+            "wakfu_server.combat_snapshot_actor_visibility.hidden_snapshot_actor_ids",
+            return_value=set(),
+        ), self.assertRaisesRegex(ValueError, "Too many result participants"):
+            terminal_event(runtime)
+
     def test_all_native_playable_breeds_have_valid_player_reports(self):
         from wakfu_server.breed_resources import playable_breeds
 

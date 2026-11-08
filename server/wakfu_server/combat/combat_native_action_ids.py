@@ -18,6 +18,64 @@ NATIVE_ACTION_PACKETS = frozenset(
 
 MAX_NATIVE_ACTION_ID = (1 << 31) - 1
 
+from contextlib import contextmanager
+from contextvars import ContextVar
+
+_OWNED_DELIVERY = ContextVar("native_owned_delivery_transaction", default=None)
+
+
+@contextmanager
+def owned_native_delivery(runtime, boundary):
+    """Borrow an exact private runtime from an outer all-or-nothing commit.
+
+    The caller must discard the entire runtime if delivery raises. This scope
+    removes only the redundant clone, never native allocation/death/ACK work.
+    """
+    token = _OWNED_DELIVERY.set((runtime, boundary))
+    try:
+        yield
+    finally:
+        _OWNED_DELIVERY.reset(token)
+
+
+def owned_native_delivery_runtime(fight):
+    """Return the exact private runtime active in a certified delivery scope."""
+    owner = _OWNED_DELIVERY.get()
+    if type(owner) is not tuple or len(owner) != 2:
+        return None
+    runtime = owner[0]
+    return runtime if owned_native_delivery_fight(runtime, fight) is fight else None
+
+
+def owned_native_delivery_fight(runtime, fight):
+    """Return the fight only when it is the current certified private preview."""
+    owner = _OWNED_DELIVERY.get()
+    if type(owner) is not tuple or len(owner) != 2 or owner[0] is not runtime:
+        return None
+    boundary = owner[1]
+    from .combat_state import Fight
+    from .combat_runtime_messages import RuntimeMessages
+    from .combat_retained_gc_authority import capture_native_callbacks
+
+    if (
+        runtime is None
+        or type(runtime) is not RuntimeMessages
+        or type(fight) is not Fight
+        or RuntimeMessages.__getattribute__ is not object.__getattribute__
+        or "fight" in vars(RuntimeMessages)
+        or runtime.fight is not fight
+        or getattr(runtime, "_native_delivery_depth", None) != 1
+        or "end_turn" in vars(runtime)
+        or "end_server_turn" in vars(runtime)
+        or (
+            boundary is not RuntimeMessages.end_turn
+            and boundary is not RuntimeMessages.end_server_turn
+        )
+        or capture_native_callbacks(runtime) is None
+    ):
+        return None
+    return fight
+
 
 class NativeDelivery(tuple):
     """Private prepared delivery; retains logical-to-native correlation."""
@@ -87,7 +145,14 @@ def native_delivery_boundary(operation):
     def apply(runtime, *args, **kwargs):
         if getattr(runtime, "_native_delivery_depth", 0):
             return operation(runtime, *args, **kwargs)
-        candidate = deepcopy(runtime)
+        owner = _OWNED_DELIVERY.get()
+        owned = owner is not None and owner[0] is runtime and owner[1] is apply
+        source_sequence = runtime.fight.sequence if owned else None
+        from .combat_preview_copy import runtime_scalar_actor_memo
+
+        candidate = (
+            runtime if owned else deepcopy(runtime, runtime_scalar_actor_memo(runtime))
+        )
         candidate._native_delivery_depth = 1
         # This boundary already supplies the same preview/adopt transaction.
         candidate._area_atomic_depth = True
@@ -99,7 +164,9 @@ def native_delivery_boundary(operation):
         # boundary, independent of which caller drove the turn. Keep raw death
         # packets inside this preview so allocation failure rolls everything back.
         deaths = newly_registered_death_messages(
-            candidate, after_sequence=runtime.fight.sequence, prepare_delivery=False
+            candidate,
+            after_sequence=source_sequence if owned else runtime.fight.sequence,
+            prepare_delivery=False,
         )
         # The client must retire a defeated actor before closing its turn or
         # restoring/starting its successor. The queued next-turn batch itself
@@ -136,7 +203,10 @@ def native_delivery_boundary(operation):
                 )
             delivery = candidate.prepare_delivery(packets) if packets else packets
         candidate.__dict__.pop("_native_delivery_depth", None)
-        adopt_runtime(runtime, candidate)
+        if owned:
+            candidate.__dict__.pop("_area_atomic_depth", None)
+        else:
+            adopt_runtime(runtime, candidate)
         return delivery
 
     return apply

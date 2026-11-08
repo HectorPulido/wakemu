@@ -47,6 +47,73 @@ class RunningState:
     realtime_deadline_ms: int | None = None
     realtime_in_combat: bool | None = None
 
+    def __deepcopy__(self, memo):
+        from .combat_state_timing import _immutable_state_timer, _copy_state_value
+
+        # Native clocks/realtime updates replace carriers. Only the exact
+        # frozen scalar value can be shared; ledgers remain separately owned.
+        if (
+            type(self) is RunningState
+            and len(vars(self)) == 15
+            and all(
+                name in vars(self)
+                for name in (
+                    "uid",
+                    "reference",
+                    "level",
+                    "caster_id",
+                    "target_id",
+                    "duration",
+                    "clock_actor",
+                    "tick_at_turn_end",
+                    "effect_ids",
+                    "realtime_duration",
+                    "retained",
+                    "timer",
+                    "protected",
+                    "realtime_deadline_ms",
+                    "realtime_in_combat",
+                )
+            )
+            and all(
+                type(getattr(self, name)) is int
+                for name in (
+                    "uid",
+                    "reference",
+                    "level",
+                    "caster_id",
+                    "target_id",
+                    "duration",
+                    "realtime_duration",
+                )
+            )
+            and type(self.clock_actor) is str
+            and type(self.tick_at_turn_end) is bool
+            and type(self.retained) is bool
+            and type(self.effect_ids) is tuple
+            and all(type(value) is int for value in self.effect_ids)
+            and (
+                self.timer is None
+                or (
+                    _immutable_state_timer(self.timer)
+                    and memo.get(id(self.timer), self.timer) is self.timer
+                )
+            )
+            and (self.protected is None or type(self.protected) is bool)
+            and (
+                self.realtime_deadline_ms is None
+                or type(self.realtime_deadline_ms) is int
+            )
+            and (
+                self.realtime_in_combat is None or type(self.realtime_in_combat) is bool
+            )
+        ):
+            memo[id(self)] = self
+            if self.timer is not None:
+                memo.setdefault(id(self.timer), self.timer)
+            return self
+        return _copy_state_value(self, memo)
+
 
 @dataclass(frozen=True)
 class StateChange:
@@ -55,6 +122,17 @@ class StateChange:
 
 
 class StateLedger:
+    def __setattr__(self, name, value):
+        if name == "_entries":
+            from .combat_state_membership import entries_changing
+
+            entries_changing(self, value)
+        object.__setattr__(self, name, value)
+        if name == "actor_id":
+            from .combat_state_membership import ledger_identity_changed
+
+            ledger_identity_changed(self)
+
     def __init__(self, actor_id):
         if type(actor_id) is not int or actor_id == 0:
             raise ValueError("Missing state owner")

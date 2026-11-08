@@ -65,7 +65,7 @@ def deliver_scoped_pairs(
         if npc_sources:
             from .combat_npc_external_event_scope import qualified_npc_uids
 
-            eligible |= qualified_npc_uids(dispatcher)
+            eligible |= qualified_npc_uids(dispatcher, manager_id=identity)
         eligible -= excluded_uids
         if not eligible:
             continue

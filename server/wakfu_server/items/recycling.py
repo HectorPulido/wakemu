@@ -442,7 +442,9 @@ def recycle(store, account_id, generation, character_id, body, *, fight=None, rn
         if (
             db.execute(
                 "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
-                "WHERE p.character_id=%s AND f.status IN ('placement','active') LIMIT 1",
+                "WHERE p.character_id=%s AND f.status IN ('placement','active') "
+                "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w "
+                "WHERE w.fight_id=p.fight_id AND w.character_id=p.character_id) LIMIT 1",
                 (character_id,),
             ).fetchone()
             is not None

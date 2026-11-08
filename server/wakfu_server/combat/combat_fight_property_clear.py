@@ -1,4 +1,5 @@
 """Native446/eXZ clears complete fight-property counter; removal never restores it."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_value_transfer import apply_context_value
 from .combat_parameters import parameter_value
@@ -171,7 +172,7 @@ class NativeFightPropertyClearHandler:
             key for key, value in counts.items() if value != 0
         )
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,

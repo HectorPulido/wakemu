@@ -694,6 +694,19 @@ def persist_aborted_shared_fight(
 
         for owner in sorted(sessions_by_account):
             settle_owner_exit(db, store, fight, owner)
+        if requesting_session is not None and not admin_cancel:
+            from wakfu_server.rift_withdrawal_rewards import (
+                settle as settle_rift_withdrawal,
+            )
+
+            rewards = settle_rift_withdrawal(
+                store,
+                db,
+                fight,
+                owner_ids=set(sessions_by_account) - certified_returned,
+            )
+            for identity, reward in rewards.items():
+                results[identity]["character"] = reward["character"]
         anchor = requesting_session if requesting_session is not None else sessions[0]
         if admin_cancel and fight_row["status"] == "finished":
             if (

@@ -71,6 +71,13 @@ def deliver_owned_death(
         fight.native_death_event_deliveries[sequence][
             "finisher_policy"
         ] = "wakemu.owned-finisher-boundaries-v1"
+    from .combat_external_read_pass import external_read_pass
+
+    with external_read_pass(fight, replay, authority, retention):
+        return _deliver_death_reactions(fight, source, replay, authority, retention)
+
+
+def _deliver_death_reactions(fight, source, replay, authority, retention):
     # Consumer-backed Wakemu policy, not a recovered original producer:
     # eZR.bcd recognizes 1010 as a KO context; the 351404 target-code5
     # listener needs the actual defeated PV and lethal caster, not null source.
@@ -94,29 +101,39 @@ def deliver_owned_death(
         outcomes.extend(replay(local_ko, authority=authority))
     for event_id in (1010, 1012):
         if hasattr(fight, "native_global_pv_collections"):
-            from .combat_global_pv_collections import global_pv_iterator
+            from .combat_external_read_pass import external_global_iterator
             from .combat_state_managers import registered_area_pv
 
             # Reacquire native topology after the preceding event's callbacks.
             # Each iterator preserves its own mutation-aware native PV order.
-            for identity in global_pv_iterator(fight, caster_id=source.caster_id):
-                if identity not in fight.actors:
-                    manager = registered_area_pv(fight, identity)
-                    if manager is None:
-                        raise ValueError("KO/death event global PV manager absent")
-                    if not manager.native_running_effect_manager:
-                        continue
-                outcomes.extend(
-                    replay(
-                        replace(
-                            source,
-                            event_ids=(event_id,),
-                            channel=61,
-                            manager_actor_id=identity,
-                        ),
-                        authority=authority,
-                    )
-                )
+            from contextlib import closing
+
+            with closing(
+                external_global_iterator(fight, source.caster_id)
+            ) as recipients:
+                for identity in recipients:
+                    from .combat_external_read_pass import external_recipient_read
+
+                    with external_recipient_read(fight, identity, replay):
+                        if identity not in fight.actors:
+                            manager = registered_area_pv(fight, identity)
+                            if manager is None:
+                                raise ValueError(
+                                    "KO/death event global PV manager absent"
+                                )
+                            if not manager.native_running_effect_manager:
+                                continue
+                        outcomes.extend(
+                            replay(
+                                replace(
+                                    source,
+                                    event_ids=(event_id,),
+                                    channel=61,
+                                    manager_actor_id=identity,
+                                ),
+                                authority=authority,
+                            )
+                        )
         elif retention is not None:
             from .combat_native_events import subscription_selection
 

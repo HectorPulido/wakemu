@@ -92,6 +92,17 @@ class ShopService:
         )
 
     def purchase(self, token, article_id, request_key, *, expected_price=None):
+        from wakfu_server import shop_feedback
+
+        try:
+            return self._purchase(
+                token, article_id, request_key, expected_price=expected_price
+            )
+        except shop_feedback.InventoryFull as error:
+            shop_feedback.record(self.store, error, request_key)
+            raise
+
+    def _purchase(self, token, article_id, request_key, *, expected_price=None):
         if type(article_id) is not int or article_id <= 0:
             raise ValueError("Invalid shop article")
         if not isinstance(request_key, str) or not 1 <= len(request_key) <= 200:
@@ -120,7 +131,9 @@ class ShopService:
             self.store.lock_character(db, account, auth["generation"], character)
             if db.execute(
                 "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
-                "WHERE p.character_id=%s AND f.status IN ('placement','active') LIMIT 1",
+                "WHERE p.character_id=%s AND f.status IN ('placement','active') "
+                "AND NOT EXISTS (SELECT 1 FROM combat_pve_withdrawals w "
+                "WHERE w.fight_id=p.fight_id AND w.character_id=p.character_id) LIMIT 1",
                 (character,),
             ).fetchone():
                 raise ValueError("Shop purchases are unavailable during combat")
@@ -163,7 +176,9 @@ class ShopService:
             if article["item_ref"] in QUEST_REFERENCES:
                 destination = (bags[0]["uid"], 0)
             if destination is None:
-                raise ValueError("Inventory full; free one slot before purchasing")
+                from wakfu_server.shop_feedback import InventoryFull
+
+                raise InventoryFull(account, character, auth["generation"])
             wallet = db.execute(
                 "UPDATE account_wallets SET kamas=kamas-%s WHERE account_id=%s AND kamas>=%s RETURNING kamas",
                 (article["price_kamas"], account, article["price_kamas"]),
@@ -198,4 +213,9 @@ class ShopService:
                     wallet["kamas"],
                 ),
             ).fetchone()
+            db.execute(
+                "UPDATE shop_purchase_feedback SET delivered_at=now() "
+                "WHERE account_id=%s AND character_id=%s AND generation=%s",
+                (account, character, auth["generation"]),
+            )
             return self._receipt(row)

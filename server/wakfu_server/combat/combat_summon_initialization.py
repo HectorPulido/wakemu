@@ -61,13 +61,29 @@ def detached_summon_scope(fight, actor, authority):
         or authority.targeting.get("bcN") != -1
     ):
         raise ValueError("Missing detached native summon construction authority")
+    from .combat_retained_registration_scope import native_membership_owner
+    from .combat_state import Actor
+    from .combat_state_membership import attach_detached, detach_detached
+
+    owner = native_membership_owner(fight) if type(actor) is Actor else None
+    identity = actor.id if owner is not None else None
     token = _construction.set(
         (*_construction.get(), DetachedSummonConstruction(fight, actor, authority))
     )
     try:
+        if owner is not None:
+            owner.detached_actors[identity] = actor
+            attach_detached(owner, actor)
         yield
     finally:
-        _construction.reset(token)
+        try:
+            if owner is not None:
+                try:
+                    detach_detached(owner, actor, identity=identity)
+                finally:
+                    owner.detached_actors.pop(identity, None)
+        finally:
+            _construction.reset(token)
 
 
 def install_initial_states(

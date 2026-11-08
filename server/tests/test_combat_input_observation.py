@@ -2,13 +2,16 @@
 import random
 import threading
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 from wakfu_server.combat_input_observation import (
     observe_combat_inputs,
     observe_rng,
     observe_clock,
     observe_fact,
+    observe_authority,
     observe_catalog,
     wall_time,
     wall_time_ns,
@@ -20,6 +23,25 @@ from wakfu_server.combat_input_observation import (
 
 
 class CombatInputObservationTests(unittest.TestCase):
+    def test_authority_observation_preserves_database_temporal_values(self):
+        created_at = datetime(2026, 11, 8, 14, 30, 0, tzinfo=timezone.utc)
+        source = {"player_characters": {191: {"created_at": created_at}}}
+
+        with observe_combat_inputs() as observed:
+            self.assertIs(observe_authority("server_runtime.authority", source), source)
+
+        value = observed.snapshot()["events"][0]["value"]
+        restored = value["player_characters"][191]["created_at"]
+        self.assertEqual(restored, created_at)
+        self.assertIs(restored.tzinfo, timezone.utc)
+
+        unsupported = datetime(2026, 11, 8, 14, 30, 0, tzinfo=ZoneInfo("UTC"))
+        with observe_combat_inputs() as rejected:
+            observe_authority("server_runtime.authority", {"created_at": unsupported})
+        self.assertEqual(
+            rejected.snapshot()["incomplete"], ["observer_failed:TypeError"]
+        )
+
     def test_prepare_rng_argument_preserves_clock_before_binding_order(self):
         rng = random.Random(17)
         with observe_combat_inputs() as observed:

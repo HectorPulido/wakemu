@@ -1,4 +1,5 @@
 """Native eWs451 mutates faV.rzt property membership, never fighter PB counters."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
 from .combat_stat_handler import StatExecutionContext
 from .combat_stat_effects import owned_effect_payload, owned_effect_application
@@ -228,7 +229,7 @@ class NativeAreaPropertyHandler:
         )
         _write(row, current | {prop})
         if ctx.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=invocation.target_id,
                 caster_id=invocation.caster_id,

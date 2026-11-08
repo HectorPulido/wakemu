@@ -105,21 +105,21 @@ class Parties:
                     level=current["level"],
                 )
                 active = db.execute(
-                    "SELECT f.id,k.snapshot FROM combat_fight_participants p "
+                    "SELECT f.id,k.snapshot->'actors'->%s AS actor "
+                    "FROM combat_fight_participants p "
                     "JOIN combat_fights f ON f.id=p.fight_id "
                     "LEFT JOIN fight_checkpoints k ON k.fight_id=f.id AND k.status='active' "
                     "WHERE p.character_id=%s AND f.status IN ('placement','active') "
+                    "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w "
+                    "WHERE w.fight_id=p.fight_id AND w.character_id=p.character_id "
+                    "AND w.account_id=p.account_id AND w.returned_at IS NOT NULL "
+                    "AND w.health_returned_at IS NOT NULL) "
                     "ORDER BY f.id DESC LIMIT 1",
-                    (member["id"],),
+                    (str(member["id"]), member["id"]),
                 ).fetchone()
                 if active is not None:
                     fighting.add(member["id"])
-                    checkpoint = active["snapshot"]
-                    actor = (
-                        None
-                        if checkpoint is None
-                        else checkpoint.get("actors", {}).get(str(member["id"]))
-                    )
+                    actor = active["actor"]
                     if actor is None:
                         raise PartySnapshotUnavailable(
                             party_id, member["id"], active["id"]
@@ -166,20 +166,20 @@ class Parties:
                     )
                     effective_level = source["level"]
                     active = db.execute(
-                        "SELECT f.id,k.snapshot FROM combat_fight_companions c "
+                        "SELECT f.id,k.snapshot->'actors'->%s AS actor "
+                        "FROM combat_fight_companions c "
                         "JOIN combat_fights f ON f.id=c.fight_id "
                         "LEFT JOIN fight_checkpoints k ON k.fight_id=f.id AND k.status='active' "
                         "WHERE c.companion_id=%s AND f.status IN ('placement','active') "
+                        "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w "
+                        "WHERE w.fight_id=c.fight_id AND w.character_id=c.owner_character_id "
+                        "AND w.account_id=c.account_id AND w.returned_at IS NOT NULL "
+                        "AND w.health_returned_at IS NOT NULL) "
                         "ORDER BY f.id DESC LIMIT 1",
-                        (companion_id,),
+                        (str(companion_id), companion_id),
                     ).fetchone()
                     if active is not None:
-                        checkpoint = active["snapshot"]
-                        actor = (
-                            None
-                            if checkpoint is None
-                            else checkpoint.get("actors", {}).get(str(companion_id))
-                        )
+                        actor = active["actor"]
                         if actor is None:
                             raise PartySnapshotUnavailable(
                                 party_id, companion_id, active["id"]

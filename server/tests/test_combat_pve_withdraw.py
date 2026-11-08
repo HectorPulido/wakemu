@@ -316,6 +316,46 @@ class WithdrawalPlanTests(unittest.TestCase):
         self.assertEqual(shared.runtime.awaiting_ack, 4)
         self.assertFalse(shared.ack.complete)
 
+    def test_withdrawal_successor_ack_excludes_departed_owner_and_rolls_back_on_failure(
+        self,
+    ):
+        registry, shared, other = self.registry()
+        shared.ack.arm(4, (self.session, other))
+        shared.ack.accept(other, struct.pack(">i", 4))
+        shared.runtime.awaiting_ack = 4
+        shared.runtime.pending = [(13420, struct.pack(">i", 77))]
+        original = shared.fight, shared.runtime
+
+        def skipped_successor(runtime, body):
+            self.assertEqual(body, struct.pack(">i", 4))
+            runtime.awaiting_ack = 5
+            return ((12502, b"skipped-successor"),)
+
+        def fail(original):
+            raise RuntimeError("withdrawal storage unavailable")
+
+        with patch.object(RuntimeMessages, "acknowledge_turn", skipped_successor):
+            with self.assertRaisesRegex(RuntimeError, "withdrawal storage unavailable"):
+                registry.withdraw_pve(self.session, persist=fail)
+            self.assertEqual((shared.fight, shared.runtime), original)
+            self.assertEqual(shared.ack.turn, 4)
+            self.assertEqual(shared.ack.expected, {1: "owner", 2: "other"})
+            self.assertEqual(shared.ack.received, {2})
+            self.assertEqual(shared.connected, {1, 2})
+            self.assertEqual(shared.withdrawals, {})
+            registry.withdraw_pve(
+                self.session, persist=lambda original: {"character": {"hp": 45}}
+            )
+        self.assertEqual(shared.runtime.awaiting_ack, 5)
+        self.assertEqual(shared.ack.turn, 5)
+        self.assertEqual(shared.ack.expected, {2: "other"})
+        self.assertEqual(shared.ack.received, set())
+        self.assertEqual(shared.connected, {2})
+        packets = [
+            packet for batch in registry.drain(77, other) for packet in batch.packets
+        ]
+        self.assertEqual(packets.count((12502, b"skipped-successor")), 1)
+
     def test_ack_and_hp_candidates_are_discarded_together_on_storage_failure(self):
         registry, shared, other = self.registry()
         shared.ack.arm(4, (self.session, other))
@@ -691,6 +731,75 @@ class WithdrawalPostgresTests(PostgresCase):
         with store.connection() as db:
             rows = list(db.execute("SELECT character_id FROM fight_rewards"))
             self.assertEqual([row["character_id"] for row in rows], [other["id"]])
+
+    def test_last_unready_withdrawal_commits_activation_and_reconnect_atomically(self):
+        (
+            store,
+            account,
+            generation,
+            character,
+            fight,
+            adapter,
+            owner,
+            shared,
+            other_account,
+            other_generation,
+            other,
+        ) = self.state(marker=True)
+        fight.ready_owners = {other_account}
+
+        def start_remaining(session, candidate, runtime, ready, monsters, **kwargs):
+            candidate = deepcopy(candidate)
+            departed = candidate.actors.pop(character["id"])
+            candidate.ready(other_account)
+            candidate.actors[character["id"]] = departed
+            return Transition(candidate, RuntimeMessages(candidate), ())
+
+        with patch.object(adapter, "ready_transition", side_effect=start_remaining):
+            with patch(
+                "wakfu_server.combat_captured_roster_checkpoint.persist_captured_roster_updates",
+                side_effect=RuntimeError("after withdrawal activation"),
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError, "after withdrawal activation"
+                ):
+                    adapter.withdraw_pve(owner, character, b"")
+            self.assertEqual(shared.fight.phase, "placement")
+            self.assertFalse(shared.withdrawals)
+            with store.connection() as db:
+                self.assertEqual(
+                    db.execute(
+                        "SELECT status FROM combat_fights WHERE id=%s",
+                        (fight.id,),
+                    ).fetchone()["status"],
+                    "placement",
+                )
+                for table in ("combat_pve_withdrawals", "fight_health_exits"):
+                    self.assertEqual(
+                        db.execute(
+                            "SELECT count(*) AS n FROM " + table + " WHERE fight_id=%s",
+                            (fight.id,),
+                        ).fetchone()["n"],
+                        0,
+                    )
+            adapter.withdraw_pve(owner, character, b"")
+        self.assertEqual(shared.fight.phase, "active")
+        with store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s",
+                    (fight.id,),
+                ).fetchone()["status"],
+                "active",
+            )
+        replacement_generation = store.begin_session(other_account)
+        selected = store.select_character(
+            other_account, replacement_generation, other["id"]
+        )
+        reconnecting = adapter.session(other_account, replacement_generation, selected)
+        self.assertTrue(adapter.live_reconnect_available(reconnecting))
+        self.assertTrue(shared.fight.actors[character["id"]].pve_withdrawn)
+        self.assertNotIn(character["id"], shared.fight.order)
 
     def test_withdrawn_marker_leader_ack_then_durable_join_uses_retained_target_row(
         self,

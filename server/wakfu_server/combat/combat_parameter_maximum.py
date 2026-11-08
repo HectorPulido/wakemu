@@ -5,6 +5,7 @@ This intentionally differs from eWN, especially with percentages/hard caps.
 On a subtract-underflow they set raw min THEN rewrite amount=max-min; this
 native value may be zero and removal must not invent the lost amount.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_parameters import parameter_value
 from .combat_maximum_resource import _snapshot, _int32, effective_maximum
 from .combat_actor_snapshot import native_actor_catalog
@@ -183,7 +184,7 @@ class NativeParameterMaximumHandler:
 
             notify_resource_pa(self.fight, actor, stat, maximum=True)
         if ctx.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,

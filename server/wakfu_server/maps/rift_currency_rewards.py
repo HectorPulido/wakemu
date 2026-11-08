@@ -103,10 +103,15 @@ def resolve(
     run = _run(db, state["instance_id"])
     if run["fight_id"] != fight.id:
         raise ValueError("Rift currency reward belongs to another fight")
+    from wakfu_server.combat_reward_ownership import rift_withdrawal_result
+
+    withdrawal = rift_withdrawal_result(db, fight, account_id, generation, character_id)
     receipt = db.execute(
         "SELECT outcome,result FROM rift_settlement_receipts WHERE instance_id=%s AND fight_id=%s",
         (run["instance_id"], fight.id),
     ).fetchone()
+    if withdrawal is not None:
+        receipt = dict(outcome="lost", result=withdrawal)
     if receipt is None:
         raise ValueError("Rift currency reward requires durable terminal settlement")
     actor = fight.actors.get(character_id)
@@ -123,7 +128,10 @@ def resolve(
     if (
         fight.phase != "finished"
         or receipt["outcome"] != outcome
-        or run["status"] != outcome
+        or (
+            run["status"] != outcome
+            and not (withdrawal is not None and run["status"] == "running")
+        )
         or (
             outcome == "won"
             and receipt["result"]["turn"] < run["policy"]["turn_budget"]
@@ -173,6 +181,7 @@ def resolve(
         character_id=character_id,
         fight_id=fight.id,
         context=context,
+        rift_fight=fight,
     )
     if ordinary.replayed:
         # Previously settled/legacy fight amounts are immutable, never scaled twice.

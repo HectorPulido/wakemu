@@ -188,14 +188,18 @@ class NativeServerRuntimeAdapter:
                 raise ValueError("Missing native Qp.bch PV authority")
             return pv_owner(row["owner_id"], seen | {identity})
 
-        predicate = is_own_area if name == "IsOwnArea" else is_own_deposit
-        return predicate(
-            preview,
-            source_id=invocation.caster_id,
-            pv_owner_query=pv_owner,
-            exclude_center=value,
-            **args,
-        )
+        try:
+            predicate = is_own_area if name == "IsOwnArea" else is_own_deposit
+            return predicate(
+                preview,
+                source_id=invocation.caster_id,
+                pv_owner_query=pv_owner,
+                exclude_center=value,
+                **args,
+            )
+        finally:
+            # Break the recursive closure after synchronous qualification completes.
+            pv_owner = None
 
     def _actor(self, preview, actor, *, projected_authority=None):
         _snapshot(actor)
@@ -222,6 +226,17 @@ class NativeServerRuntimeAdapter:
             raise ValueError("Missing fcE actor metadata")
         return value
 
+    def retained_source_actor(self, preview, actor, invocation):
+        """Read an attested retained caster without granting active authority."""
+        from .combat_retained_departure_source import retained_departure_source
+
+        projection = retained_departure_source(preview, actor, invocation)
+        return self._actor(
+            preview,
+            actor,
+            projected_authority=None if projection is None else projection[0],
+        )
+
     def condition(
         self,
         preview,
@@ -244,6 +259,20 @@ class NativeServerRuntimeAdapter:
             condition_actor_by_identity = {}
 
         def authority_for(actor):
+            if getattr(actor, "pve_withdrawn", False):
+                from .combat_retained_departure_source import retained_departure_source
+
+                # Selection caches are preview-scoped, not invocation-scoped.
+                # Reattest every historical read before consulting any cache.
+                historical = retained_departure_source(preview, actor, invocation)
+                if historical is not None:
+                    authority, world, fight = historical
+                    condition_actor_by_identity[("properties", actor.id)] = (
+                        world,
+                        fight,
+                    )
+                    return self._actor(preview, actor, projected_authority=authority)
+                return self._actor(preview, actor)
             key = ("authority", actor.id)
             if key not in condition_actor_by_identity:
                 from .combat_ordinary_authority import OrdinaryActorAuthority
@@ -336,6 +365,14 @@ class NativeServerRuntimeAdapter:
                 if name != "castercontroller":
                     null_aliases.add(name)
                 continue
+            historical_actor = native_actor(preview, identity)
+            if historical_actor is not None and getattr(
+                historical_actor, "pve_withdrawn", False
+            ):
+                # A cached condition alias never promotes a retired PV to a
+                # current target or to an unrelated invocation's caster.
+                authority_for(historical_actor)
+                condition_actor_by_identity.pop(identity, None)
             if identity in condition_actor_by_identity:
                 aliases[name] = condition_actor_by_identity[identity]
                 continue
@@ -857,11 +894,62 @@ class NativeServerRuntimeAdapter:
             rows = None if range_input is None else range_input.range_population
             if rows is None:
                 rows = []
-                for candidate in preview.actors.values():
+                population = None
+                if range_input is None and (
+                    relation == "enemy"
+                    or (relation in ("ally", "state") and in_play is True)
+                ):
+                    from .combat_range_native_population import native_range_population
+
+                    # eKf/eLr select the native IN_PLAY population before
+                    # property/state projection. Shared cell inputs must remain
+                    # complete: a later ally/state(False) reads the same batch.
+                    population = native_range_population(preview, self.actor_authority)
+                if population is None:
+                    population = preview.actors.values()
+                for candidate in population:
                     if getattr(candidate, "pve_withdrawn", False):
                         continue
+                    if (
+                        relation == "state"
+                        and not reuse_range_facts
+                        and type(self) is NativeServerRuntimeAdapter
+                        and "_actor" not in vars(self)
+                        and type(self)._actor is _RANGE_ACTOR_READER
+                        and _snapshot is _RANGE_DAMAGE_SNAPSHOT
+                    ):
+                        from .combat_range_native_population import (
+                            native_state_no_match,
+                        )
+
+                        if native_state_no_match(
+                            preview,
+                            self.actor_authority,
+                            candidate,
+                            state_reference,
+                            state_level,
+                            state_caster,
+                        ):
+                            continue
+                    projected_retired = None
+                    if (
+                        relation == "state"
+                        and in_play is False
+                        and not reuse_range_facts
+                        and type(self) is NativeServerRuntimeAdapter
+                        and "_actor" not in vars(self)
+                        and type(self)._actor is _RANGE_ACTOR_READER
+                        and _snapshot is _RANGE_DAMAGE_SNAPSHOT
+                    ):
+                        from .combat_range_native_population import retired_range_facts
+
+                        projected_retired = retired_range_facts(
+                            preview, self.actor_authority, candidate
+                        )
                     metadata = (
-                        authority_for(candidate)
+                        projected_retired[0]
+                        if projected_retired is not None
+                        else authority_for(candidate)
                         if reuse_range_facts
                         else self._actor(preview, candidate)
                     )
@@ -874,7 +962,9 @@ class NativeServerRuntimeAdapter:
                             continue
                         if not human_actor_type(metadata.native_actor_type):
                             continue
-                    if reuse_range_facts:
+                    if projected_retired is not None:
+                        properties = projected_retired[1]
+                    elif reuse_range_facts:
                         world, properties = condition_actor_by_identity[
                             ("properties", candidate.id)
                         ]
@@ -2621,7 +2711,9 @@ class NativeServerRuntimeAdapter:
         if invocation is not None and invocation.caster_id not in contexts:
             caster = native_actor(preview, invocation.caster_id)
             if caster is not None:
-                contexts[caster.id] = dict(self._actor(preview, caster).targeting)
+                contexts[caster.id] = dict(
+                    self.retained_source_actor(preview, caster, invocation).targeting
+                )
         return contexts
 
     def projected_targets(self, preview, plan, effect, invocation, candidates):
@@ -2632,7 +2724,10 @@ class NativeServerRuntimeAdapter:
         The normal resolver still performs its complete validation afterwards.
         """
         actors = tuple(
-            actor for actor in candidates if native_actor(preview, actor.id) is actor
+            actor
+            for actor in candidates
+            if native_actor(preview, actor.id) is actor
+            and not getattr(actor, "pve_withdrawn", False)
         )
         contexts = {
             actor.id: dict(self._actor(preview, actor).targeting) for actor in actors
@@ -2640,7 +2735,9 @@ class NativeServerRuntimeAdapter:
         if invocation.caster_id not in contexts:
             caster = native_actor(preview, invocation.caster_id)
             if caster is not None:
-                contexts[caster.id] = dict(self._actor(preview, caster).targeting)
+                contexts[caster.id] = dict(
+                    self.retained_source_actor(preview, caster, invocation).targeting
+                )
         return contexts
 
     def random(self, preview, plan):
@@ -2835,3 +2932,8 @@ def native_point_target_projection(provider):
         if original is not function:
             return None
     return owner.projected_targets
+
+
+_RANGE_ACTOR_READER = NativeServerRuntimeAdapter._actor
+
+_RANGE_DAMAGE_SNAPSHOT = _snapshot

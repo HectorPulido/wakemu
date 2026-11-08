@@ -254,7 +254,7 @@ class NativeRandomEarthDamageHandler:
             self.cancel_prepared(invocation)
 
 
-def dispatcher_child_gate(dispatcher, *, native_eligibility):
+def dispatcher_child_gate(dispatcher, *, native_eligibility, _factory_owned=False):
     """Use original PK criteria/probability after the child's real fOC stage.
 
     The caller supplies actual child bbH recipient/context eligibility; do not
@@ -263,7 +263,7 @@ def dispatcher_child_gate(dispatcher, *, native_eligibility):
     if not callable(native_eligibility):
         raise ValueError("Actual initialized-child eligibility callback required")
 
-    def gate(source, invocation):
+    def gate(active_dispatcher, native_eligibility, source, invocation):
         from wakfu_server.combat_conditions import evaluate_condition
         from wakfu_server.combat_definitions import effect_profile
 
@@ -276,10 +276,10 @@ def dispatcher_child_gate(dispatcher, *, native_eligibility):
         effect = source.original
         if not effect["minimum_level"] <= invocation.level <= effect["maximum_level"]:
             return False
-        activation = dispatcher._active_activation
+        activation = active_dispatcher._active_activation
         # Child bbJ calls I(null), not clone I(triggering source). Keep
         # original PK/PL while clearing only that criterion source argument.
-        condition = dispatcher.condition_context(
+        condition = active_dispatcher.condition_context(
             replace(invocation, native_trigger_context=None)
         )
         bypass_probability, bypass_criteria, cancelled = native_child_context(
@@ -293,7 +293,7 @@ def dispatcher_child_gate(dispatcher, *, native_eligibility):
             return False
         if bypass_probability:
             return True
-        retention = dispatcher.group_retention
+        retention = active_dispatcher.group_retention
         if (
             activation is None
             and retention is not None
@@ -301,12 +301,22 @@ def dispatcher_child_gate(dispatcher, *, native_eligibility):
         ):
             return True
         values = effect_profile(effect, invocation.level)
-        accepted = dispatcher.probability_accepts(values["probability"], invocation)
+        accepted = active_dispatcher.probability_accepts(
+            values["probability"], invocation
+        )
         if type(accepted) is not bool:
             raise ValueError("Actual initialized-child probability decision required")
         return accepted
 
-    return gate
+    if _factory_owned:
+        from .combat_runtime_backrefs import FactoryCallback, FactoryOwnerReference
+
+        return FactoryCallback(
+            gate, FactoryOwnerReference(dispatcher), native_eligibility
+        )
+    return lambda source, invocation: gate(
+        dispatcher, native_eligibility, source, invocation
+    )
 
 
 def native_child_context(invocation):

@@ -13,6 +13,7 @@ POLICY = "wakemu_actual_movement_path_witness_v1_not_native_Sn_equivalence"
 def admitted_route(fight, actor_id, target, *, limit):
     """Return an admitted route or None; missing authority always raises."""
     from .combat_qi_fight import current_registry
+    from .combat_pointer_qi_registry import registered_obstacle, registered_population
 
     if type(limit) is not int or limit != 2:
         raise ValueError("Unsupported Wakemu path-witness limit")
@@ -45,9 +46,11 @@ def admitted_route(fight, actor_id, target, *, limit):
     # perform internal consistency bookkeeping. Observation never touches live.
     isolated = deepcopy(fight)
     registry = current_registry(isolated)
+    qi, population = registered_population(registry)
     source = isolated.actors[actor_id]
     slot = source.native_obstacle_id
-    if registry.slots[slot] is None or registry.slots[slot]["identity"] != [
+    own_row = registered_obstacle(registry, slot)
+    if own_row is None or own_row["identity"] != [
         "actor",
         actor_id,
     ]:
@@ -68,11 +71,11 @@ def admitted_route(fight, actor_id, target, *, limit):
                     continue
                 if cell not in isolated.walkable:
                     continue
-                occupants = registry.snapshot().U(*cell[:2])
+                occupants = population(*cell[:2])
                 if any(
                     registered != slot
-                    and registry.slots[registered] is not None
-                    and registry.slots[registered]["movement_blocking"]
+                    and (row := registered_obstacle(registry, registered)) is not None
+                    and row["movement_blocking"]
                     for registered in (() if occupants is None else occupants)
                 ):
                     continue

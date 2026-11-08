@@ -171,7 +171,9 @@ def synchronize_microbot_rails(
             cell=cell,
             direction=direction,
         )
-        areas[area_uid] = dict(
+        from .combat_area_membership import OwnedAreaRow
+
+        areas[area_uid] = OwnedAreaRow(
             uid=area_uid,
             reference=RAIL_REFERENCE,
             level=-1,

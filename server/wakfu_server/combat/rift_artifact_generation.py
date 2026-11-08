@@ -66,7 +66,9 @@ def _reachable_free_cells(fight, actor):
             if target not in reached:
                 reached.add(target)
                 pending.append(target)
-    occupied = {a.position for a in fight.actors.values() if fight._in_play(a)}
+    from wakfu_server.combat_global_pv_read_view import in_play_actors
+
+    occupied = {a.position for a in in_play_actors(fight)}
     area_cells = {
         tuple(row["cell"]) for row in getattr(fight, "native_effect_areas", {}).values()
     }

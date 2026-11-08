@@ -3,6 +3,7 @@
 Applied Qf rows are the durable modifier ledger. Removing a row reverses its
 additive eRM contribution without touching HP/AP/MP or combat stat dictionaries.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 
 from .combat_parameters import parameter_value
@@ -131,7 +132,7 @@ class NativeProfessionHandler:
             value=runner.value,
             timing_payload=context.timing_payload,
         )
-        self.fight.owned_stat_effects[runner.uid] = dict(
+        self.fight.owned_stat_effects[runner.uid] = OwnedStateSourceRow(
             uid=runner.uid,
             effect_class=effect["effect_class"],
             family="eXy" if effect["effect_class"] == 2005 else "eXx",

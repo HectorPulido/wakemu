@@ -14,6 +14,7 @@ from .combat_character_copy_book import CopyBookAction
 EPHEMERAL_FIGHT_FIELDS = frozenset(
     {
         "actors",
+        "_native_retained_owner",
         "native_rail_movement_authority",
         # Post-commit query-elision cache; the durable row is the real fence.
         "native_consumable_handoff_committed",
@@ -50,9 +51,80 @@ def _trace_stage(
         pass
 
 
+# Declaration order matches RunningState; each result remains caller-owned.
+_STATE_FIELDS = (
+    ("uid", int, False),
+    ("reference", int, False),
+    ("level", int, False),
+    ("caster_id", int, False),
+    ("target_id", int, False),
+    ("duration", int, False),
+    ("clock_actor", str, False),
+    ("tick_at_turn_end", bool, False),
+    ("effect_ids", tuple, False),
+    ("realtime_duration", int, False),
+    ("retained", bool, False),
+    ("timer", object, True),
+    ("protected", bool, True),
+    ("realtime_deadline_ms", int, True),
+    ("realtime_in_combat", bool, True),
+)
+_MISSING_STATE_FIELD = object()
+
+
+def _plain_state_entry(entry):
+    """Avoid asdict's recursive deepcopy for exact native scalar carriers."""
+    from .combat_state_ledger import RunningState
+    from .combat_state_timing import StateTimer
+
+    if type(entry) is RunningState and len(vars(entry)) == len(_STATE_FIELDS):
+        fields = vars(entry)
+        result = {}
+        for name, expected, optional in _STATE_FIELDS:
+            value = fields.get(name, _MISSING_STATE_FIELD)
+            if optional and value is None:
+                result[name] = None
+                continue
+            if name == "timer":
+                if type(value) is not StateTimer or len(vars(value)) != 3:
+                    break
+                timer = vars(value)
+                actor = timer.get("actor_id", _MISSING_STATE_FIELD)
+                round_number = timer.get("expiration_round", _MISSING_STATE_FIELD)
+                phase = timer.get("phase", _MISSING_STATE_FIELD)
+                if (
+                    type(actor) is not int
+                    or type(round_number) is not int
+                    or type(phase) is not str
+                ):
+                    break
+                value = dict(actor_id=actor, expiration_round=round_number, phase=phase)
+            elif type(value) is not expected:
+                break
+            elif name == "effect_ids":
+                if any(type(identity) is not int for identity in value):
+                    break
+                value = list(value)
+            result[name] = value
+        else:
+            return result
+    # Dataclass subclasses, mutable/custom values, extra fields and malformed
+    # instances retain the exact legacy conversion and callback/error behavior.
+    return _plain(asdict(entry))
+
+
 def _plain(value):
     if value is None or type(value) in (str, int, float, bool):
         return value
+    # Exact built-in containers cannot be typed native records. Recurse before
+    # domain imports; subclasses retain the original dispatch and error order.
+    exact = type(value)
+    if exact is dict:
+        return {str(k): _plain(v) for k, v in value.items()}
+    if exact is list or exact is tuple:
+        return [_plain(v) for v in value]
+    if exact is set or exact is frozenset:
+        return [_plain(v) for v in sorted(value)]
     from wakfu_server.characters.owned_social_context import OwnedSocialContext
 
     if type(value) is OwnedSocialContext:
@@ -76,7 +148,7 @@ def _plain(value):
     if isinstance(value, StateLedger):
         return dict(
             actor_id=value.actor_id,
-            entries=[_plain(asdict(entry)) for entry in value.entries],
+            entries=[_plain_state_entry(entry) for entry in value.entries],
         )
     if isinstance(value, dict):
         return {str(k): _plain(v) for k, v in value.items()}
@@ -88,8 +160,14 @@ def _plain(value):
 
 
 def snapshot(fight, *, runtime=None):
+    from .rift_combat_adapter import creation_deliveries_snapshot
+
     state = {
-        key: _plain(value)
+        key: _plain(
+            creation_deliveries_snapshot(value)
+            if key == "native_rift_creation_deliveries"
+            else value
+        )
         for key, value in fight.__dict__.items()
         if key not in EPHEMERAL_FIGHT_FIELDS
     }
@@ -111,6 +189,215 @@ def snapshot(fight, *, runtime=None):
             )
         }
         # Pending wire packets are derived presentation, not checkpoint gameplay state.
+    return state
+
+
+RECOVERY_SCHEMA = "wakemu.fight-checkpoint.v2"
+_RECOVERY_FIGHT_FIELDS = (
+    "id",
+    "phase",
+    "winner",
+    "turn_id",
+    "turn_index",
+    "order",
+    "native_timeline_round",
+    "native_fight_model",
+    "native_encounter_roles",
+    "native_summon_registrations",
+    "native_companion_sources",
+    "native_consumable_initializations",
+    "native_external_state_origins",
+    "rift_monsters",
+    "walkable",
+    "edges",
+    "native_qi_snapshot",
+    "native_qi_slots",
+    "native_qi_touched_cells",
+    "native_qi_byte_topology",
+    "native_qi_ignored_slots",
+    "native_qi_movement_override",
+    "native_los_ignored_affiliations",
+    "native_ordinary_qi_retirements",
+    "native_rift_birth_fence",
+)
+_RECOVERY_ACTOR_FIELDS = (
+    "id",
+    "controlled",
+    "owner_id",
+    "team",
+    "hp",
+    "max_hp",
+    "effective_level",
+    "position",
+    "is_summon",
+    "native_summon_source",
+    "native_companion_source",
+    "pve_withdrawn",
+    "ap",
+    "mp",
+    "turn_count",
+    "physical_radius",
+    "native_obstacle_id",
+    "native_los_height",
+    "native_ordinary_qi_retirement",
+    "native_death_status",
+)
+_RIFT_RECOVERY_FIELDS = (
+    "instance_id",
+    "wave",
+    "outcome",
+    "persisted_wave",
+    "staged_receipts",
+    "last_cleared_wave",
+    "pending_wave",
+    "wave_actor_ids",
+    "wave_species_refs",
+)
+_REWARD_STATS = frozenset((33, 36, 118, 119))
+_RECOVERY_ORB_FIELDS = (
+    "uid",
+    "reference",
+    "cell",
+    "native_area_contract",
+    "native_qq_bhi",
+    "native_qq_guard_source",
+    "executing",
+    "remaining_activations",
+)
+
+
+def recovery_snapshot(fight, *, runtime=None):
+    """Build a versioned recovery/accounting projection for routine active saves.
+
+    ``snapshot`` remains the full evidence/debug API. This projection is only
+    safe because recovery aborts the fight; it never resumes the native graph.
+    """
+    if runtime is not None and runtime.fight is not fight:
+        raise ValueError("Runtime belongs to another fight")
+    state = {"checkpoint_schema": RECOVERY_SCHEMA}
+    for key in _RECOVERY_FIGHT_FIELDS:
+        if hasattr(fight, key):
+            state[key] = _plain(getattr(fight, key))
+    # These native consumers define the genuine uninitialized values as an
+    # empty retirement ledger and no pending birth fence. Persist them
+    # explicitly so compact QA readers can distinguish defaults from omission.
+    state.setdefault("native_ordinary_qi_retirements", {})
+    state.setdefault("native_rift_birth_fence", None)
+    removed = getattr(fight, "native_timeline_removed", None)
+    if removed is not None:
+        state["native_timeline_removed_count"] = len(removed)
+    areas = getattr(fight, "native_effect_areas", None)
+    if isinstance(areas, dict):
+        selected_areas = {}
+        for identity, area in areas.items():
+            if (
+                area.get("reference") == 1574
+                and area.get("native_area_contract") == "faY"
+                and area.get("native_qq_bhi") is False
+                and not area.get("executing")
+                and area.get("remaining_activations", -1) != 0
+            ):
+                selected_areas[str(identity)] = {
+                    key: _plain(area[key])
+                    for key in _RECOVERY_ORB_FIELDS
+                    if key in area
+                }
+        state["native_effect_areas"] = selected_areas
+    collections = getattr(fight, "native_global_pv_collections", None)
+    if isinstance(collections, dict) and "fighter_status" in collections:
+        state["native_global_pv_collections"] = {
+            "fighter_status": _plain(collections["fighter_status"])
+        }
+
+    state["actors"] = {
+        str(identity): {
+            key: _plain(actor.__dict__[key])
+            for key in _RECOVERY_ACTOR_FIELDS
+            if key in actor.__dict__
+        }
+        for identity, actor in fight.actors.items()
+    }
+    for identity, actor in fight.actors.items():
+        stats = actor.__dict__.get("effect_stats")
+        if stats is not None:
+            # The reward and drop consumers use 33/36/118/119 only. Missing
+            # authoritative keys remain missing so those consumers fail closed.
+            state["actors"][str(identity)]["effect_stats"] = {
+                str(key): _plain(stats[key]) for key in _REWARD_STATS if key in stats
+            }
+
+    wave = getattr(fight, "rift_wave_state", None)
+    if isinstance(wave, dict):
+        state["rift_wave_state"] = {
+            key: _plain(wave[key]) for key in _RIFT_RECOVERY_FIELDS if key in wave
+        }
+        wave_entries = wave.get("native_wave_entries")
+        if isinstance(wave_entries, dict):
+            state["rift_wave_state"]["native_wave_entries"] = {
+                str(identity): _plain(row)
+                for identity, row in wave_entries.items()
+                if isinstance(row, dict) and row.get("wave") == wave.get("wave")
+            }
+
+    if runtime is not None:
+        state["runtime"] = {
+            key: _plain(getattr(runtime, key))
+            for key in (
+                "action_id",
+                "native_action_id",
+                "awaiting_ack",
+                "round",
+                "duration",
+            )
+        }
+
+    # Keep only ledger rows named by durable world-consumable bindings or
+    # external native-state origins. These are restored solely for health and
+    # source accounting; no timer or action is resumed.
+    bindings = getattr(fight, "native_consumable_initializations", {})
+    external = getattr(fight, "native_external_state_origins", {})
+    selected_by_actor = {}
+    for raw_actor_id, rows in bindings.items():
+        actor_id = int(raw_actor_id)
+        selected = selected_by_actor.setdefault(actor_id, set())
+        for binding in rows:
+            selected.add(binding["combat_uid"])
+    for raw_uid, origin in external.items():
+        uid = int(raw_uid)
+        selected_by_actor.setdefault(origin["character_id"], set()).add(uid)
+    if bindings:
+        state["native_consumable_initializations"] = _plain(bindings)
+    if external:
+        state["native_external_state_origins"] = _plain(external)
+    payloads = getattr(fight, "state_wire_payloads", {})
+    external_uids = {int(uid) for uid in external}
+    selected_external = {
+        uid
+        for uids in selected_by_actor.values()
+        for uid in uids
+        if uid in external_uids
+    }
+    if selected_external:
+        state["state_wire_payloads"] = {
+            str(uid): _plain(
+                payloads[str(uid)] if str(uid) in payloads else payloads[uid]
+            )
+            for uid in selected_external
+            if str(uid) in payloads or uid in payloads
+        }
+    for actor_id, selected in selected_by_actor.items():
+        if not selected:
+            continue
+        actor = fight.actors[actor_id]
+        ledger = getattr(actor, "state_ledger", None)
+        picked = []
+        for entry in getattr(ledger, "entries", ()) if ledger is not None else ():
+            if getattr(entry, "uid", None) in selected:
+                picked.append(_plain_state_entry(entry))
+        state["actors"][str(actor_id)]["state_ledger"] = {
+            "actor_id": actor_id,
+            "entries": picked,
+        }
     return state
 
 
@@ -235,7 +522,13 @@ class Checkpoints:
             raise ValueError("Account does not own a fight participant")
         snapshot_started = time.monotonic()
         _trace_stage(trace, "snapshot_started", fight.id, count=len(fight.actors))
-        state = snapshot(fight, runtime=runtime)
+        # Terminal settlement and administrative snapshots remain complete
+        # evidence. Only active, abort-on-restart recovery rows use v2.
+        state = (
+            snapshot(fight, runtime=runtime)
+            if getattr(fight, "phase", None) != "active"
+            else recovery_snapshot(fight, runtime=runtime)
+        )
         _trace_stage(
             trace,
             "snapshot_finished",
@@ -268,8 +561,9 @@ class Checkpoints:
             a.controlled and a.owner_id == account_id for a in fight.actors.values()
         ):
             raise ValueError("Account does not own a fight participant")
-        json.dumps(state, allow_nan=False)
-        encoded = Jsonb(state)
+        serialized = json.dumps(state, allow_nan=False)
+        encoded = Jsonb(state, dumps=lambda _: serialized)
+        rift_receipts = ()
         pool_started = time.monotonic()
         _trace_stage(trace, "pool_wait", fight.id, count=len(fight.actors))
         with self.store.connection() as db:
@@ -311,7 +605,10 @@ class Checkpoints:
             )
             self._validate_roster(db, fight)
             row = db.execute(
-                "SELECT * FROM fight_checkpoints WHERE fight_id=%s", (fight.id,)
+                "SELECT account_id,generation,revision,status,"
+                "snapshot->>'phase' AS snapshot_phase "
+                "FROM fight_checkpoints WHERE fight_id=%s",
+                (fight.id,),
             ).fetchone()
             if (
                 row is not None
@@ -326,7 +623,7 @@ class Checkpoints:
                 and row is not None
                 and durable_fight["status"] == "finished"
                 and row["status"] == "ended"
-                and row["snapshot"].get("phase") == "finished"
+                and row["snapshot_phase"] == "finished"
                 and (expected_revision is None or row["revision"] >= expected_revision)
             ):
                 return dict(revision=row["revision"], terminal=True)
@@ -378,7 +675,10 @@ class Checkpoints:
 
                 # Accepted wave receipts and this immutable fight snapshot
                 # commit together; a rejected checkpoint rolls both back.
-                persist_progress(db, fight)
+                rift_receipts = persist_progress(db, fight)
+        from wakfu_server.rift_runtime import mark_progress_committed
+
+        mark_progress_committed(fight, rift_receipts)
         from .combat_consumable_handoff import mark_committed
 
         mark_committed(fight, consumable_handoffs)
@@ -393,6 +693,35 @@ class Checkpoints:
 
     @staticmethod
     def _read_snapshot(raw):
+        if isinstance(raw, dict) and "checkpoint_schema" in raw:
+            if raw.get("checkpoint_schema") != RECOVERY_SCHEMA:
+                raise ValueError("Unsupported fight checkpoint schema")
+            actors = raw.get("actors")
+            if (
+                type(raw.get("id")) is not int
+                or not isinstance(actors, dict)
+                or not isinstance(raw.get("phase"), str)
+            ):
+                raise ValueError("Malformed versioned fight checkpoint")
+            for identity, actor in actors.items():
+                try:
+                    parsed = int(identity)
+                except (TypeError, ValueError):
+                    raise ValueError(
+                        "Malformed versioned checkpoint actor key"
+                    ) from None
+                if (
+                    str(parsed) != str(identity)
+                    or not isinstance(actor, dict)
+                    or actor.get("id") != parsed
+                    or type(actor.get("controlled")) is not bool
+                    or type(actor.get("hp")) is not int
+                    or type(actor.get("max_hp")) is not int
+                    or not 0 <= actor["hp"] <= actor["max_hp"]
+                    or type(actor.get("team")) is not int
+                ):
+                    raise ValueError("Malformed versioned checkpoint actor")
+            return raw
         from .combat_checkpoint_containers import reconstruct_state_containers
 
         return reconstruct_state_containers(raw)
@@ -674,6 +1003,9 @@ class Checkpoints:
     def recover_interrupted(self):
         """Startup-only; preserve last actor HP/resources while marking lost fights."""
         with self.store.connection() as db:
+            from wakfu_server.rift_interrupted_rewards import settle_startup
+
+            settle_startup(self.store, db)
             db.execute(
                 "UPDATE combat_fights SET status='aborted' WHERE status IN ('placement','active')"
             )

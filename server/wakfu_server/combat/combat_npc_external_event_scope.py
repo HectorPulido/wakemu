@@ -5,15 +5,22 @@ may live on a player or Qq. Qf still decides masks, lifetime and corpse guards.
 No new event, fabricated Qe, alive predicate or species allowlist is supplied.
 """
 from collections.abc import Mapping
+from .combat_retained_source_provenance import (
+    state_source_provenance as _SOURCE_PROVENANCE_PROVIDER,
+)
 
 
-def _source_closure(fight, entries, provenance, roots):
+def _source_closure(fight, entries, provenance, roots, *, area_lookup=None):
     """Source ancestry is independent from native removal ownership."""
     result = set(roots)
-    areas = {
-        **getattr(fight, "native_retired_area_managers", {}),
-        **getattr(fight, "native_effect_areas", {}),
-    }
+    areas = (
+        area_lookup
+        if area_lookup is not None
+        else {
+            **getattr(fight, "native_retired_area_managers", {}),
+            **getattr(fight, "native_effect_areas", {}),
+        }
+    )
 
     def area_parent(container):
         if (
@@ -38,7 +45,7 @@ def _source_closure(fight, entries, provenance, roots):
             return frozenset(result)
 
 
-def _non_npc_sources(fight, entries, provenance):
+def _non_npc_sources(fight, entries, provenance, *, area_lookup=None):
     """Exclude actual item custody, even after native actor rebinding."""
     from .combat_equipment_finish import _qualified_sources
 
@@ -87,7 +94,7 @@ def _non_npc_sources(fight, entries, provenance):
             and record["parent_known"] is not True
         ):
             seeds.add(uid)
-    return _source_closure(fight, entries, provenance, seeds)
+    return _source_closure(fight, entries, provenance, seeds, area_lookup=area_lookup)
 
 
 def has_npc_round_interest(fight):
@@ -107,7 +114,7 @@ def has_npc_round_interest(fight):
     return False
 
 
-def qualified_npc_uids(dispatcher):
+def qualified_npc_uids(dispatcher, *, manager_id=None):
     """Verify real ordinary construction and registered retained source IDs."""
     from .combat_event_replay import NativeCloneAuthority
     from .combat_ordinary_events import OrdinaryHealingEvents
@@ -131,10 +138,35 @@ def qualified_npc_uids(dispatcher):
         or not ordinary_roster_authority(lifecycle.adapter.actor_authority)
     ):
         return frozenset()
-    entries = tuple(retention.view().entries)
-    provenance = state_source_provenance(fight)
-    excluded = _non_npc_sources(fight, entries, provenance)
     actors = lifecycle.adapter.actor_authority
+    selected = None
+    if manager_id is not None:
+        from .combat_ordinary_authority import OrdinaryActorAuthority
+        from .combat_runtime_adapter import NativeServerRuntimeAdapter
+        from .combat_npc_source_query import selected_source_query
+        from .combat_retained_query import replay_queries
+
+        # Native providers only. Custom subclass hooks retain the exact legacy
+        # full qualification and error/callback order.
+        if (
+            type(authority) is NativeCloneAuthority
+            and type(lifecycle) is OrdinaryHealingEvents
+            and type(lifecycle.adapter) is NativeServerRuntimeAdapter
+            and (
+                type(actors) is OrdinaryActorAuthority
+                or type(actors) is RegisteredSummonAuthority
+                and type(actors.ordinary) is OrdinaryActorAuthority
+            )
+            and state_source_provenance is _SOURCE_PROVENANCE_PROVIDER
+            and replay_queries(retention, indexed_only=True) is not None
+        ):
+            selected = selected_source_query(fight, manager_id)
+    entries = tuple(retention.view().entries) if selected is None else selected.entries
+    provenance = (
+        state_source_provenance(fight) if selected is None else selected.provenance
+    )
+    area_lookup = None if selected is None else selected.areas
+    excluded = _non_npc_sources(fight, entries, provenance, area_lookup=area_lookup)
     verified = {}
 
     def npc(identity):
@@ -174,50 +206,66 @@ def qualified_npc_uids(dispatcher):
                         )
         return verified[identity]
 
-    carriers = {
-        state.uid: state
-        for manager in state_managers(fight)
-        for state in manager.state_ledger.entries
-    }
-    seeds = set()
-    for entry in entries:
-        # A physical item is equipment authority, never an NPC-source shortcut.
-        if (
-            entry.uid in excluded
-            or entry.container_kind == "item"
-            or entry.container_type == 12
-        ):
-            continue
-        if entry.effect_class == 310:
-            state = carriers.get(entry.uid)
-            if state is not None and npc(state.caster_id):
-                fields = _readonly_hex_identity_fields(
-                    fight.state_wire_payloads[entry.uid]
-                )
-                if fields.get(6) != state.caster_id & ((1 << 64) - 1):
-                    raise ValueError(
-                        "NPC boundary carrier differs from its native caster"
-                    )
-                seeds.add(entry.uid)
-            continue
-        row = getattr(fight, "native_owned_group_effects", {}).get(entry.uid)
-        if row is None:
-            row = getattr(fight, "owned_stat_effects", {}).get(entry.uid)
-        if not isinstance(row, Mapping):
-            continue
-        invocation = row.get("invocation")
-        caster = (
-            invocation.get("caster_id")
-            if isinstance(invocation, Mapping)
-            else row.get("caster_id")
+    try:
+        carriers = (
+            selected.carriers
+            if selected is not None
+            else {
+                state.uid: state
+                for manager in state_managers(fight)
+                for state in manager.state_ledger.entries
+            }
         )
-        if npc(caster):
-            fields = _readonly_hex_identity_fields(row["payload"])
-            if fields.get(6) != caster & ((1 << 64) - 1):
-                raise ValueError("NPC boundary effect differs from its native caster")
-            # The complete retained view has already checked this UID's real
-            # payload, original generic definition, family and PL identities.
-            seeds.add(entry.uid)
-    return (_source_closure(fight, entries, provenance, seeds) - excluded) & frozenset(
-        entry.uid for entry in entries
-    )
+        seeds = set()
+        for entry in entries:
+            # A physical item is equipment authority, never an NPC-source shortcut.
+            if (
+                entry.uid in excluded
+                or entry.container_kind == "item"
+                or entry.container_type == 12
+            ):
+                continue
+            if entry.effect_class == 310:
+                state = carriers.get(entry.uid)
+                if state is not None and npc(state.caster_id):
+                    fields = _readonly_hex_identity_fields(
+                        fight.state_wire_payloads[entry.uid]
+                    )
+                    if fields.get(6) != state.caster_id & ((1 << 64) - 1):
+                        raise ValueError(
+                            "NPC boundary carrier differs from its native caster"
+                        )
+                    seeds.add(entry.uid)
+                continue
+            row = getattr(fight, "native_owned_group_effects", {}).get(entry.uid)
+            if row is None:
+                row = getattr(fight, "owned_stat_effects", {}).get(entry.uid)
+            if not isinstance(row, Mapping):
+                continue
+            invocation = row.get("invocation")
+            caster = (
+                invocation.get("caster_id")
+                if isinstance(invocation, Mapping)
+                else row.get("caster_id")
+            )
+            if npc(caster):
+                fields = _readonly_hex_identity_fields(row["payload"])
+                if fields.get(6) != caster & ((1 << 64) - 1):
+                    raise ValueError(
+                        "NPC boundary effect differs from its native caster"
+                    )
+                # The complete retained view has already checked this UID's real
+                # payload, original generic definition, family and PL identities.
+                seeds.add(entry.uid)
+        relevant = (
+            frozenset(entry.uid for entry in entries)
+            if selected is None
+            else selected.selected_uids
+        )
+        return (
+            _source_closure(fight, entries, provenance, seeds, area_lookup=area_lookup)
+            - excluded
+        ) & relevant
+    finally:
+        # Break the recursive closure after synchronous qualification completes.
+        npc = None

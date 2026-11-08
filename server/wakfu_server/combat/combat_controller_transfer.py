@@ -3,6 +3,7 @@
 Fresh runner delivery and controller-facing action routing reuse the same
 current-controller authority; original ownership is never rewritten.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import dataclass
 
 from .combat_parameters import parameter_value
@@ -287,7 +288,7 @@ class NativeControllerTransferHandler:
                 running_effect_payload=payload,
             )
             if context.retained:
-                self.fight.owned_stat_effects[uid] = dict(
+                self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                     uid=uid,
                     effect_class=207,
                     family="eWD",

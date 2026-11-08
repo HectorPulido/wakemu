@@ -84,6 +84,83 @@ class NativeRespawnDispatchTests(unittest.TestCase):
 
 
 class WorldRespawnPostgresTests(PostgresCase):
+    def test_phoenix_accepts_completed_withdrawal_without_closing_shared_rift(self):
+        from wakfu_server import health_policy, rift_runtime, world_respawn
+        from wakfu_server.position_buffer import Positions
+        from wakfu_server import rift_transition_delivery as delivery
+
+        account = self.store.register("phoenix-withdrawn", "test-password")["id"]
+        character = self.store.create_character(account, "Phoenix Withdrawn")
+        peer_account = self.store.register("phoenix-staying-peer", "test-password")[
+            "id"
+        ]
+        peer = self.store.create_character(peer_account, "Phoenix Staying Peer")
+        generation = self.store.begin_session(account)
+        self.store.select_character(account, generation, character["id"])
+        key = account, generation, character["id"]
+        self.addCleanup(delivery._PENDING.pop, key, None)
+        with self.store.connection() as db:
+            run = rift_runtime.enter(
+                db,
+                3,
+                character["id"],
+                [character["id"], peer["id"]],
+                seed="phoenix",
+                authorize=lambda *_: True,
+            )
+            fight_id = db.execute(
+                "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
+            ).fetchone()["id"]
+            db.execute(
+                "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team) "
+                "VALUES(%s,%s,%s,0)",
+                (fight_id, character["id"], account),
+            )
+            db.execute(
+                "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team) "
+                "VALUES(%s,%s,%s,0)",
+                (fight_id, peer["id"], peer_account),
+            )
+            db.execute(
+                "UPDATE rift_instances SET fight_id=%s,status='running' WHERE instance_id=%s",
+                (fight_id, run["instance_id"]),
+            )
+            db.execute(
+                "INSERT INTO combat_pve_withdrawals "
+                "(fight_id,character_id,account_id,session_generation,created_at,returned_at) "
+                "VALUES(%s,%s,%s,%s,now(),now())",
+                (fight_id, character["id"], account, generation),
+            )
+            health_policy.apply_damage(db, character, character["max_hp"], True)
+        source = self.store.character(account, character["id"])
+        positions = Positions(
+            self.store, lease_active=self.store.current_character_session
+        )
+        positions.attach(account, generation, source)
+        with self.assertRaisesRegex(ValueError, "regreso de combate pendiente"):
+            world_respawn.request(
+                self.store,
+                positions,
+                *key,
+                b"",
+                source=source,
+                validate_live=lambda: True
+            )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_pve_withdrawals SET health_returned_at=now() WHERE fight_id=%s",
+                (fight_id,),
+            )
+        result = world_respawn.request(
+            self.store, positions, *key, b"", source=source, validate_live=lambda: True
+        )
+        self.assertEqual(1, result["character"]["hp"])
+        self.assertFalse(result["character"]["health_dead"])
+        with self.store.connection() as db:
+            old = rift_runtime._run(db, run["instance_id"])
+            self.assertEqual("running", old["status"])
+            self.assertEqual([character["id"], peer["id"]], old["members"])
+
     def namespace(self, account, generation, actor, positions, world):
         from psycopg import Error as DatabaseError
         from psycopg_pool import PoolTimeout

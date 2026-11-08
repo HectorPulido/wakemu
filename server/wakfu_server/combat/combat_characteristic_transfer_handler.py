@@ -1,4 +1,5 @@
 """Native eWj1070 retained characteristic observer and wire ownership."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
 from .combat_characteristic_transfer import (
     transfer_parameters,
@@ -130,7 +131,7 @@ class NativeCharacteristicTransferHandler:
             timing_payload=context.timing_payload,
         ) + transfer_additional_payload(specification)
         if context.retained:
-            self.fight.owned_stat_effects[runner.uid] = dict(
+            self.fight.owned_stat_effects[runner.uid] = OwnedStateSourceRow(
                 uid=runner.uid,
                 effect_class=1070,
                 family="eWj",

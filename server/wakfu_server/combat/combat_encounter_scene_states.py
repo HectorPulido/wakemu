@@ -202,7 +202,11 @@ def install_scene_states(fight, monsters, plans):
         finally:
             actor.team = team
             fight.actors[actor.id] = actor
-            fight.actors = {key: fight.actors[key] for key in order}
+            from .combat_retained_collections import replace_collection
+
+            replace_collection(
+                fight, "actors", {key: fight.actors[key] for key in order}
+            )
         receipts[actor.id] = dict(
             kind="wakemu.reviewed_encounter_scene_states",
             actor_id=actor.id,

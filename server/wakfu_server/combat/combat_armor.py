@@ -1,4 +1,5 @@
 """Native eWx1013 armor: coefficients, mastery, cap and eWQ ownership."""
+from .combat_source_parent_index import OwnedStateSourceRow
 import math
 from dataclasses import replace
 from .combat_parameters import parameter_value, _float32
@@ -320,7 +321,7 @@ class NativeArmorHandler:
         if not absent_area_pa:
             _write(self.fight, source.id, target, 97, result["current"])
         if context.retained:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=target.id,
                 caster_id=source.id,

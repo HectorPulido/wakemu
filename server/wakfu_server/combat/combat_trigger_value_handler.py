@@ -1,4 +1,5 @@
 """eZL430 modifies its triggering Qe and suppresses its own PR notification."""
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_parameters import parameter_value
 from .combat_stat_handler import StatExecutionContext
 from .combat_stat_effects import owned_effect_payload
@@ -51,7 +52,7 @@ class NativeTriggerValueHandler:
                 value=value,
                 timing_payload=context.timing_payload,
             )
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=invocation.target_id,
                 caster_id=invocation.caster_id,

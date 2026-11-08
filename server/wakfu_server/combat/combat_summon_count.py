@@ -3,7 +3,11 @@ from .combat_native_death_status import native_is_dead
 
 
 def registered_summon_counts(fight, owner_id, records, ordinary, ordinary_view):
-    from .combat_global_pv_collections import _collections
+    from .combat_global_pv_collections import (
+        _collections,
+        ordinary_fighter_order,
+        _ordinary_topology_consumer_scope,
+    )
     from .combat_trove_long_map import NativeTroveLongMap
     from .combat_ordinary_authority import (
         OrdinaryActorAuthority,
@@ -12,8 +16,9 @@ def registered_summon_counts(fight, owner_id, records, ordinary, ordinary_view):
 
     if not hasattr(fight, "native_global_pv_collections"):
         return None
-    state = _collections(fight)
-    identities = NativeTroveLongMap(state["fighters"]).order()
+    with _ordinary_topology_consumer_scope(fight):
+        state = _collections(fight)
+        identities = ordinary_fighter_order(fight, state)
     if not set(identities) <= set(fight.actors) or set(fight.actors) - set(
         identities
     ) - set(state["retired_fighters"]):

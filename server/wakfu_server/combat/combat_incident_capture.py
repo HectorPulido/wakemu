@@ -85,6 +85,8 @@ def _writer():
                 type(error).__name__,
             )
         finally:
+            # Release the completed receipt before the next blocking get().
+            root = incident_id = raw = None
             _QUEUE.task_done()
 
 

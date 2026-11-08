@@ -1,6 +1,7 @@
 """Periodic bounded performance export outside gameplay threads and locks."""
 import json
 import os
+import sys
 import threading
 import time
 
@@ -14,6 +15,15 @@ def write_report(profiler, path, *, lag_seconds=0.0, gc_monitor=None):
 
         gc_monitor = MONITOR
     payload["gc_pause_history"] = gc_monitor.history_snapshot()
+    payload["gc_long_pause_history"] = gc_monitor.long_pause_history_snapshot()
+    # Counts, not bytes: sample without walking the heap or forcing collection.
+    payload["python_allocated_blocks"] = sys.getallocatedblocks()
+    payload["memory_sampled_at_utc_epoch_seconds"] = time.time()
+    from .combat_closed_fight_observation import snapshot as closed_fights_snapshot
+
+    closed_fights = closed_fights_snapshot()
+    if closed_fights is not None:
+        payload["closed_fight_ownership"] = closed_fights
     temporary = path.with_suffix(".tmp")
     descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     try:

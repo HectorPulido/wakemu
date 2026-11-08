@@ -22,6 +22,7 @@ class GCPauseMonitor:
             raise ValueError("Invalid GC observation capacity")
         self.records = deque(maxlen=capacity)
         self.history = deque(maxlen=HISTORY_CAPACITY)
+        self.long_history = deque(maxlen=HISTORY_CAPACITY)
         self.longest = {}
         self.sequence = 0
         self.drained_sequence = 0
@@ -72,6 +73,14 @@ class GCPauseMonitor:
                     )
                     self.records.append(record)
                     self.history.append(record)
+                    if record[1] >= 0.01:
+                        self.long_history.append(
+                            (
+                                *record,
+                                info.get("collected", 0),
+                                info.get("uncollectable", 0),
+                            )
+                        )
                     previous = self.longest.get(generation)
                     if previous is None or record[1] > previous[1]:
                         self.longest[generation] = record
@@ -107,7 +116,19 @@ class GCPauseMonitor:
 
     def history_snapshot(self):
         """Return the bounded timestamped pause history as JSON-safe scalars."""
-        records = self.history.copy()
+        return self._snapshot(self.history.copy())
+
+    def long_pause_history_snapshot(self):
+        """Keep pauses of at least 10 ms despite later short-collection churn."""
+        records = self.long_history.copy()
+        result = self._snapshot(record[:6] for record in records)
+        for item, record in zip(result, records):
+            item["collected"] = record[6]
+            item["uncollectable"] = record[7]
+        return result
+
+    @staticmethod
+    def _snapshot(records):
         return [
             {
                 "generation": generation,

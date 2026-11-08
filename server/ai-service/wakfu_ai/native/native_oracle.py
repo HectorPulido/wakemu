@@ -404,7 +404,11 @@ class NativeOracle:
     def start_boundary(self, fight, *, actor_id, action_id, forecast=True):
         from wakfu_server.combat_turn_start_boundary import deliver_start_boundary
 
-        private = deepcopy(fight)
+        from wakfu_server.combat_preview_copy import scalar_actor_memo
+
+        private = _owned_live_boundary_fight(self, fight, "start", forecast)
+        if private is None:
+            private = deepcopy(fight, scalar_actor_memo(fight))
         rng = (
             self._rng(private, dict(boundary="start", actorId=actor_id))
             if forecast
@@ -428,7 +432,11 @@ class NativeOracle:
     def end_boundary(self, fight, *, actor_id, action_id, forecast=True):
         from wakfu_server.combat_turn_end_boundary import deliver_end_boundary
 
-        private = deepcopy(fight)
+        from wakfu_server.combat_preview_copy import scalar_actor_memo
+
+        private = _owned_live_boundary_fight(self, fight, "end", forecast)
+        if private is None:
+            private = deepcopy(fight, scalar_actor_memo(fight))
         rng = (
             self._rng(private, dict(boundary="end", actorId=actor_id))
             if forecast
@@ -1113,20 +1121,103 @@ class NativeOracle:
                 )
             )
 
-        source = fingerprint()
-        candidate = deepcopy(runtime)
+        from .native_callback_authority import capture_native_callbacks
+
+        callback_provenance = capture_native_callbacks(runtime)
+        lifecycle = native_boundary_owner(self, runtime)
+        from .native_commit_capability import owns_shared_native_action
+
+        from .native_stats import _GC_STATS_METHODS, _GC_STATS_TYPE
+
+        kind = action.get("type")
+
+        stats_methods_owned = (
+            type(stats_serializer) is _GC_STATS_TYPE
+            and _GC_STATS_TYPE.__getattribute__ is object.__getattribute__
+            and all(
+                getattr(_GC_STATS_TYPE, name) is method
+                for name, method in _GC_STATS_METHODS.items()
+            )
+            and not any(name in vars(stats_serializer) for name in _GC_STATS_METHODS)
+        )
+        runtime_methods_owned = (
+            _OWNED_RUNTIME_TYPE.__getattribute__ is object.__getattribute__
+            and "fight" not in vars(_OWNED_RUNTIME_TYPE)
+            and _OWNED_RUNTIME_TYPE.end_turn is _OWNED_END_TURN
+            and _OWNED_RUNTIME_TYPE.end_server_turn is _OWNED_END_SERVER_TURN
+            and "end_turn" not in vars(runtime)
+            and "end_server_turn" not in vars(runtime)
+        )
+        action_runtime_methods = (
+            _RUNTIME_ACTION_METHODS.get(kind, ()) if type(kind) is str else ()
+        )
+        runtime_action_methods_owned = all(
+            getattr(_OWNED_RUNTIME_TYPE, name) is method and name not in vars(runtime)
+            for name, method in action_runtime_methods
+        )
+        action_oracle_methods = (
+            _GC_ORACLE_ACTION_METHODS.get(kind, ()) if type(kind) is str else ()
+        )
+        oracle_action_methods_owned = all(
+            getattr(_GC_ORACLE_TYPE, name) is method
+            for name, method in action_oracle_methods
+        ) and not any(name in vars(self) for name, _ in action_oracle_methods)
+        fight_methods_owned = _native_fight_action_methods_owned(runtime.fight, kind)
+        action_helper_owned = _native_action_helper_owned(
+            kind, commit_spell_transaction
+        )
+
+        shared_native_action_owned = (
+            type(action) is dict
+            and type(kind) is str
+            and kind in {"end_turn", "cast"}
+            and owns_shared_native_action(runtime, kind)
+            and type(self) is _GC_ORACLE_TYPE
+            and getattr(self.commit, "__func__", None) is _GC_ORACLE_COMMIT
+            and type(runtime) is _OWNED_RUNTIME_TYPE
+            and runtime_methods_owned
+            and runtime_action_methods_owned
+            and oracle_action_methods_owned
+            and fight_methods_owned
+            and action_helper_owned
+            and stats_methods_owned
+            and callback_provenance is not None
+            and type(lifecycle) is _GC_ORACLE_TYPE
+            and vars(lifecycle).get("runtime", object()) is None
+            and vars(lifecycle).get("_native_boundary_fight_id") == runtime.fight.id
+        )
+        # run_shared_turn issued this runtime from the private encounter clone
+        # made under shared.lock. It serializes one native owner with a claim,
+        # then rejects stale work by claim + sequence before publication. For
+        # these exact native action paths, providers are certified and the
+        # candidate is private, so serializing both complete object graphs is
+        # redundant. Direct/custom commits retain the original source guard.
+        source = None if shared_native_action_owned else fingerprint()
+
+        from wakfu_server.combat_preview_copy import scalar_actor_memo
+
+        candidate = deepcopy(runtime, scalar_actor_memo(runtime.fight))
         candidate.turn_start_provider = (
-            self.live_start_boundary
+            lifecycle.live_start_boundary
             if candidate.turn_start_provider is not None
             else None
         )
         candidate.turn_end_provider = (
-            self.live_end_boundary if candidate.turn_end_provider is not None else None
+            lifecycle.live_end_boundary
+            if candidate.turn_end_provider is not None
+            else None
         )
         if isinstance(stats_serializer, NativeStats):
             candidate.stats_serializer = stats_serializer.for_fight(candidate.fight)
             candidate.runtime_stats_serializer = candidate.stats_serializer
-        kind = action.get("type")
+        if (
+            type(self) is _GC_ORACLE_TYPE
+            and getattr(self.commit, "__func__", None) is _GC_ORACLE_COMMIT
+            and type(stats_serializer) is NativeStats
+        ):
+            from .native_callback_authority import renew_native_callbacks
+
+            renew_native_callbacks(candidate, callback_provenance)
         if defensive_facing is not None and (
             kind != "end_turn"
             or not isinstance(defensive_facing, dict)
@@ -1140,24 +1231,47 @@ class NativeOracle:
             if set(action) != {"type"} or candidate.fight.current is None:
                 raise ValueError("Invalid native end-turn commit")
             actor = candidate.fight.current
-            packets = (
-                candidate.end_turn(
-                    effective_input_owner(candidate.fight, actor),
-                    actor.id,
-                    actor.turn_count,
-                )
-                if not effective_server_controlled(candidate.fight, actor)
-                else candidate.end_server_turn(
-                    actor.id,
-                    candidate.fight.turn_id,
-                    defensive_facing=defensive_facing,
-                )
+            from contextlib import nullcontext
+            from types import MethodType
+            from wakfu_server.combat_native_action_ids import owned_native_delivery
+
+            controlled = not effective_server_controlled(candidate.fight, actor)
+            boundary = candidate.end_turn if controlled else candidate.end_server_turn
+            original = _OWNED_END_TURN if controlled else _OWNED_END_SERVER_TURN
+            owned = (
+                type(self) is _GC_ORACLE_TYPE
+                and type(candidate) is _OWNED_RUNTIME_TYPE
+                and _OWNED_RUNTIME_TYPE.__getattribute__ is object.__getattribute__
+                and "fight" not in vars(_OWNED_RUNTIME_TYPE)
+                and type(boundary) is MethodType
+                and boundary.__self__ is candidate
+                and boundary.__func__ is original
+                and capture_native_callbacks(candidate) is not None
             )
+            with owned_native_delivery(candidate, original) if owned else nullcontext():
+                packets = (
+                    boundary(
+                        effective_input_owner(candidate.fight, actor),
+                        actor.id,
+                        actor.turn_count,
+                    )
+                    if controlled
+                    else boundary(
+                        actor.id,
+                        candidate.fight.turn_id,
+                        defensive_facing=defensive_facing,
+                    )
+                )
         elif kind == "cast":
             transaction = self.cast(candidate, action, forecast=False)
-            packets = commit_spell_transaction(
-                candidate, transaction, stats_serializer=stats_serializer
-            )
+            from wakfu_server.combat_owned_spell_delivery import owned_spell_delivery
+
+            with owned_spell_delivery(
+                candidate, transaction, enabled=shared_native_action_owned
+            ):
+                packets = commit_spell_transaction(
+                    candidate, transaction, stats_serializer=stats_serializer
+                )
         elif kind == "portal_travel":
             from .native_portal_travel import apply_portal_travel
 
@@ -1224,7 +1338,7 @@ class NativeOracle:
                 candidate, after_sequence=runtime.fight.sequence
             )
         )
-        if fingerprint() != source:
+        if source is not None and fingerprint() != source:
             raise ValueError("Native source changed while staging action delivery")
         check()
         adopt_runtime(runtime, candidate)
@@ -1283,3 +1397,208 @@ class NativeOracle:
         if transition is not None:
             value["transition"] = transition
         return encode_parts(value)
+
+
+from wakfu_server.combat_runtime_messages import RuntimeMessages as _OWNED_RUNTIME_TYPE
+
+_OWNED_END_TURN = _OWNED_RUNTIME_TYPE.end_turn
+_OWNED_END_SERVER_TURN = _OWNED_RUNTIME_TYPE.end_server_turn
+_OWNED_PREPARE_DELIVERY = _OWNED_RUNTIME_TYPE.prepare_delivery
+_OWNED_PREPARE_FIGHT_DELIVERY = _OWNED_RUNTIME_TYPE.prepare_fight_delivery
+_OWNED_FLUSH = _OWNED_RUNTIME_TYPE._flush
+
+from wakfu_server.combat_state import Fight as _OWNED_FIGHT_TYPE
+
+_OWNED_FIGHT_METHODS = {
+    name: getattr(_OWNED_FIGHT_TYPE, name)
+    for name in (
+        "_current_owned",
+        "_event",
+        "effect_resolution",
+        "end_server_turn",
+        "end_turn",
+    )
+}
+
+_GC_ORACLE_TYPE = NativeOracle
+_GC_ORACLE_START = NativeOracle.live_start_boundary
+_GC_ORACLE_END = NativeOracle.live_end_boundary
+_GC_ORACLE_START_IMPL = NativeOracle.start_boundary
+_GC_ORACLE_END_IMPL = NativeOracle.end_boundary
+_GC_ORACLE_FACTORY = NativeOracle.factory
+_GC_ORACLE_COMMIT = NativeOracle.commit
+_GC_ORACLE_CAST = NativeOracle.cast
+_GC_ORACLE_RNG = NativeOracle._rng
+_GC_ORACLE_OWNED_SPELLS = NativeOracle.owned_spells
+_GC_ORACLE_VISIBLE = NativeOracle.visible
+
+_GC_ORACLE_ACTION_METHODS = {
+    "end_turn": (),
+    "cast": (
+        ("cast", _GC_ORACLE_CAST),
+        ("factory", _GC_ORACLE_FACTORY),
+        ("_rng", _GC_ORACLE_RNG),
+        ("owned_spells", _GC_ORACLE_OWNED_SPELLS),
+        ("visible", _GC_ORACLE_VISIBLE),
+    ),
+}
+
+_RUNTIME_ACTION_METHODS = {
+    "end_turn": (),
+    "cast": (
+        ("prepare_fight_delivery", _OWNED_PREPARE_FIGHT_DELIVERY),
+        ("prepare_delivery", _OWNED_PREPARE_DELIVERY),
+        ("_flush", _OWNED_FLUSH),
+    ),
+}
+
+_FIGHT_ACTION_METHODS = {
+    "end_turn": ("_current_owned", "end_server_turn", "end_turn"),
+    "cast": ("_event", "effect_resolution"),
+}
+
+
+def _native_fight_action_methods_owned(fight, kind):
+    names = _FIGHT_ACTION_METHODS.get(kind) if type(kind) is str else None
+    if (
+        names is None
+        or type(fight) is not _OWNED_FIGHT_TYPE
+        or _OWNED_FIGHT_TYPE.__getattribute__ is not object.__getattribute__
+    ):
+        return False
+    fields = vars(fight)
+    return all(
+        getattr(_OWNED_FIGHT_TYPE, name) is _OWNED_FIGHT_METHODS[name]
+        and name not in fields
+        for name in names
+    )
+
+
+def _native_action_helper_owned(kind, commit_spell_transaction):
+    if kind == "cast":
+        from wakfu_server import combat_spell_commit
+
+        return (
+            commit_spell_transaction is combat_spell_commit.commit_spell_transaction
+            and commit_spell_transaction is _GC_COMMIT_SPELL_TRANSACTION
+        )
+    return kind == "end_turn"
+
+
+from wakfu_server.combat_spell_commit import (
+    commit_spell_transaction as _GC_COMMIT_SPELL_TRANSACTION,
+)
+
+_BOUNDARY_FIELDS = frozenset(
+    (
+        "runtime",
+        "characters",
+        "monsters",
+        "companions",
+        "decks",
+        "excluded_decks",
+        "viewer_id",
+        "flags",
+        "outcome_features_provider",
+    )
+)
+
+
+def native_boundary_owner(oracle, runtime):
+    """Give installed lifecycle callbacks source authority without a runtime cycle.
+
+    A planning oracle keeps its strong runtime unchanged. Only exact native,
+    runtime-independent lifecycle implementations get a separate callback owner.
+    Custom providers and oracle extensions preserve their previous ownership.
+    """
+    if (
+        type(oracle) is not _GC_ORACLE_TYPE
+        or NativeOracle is not _GC_ORACLE_TYPE
+        or set(vars(oracle)) != _BOUNDARY_FIELDS
+        or oracle.runtime is not runtime
+        or oracle.outcome_features_provider is not None
+    ):
+        return oracle
+    for name, original in (
+        ("live_start_boundary", _GC_ORACLE_START),
+        ("live_end_boundary", _GC_ORACLE_END),
+        ("start_boundary", _GC_ORACLE_START_IMPL),
+        ("end_boundary", _GC_ORACLE_END_IMPL),
+        ("factory", _GC_ORACLE_FACTORY),
+    ):
+        if getattr(type(oracle), name) is not original:
+            return oracle
+    owner = object.__new__(_GC_ORACLE_TYPE)
+    owner.__dict__.update(vars(oracle))
+    owner.runtime = None
+    owner._native_boundary_fight_id = runtime.fight.id
+    return owner
+
+
+def native_boundary_fight_id(oracle):
+    """Identity for actual native callback owners, including runtime-free ones."""
+    if type(oracle) is not _GC_ORACLE_TYPE:
+        return None
+    fields = vars(oracle)
+    if fields.get("runtime") is None:
+        identity = fields.get("_native_boundary_fight_id")
+        return identity if type(identity) is int else None
+    fight = getattr(fields["runtime"], "fight", None)
+    return getattr(fight, "id", None)
+
+
+def _owned_live_boundary_fight(oracle, fight, boundary, forecast):
+    """Reuse only the exact private fight in its certified live end-turn scope."""
+    if (
+        forecast
+        or type(oracle) is not _GC_ORACLE_TYPE
+        or NativeOracle is not _GC_ORACLE_TYPE
+    ):
+        return None
+    from wakfu_server.combat_state import Fight
+
+    if (
+        type(fight) is not Fight
+        or type(boundary) is not str
+        or boundary not in ("start", "end")
+    ):
+        return None
+    fields = vars(oracle)
+    if (
+        set(fields) != _BOUNDARY_FIELDS | {"_native_boundary_fight_id"}
+        or fields.get("runtime") is not None
+        or fields.get("_native_boundary_fight_id")
+        != object.__getattribute__(fight, "id")
+        or fields.get("outcome_features_provider") is not None
+    ):
+        return None
+    expected_live, provider_name = (
+        (_GC_ORACLE_START, "turn_start_provider")
+        if boundary == "start"
+        else (_GC_ORACLE_END, "turn_end_provider")
+    )
+    if (
+        getattr(type(oracle), "live_start_boundary") is not _GC_ORACLE_START
+        or getattr(type(oracle), "live_end_boundary") is not _GC_ORACLE_END
+        or getattr(type(oracle), "start_boundary") is not _GC_ORACLE_START_IMPL
+        or getattr(type(oracle), "end_boundary") is not _GC_ORACLE_END_IMPL
+        or getattr(type(oracle), "factory") is not _GC_ORACLE_FACTORY
+    ):
+        return None
+    from wakfu_server.combat_native_action_ids import (
+        owned_native_delivery_runtime,
+    )
+
+    runtime = owned_native_delivery_runtime(fight)
+    if runtime is None:
+        return None
+    from types import MethodType
+
+    callback = getattr(runtime, provider_name)
+    if (
+        type(callback) is not MethodType
+        or callback.__self__ is not oracle
+        or callback.__func__ is not expected_live
+    ):
+        return None
+    return fight

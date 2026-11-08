@@ -4,6 +4,7 @@ eVi1001/eWZ.bbE samples the caster at application time. The captured maximum
 and current are distinct; removing the effect does not reverse either setter.
 This calculation alone does not implement subscription delivery or ownership.
 """
+from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import dataclass
 from .combat_parameters import parameter_value, _float32
 from .combat_maximum_resource import _int32
@@ -185,7 +186,7 @@ class NativeCopyCharacteristicHandler:
             current=after,
         )
         if ctx.retained and not clone:
-            self.fight.owned_stat_effects[uid] = dict(
+            self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
                 target_id=target.id,
                 caster_id=caster.id,
