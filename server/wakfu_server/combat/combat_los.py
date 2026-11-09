@@ -60,7 +60,14 @@ def static_visible(map_id, source, target):
 
 
 def authoritative_visible(
-    map_id, source, target, fight, *, blocking_footprints, prepared_geometry=None
+    map_id,
+    source,
+    target,
+    fight,
+    *,
+    blocking_footprints,
+    prepared_geometry=None,
+    static_rays_observer=None,
 ):
     """Native Sf probes + QI.h XY occupancy for explicit owned actor blockers.
 
@@ -119,6 +126,8 @@ def authoritative_visible(
             source_height=source_height,
             target_height=target_height,
         )
+        if static_rays_observer is not None:
+            static_rays_observer(rays)
         return any(
             visible and probes <= permitted and not probes & blocked
             for visible, probes in rays

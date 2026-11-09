@@ -71,7 +71,9 @@ class RetainedRowFrozenValueTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             SelectedRetainedValues(fight).read(fight, 10, row)
         row["generic_effect"] = 104
-        from wakfu_ai.context.native_fingerprint import fingerprint
+        from wakfu_server.wakia_bridge.wakfu_ai.context.native_fingerprint import (
+            fingerprint,
+        )
 
         # Derived warm state is invisible to both native fingerprint and codec.
         object.__setattr__(row, "_retained_value", None)

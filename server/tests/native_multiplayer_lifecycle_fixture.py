@@ -1,20 +1,11 @@
 """Reuse genuine native multi-owner Ready, paid lethal damage and ACK boundaries."""
-from pathlib import Path
 from types import SimpleNamespace
-import sys
 
 
 def _native_fixture_module():
-    sdk = str(Path(__file__).resolve().parents[1] / "ai-service")
-    previous = list(sys.path)
-    try:
-        if Path(sdk).is_dir() and sdk not in sys.path:
-            sys.path.insert(0, sdk)
-        from benchmarks import benchmark_multiplayer_native
+    import native_multiplayer_registered_fixture
 
-        return benchmark_multiplayer_native
-    finally:
-        sys.path[:] = previous
+    return native_multiplayer_registered_fixture
 
 
 def prepare_jamajam_encounter():
@@ -22,8 +13,8 @@ def prepare_jamajam_encounter():
     from unittest.mock import patch
 
     fixture_module = _native_fixture_module()
-    from wakfu_ai.native.native_oracle import NativeOracle
-    from wakfu_ai.native.native_stats import NativeStats
+    from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
+    from wakfu_server.wakia_bridge.wakfu_ai.native.native_stats import NativeStats
     from wakfu_server.combat_shared import Transition
 
     started = time.monotonic()

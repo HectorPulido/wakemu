@@ -4,6 +4,21 @@ import time
 from .combat_orientation import INITIAL_PLAYER_DIRECTION
 
 
+def enable_friendly_bot_ai(fight, participant_ids, bot_character_id):
+    """Grant AI control only to an explicitly authenticated duel participant."""
+    if bot_character_id is None:
+        return
+    if type(bot_character_id) is not int or bot_character_id not in participant_ids:
+        raise ValueError("Bot AI must belong to a duel participant")
+    actor = fight.actors.get(bot_character_id)
+    if actor is None or actor.controlled is not True:
+        raise ValueError("Missing owned duel bot actor")
+    from wakfu_server.combat_ai_control import set_native_ai_control
+
+    set_native_ai_control(actor, True)
+    fight.native_friendly_duel_ai_character_id = bot_character_id
+
+
 def prepare_and_register(
     store,
     adapter,
@@ -16,6 +31,7 @@ def prepare_and_register(
     auto_locked,
     terrain_effect_id=46,
     prepared_terrain=None,
+    ai_bot_character_id=None,
 ):
     """Build, serialize, and reserve a duel before the acceptance TX commits.
 
@@ -238,6 +254,11 @@ def prepare_and_register(
             admitted = admit_owned_heroes(db, store, session, fight)
             fight = admitted["fight"]
             characters.update(admitted["characters"])
+    if ai_bot_character_id is not None and (
+        type(ai_bot_character_id) is not int
+        or ai_bot_character_id not in (challenger["id"], target["id"])
+    ):
+        raise ValueError("Bot AI must belong to a duel participant")
     runtime.fight = fight
     payloads = {
         actor.id: adapter.actor_payload(
@@ -273,6 +294,7 @@ def prepare_and_register(
         "fight_started_at": now,
         "actor_payload": adapter.actor_payload,
         "duel": True,
+        "ai_bot_character_id": ai_bot_character_id,
     }
     shared = adapter.register_duel(
         fight,

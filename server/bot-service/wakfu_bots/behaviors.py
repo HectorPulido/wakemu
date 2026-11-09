@@ -101,13 +101,29 @@ class AnnouncerBehavior:
         return []
 
 
+class FriendlyDuelBehavior:
+    """Opt a bot into World's friendly-duel combat controller."""
+
+    name = "friendly_duel"
+    capability = None
+    world_capabilities = frozenset({"duel"})
+
+    def decide(self, event, settings, *, shop=None, llm=None):
+        return []
+
+
 class BehaviorRegistry:
     def __init__(self, behaviors=None):
         self.behaviors = {}
         for behavior in (
             behaviors
             if behaviors is not None
-            else (BuyerBehavior(), LlmBehavior(), AnnouncerBehavior())
+            else (
+                BuyerBehavior(),
+                LlmBehavior(),
+                AnnouncerBehavior(),
+                FriendlyDuelBehavior(),
+            )
         ):
             self.register(behavior)
 

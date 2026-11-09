@@ -2,16 +2,10 @@
 from types import SimpleNamespace
 import unittest
 
-import sys
-from pathlib import Path
-
-_AI = Path(__file__).resolve().parents[1] / "ai-service"
-sys.path.insert(0, str(_AI))
-sys.path.insert(0, str(_AI / "tests"))
-import test_native_oracle as native_fixtures
-from wakfu_ai.bridge.world_sources import bind_private_sources
-from wakfu_ai.native.native_oracle import NativeOracle
-from wakfu_ai.native.native_stats import NativeStats
+from native_combat_fixture import NativeOracleTests as native_fixtures
+from wakfu_server.wakia_bridge.wakfu_ai.bridge.world_sources import bind_private_sources
+from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
+from wakfu_server.wakia_bridge.wakfu_ai.native.native_stats import NativeStats
 from wakfu_server.combat_expiration_provider import OwnedExpirationFactory
 from wakfu_server.combat_retained_gc_authority import (
     certify_ready_runtime,
@@ -25,10 +19,10 @@ from wakfu_server.spells import default_deck
 class NativeCallbackHandoffTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        native_fixtures.NativeOracleTests.setUpClass()
+        native_fixtures.setUpClass()
 
     def runtime_for(self, *, custom_before_bind=False):
-        fixture = native_fixtures.NativeOracleTests.wonejo_fixture()
+        fixture = native_fixtures.wonejo_fixture()
         characters = {fixture.character["id"]: fixture.character}
         monsters = {fixture.monster["id"]: fixture.monster}
         decks = {fixture.character["id"]: default_deck(fixture.character)}
@@ -73,7 +67,7 @@ class NativeCallbackHandoffTests(unittest.TestCase):
             native_callbacks_known(runtime), "private source bind lost proof"
         )
 
-        oracle = native_fixtures.NativeOracleTests.oracle_for(
+        oracle = native_fixtures.oracle_for(
             runtime,
             fixture.character,
             fixture.monster,

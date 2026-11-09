@@ -1,0 +1,465 @@
+[
+  {
+    "name": "native-linear-path-blocked",
+    "category": "geometry",
+    "request": {
+      "protocol": 1,
+      "requestId": "native-linear-path-blocked",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "native-linear-path-blocked",
+        "turnId": 1,
+        "catalogRevision": "map363-sn"
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              -6,
+              -13,
+              88
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              -6,
+              -17,
+              88
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -6,
+              -12,
+              88
+            ]
+          }
+        ],
+        "edges": [],
+        "portalEdges": [],
+        "actors": [
+          {
+            "id": 1,
+            "team": 0,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "maxAp": 3,
+            "mp": 0,
+            "maxMp": 0,
+            "physicalRadius": 0
+          },
+          {
+            "id": 2,
+            "team": 1,
+            "cell": 1,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 0,
+            "maxAp": 0,
+            "mp": 0,
+            "maxMp": 0,
+            "physicalRadius": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            2,
+            1,
+            true
+          ]
+        ],
+        "nativeLinearPathBlocked": [
+          [
+            0,
+            1,
+            2
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 5777,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 8,
+          "damage": 20,
+          "needsLineOfSight": true,
+          "inLine": true,
+          "nativeLinearPathRule": true
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "limits": {
+        "budgetMs": 1000,
+        "maxActions": 1
+      },
+      "excludedActions": []
+    },
+    "expect": {
+      "types": [
+        "end_turn"
+      ]
+    }
+  },
+  {
+    "name": "native-linear-path-missing-proof",
+    "category": "geometry",
+    "request": {
+      "protocol": 1,
+      "requestId": "native-linear-path-missing-proof",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "native-linear-path-missing-proof",
+        "turnId": 1,
+        "catalogRevision": "map363-sn"
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              -6,
+              -13,
+              88
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              -6,
+              -17,
+              88
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -6,
+              -12,
+              88
+            ]
+          }
+        ],
+        "edges": [],
+        "portalEdges": [],
+        "actors": [
+          {
+            "id": 1,
+            "team": 0,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "maxAp": 3,
+            "mp": 0,
+            "maxMp": 0,
+            "physicalRadius": 0
+          },
+          {
+            "id": 2,
+            "team": 1,
+            "cell": 1,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 0,
+            "maxAp": 0,
+            "mp": 0,
+            "maxMp": 0,
+            "physicalRadius": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            2,
+            1,
+            true
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 5777,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 8,
+          "damage": 20,
+          "needsLineOfSight": true,
+          "inLine": true,
+          "nativeLinearPathRule": true
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "limits": {
+        "budgetMs": 1000,
+        "maxActions": 1
+      },
+      "excludedActions": []
+    },
+    "expect": {
+      "types": [
+        "cast"
+      ],
+      "spellId": 5777
+    }
+  },
+  {
+    "name": "native-linear-path-rule-override",
+    "category": "geometry",
+    "request": {
+      "protocol": 1,
+      "requestId": "native-linear-path-rule-override",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "native-linear-path-rule-override",
+        "turnId": 1,
+        "catalogRevision": "map363-sn"
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              -6,
+              -13,
+              88
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              -6,
+              -17,
+              88
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -6,
+              -12,
+              88
+            ]
+          }
+        ],
+        "edges": [],
+        "portalEdges": [],
+        "actors": [
+          {
+            "id": 1,
+            "team": 0,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "maxAp": 3,
+            "mp": 0,
+            "maxMp": 0,
+            "physicalRadius": 0
+          },
+          {
+            "id": 2,
+            "team": 1,
+            "cell": 1,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 0,
+            "maxAp": 0,
+            "mp": 0,
+            "maxMp": 0,
+            "physicalRadius": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            2,
+            1,
+            true
+          ]
+        ],
+        "nativeLinearPathBlocked": [
+          [
+            0,
+            1,
+            2
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 5777,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 8,
+          "damage": 20,
+          "needsLineOfSight": true,
+          "inLine": true
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "limits": {
+        "budgetMs": 1000,
+        "maxActions": 1
+      },
+      "excludedActions": []
+    },
+    "expect": {
+      "types": [
+        "cast"
+      ],
+      "spellId": 5777
+    }
+  },
+  {
+    "name": "native-linear-path-after-moving",
+    "category": "geometry",
+    "request": {
+      "protocol": 1,
+      "requestId": "native-linear-path-after-moving",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "native-linear-path-after-moving",
+        "turnId": 1,
+        "catalogRevision": "map363-sn"
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              -6,
+              -13,
+              88
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              -6,
+              -17,
+              88
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -6,
+              -12,
+              88
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ]
+        ],
+        "portalEdges": [],
+        "actors": [
+          {
+            "id": 1,
+            "team": 0,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "maxAp": 3,
+            "mp": 1,
+            "maxMp": 1,
+            "physicalRadius": 0
+          },
+          {
+            "id": 2,
+            "team": 1,
+            "cell": 1,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 0,
+            "maxAp": 0,
+            "mp": 0,
+            "maxMp": 0,
+            "physicalRadius": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            2,
+            1,
+            true
+          ]
+        ],
+        "nativeLinearPathBlocked": [
+          [
+            0,
+            1,
+            2
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 5777,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 8,
+          "damage": 20,
+          "needsLineOfSight": true,
+          "inLine": true,
+          "nativeLinearPathRule": true
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "limits": {
+        "budgetMs": 1000,
+        "maxActions": 1
+      },
+      "excludedActions": []
+    },
+    "expect": {
+      "types": [
+        "move"
+      ]
+    }
+  }
+]

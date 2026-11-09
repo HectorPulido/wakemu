@@ -1,0 +1,1014 @@
+[
+  {
+    "name": "native-support-hidden-ally-without-visible-enemies",
+    "category": "routes",
+    "request": {
+      "protocol": 1,
+      "requestId": "native-support-hidden-ally-without-visible-enemies",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "native-support-hidden-ally-without-visible-enemies",
+        "turnId": 1
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "id": 3,
+            "xyz": [
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "id": 4,
+            "xyz": [
+              2,
+              1,
+              0
+            ]
+          },
+          {
+            "id": 5,
+            "xyz": [
+              2,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 6,
+            "xyz": [
+              3,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 7,
+            "xyz": [
+              4,
+              0,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            5
+          ]
+        ],
+        "actors": [
+          {
+            "id": 1,
+            "team": 1,
+            "cell": 5,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0
+          },
+          {
+            "id": 2,
+            "team": 1,
+            "cell": 6,
+            "hp": 50,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0,
+            "hidden": true
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            0,
+            true
+          ],
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ],
+          [
+            0,
+            3,
+            true
+          ],
+          [
+            0,
+            4,
+            true
+          ],
+          [
+            0,
+            5,
+            true
+          ],
+          [
+            0,
+            6,
+            true
+          ],
+          [
+            0,
+            7,
+            true
+          ],
+          [
+            1,
+            0,
+            true
+          ],
+          [
+            1,
+            1,
+            true
+          ],
+          [
+            1,
+            2,
+            true
+          ],
+          [
+            1,
+            3,
+            true
+          ],
+          [
+            1,
+            4,
+            true
+          ],
+          [
+            1,
+            5,
+            true
+          ],
+          [
+            1,
+            6,
+            true
+          ],
+          [
+            1,
+            7,
+            true
+          ],
+          [
+            2,
+            0,
+            true
+          ],
+          [
+            2,
+            1,
+            true
+          ],
+          [
+            2,
+            2,
+            true
+          ],
+          [
+            2,
+            3,
+            true
+          ],
+          [
+            2,
+            4,
+            true
+          ],
+          [
+            2,
+            5,
+            true
+          ],
+          [
+            2,
+            6,
+            true
+          ],
+          [
+            2,
+            7,
+            true
+          ],
+          [
+            3,
+            0,
+            true
+          ],
+          [
+            3,
+            1,
+            true
+          ],
+          [
+            3,
+            2,
+            true
+          ],
+          [
+            3,
+            3,
+            true
+          ],
+          [
+            3,
+            4,
+            true
+          ],
+          [
+            3,
+            5,
+            true
+          ],
+          [
+            3,
+            6,
+            true
+          ],
+          [
+            3,
+            7,
+            true
+          ],
+          [
+            4,
+            0,
+            true
+          ],
+          [
+            4,
+            1,
+            true
+          ],
+          [
+            4,
+            2,
+            true
+          ],
+          [
+            4,
+            3,
+            true
+          ],
+          [
+            4,
+            4,
+            true
+          ],
+          [
+            4,
+            5,
+            true
+          ],
+          [
+            4,
+            6,
+            true
+          ],
+          [
+            4,
+            7,
+            true
+          ],
+          [
+            5,
+            0,
+            true
+          ],
+          [
+            5,
+            1,
+            true
+          ],
+          [
+            5,
+            2,
+            true
+          ],
+          [
+            5,
+            3,
+            true
+          ],
+          [
+            5,
+            4,
+            true
+          ],
+          [
+            5,
+            5,
+            true
+          ],
+          [
+            5,
+            6,
+            true
+          ],
+          [
+            5,
+            7,
+            true
+          ],
+          [
+            6,
+            0,
+            true
+          ],
+          [
+            6,
+            1,
+            true
+          ],
+          [
+            6,
+            2,
+            true
+          ],
+          [
+            6,
+            3,
+            true
+          ],
+          [
+            6,
+            4,
+            true
+          ],
+          [
+            6,
+            5,
+            true
+          ],
+          [
+            6,
+            6,
+            true
+          ],
+          [
+            6,
+            7,
+            true
+          ],
+          [
+            7,
+            0,
+            true
+          ],
+          [
+            7,
+            1,
+            true
+          ],
+          [
+            7,
+            2,
+            true
+          ],
+          [
+            7,
+            3,
+            true
+          ],
+          [
+            7,
+            4,
+            true
+          ],
+          [
+            7,
+            5,
+            true
+          ],
+          [
+            7,
+            6,
+            true
+          ],
+          [
+            7,
+            7,
+            true
+          ]
+        ],
+        "tackle": []
+      },
+      "spells": [
+        {
+          "id": 7001,
+          "grade": 1,
+          "cost": 3,
+          "nativeCosts": {
+            "ap": 3,
+            "mp": 0,
+            "wp": 0
+          },
+          "minRange": 1,
+          "maxRange": 1,
+          "utility": 1,
+          "rows": [],
+          "nativeSupport": {
+            "version": 1,
+            "aimKinds": [
+              "ally"
+            ],
+            "intents": [
+              "state"
+            ],
+            "effects": [
+              {
+                "kind": "add_state",
+                "stateId": 8800,
+                "stateLevel": 1,
+                "targets": [
+                  "ally"
+                ],
+                "benefit": "beneficial",
+                "probability": 100,
+                "conditional": false,
+                "confidence": "known",
+                "nativeReference": 9001
+              }
+            ],
+            "summons": [],
+            "candidateCells": [],
+            "facts": {}
+          }
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "limits": {
+        "budgetMs": 2000
+      }
+    },
+    "expect": {
+      "types": [
+        "cast"
+      ],
+      "spellId": 7001,
+      "targetId": 2
+    }
+  },
+  {
+    "name": "native-support-must-not-target-hidden-enemy",
+    "category": "routes",
+    "request": {
+      "protocol": 1,
+      "requestId": "native-support-must-not-target-hidden-enemy",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "native-support-must-not-target-hidden-enemy",
+        "turnId": 1
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "id": 3,
+            "xyz": [
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "id": 4,
+            "xyz": [
+              2,
+              1,
+              0
+            ]
+          },
+          {
+            "id": 5,
+            "xyz": [
+              2,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 6,
+            "xyz": [
+              3,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 7,
+            "xyz": [
+              4,
+              0,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            5
+          ]
+        ],
+        "actors": [
+          {
+            "id": 1,
+            "team": 1,
+            "cell": 5,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0
+          },
+          {
+            "id": 3,
+            "team": 0,
+            "cell": 6,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0,
+            "hidden": true
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            0,
+            true
+          ],
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ],
+          [
+            0,
+            3,
+            true
+          ],
+          [
+            0,
+            4,
+            true
+          ],
+          [
+            0,
+            5,
+            true
+          ],
+          [
+            0,
+            6,
+            true
+          ],
+          [
+            0,
+            7,
+            true
+          ],
+          [
+            1,
+            0,
+            true
+          ],
+          [
+            1,
+            1,
+            true
+          ],
+          [
+            1,
+            2,
+            true
+          ],
+          [
+            1,
+            3,
+            true
+          ],
+          [
+            1,
+            4,
+            true
+          ],
+          [
+            1,
+            5,
+            true
+          ],
+          [
+            1,
+            6,
+            true
+          ],
+          [
+            1,
+            7,
+            true
+          ],
+          [
+            2,
+            0,
+            true
+          ],
+          [
+            2,
+            1,
+            true
+          ],
+          [
+            2,
+            2,
+            true
+          ],
+          [
+            2,
+            3,
+            true
+          ],
+          [
+            2,
+            4,
+            true
+          ],
+          [
+            2,
+            5,
+            true
+          ],
+          [
+            2,
+            6,
+            true
+          ],
+          [
+            2,
+            7,
+            true
+          ],
+          [
+            3,
+            0,
+            true
+          ],
+          [
+            3,
+            1,
+            true
+          ],
+          [
+            3,
+            2,
+            true
+          ],
+          [
+            3,
+            3,
+            true
+          ],
+          [
+            3,
+            4,
+            true
+          ],
+          [
+            3,
+            5,
+            true
+          ],
+          [
+            3,
+            6,
+            true
+          ],
+          [
+            3,
+            7,
+            true
+          ],
+          [
+            4,
+            0,
+            true
+          ],
+          [
+            4,
+            1,
+            true
+          ],
+          [
+            4,
+            2,
+            true
+          ],
+          [
+            4,
+            3,
+            true
+          ],
+          [
+            4,
+            4,
+            true
+          ],
+          [
+            4,
+            5,
+            true
+          ],
+          [
+            4,
+            6,
+            true
+          ],
+          [
+            4,
+            7,
+            true
+          ],
+          [
+            5,
+            0,
+            true
+          ],
+          [
+            5,
+            1,
+            true
+          ],
+          [
+            5,
+            2,
+            true
+          ],
+          [
+            5,
+            3,
+            true
+          ],
+          [
+            5,
+            4,
+            true
+          ],
+          [
+            5,
+            5,
+            true
+          ],
+          [
+            5,
+            6,
+            true
+          ],
+          [
+            5,
+            7,
+            true
+          ],
+          [
+            6,
+            0,
+            true
+          ],
+          [
+            6,
+            1,
+            true
+          ],
+          [
+            6,
+            2,
+            true
+          ],
+          [
+            6,
+            3,
+            true
+          ],
+          [
+            6,
+            4,
+            true
+          ],
+          [
+            6,
+            5,
+            true
+          ],
+          [
+            6,
+            6,
+            true
+          ],
+          [
+            6,
+            7,
+            true
+          ],
+          [
+            7,
+            0,
+            true
+          ],
+          [
+            7,
+            1,
+            true
+          ],
+          [
+            7,
+            2,
+            true
+          ],
+          [
+            7,
+            3,
+            true
+          ],
+          [
+            7,
+            4,
+            true
+          ],
+          [
+            7,
+            5,
+            true
+          ],
+          [
+            7,
+            6,
+            true
+          ],
+          [
+            7,
+            7,
+            true
+          ]
+        ],
+        "tackle": []
+      },
+      "spells": [
+        {
+          "id": 7001,
+          "grade": 1,
+          "cost": 3,
+          "nativeCosts": {
+            "ap": 3,
+            "mp": 0,
+            "wp": 0
+          },
+          "minRange": 1,
+          "maxRange": 1,
+          "utility": 1,
+          "rows": [],
+          "nativeSupport": {
+            "version": 1,
+            "aimKinds": [
+              "enemy"
+            ],
+            "intents": [
+              "state"
+            ],
+            "effects": [
+              {
+                "kind": "add_state",
+                "stateId": 8800,
+                "stateLevel": 1,
+                "targets": [
+                  "enemy"
+                ],
+                "benefit": "harmful",
+                "probability": 100,
+                "conditional": false,
+                "confidence": "known",
+                "nativeReference": 9001
+              }
+            ],
+            "summons": [],
+            "candidateCells": [],
+            "facts": {}
+          }
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "limits": {
+        "budgetMs": 2000
+      }
+    },
+    "expect": {
+      "types": [
+        "end_turn"
+      ]
+    }
+  }
+]

@@ -11,7 +11,10 @@
     <Compile Include="../Core/**/*.cs" Link="Core/%(Filename)%(Extension)" />
     <Compile Include="../Compatibility/**/*.cs" Link="Compatibility/%(Filename)%(Extension)" />
     <Compile Include="Program.cs" />
+    <Compile Include="GeneralEffectCases.cs" />
+    <Compile Include="MixedHealthRegression.cs" />
     <Compile Include="HostProjectionCases.cs" />
+    <Compile Include="GeometryContextCases.cs" />
     <Compile Include="HazardRouteCases.cs" />
     <Compile Include="SpecificAiCases.cs" />
     <Compile Include="NativeElementCases.cs" />
@@ -19,6 +22,7 @@
     <Compile Include="PlanningGateCases.cs" />
     <Compile Include="PlannerDeadlineCases.cs" />
     <Compile Include="NativeSupportCases.cs" />
+    <Compile Include="NativeTrapForecastCases.cs" />
     <Compile Include="SearchQualityCases.cs" />
     <Compile Include="AoeQualityCases.cs" />
     <Compile Include="DirectionalAreaCases.cs" />
@@ -30,8 +34,6 @@
     <Compile Include="../Host/SupremeMechanicAis.cs" Link="Host/SupremeMechanicAis.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Fixtures/NativeElementGoldens.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Fixtures/NativeDirectionalGeometryGoldens.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Fixtures/NativeTargetSelectionGoldens.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures/*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

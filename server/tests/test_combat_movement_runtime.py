@@ -1,9 +1,4 @@
 import unittest, struct
-import os
-import threading
-from unittest.mock import patch
-from tests.test_ai_service import service
-from wakfu_ai.transport.framed_server import FramedServer
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_runtime_messages import RuntimeMessages
 from wakfu_server.combat_movement_runtime import apply_client, decode_request
@@ -228,35 +223,13 @@ class MovementRuntimeTests(unittest.TestCase):
 
 
 class AIMovementRuntimeTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.channel = FramedServer(("127.0.0.1", 0))
-        cls.thread = threading.Thread(target=cls.channel.serve_forever, daemon=True)
-        cls.thread.start()
-        cls.environment = patch.dict(
-            os.environ,
-            {
-                "WAKFU_AI_URL": "tcp://127.0.0.1:" + str(cls.channel.server_address[1]),
-            },
-        )
-        cls.environment.start()
-
-    @classmethod
-    def tearDownClass(cls):
-        try:
-            cls.environment.stop()
-        finally:
-            cls.channel.shutdown()
-            cls.channel.server_close()
-            cls.thread.join(2)
-
     def setup_fight(self):
         cells = {(x, 0, 0) for x in range(6)}
         p = Actor(1, 0, (5, 0, 0), 60, 6, 3, 0, 1, 7, True)
         n = Actor(-2, 1, (0, 0, 0), 12, 6, 3, 9, 1)
         edges = {(a, b) for a in cells for b in cells if abs(a[0] - b[0]) == 1}
         f = Fight(2, [p, n], cells, {0: {p.position}, 1: {n.position}}, edges)
-        f.ready(7)
+        f.phase, f.order, f.turn_index = "active", [n.id, p.id], 0
         return RuntimeMessages(f), n
 
     def test_ai_moves_and_spends_own_mp(self):

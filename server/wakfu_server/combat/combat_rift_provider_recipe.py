@@ -35,11 +35,11 @@ class ProviderRecipeError(InputReplayMismatch):
     """Unsupported diagnostic authority, never a rejected gameplay action."""
 
 
-def capture_providers(runtime):
+def capture_providers(runtime, *, sdk_source=None):
     """Capture only exact native callback owners and actual provider aliases."""
     from .combat_npc_reproduction import _sdk_modules
 
-    oracle_module, _, _ = _sdk_modules()
+    oracle_module, _, _ = _sdk_modules(runtime, sdk_source=sdk_source)
     oracle_type = oracle_module.NativeOracle
     owners, providers, owner_ids, provider_ids = [], {}, {}, {}
     for field in FIELDS:
@@ -122,11 +122,11 @@ def capture_providers(runtime):
     return dict(schema=1, owners=owners, providers=providers)
 
 
-def restore_providers(runtime, payload):
+def restore_providers(runtime, payload, *, sdk_source=None):
     """Rebuild validated native owners without payload-selected imports/code."""
     from .combat_npc_reproduction import _sdk_modules
 
-    oracle_module, _, _ = _sdk_modules()
+    oracle_module, _, _ = _sdk_modules(runtime, sdk_source=sdk_source)
     try:
         if payload["schema"] != 1 or set(payload["providers"]) != set(FIELDS):
             raise ProviderRecipeError("Unsupported native provider recipe")
@@ -215,7 +215,7 @@ def restore_providers(runtime, payload):
                     )
                 provider = owner if method == "__call__" else getattr(owner, method)
             setattr(runtime, field, provider)
-        capture_providers(runtime)
+        capture_providers(runtime, sdk_source=sdk_source)
     except ProviderRecipeError:
         raise
     except (KeyError, ValueError, TypeError, AttributeError, IndexError) as error:

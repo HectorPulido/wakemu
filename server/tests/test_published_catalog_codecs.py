@@ -2,16 +2,13 @@
 import copy
 import builtins
 import json
-import sys
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
-_AI = Path(__file__).resolve().parents[1] / "ai-service"
-if str(_AI) not in sys.path:
-    sys.path.insert(0, str(_AI))
-
-from wakfu_ai.context import native_context, native_fingerprint
+from wakfu_server.wakia_bridge.wakfu_ai.context import (
+    native_context,
+    native_fingerprint,
+)
 from wakfu_server import combat_reproduction_state as reproduction
 from wakfu_server.combat_static_catalogs import ImmutableCatalog
 from wakfu_server.combat_published_catalogs import (

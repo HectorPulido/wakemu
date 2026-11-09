@@ -106,10 +106,12 @@ def _compiler_source_bytes():
     package = Path(__file__).resolve().parents[1]
     inventory = {}
     for path in sorted(package.rglob("*.py")):
-        if "__pycache__" not in path.parts:
-            inventory["wakfu_server/" + path.relative_to(package).as_posix()] = _sha(
-                path.read_bytes()
-            )
+        relative = path.relative_to(package)
+        # WakIA's World transport and planning bridge does not compile native
+        # catalog records. Its independent changes must not invalidate them.
+        # Keep every other server module in the compiler contract.
+        if relative.parts[0] != "wakia_bridge" and "__pycache__" not in relative.parts:
+            inventory["wakfu_server/" + relative.as_posix()] = _sha(path.read_bytes())
     server = package.parent
     for name in (
         "tools/publish_compiled_combat_catalog.py",

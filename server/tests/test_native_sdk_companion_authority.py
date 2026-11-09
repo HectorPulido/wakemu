@@ -1,19 +1,13 @@
 """Actual owned sidekick admission stays distinct from human SDK authority."""
 import copy
-import sys
-from pathlib import Path
 from unittest.mock import patch
-
-_AI = Path(__file__).resolve().parents[1] / "ai-service"
-if str(_AI) not in sys.path:
-    sys.path.insert(0, str(_AI))
 
 from test_combat_companions_postgres import OwnedCompanionCombatPostgresTests
 from wakfu_server.combat_companions import admit_owned_companions, fighter_stats
 from wakfu_server.combat_runtime_messages import RuntimeMessages
-from wakfu_ai.native.native_store import load_authorities
-from wakfu_ai.native.native_oracle import NativeOracle
-from wakfu_ai.native.native_stats import NativeStats
+from wakfu_server.wakia_bridge.wakfu_ai.native.native_store import load_authorities
+from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
+from wakfu_server.wakia_bridge.wakfu_ai.native.native_stats import NativeStats
 
 
 class NativeSDKCompanionAuthorityTests(OwnedCompanionCombatPostgresTests):

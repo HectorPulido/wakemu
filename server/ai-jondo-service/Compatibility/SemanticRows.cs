@@ -8,6 +8,34 @@ namespace Jondo.Unity.Server.Managers;
 /// <summary>Translate explicitly named native advisory semantics to planner symbols.</summary>
 public static class SemanticRows
 {
+    private sealed record ApplicationEvidence(double Probability, bool Conditional);
+    private static readonly ConditionalWeakTable<SpellEffect, ApplicationEvidence> ApplicationEvidenceByRow = new();
+
+    internal static void WithApplicationEvidence(SpellEffect row, double probability, bool conditional)
+    {
+        if (!double.IsFinite(probability) || probability is < 0 or > 1)
+            throw new ArgumentException("Invalid native application probability");
+        ApplicationEvidenceByRow.Add(row, new ApplicationEvidence(probability, conditional));
+    }
+
+    internal static bool TryApplicationEvidence(SpellEffect row, out double probability, out bool conditional)
+    {
+        if (ApplicationEvidenceByRow.TryGetValue(row, out var evidence))
+        {
+            probability = evidence.Probability;
+            conditional = evidence.Conditional;
+            return true;
+        }
+        probability = 1;
+        conditional = false;
+        return false;
+    }
+
+    // Retain the focused control-test API while sharing the same evidence
+    // with legacy damage and healing rows that lack a typed health forecast.
+    internal static void WithControlEvidence(SpellEffect row, double probability, bool conditional)
+        => WithApplicationEvidence(row, probability, conditional);
+
     private sealed record Offsets(IReadOnlyList<(int Dx,int Dy)> Cells);
     private static readonly ConditionalWeakTable<SpellEffect,Offsets> Zones = new();
     private static readonly ConditionalWeakTable<SpellEffect,NativeDirectionalArea> Directional = new();

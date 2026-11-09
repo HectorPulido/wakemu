@@ -39,37 +39,35 @@ class ValidationSnapshotTests(unittest.TestCase):
             source.symlink_to(reports / "unrelated.json")
             self.assertNotIn(source.relative_to(root), snapshot_tool.files(root))
 
-    def test_movement_fixture_service_sources_are_frozen_without_configuration(self):
+    def test_wakia_bridge_sources_are_frozen_without_legacy_service(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
             tests = root / "server/tests"
-            service = root / "server/ai-service"
+            service = root / "server/wakfu_server/wakia_bridge/wakfu_ai"
             tests.mkdir(parents=True)
             service.mkdir(parents=True)
-            (tests / "test_ai_service.py").write_text('SERVICE = "planner.py"\n')
-            (service / "planner.py").write_text('POLICY = "original"\n')
-            (service / "server.py").write_text('SERVICE = "offline fixture"\n')
+            (tests / "native_oracle_fixture.py").write_text('FIXTURE = "original"\n')
+            (service / "native.py").write_text('POLICY = "original"\n')
             (service / ".env").write_text("PRIVATE_CONFIGURATION=true\n")
-            (service / "unrelated.py").write_text("OTHER = True\n")
-            package = service / "wakfu_ai/planning"
+            package = service / "planning"
             package.mkdir(parents=True)
             (package / "planner.py").write_text('POLICY = "package source"\n')
             (package / "settings.json").write_text("{}\n")
             destination = Path(temporary) / "snapshot"
             snapshot_tool.snapshot(root, destination)
-            (service / "planner.py").write_text('POLICY = "changed"\n')
-            frozen = destination / "server/ai-service"
+            (service / "native.py").write_text('POLICY = "changed"\n')
+            frozen = destination / "server/wakfu_server/wakia_bridge/wakfu_ai"
             self.assertEqual(
-                (frozen / "planner.py").read_text(), 'POLICY = "original"\n'
+                (frozen / "native.py").read_text(), 'POLICY = "original"\n'
             )
-            self.assertTrue((frozen / "server.py").is_file())
             self.assertFalse((frozen / ".env").exists())
-            self.assertFalse((frozen / "unrelated.py").exists())
             self.assertEqual(
-                (frozen / "wakfu_ai/planning/planner.py").read_text(),
+                (frozen / "planning/planner.py").read_text(),
                 'POLICY = "package source"\n',
             )
-            self.assertFalse((frozen / "wakfu_ai/planning/settings.json").exists())
+            self.assertTrue(
+                (destination / "server/tests/native_oracle_fixture.py").is_file()
+            )
 
     def test_named_report_fixture_is_captured_and_remains_immutable(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -98,13 +96,10 @@ class ValidationSnapshotTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
             tests = root / "server/tests"
-            fixtures = root / "server/ai-service/tests/fixtures"
+            fixtures = root / "server/tests/fixtures"
             tests.mkdir(parents=True)
             fixtures.mkdir(parents=True)
-            (tests / "test_ai_service.py").write_text(
-                "# Enables SDK fixture snapshot\n"
-            )
-            (fixtures.parent / "test_native_oracle.py").write_text(
+            (fixtures.parent / "native_oracle_fixture.py").write_text(
                 "NATIVE_FIXTURE = True\n"
             )
             (fixtures / "native.json").write_text('{"actor_id": 7}\n')
@@ -114,9 +109,9 @@ class ValidationSnapshotTests(unittest.TestCase):
             (fixtures / ".env").write_text("PRIVATE_CONFIGURATION=true\n")
             destination = Path(temporary) / "snapshot"
             snapshot_tool.snapshot(root, destination)
-            captured = destination / "server/ai-service/tests"
+            captured = destination / "server/tests"
             self.assertEqual(
-                (captured / "test_native_oracle.py").read_text(),
+                (captured / "native_oracle_fixture.py").read_text(),
                 "NATIVE_FIXTURE = True\n",
             )
             self.assertTrue((captured / "fixtures/native.json").is_file())

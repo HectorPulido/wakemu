@@ -1,10 +1,9 @@
 """Cron policy refresh must never fall back to a stale operational file."""
 from contextlib import contextmanager
-import importlib.util
 import json
 from pathlib import Path
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from wakfu_server.storage.cron_policy import load_policy, validate_policy
 
@@ -65,37 +64,6 @@ class CronDatabasePolicyTests(unittest.TestCase):
         connection.execute.assert_called_with(
             "SELECT value FROM settings WHERE name = %s", ("cron_scheduler_policy",)
         )
-
-    def test_each_tick_refreshes_and_invalid_policy_skips_stale_tasks(self):
-        path = Path(__file__).resolve().parents[1] / "cron-service/service.py"
-        spec = importlib.util.spec_from_file_location("cron_service_policy_test", path)
-        service = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(service)
-        first = self.policy()
-        disabled = self.policy()
-        disabled["tasks"]["positions_flush"]["enabled"] = False
-        scheduler = Mock()
-        scheduler.tick.return_value = []
-        seen = []
-        scheduler.tick.side_effect = (
-            lambda: seen.append(scheduler.tasks["positions_flush"]["enabled"]) or []
-        )
-        with patch.object(service, "provision"), patch.dict(
-            service.os.environ, {"WAKFU_CRON_API_TOKEN_FILE": "/private/test-token"}
-        ), patch.object(service, "Scheduler", return_value=scheduler), patch.object(
-            service,
-            "load_policy",
-            side_effect=[first, ValueError("missing policy"), disabled],
-        ), patch.object(
-            service.time, "sleep", side_effect=[None, None, KeyboardInterrupt]
-        ), patch(
-            "builtins.print"
-        ):
-            with self.assertRaises(KeyboardInterrupt):
-                service.run_scheduler(Mock(), Mock())
-        self.assertEqual(seen, [True, False])
-        self.assertEqual(scheduler.tick.call_count, 2)
-
 
 if __name__ == "__main__":
     unittest.main()

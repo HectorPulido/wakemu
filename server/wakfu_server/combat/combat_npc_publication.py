@@ -230,7 +230,7 @@ class PrivateBarrierCapture:
             )
         )
         self.identity = deepcopy(_identity())
-        self.sdk_source = sdk_identity(_sdk_modules()[2])
+        self.sdk_source = sdk_identity(_sdk_modules(runtime)[2])
         self.clocks = capture_clocks()
         self.policies = {
             key: os.environ.get(key, value) for key, value in ENVIRONMENT.items()
@@ -405,7 +405,7 @@ class NPCPublicationCapture:
                     if decode_state(self.fallback)["native"] is not None:
                         from .combat_npc_reproduction import _sdk_modules
 
-                        self.sdk_source = sdk_identity(_sdk_modules()[2])
+                        self.sdk_source = sdk_identity(_sdk_modules(shared.runtime)[2])
                 except Exception as failure:
                     self.incomplete.append(
                         "fallback_authority_capture_failed:" + type(failure).__name__
@@ -582,7 +582,9 @@ def _restore_shared_bindings(runtime, shared, fields):
         runtime.fight.native_rail_movement_authority = _unused_provider
 
 
-def _bind_execution(runtime, facts, observations, clock, *, keep_native=False):
+def _bind_execution(
+    runtime, facts, observations, clock, *, keep_native=False, sdk_source=None
+):
     from .combat_live_reproduction import prepare_live_context
     from .combat_npc_reproduction import _sdk_modules, _restore_rail
 
@@ -620,7 +622,7 @@ def _bind_execution(runtime, facts, observations, clock, *, keep_native=False):
     if not rail_present and hasattr(runtime.fight, "native_rail_movement_authority"):
         del runtime.fight.native_rail_movement_authority
     if native_fields:
-        oracle_module, _, _ = _sdk_modules()
+        oracle_module, _, _ = _sdk_modules(runtime, sdk_source=sdk_source)
         authority = native["authorities"]
         oracle = oracle_module.NativeOracle(
             runtime,
@@ -640,7 +642,7 @@ def _bind_execution(runtime, facts, observations, clock, *, keep_native=False):
                 else oracle.live_end_boundary,
             )
     if facts["stats_inputs"] is not None:
-        _, stats_module, _ = _sdk_modules()
+        _, stats_module, _ = _sdk_modules(runtime, sdk_source=sdk_source)
         runtime.stats_serializer = stats_module.NativeStats(**facts["stats_inputs"])
     if keep_native:
         for name, provider in saved.items():
@@ -682,14 +684,19 @@ def _replay_private_barrier(receipt):
     if (
         receipt["identity"]["source"] != source_identity()
         or receipt["identity"]["catalog"] != catalog_identity()
-        or receipt["sdk_source"] != sdk_identity(_sdk_modules()[2])
+        or receipt["sdk_source"]
+        != sdk_identity(_sdk_modules(sdk_source=receipt["sdk_source"])[2])
     ):
         raise UnsupportedNPCPublication("Private end-turn source or catalog changed")
     state = decode_state(receipt["before"])
     native = state["runtime"]
     observations = decode_state(receipt["observations"])
     context = _bind_execution(
-        native, state["facts"], observations, ReproductionClock(receipt["clocks"])
+        native,
+        state["facts"],
+        observations,
+        ReproductionClock(receipt["clocks"]),
+        sdk_source=receipt["sdk_source"],
     )
     error, packets = None, ()
     with _policies(receipt["policies"]), replay_combat_inputs(
@@ -741,7 +748,7 @@ def replay_npc_publication(receipt):
     ):
         raise UnsupportedNPCPublication("Publication source or catalog changed")
     if receipt["sdk_source"] is not None and receipt["sdk_source"] != sdk_identity(
-        _sdk_modules()[2]
+        _sdk_modules(sdk_source=receipt["sdk_source"])[2]
     ):
         raise UnsupportedNPCPublication("Publication SDK source changed")
     request = decode_state(receipt["request"])
@@ -773,7 +780,14 @@ def replay_npc_publication(receipt):
         facts = dict(providers=state["providers"], native=None, stats_inputs=None)
         for name in ("turn_start_provider", "turn_end_provider", "stats_serializer"):
             facts["providers"][name] = None
-        context = _bind_execution(native, facts, observations, clock, keep_native=True)
+        context = _bind_execution(
+            native,
+            facts,
+            observations,
+            clock,
+            keep_native=True,
+            sdk_source=receipt["sdk_source"],
+        )
         fresh = Transition(native.fight, native, tuple(result["packets"]))
 
         def operation(candidate, runtime):
@@ -796,7 +810,12 @@ def replay_npc_publication(receipt):
                 outer_facts["providers"][name] = None
             outer_facts["stats_inputs"] = None
             context = _bind_execution(
-                native, outer_facts, observations, clock, keep_native=True
+                native,
+                outer_facts,
+                observations,
+                clock,
+                keep_native=True,
+                sdk_source=receipt["sdk_source"],
             )
             fresh = Transition(native.fight, native, packets)
 
@@ -805,7 +824,13 @@ def replay_npc_publication(receipt):
 
         else:
             facts = decode_state(receipt["fallback"])
-            context = _bind_execution(shared.runtime, facts, observations, clock)
+            context = _bind_execution(
+                shared.runtime,
+                facts,
+                observations,
+                clock,
+                sdk_source=receipt["sdk_source"],
+            )
 
             def operation(candidate, runtime):
                 return Transition(

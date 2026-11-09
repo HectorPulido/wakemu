@@ -65,7 +65,7 @@ class StaticCatalogTests(unittest.TestCase):
         self.assertEqual(value["nested"]["a"], (1, 2))
 
     def test_lazy_views_do_not_mutate_catalog_graph_and_are_stable(self):
-        from wakfu_ai.bridge.world_bridge import fingerprint
+        from wakfu_server.wakia_bridge.wakfu_ai.bridge.world_bridge import fingerprint
 
         catalog = ImmutableCatalog({"npc": {"1740": {"fight_properties": [1, 2]}}})
         before = fingerprint(catalog)
@@ -83,7 +83,7 @@ class StaticCatalogTests(unittest.TestCase):
             profile_a["fight_properties"] = ()
 
     def test_raw_catalog_source_mutation_remains_visible_to_full_fingerprint(self):
-        from wakfu_ai.bridge.world_bridge import fingerprint
+        from wakfu_server.wakia_bridge.wakfu_ai.bridge.world_bridge import fingerprint
 
         source = {"npc": {"1740": {"fight_properties": [1, 2]}}}
         catalog = ImmutableCatalog(source)

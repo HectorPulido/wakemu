@@ -4,6 +4,7 @@ using System.Linq;
 using Jondo.Unity.World.Combat;
 using Jondo.Unity.World.Fights;
 using Jondo.Unity.World.Maps;
+using Wakfu.Jondo;
 
 namespace Jondo.Unity.Server.Managers
 {
@@ -71,6 +72,54 @@ namespace Jondo.Unity.Server.Managers
             /// <see cref="PromisedAp"/>: it keeps the line in the beam and counts for nothing in the end.
             /// </summary>
             public double PromisedValue { get; init; }
+        }
+
+        // Source snapshots for one hypothetical candidate, never a combat event.
+        // Only focus and the mover's footprint are needed, keeping the common
+        // no-coordination path allocation-free.
+        private sealed record CoordinationBefore(TeamCoordination.Actor? Focus, (int X, int Y)[]? Footprint,
+            IReadOnlyList<TeamCorridor>? Corridors);
+        internal static bool LiveCorridor(Board board, Fighter bot, TeamCorridor corridor)
+        {
+            var owner = board.Fighters.FirstOrDefault(f => f.Id == corridor.OwnerId);
+            var target = board.Fighters.FirstOrDefault(f => f.Id == corridor.TargetId);
+            return owner != null && owner.IsAlive && owner.TeamId == bot.TeamId && owner.CellId == corridor.OwnerCell
+                && target != null && target.IsAlive && target.TeamId != bot.TeamId && target.CellId == corridor.TargetCell
+                && !board.Hidden(target);
+        }
+        private static CoordinationBefore? CoordinationCapture(Board board, Fighter bot)
+        {
+            if (board.TeamFocusId == null && (board.ActorBlocksNativeLos != true || board.TeamReservedXY.Count == 0))
+                return null;
+            var target = board.TeamFocusId is long id ? board.Fighters.FirstOrDefault(f => f.Id == id) : null;
+            TeamCoordination.Actor? focus = target == null ? null : new(target.Id, target.TeamId, target.CurrentHP,
+                Armor: NativeHpForecast.Armor(target));
+            var footprint = board.ActorBlocksNativeLos == true && board.TeamReservedXY.Count > 0
+                ? FootprintAt(bot, bot.CellId).Where(MapGeometry.IsValid).Select(MapGeometry.CellToPoint).ToArray() : null;
+            var corridors = footprint == null ? null : board.TeamCorridors?.Where(c => LiveCorridor(board, bot, c)).ToArray();
+            return new(focus, footprint, corridors);
+        }
+
+        private static double CoordinationDelta(Board board, Fighter bot, CoordinationBefore? before)
+        {
+            if (before == null) return 0;
+            double result = 0;
+            if (before.Focus is { } prior)
+            {
+                var target = board.Fighters.FirstOrDefault(f => f.Id == prior.Id);
+                if (target != null)
+                    result += TeamCoordination.FocusValue(board.TeamFocusId, bot.TeamId, prior,
+                        new TeamCoordination.Actor(target.Id, target.TeamId, target.CurrentHP,
+                            Armor: NativeHpForecast.Armor(target)));
+            }
+            if (before.Footprint != null)
+            {
+                IReadOnlySet<(int X, int Y)> reserved = before.Corridors == null ? board.TeamReservedXY
+                    : before.Corridors.Where(c => LiveCorridor(board, bot, c)).SelectMany(c => c.Cells).ToHashSet();
+                result += TeamCoordination.CorridorValue(reserved, before.Footprint,
+                    FootprintAt(bot, bot.CellId).Where(MapGeometry.IsValid).Select(MapGeometry.CellToPoint), true);
+            }
+            return result;
         }
 
         /// <summary>How deep in the turn a switch of the bot's own state looks one cast ahead: at its start, where it is played.</summary>
@@ -220,6 +269,7 @@ namespace Jondo.Unity.Server.Managers
                         // coming turn -- or the turn that pins the enemy for the big blow is never tried.
                         var threats = new Dictionary<Action, double>();
                         var hooked = new Dictionary<Action, double>();
+                        var coordination = new Dictionary<Action, double>();
                         var apLeft = new Dictionary<Action, int>();
                         // The cells the bot's own leaps and teleports land somebody on, and where
                         // each is cast from, by what the best cast that does it is worth: a creature
@@ -234,14 +284,16 @@ namespace Jondo.Unity.Server.Managers
                         {
                             int mark = sim.Mark();
                             double hooksBefore = sim.HookDamage;
+                            var coordinationBefore = CoordinationCapture(sim.Board, monster);
                             var stood = sim.Board.Fighters.Where(f => f.IsAlive).Select(f => (Who: f, Cell: f.CellId)).ToList();
                             sim.Play(candidate);
+                            coordination[candidate] = CoordinationDelta(sim.Board, monster, coordinationBefore);
                             var landed = stood.Where(s => s.Who.IsAlive && s.Who.CellId != s.Cell && s.Who.CellId != candidate.From)
                                               .Select(s => s.Who.CellId).ToList();
                             threats[candidate] = Continue()
                                 ? Threat(sim, monster, spells, node.TravelDanger + candidate.MovementDanger) : node.Terminal;
                             hooked[candidate] = sim.HookDamage - hooksBefore;
-                            double worth = candidate.Value + hooked[candidate] + threats[candidate] - node.Terminal;
+                            double worth = candidate.Value + hooked[candidate] + coordination[candidate] + threats[candidate] - node.Terminal;
                             foreach (int cell in landed)
                                 landings[(cell, candidate.From)] = Math.Max(worth, landings.TryGetValue((cell, candidate.From), out double was) ? was : double.MinValue);
                             // What the cast leaves, the AP it gives back counted: a telefrag's +2.
@@ -285,7 +337,7 @@ namespace Jondo.Unity.Server.Managers
                         // before the more expensive simulation/threat replay.
                         var observed = options.OrderByDescending(option => option.Value).FirstOrDefault();
                         var candidates = Continue()
-                            ? Candidates(options, ExitWorths(sim.Board, monster, spells, options)) : new List<Action>();
+                            ? Candidates(options, ExitWorths(sim.Board, monster, spells, options), sim.Board.TeamFocusId, sim.Board.HasEstimatedSummonBook, Continue, sim.Board, monster) : new List<Action>();
                         foreach (var candidate in candidates)
                         {
                             if (!Continue()) break;
@@ -305,7 +357,7 @@ namespace Jondo.Unity.Server.Managers
                                 Total = node.Total + observed.Value, Terminal = node.Terminal,
                                 ActionPoints = observed.ActionPoints - observed.Spell.Cost,
                                 TravelDanger = node.TravelDanger + observed.MovementDanger });
-                        double Worth(Action a) => a.Value + hooked[a]
+                        double Worth(Action a) => a.Value + hooked[a] + coordination[a]
                             + threats[a] - node.Terminal + opens.GetValueOrDefault(a);
                         children = Pick(threats.Keys.ToList(), branch, Worth);
                         // And the switch that opens most, tried whatever it is worth by itself.
@@ -321,7 +373,7 @@ namespace Jondo.Unity.Server.Managers
                             grown.Add(new Node
                             {
                                 Steps = new List<Action>(node.Steps) { child },
-                                Total = node.Total + child.Value + hooked[child],
+                                Total = node.Total + child.Value + hooked[child] + coordination[child],
                                 ActionPoints = apLeft[child],
                                 Terminal = threats[child],
                                 TravelDanger = node.TravelDanger + child.MovementDanger,
@@ -423,7 +475,8 @@ namespace Jondo.Unity.Server.Managers
                 {
                     sim.SummonsBeginTheirTurns(bot);
                     double helped = NextBlows(sim, bot, spells, escapeMp).Uncapped;
-                    fromSummons = Math.Max(0, helped - aloneRaw) + SummonsNextTurn(sim, bot);
+                    fromSummons = Math.Max(0, helped - aloneRaw) + SummonsNextTurn(sim, bot)
+                        + EstimatedSummonsNextTurn(sim, bot);
                 }
                 return ThreatWeight * alone * (100 + PortalPromise(sim.Board, bot, spells)) / 100.0
                        + SummonWeight * SummonTurns * fromSummons + dealtAtTheEnd + sim.Pending(bot)
@@ -451,35 +504,142 @@ namespace Jondo.Unity.Server.Managers
                                                                int? remainingMp = null)
         {
             double best = 0, bestRaw = 0;
-            int walk = Math.Max(bot.MaxMP, 0) + Math.Max(0, remainingMp ?? bot.CurrentMP);
+            int nextMp = Math.Max(bot.MaxMP, 0);
+            int currentEscapeMp = Math.Max(0, remainingMp ?? bot.CurrentMP);
             foreach (var enemy in Foes(sim.Board, bot))
             {
                 if (!SearchAvailable(sim.Board)) break;
-                int distance = MapGeometry.Distance(bot.CellId, enemy.CellId);
+                int distance = NextBlowTargetDistance(bot, enemy);
                 bool pinned = sim.MovementNextTurn(enemy) == 0;
-                var castable = new List<(Spell Spell, double Blow)>();
+                var castable = new List<(Spell Spell, double Blow, int Limit, double Stays, int MpCost, int Approach)>();
                 foreach (var spell in spells)
                 {
                     if (!SearchAvailable(sim.Board)) break;
-                    if (spell.Cost <= 0 || spell.Cost > Math.Max(bot.MaxAP, 0)) continue;
+                    if (spell.Cost < 0 || spell.Cost > Math.Max(bot.MaxAP, 0)) continue;
                     if (bot.Recarga.TryGetValue(spell.Id, out int wait) && wait > 1) continue;
-                    if (distance > walk + spell.ReachFor(bot)) continue;
+                    int movementCost = Math.Max(0, sim.Board.SpellMovementCost(spell));
+                    long approach = Math.Max(0L, (long)distance - spell.ReachFor(bot) - currentEscapeMp);
+                    if (approach + movementCost > nextMp) continue;
                     double blow = BlowOf(sim.Board, spell, bot, enemy);
-                    if (blow > 0) castable.Add((spell, blow));
-                }
-                if (castable.Count == 0) continue;
-                double rate = castable.Max(c => c.Blow / c.Spell.Cost);
-                foreach (var (spell, blow) in castable)
-                {
-                    // The turn built round this blow: it, and the AP left at the best rate.
-                    double turn = blow + (Math.Max(bot.MaxAP, 0) - spell.Cost) * rate;
+                    if (blow <= 0) continue;
+                    // Free casts may have hidden repetition constraints.  Credit at
+                    // most one rather than extrapolating without evidence.
+                    int limit = spell.Cost == 0 ? 1 : bot.MaxAP / spell.Cost;
+                    if (movementCost > 0) limit = Math.Min(limit, (int)((nextMp - approach) / movementCost));
+                    if (spell.PerTurn > 0) limit = Math.Min(limit, spell.PerTurn);
+                    if (spell.PerTarget > 0) limit = Math.Min(limit, spell.PerTarget);
+                    // A cast starts its interval immediately in the simulation.
+                    if (spell.Interval > 0) limit = Math.Min(limit, 1);
                     double stays = pinned ? PinnedEnemyStays
                                  : spell.ReachFor(bot) <= 2 ? FreeEnemyStaysMelee : FreeEnemyStaysRanged;
-                    best = Math.Max(best, stays * Math.Min(turn, enemy.CurrentHP + enemy.MaxHP * 0.5));
-                    bestRaw = Math.Max(bestRaw, stays * turn);
+                    if (limit > 0) castable.Add((spell, blow, limit, stays, movementCost, (int)approach));
+                }
+                if (castable.Count == 0) continue;
+                // Rank remaining casts by expected damage per AP, but do not invent
+                // fractional casts or exceed a spell's next-turn use limits.
+                // Usage counters belong to this turn and reset on the next.
+                var ranked = castable.OrderByDescending(c => c.Spell.Cost == 0
+                    ? double.PositiveInfinity : c.Blow * c.Stays / c.Spell.Cost).ToArray();
+                var used = new Dictionary<int, int>();
+                foreach (var (spell, blow, _, stays, movementCost, approach) in castable)
+                {
+                    if (!SearchAvailable(sim.Board)) break;
+                    double turn = blow * stays;
+                    double maxStays = stays;
+                    int remaining = bot.MaxAP - spell.Cost;
+                    int movementSpent = movementCost, approachNeeded = approach;
+                    used.Clear();
+                    used[spell.Id] = 1;
+                    foreach (var option in ranked)
+                    {
+                        if (!SearchAvailable(sim.Board)) break;
+                        int previous = used.GetValueOrDefault(option.Spell.Id);
+                        int casts = Math.Max(0, option.Limit - previous);
+                        if (option.Spell.Cost > 0) casts = Math.Min(casts, remaining / option.Spell.Cost);
+                        int needed = Math.Max(approachNeeded, option.Approach);
+                        int movementLeft = nextMp - needed - movementSpent;
+                        if (movementLeft < 0) continue;
+                        if (option.MpCost > 0) casts = Math.Min(casts, movementLeft / option.MpCost);
+                        if (casts == 0) continue;
+                        turn += option.Blow * option.Stays * casts;
+                        maxStays = Math.Max(maxStays, option.Stays);
+                        remaining -= option.Spell.Cost * casts;
+                        movementSpent += option.MpCost * casts;
+                        approachNeeded = needed;
+                        used[option.Spell.Id] = previous + casts;
+                    }
+                    best = Math.Max(best, Math.Min(turn, maxStays * (enemy.CurrentHP + enemy.MaxHP * 0.5)));
+                    bestRaw = Math.Max(bestRaw, turn);
+                }
+                // Different AP costs can leave the ratio-greedy continuation
+                // with unused AP even after trying every starting spell.  For
+                // normal budgets, improve the already-observed estimate with
+                // a small bounded knapsack.  Unusual budgets and duplicate IDs
+                // retain the original estimate; the cooperative deadline can
+                // stop this optional refinement without discarding that result.
+                int apBudget = bot.MaxAP;
+                if (apBudget >= 0 && apBudget <= 32 && castable.Count <= 32 && ranked.All(option => option.MpCost == 0)
+                    && SearchAvailable(sim.Board)
+                    && castable.Select(c => c.Spell.Cost).Distinct().Skip(1).Any()
+                    && castable.Select(c => c.Spell.Id).Distinct().Count() == castable.Count)
+                {
+                    var melee = Enumerable.Repeat(double.NegativeInfinity, apBudget + 1).ToArray();
+                    var ranged = Enumerable.Repeat(double.NegativeInfinity, apBudget + 1).ToArray();
+                    melee[0] = 0;
+                    foreach (var option in ranked)
+                    {
+                        int pending = option.Limit;
+                        for (int group = 1; pending > 0; group *= 2)
+                        {
+                            if (!SearchAvailable(sim.Board)) break;
+                            int count = Math.Min(group, pending);
+                            pending -= count;
+                            int cost = option.Spell.Cost * count;
+                            double value = option.Blow * option.Stays * count;
+                            bool addsRanged = !pinned && option.Stays == FreeEnemyStaysRanged;
+                            for (int usedAp = apBudget - cost; usedAp >= 0; usedAp--)
+                            {
+                                int nextAp = usedAp + cost;
+                                double fromMelee = melee[usedAp] + value;
+                                double fromRanged = ranged[usedAp] + value;
+                                if (addsRanged) ranged[nextAp] = Math.Max(ranged[nextAp], fromMelee);
+                                else melee[nextAp] = Math.Max(melee[nextAp], fromMelee);
+                                ranged[nextAp] = Math.Max(ranged[nextAp], fromRanged);
+                            }
+                        }
+                        if (!SearchAvailable(sim.Board)) break;
+                    }
+                    double ceiling = enemy.CurrentHP + enemy.MaxHP * 0.5;
+                    double meleeStays = pinned ? PinnedEnemyStays : FreeEnemyStaysMelee;
+                    double rangedStays = pinned ? PinnedEnemyStays : FreeEnemyStaysRanged;
+                    for (int ap = 0; ap <= apBudget; ap++)
+                    {
+                        bestRaw = Math.Max(bestRaw, Math.Max(melee[ap], ranged[ap]));
+                        best = Math.Max(best, Math.Min(melee[ap], meleeStays * ceiling));
+                        best = Math.Max(best, Math.Min(ranged[ap], rangedStays * ceiling));
+                    }
                 }
             }
             return (best, bestRaw);
+        }
+
+        // This remains a range heuristic, not a cast or line-of-sight proof.
+        // Prefer the closest actual XY column in a native target body, only
+        // when it is present in the snapshot geometry; otherwise keep center.
+        private static int NextBlowTargetDistance(Fighter source, Fighter target)
+        {
+            int center = MapGeometry.Distance(source.CellId, target.CellId);
+            int radius = target.NativePhysicalRadius;
+            if (radius <= 0 || radius > 127 || !MapGeometry.IsValid(source.CellId)
+                || !MapGeometry.IsValid(target.CellId)) return center;
+            var from = MapGeometry.Context.Cells[source.CellId];
+            var to = MapGeometry.Context.Cells[target.CellId];
+            int x = (int)Math.Clamp((long)from.X, (long)to.X - radius, (long)to.X + radius);
+            int y = (int)Math.Clamp((long)from.Y, (long)to.Y - radius, (long)to.Y + radius);
+            if (!MapGeometry.Context.AtXY.TryGetValue((x, y), out var column) || column.Length == 0)
+                return center;
+            long distance = Math.Abs((long)from.X - x) + Math.Abs((long)from.Y - y);
+            return (int)Math.Min(center, distance);
         }
 
         /// <summary>
@@ -502,23 +662,48 @@ namespace Jondo.Unity.Server.Managers
         /// </summary>
         internal static double SummonsNextTurn(Simulation sim, Fighter bot)
         {
-            if (sim.Board.SpellsOf == null) return 0;
+            if (sim.Board.SpellsOf == null || sim.Board.SummonCastCriterion == null
+                || sim.Board.SummonDamageEvidence == null) return 0;
             var foes = Foes(sim.Board, bot);
             double total = 0;
-            foreach (var summon in sim.Board.Fighters.Where(f => f.IsAlive && f.Invocador == bot.Id && f.JuegaTurno).ToList())
+            foreach (var summon in sim.Board.Fighters.Where(f => f.IsAlive && f.EsInvocado && f.Invocador == bot.Id && f.JuegaTurno).ToList())
             {
+                if (!SearchAvailable(sim.Board)) break;
                 double best = 0;
+                var origins = sim.Board.SummonReachableOrigins?.Invoke(summon) ?? Array.Empty<int>();
                 foreach (var spell in sim.Board.SpellsOf(summon))
                 {
-                    if (spell.Cost <= 0 || spell.Cost > Math.Max(summon.MaxAP, 0)) continue;
-                    if (!SpellCriteria.Allows(summon, spell.Id, spell.Grade)) continue;
-                    int casts = Math.Max(1, summon.MaxAP / spell.Cost);
-                    if (spell.PerTurn > 0) casts = Math.Min(casts, spell.PerTurn);
+                    if (!SearchAvailable(sim.Board)) break;
+                    if (spell.Cost < 0 || spell.Cost > Math.Max(summon.MaxAP, 0)) continue;
+                    // This is the coming turn: a cooldown of one expires at
+                    // its start, while a longer cooldown still prevents use.
+                    if (summon.Recarga.TryGetValue(spell.Id, out int wait) && wait > 1) continue;
                     foreach (var enemy in foes)
                     {
-                        int distance = MapGeometry.Distance(summon.CellId, enemy.CellId);
-                        if (distance < spell.MinRange || distance > spell.ReachFor(summon) + Math.Max(0, summon.MaxMP)) continue;
-                        best = Math.Max(best, BlowOf(sim.Board, spell, summon, enemy) * casts);
+                        if (!SearchAvailable(sim.Board)) break;
+                        // The current origin is always a candidate; movement
+                        // origins need separate native reachability evidence.
+                        foreach (int origin in new[] { summon.CellId }.Concat(origins).Distinct())
+                        {
+                            if (!SearchAvailable(sim.Board)) break;
+                            if (!MapGeometry.IsValid(origin)) continue;
+                            int distance = MapGeometry.Distance(origin, enemy.CellId);
+                            if (!RangeAccepts(spell, distance, spell.ReachFor(summon))
+                                || !AlignmentAccepts(spell, origin, enemy.CellId)) continue;
+                            if (sim.Board.SummonCastCriterion?.Invoke(summon,spell,enemy,origin)!=true) continue;
+                            if (spell.NeedsLineOfSight
+                                && sim.Board.SummonSightEvidence?.Invoke(summon,origin,enemy)!=true) continue;
+                            if (sim.Board.SummonDamageEvidence(summon,spell,enemy,origin)!=true) continue;
+                            var source = summon;
+                            if (origin != summon.CellId)
+                            {
+                                source = summon.HealthEstimateCopy();
+                                source.CellId = origin;
+                            }
+                            // A first-cast receipt does not prove repeated casts:
+                            // WP/MP, use limits and conditions can change.
+                            best = Math.Max(best, BlowOf(sim.Board, spell, source, enemy));
+                        }
                     }
                 }
                 total += best;
@@ -526,11 +711,79 @@ namespace Jondo.Unity.Server.Managers
             return total;
         }
 
+        // An old projection is only a soft estimate: target rules, LOS and
+        // start-of-turn effects are unknown. Never treat it as a cast receipt.
+        internal static double EstimatedSummonsNextTurn(Simulation sim, Fighter bot)
+        {
+            if (sim.Board.SummonEstimatedSpellsOf == null
+                || sim.Board.SummonCastCriterion != null || sim.Board.SummonDamageEvidence != null) return 0;
+            var foes = Foes(sim.Board, bot);
+            double total = 0;
+            foreach (var summon in sim.Board.Fighters.Where(f => f.IsAlive && f.EsInvocado && f.Invocador == bot.Id && f.JuegaTurno))
+            {
+                if (!SearchAvailable(sim.Board)) break;
+                double best = 0;
+                foreach (var spell in sim.Board.SummonEstimatedSpellsOf(summon))
+                {
+                    if (!SearchAvailable(sim.Board)) break;
+                    if (spell.Damage <= 0 || spell.Cost < 0 || spell.Cost > summon.MaxAP) continue;
+                    foreach (var enemy in foes)
+                    {
+                        if (!SearchAvailable(sim.Board)) break;
+                        int distance = MapGeometry.Distance(summon.CellId, enemy.CellId);
+                        if (distance < spell.MinRange || distance > spell.MaxRange) continue;
+                        best = Math.Max(best, Blow(spell.Damage, spell.Element, summon, enemy,
+                            spell.Rows.Count == 1 ? spell.Rows[0] : null));
+                    }
+                }
+                total += best * 0.25;
+            }
+            return total;
+        }
+
         /// <summary>How much of the blows the enemies can bring on the bot in their coming turn counts against the plan.</summary>
         private const double DangerWeight = 0.35;
 
+        /// <summary>
+        /// A bounded relative offensive-potential hint, not a damage or spell
+        /// forecast. Native mastery alone cannot prove that a fighter attacks,
+        /// which element it uses, or that it can reach this bot. Missing any
+        /// elemental characteristic retains the previous neutral estimate.
+        /// </summary>
+        internal static double NativeThreatPotential(Fighter enemy)
+        {
+            var stats = enemy.NativeStats;
+            if (stats == null || !stats.TryGetValue(20, out int general)
+                || !stats.TryGetValue(21, out int fire) || !stats.TryGetValue(22, out int water)
+                || !stats.TryGetValue(23, out int earth) || !stats.TryGetValue(24, out int air)) return 1;
+            long mastery = Math.Clamp((long)general + Math.Max(Math.Max(fire, water), Math.Max(earth, air)), 0, 400);
+            return 1.0 + mastery / 400.0;
+        }
+
         /// <summary>The reach an enemy's blows are taken to have, beyond his walk: a player has spells at range.</summary>
         private const int EnemyReach = 6;
+
+        /// <summary>
+        /// Conservative proximity for a threat between native bodies.  The
+        /// source snapshot carries bcL radii; the native actor/actor distance
+        /// subtracts their sum on each axis, rather than from the Manhattan
+        /// total.  This is not a spell-range or line-of-sight certificate.
+        /// Never let advisory body evidence reduce the previous threat.
+        /// </summary>
+        internal static int ThreatProximity(Fighter source, Fighter target)
+        {
+            int center = MapGeometry.Distance(source.CellId, target.CellId);
+            int a = source.NativePhysicalRadius, b = target.NativePhysicalRadius;
+            if (!MapGeometry.IsValid(source.CellId) || !MapGeometry.IsValid(target.CellId)
+                || a < 0 || a > 127 || b < 0 || b > 127 || (a == 0 && b == 0))
+                return center;
+            var from = MapGeometry.Context.Cells[source.CellId];
+            var to = MapGeometry.Context.Cells[target.CellId];
+            long radius = (long)a + b;
+            long dx = Math.Max(0L, Math.Abs((long)from.X - to.X) - radius);
+            long dy = Math.Max(0L, Math.Abs((long)from.Y - to.Y) - radius);
+            return (int)Math.Min(center, dx + dy);
+        }
 
         /// <summary>
         /// What the enemies' coming turn threatens the bot with, where the turn leaves it: a turn of
@@ -543,12 +796,33 @@ namespace Jondo.Unity.Server.Managers
         internal static double Danger(Simulation sim, Fighter bot, int? remainingMp = null)
         {
             double incoming = 0;
+            int escapeMp = Math.Max(0, remainingMp ?? bot.CurrentMP);
+            if (escapeMp > 0 && sim.Board.NativeMovementPermissionActorId == bot.Id
+                && sim.Board.NativeMovementPermissionOrigin == bot.CellId)
+            {
+                // This snapshot explicitly certifies actor-specific blocked
+                // anchors only for its origin. If every known outgoing anchor
+                // is forbidden, remaining MP cannot provide walking escape.
+                // Keep the old estimate for absent edges or any open anchor;
+                // occupancy, jumps and later positions remain unknown here.
+                bool observed = false, permitted = false;
+                foreach (int cell in MapGeometry.GetNeighbors(bot.CellId))
+                {
+                    observed = true;
+                    if (sim.Board.Walkable(cell) && sim.Board.MovementAnchorAllowed(bot, cell))
+                    {
+                        permitted = true;
+                        break;
+                    }
+                }
+                if (observed && !permitted) escapeMp = 0;
+            }
             foreach (var enemy in Foes(sim.Board, bot))
             {
-                int distance = MapGeometry.Distance(bot.CellId, enemy.CellId) + Math.Max(0, remainingMp ?? bot.CurrentMP);
-                int walk = sim.MovementNextTurn(enemy);
+                long distance = (long)ThreatProximity(bot, enemy) + escapeMp;
+                long walk = sim.MovementNextTurn(enemy);
                 double chance = distance <= walk + 1 ? 1.0 : distance <= walk + EnemyReach ? 0.5 : 0.15;
-                incoming += TurnDamageOf(enemy) * chance;
+                incoming += TurnDamageOf(enemy) * NativeThreatPotential(enemy) * chance;
             }
             double missing = bot.MaxHP <= 0 ? 0 : 1.0 - (double)bot.CurrentHP / bot.MaxHP;
             return DangerWeight * incoming * (0.5 + 1.5 * missing);
@@ -601,6 +875,15 @@ namespace Jondo.Unity.Server.Managers
                 {
                     var usable = allowed == null ? spells : spells.Where(allowed).ToList();
                     step = Next(sim.Board, monster, usable);
+                    if (step != null)
+                    {
+                        var before = CoordinationCapture(sim.Board, monster);
+                        if (before != null)
+                        {
+                            sim.Play(step);
+                            total += CoordinationDelta(sim.Board, monster, before);
+                        }
+                    }
                 }
                 if (step == null) break;
                 steps.Add(step);
@@ -620,13 +903,15 @@ namespace Jondo.Unity.Server.Managers
         public static Action? Revalidate(Board board, Fighter monster, Action planned)
         {
             if (planned.Spell.Cost > monster.CurrentAP) return null;
+            if (monster.NativeCurrentWp is int availableWp && board.SpellWakfuCost(planned.Spell) > availableWp) return null;
             if (monster.Recarga.TryGetValue(planned.Spell.Id, out int wait) && wait > 0) return null;
             monster.LanzadosEsteTurno.TryGetValue(planned.Spell.Id, out int thisTurn);
             if (planned.Spell.PerTurn > 0 && thisTurn >= planned.Spell.PerTurn) return null;
-            if (!RepeatAvailable(planned.Spell, thisTurn)) return null;
+            if (!RepeatAvailable(board, monster, planned.Spell, thisTurn)) return null;
 
             var routes = Routes(board, monster);
-            if (!routes.TryGetValue(planned.From, out var route) || route.ActionPoints < planned.Spell.Cost) return null;
+            if (!routes.TryGetValue(planned.From, out var route) || route.ActionPoints < planned.Spell.Cost
+                || route.MovementPoints < board.SpellMovementCost(planned.Spell)) return null;
 
             var target = board.Fighters.FirstOrDefault(f => f.IsAlive && f != monster && FootprintAt(f, f.CellId).Contains(planned.TargetCell)) ?? monster;
             // Whoever it was aimed at has gone, or someone else stands there now.
@@ -654,7 +939,25 @@ namespace Jondo.Unity.Server.Managers
         /// </summary>
         /// <summary>The best way of casting each spell.</summary>
         private static List<Action> BestPerSpell(List<Action> options)
-            => options.GroupBy(o => o.Spell.Id).Select(g => g.OrderByDescending(o => o.Value).First()).ToList();
+        {
+            // Preserve first-seen spell order and the first action on equal
+            // values, just as GroupBy followed by stable OrderBy did. This is
+            // called for each expanded search node, so retain only its winner
+            // instead of allocating a group and ordering it for every spell.
+            var index = new Dictionary<int, int>();
+            var best = new List<Action>();
+            foreach (var option in options)
+            {
+                if (!index.TryGetValue(option.Spell.Id, out int at))
+                {
+                    index.Add(option.Spell.Id, best.Count);
+                    best.Add(option);
+                }
+                else if (Comparer<double>.Default.Compare(option.Value, best[at].Value) > 0)
+                    best[at] = option;
+            }
+            return best;
+        }
 
         /// <summary>How many ways of casting a spell that moves somebody, or summons, a plan tries at each step.</summary>
         private const int MoverTries = 8;
@@ -666,7 +969,7 @@ namespace Jondo.Unity.Server.Managers
         /// of a summon, the few best cells: the Xelor's Cómplice is put down where a teleport
         /// will land the enemy on it, and that only shows a cast later.
         /// </summary>
-        private static List<Action> Candidates(List<Action> options, Func<Action, double>? exitWorth = null)
+        private static List<Action> Candidates(List<Action> options, Func<Action, double>? exitWorth = null, long? focusId = null, bool summonForecast = false, Func<bool>? canContinue = null, Board? forecastBoard = null, Fighter? forecastOwner = null)
         {
             bool Several(Spell spell) => spell.Moves || IsSummon(spell) || spell.Tends || spell.LaysPortals;
             var best = BestPerSpell(options.Where(o => o.Value > 0 || !o.Spell.Moves).ToList());
@@ -680,7 +983,80 @@ namespace Jondo.Unity.Server.Managers
             var origins = options.Where(o => !Several(o.Spell))
                 .GroupBy(o => (o.Spell.Id, o.TargetCell)).SelectMany(OriginFrontier)
                 .GroupBy(o => o.Spell.Id).SelectMany(OriginFrontier);
-            return best.Concat(moving).Concat(origins).Distinct().ToList();
+            // Keep a bounded opportunity to evaluate the team's focus before
+            // ordinary per-spell pruning collapses equal targets into one.
+            var focused = focusId == null ? Enumerable.Empty<Action>()
+                : options.Where(o => o.Target.Id == focusId && o.Spell.Offensive)
+                    .OrderByDescending(o => o.Value).Take(2);
+            // Preserve one additional target when an observed summon can
+            // influence its value; replay, rather than the immediate hit,
+            // decides which of the two helps the team more.
+            if (!summonForecast || forecastBoard?.SummonEstimatedSpellsOf == null || forecastOwner == null
+                || forecastBoard.SummonCastCriterion != null || forecastBoard.SummonDamageEvidence != null)
+                return best.Concat(moving).Concat(origins).Concat(focused).Distinct().ToList();
+            var summonTargets = new Dictionary<int, List<Action>>();
+            if (summonForecast)
+            {
+                int inspected = 0;
+                foreach (var option in options)
+                {
+                    if ((inspected++ & 31) == 0 && canContinue?.Invoke() == false) break;
+                    if (!option.Spell.Offensive || Several(option.Spell) || forecastBoard == null || forecastOwner == null
+                        || !option.Target.IsAlive || option.Target.TeamId == forecastOwner.TeamId
+                        || forecastBoard.Hidden(option.Target)) continue;
+                    if (!summonTargets.TryGetValue(option.Spell.Id, out var targets))
+                        summonTargets[option.Spell.Id] = targets = new List<Action>(2);
+                    int existing = targets.FindIndex(target => target.Target.Id == option.Target.Id);
+                    if (existing >= 0)
+                    {
+                        if (option.Value > targets[existing].Value) targets[existing] = option;
+                    }
+                    else if (targets.Count < 2) targets.Add(option);
+                    else
+                    {
+                        int least = targets[0].Value < targets[1].Value ? 0 : 1;
+                        if (option.Value > targets[least].Value) targets[least] = option;
+                    }
+                }
+            }
+            // Bound private replay to one additional alternative per node.
+            // Choose the strongest runner-up among ordinary spells.
+            if (canContinue?.Invoke() == false)
+                return best.Concat(moving).Concat(origins).Concat(focused).Distinct().ToList();
+            Action? summonAlternative = null;
+            var estimatedSummons = summonForecast && forecastBoard?.SummonEstimatedSpellsOf != null && forecastOwner != null
+                ? forecastBoard.Fighters.Where(f => f.IsAlive && f.EsInvocado && f.Invocador == forecastOwner.Id && f.JuegaTurno)
+                    .Select(f => (Fighter: f, Spells: forecastBoard.SummonEstimatedSpellsOf(f)))
+                    .Where(row => row.Spells.Count > 0).Take(4).ToArray()
+                : Array.Empty<(Fighter Fighter, IReadOnlyList<Spell> Spells)>();
+            bool SummonMayReach(Fighter enemy)
+            {
+                if (forecastOwner == null || forecastBoard == null || !enemy.IsAlive
+                    || enemy.TeamId == forecastOwner.TeamId || forecastBoard.Hidden(enemy)) return false;
+                foreach (var row in estimatedSummons)
+                {
+                    int distance = MapGeometry.Distance(row.Fighter.CellId, enemy.CellId);
+                    foreach (var spell in row.Spells)
+                        if (spell.Damage > 0 && spell.Cost >= 0 && spell.Cost <= row.Fighter.MaxAP
+                            && distance >= spell.MinRange && distance <= spell.MaxRange) return true;
+                }
+                return false;
+            }
+            foreach (var targets in summonTargets.Values)
+            {
+                if (canContinue?.Invoke() == false) break;
+                if (targets.Count < 2) continue;
+                var first = targets[0].Value >= targets[1].Value ? targets[0] : targets[1];
+                var runnerUp = ReferenceEquals(first, targets[0]) ? targets[1] : targets[0];
+                // Replay only the demonstrated interaction: preserve an
+                // enemy the observed summon might reach for its own turn.
+                if (!SummonMayReach(first.Target) || SummonMayReach(runnerUp.Target)) continue;
+                if (summonAlternative == null || runnerUp.Value > summonAlternative.Value)
+                    summonAlternative = runnerUp;
+            }
+            return best.Concat(moving).Concat(origins).Concat(focused)
+                .Concat(summonAlternative == null ? Enumerable.Empty<Action>() : new[] { summonAlternative })
+                .Distinct().ToList();
         }
 
         private static bool IsSummon(Spell spell) => spell.Summons || spell.SummonsByRow;
@@ -834,8 +1210,15 @@ namespace Jondo.Unity.Server.Managers
                 if (step.From != bot.CellId) Moved(bot, step.From);
                 for (int i = 1; i < step.Path.Count; i++)
                     if (MapGeometry.Distance(step.Path[i - 1], step.Path[i]) > 1) UsePortals(step.Path[i - 1], step.Path[i]);
-                Set(bot, f => f.CurrentMP, (f, v) => f.CurrentMP = v, Math.Max(0, step.MovementPoints));
+                Set(bot, f => f.CurrentMP, (f, v) => f.CurrentMP = v,
+                    Math.Max(0, step.MovementPoints - _real.SpellMovementCost(step.Spell)));
                 Set(bot, f => f.CurrentAP, (f, v) => f.CurrentAP = v, Math.Max(0, step.ActionPoints - step.Spell.Cost));
+                if (bot.NativeCurrentWp is int wp)
+                {
+                    int? previousWp = bot.NativeCurrentWp;
+                    bot.NativeCurrentWp = Math.Max(0, wp - _real.SpellWakfuCost(step.Spell));
+                    _undo.Push(() => bot.NativeCurrentWp = previousWp);
+                }
                 Count(bot.LanzadosEsteTurno, step.Spell.Id);
                 if (step.Spell.Interval > 0)
                 {
@@ -1021,16 +1404,30 @@ namespace Jondo.Unity.Server.Managers
             }
 
             /// <summary>A hooked row gone off: its sub-cast at whom it waited on, or itself.</summary>
+            // Only existing fighters contribute HP deltas: a summon created by
+            // the hook has its own value and is not a healing event. Capture
+            // visibility and team before the hook, then retain dead fighters
+            // so lethal damage is still counted after they leave Foes().
+            private List<(Fighter Who, int Hp, bool Ally)> HookHealthSnapshot()
+                => Board.Fighters
+                    .Where(f => f.TeamId == _monster.TeamId || (f.IsAlive && !Board.Hidden(f)))
+                    .Select(f => (f, f.CurrentHP, f.TeamId == _monster.TeamId)).ToList();
+
+            private static double HookHealthDelta(List<(Fighter Who, int Hp, bool Ally)> before)
+                => before.Sum(row => (row.Ally ? 1.0 : -1.0) * (row.Who.CurrentHP - (double)row.Hp));
+
             private void Child(SpellEffect row, Fighter caster, Fighter on, int depth)
             {
-                double before = Foes(Board, _monster).Sum(e => e.CurrentHP);
+                var before = HookHealthSnapshot();
+                double hooksBefore = HookDamage;
                 if (EffectEngine.EsDeLaFamiliaDeSublanzar(row.EffectId) && row.DiceNum > 0)
                     Rows(row.DiceNum, SpellEffects.De(row.DiceNum, Math.Max(1, row.DiceSide)), caster, on.CellId, on.CellId, depth);
                 else
                     Rows(0, new[] { row }, caster, on.CellId, on.CellId, depth, immediate: true);
-                double after = Foes(Board, _monster).Sum(e => e.CurrentHP);
                 double was = HookDamage;
-                HookDamage += Math.Max(0, before - after);
+                // Nested hooks are already reflected in the HP delta: count
+                // damage and effective healing on both sides only once.
+                HookDamage = hooksBefore + HookHealthDelta(before);
                 _undo.Push(() => HookDamage = was);
             }
 
@@ -1266,6 +1663,8 @@ namespace Jondo.Unity.Server.Managers
                 foreach (var row in rows)
                 {
                     if (EffectEngine.EsMarcadorDeGuion(row.EffectId) || row.ForClientOnly) continue;
+                    if (SemanticRows.TryApplicationEvidence(row, out double controlChance, out bool controlConditional)
+                        && (controlConditional || controlChance < 1)) continue;
                     // A row that waits a turn or more goes off after this turn: Borroso Temporal's AP back.
                     if (row.Delay > 0 && !immediate) continue;
                     if (!immediate && Timing(row) < 1)
@@ -1590,15 +1989,15 @@ namespace Jondo.Unity.Server.Managers
             /// </summary>
             private void WallHits(Fighter who, int spell)
             {
-                double before = Foes(Board, _monster).Sum(e => e.CurrentHP);
+                var before = HookHealthSnapshot();
+                double hooksBefore = HookDamage;
                 int life = who.CurrentHP;
                 Rows(spell, SpellEffects.De(spell, WallGrade), _monster, _monster.CellId, who.CellId, 1, immediate: true);
                 var wall = BombWalls.Covering(Board.Fighters.Concat(_summoned).Distinct().ToList(), _monster, who.CellId);
                 int combo = wall == null ? 0 : wall.Bombs.Max(Combo.PercentOf) / 2;
                 if (combo > 0 && who.CurrentHP < life) Hurt(who, (life - who.CurrentHP) * combo / 100.0);
-                double after = Foes(Board, _monster).Sum(e => e.CurrentHP);
                 double was = HookDamage;
-                HookDamage += Math.Max(0, before - after);
+                HookDamage = hooksBefore + HookHealthDelta(before);
                 _undo.Push(() => HookDamage = was);
             }
 

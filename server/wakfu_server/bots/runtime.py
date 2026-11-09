@@ -258,6 +258,10 @@ class BotsRuntime:
         )
         current = self.store.current_character_session(account, generation, character)
         if current:
+            if "duel" in lease["capabilities"] and self._duel_active(character):
+                from .bridge import BotConflict
+
+                raise BotConflict("bot_has_active_duel")
             with self.store.connection() as db:
                 pending = db.execute(
                     "SELECT m.exchange_id,e.revision,e.state FROM player_exchange_members m "
@@ -300,6 +304,19 @@ class BotsRuntime:
         self.active.pop(bot_id, None)
         self.last_chat.pop(bot_id, None)
 
+    def _duel_active(self, character_id):
+        with self.store.connection() as db:
+            return (
+                db.execute(
+                    "SELECT 1 FROM combat_fight_participants p "
+                    "JOIN combat_fights f ON f.id=p.fight_id "
+                    "WHERE p.character_id=%s AND f.fight_kind='duel' "
+                    "AND f.status IN ('placement','active') LIMIT 1",
+                    (character_id,),
+                ).fetchone()
+                is not None
+            )
+
     def heartbeat(self):
         with self.lock:
             errors = []
@@ -318,6 +335,10 @@ class BotsRuntime:
         """An unavailable external worker cannot cancel an active native offer."""
         with self.lock:
             for bot_id, lease in tuple(self.active.items()):
+                if "duel" in lease["capabilities"] and self._duel_active(
+                    lease["character_id"]
+                ):
+                    continue
                 with self.store.connection() as db:
                     member = db.execute(
                         "SELECT m.exchange_id,e.revision FROM player_exchange_members m "

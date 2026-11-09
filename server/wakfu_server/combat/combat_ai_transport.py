@@ -1,36 +1,23 @@
 """TCP wire client for legacy AI callers; planning remains in the service."""
 import importlib
-import importlib.util
 import json
 import os
-from pathlib import Path
-import sys
 import threading
 
 _SDK_LOCK = threading.Lock()
 
 
 def _wire_modules():
-    # Standalone World imports do not necessarily put the mounted SDK on
-    # sys.path. Load its package without importing any planning implementation.
+    # World owns the framed client, even when the optional Python planner is
+    # absent. No planner implementation is imported here.
     with _SDK_LOCK:
-        if "wakfu_ai" not in sys.modules:
-            directory = Path(__file__).resolve().parents[2] / "ai-service/wakfu_ai"
-            spec = importlib.util.spec_from_file_location(
-                "wakfu_ai",
-                directory / "__init__.py",
-                submodule_search_locations=[str(directory)],
-            )
-            package = importlib.util.module_from_spec(spec)
-            sys.modules["wakfu_ai"] = package
-            try:
-                spec.loader.exec_module(package)
-            except BaseException:
-                sys.modules.pop("wakfu_ai", None)
-                raise
         return (
-            importlib.import_module("wakfu_ai.transport.framed"),
-            importlib.import_module("wakfu_ai.transport.endpoint"),
+            importlib.import_module(
+                "wakfu_server.wakia_bridge.wakfu_ai.transport.framed"
+            ),
+            importlib.import_module(
+                "wakfu_server.wakia_bridge.wakfu_ai.transport.endpoint"
+            ),
         )
 
 

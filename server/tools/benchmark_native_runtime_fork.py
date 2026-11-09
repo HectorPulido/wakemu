@@ -10,12 +10,14 @@ from contextlib import ExitStack
 from copy import deepcopy
 import gc
 import hashlib
+import inspect
 import json
 import os
 from pathlib import Path
 import re
 import statistics
 import struct
+import sys
 import time
 from unittest.mock import patch
 
@@ -157,7 +159,7 @@ def run(manifest, before_path, *, repeats=7):
     from wakfu_server.combat_characteristic_link import bind_characteristic_stats
     from wakfu_server.combat_runtime_messages import RuntimeMessages
     from wakfu_server.fight_checkpoint_store import snapshot
-    from wakfu_ai.native.native_oracle import NativeOracle
+    from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
     from rift_native_flow_fixture import build_flow_fixture
     from test_rift_native_carrier_component import NativeRiftCarrierComponentTests
 
@@ -432,8 +434,7 @@ def run(manifest, before_path, *, repeats=7):
                 Path(__file__).resolve(),
                 Path(__file__).resolve().parents[1]
                 / "wakfu_server/combat/combat_preview_copy.py",
-                Path(__file__).resolve().parents[1]
-                / "ai-service/wakfu_ai/native/native_oracle.py",
+                Path(inspect.getfile(NativeOracle)).resolve(),
             )
         },
         limits=[

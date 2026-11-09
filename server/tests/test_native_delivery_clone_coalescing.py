@@ -11,7 +11,7 @@ from wakfu_server import combat_native_action_ids as delivery
 from wakfu_server.combat_geometry_snapshot import source_snapshot
 from wakfu_server.combat_runtime_messages import RuntimeMessages
 from wakfu_server.combat_native_death_status import initialize_fresh_bje_death_status
-from wakfu_ai.native.native_oracle import NativeOracle
+from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
 
 
 def oracle_for(runtime):

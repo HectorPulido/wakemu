@@ -58,6 +58,19 @@ internal static class NativeSupportCases
         f=new();f.Self["ap"]=2;r=f.Decide();Check(!IsSupport(r),"unaffordable summon absent");
         f=new();var free=(Dictionary<string,object>)f.Spells[0];free["cost"]=0;free["nativeCosts"]=new{ap=0,mp=0,wp=0};
         f.History.Add(new{type="cast",spellId=7001});r=f.Decide();Check(!IsSupport(r),"zero AP history prevents repeated unsupported cast");
+        f=new();free=(Dictionary<string,object>)f.Spells[0];free["cost"]=0;free["nativeCosts"]=new{ap=0,mp=0,wp=1};
+        f.Self["wp"]=2;f.History.Add(new{type="cast",spellId=7001});r=f.Decide();
+        Check(IsSupport(r),"support costing WP can repeat when native limits permit");
+        f.Self["wp"]=0;r=f.Decide();Check(!IsSupport(r),"support cannot repeat without required WP");
+        f=new();free=(Dictionary<string,object>)f.Spells[0];free["cost"]=0;free["nativeCosts"]=new{ap=0,mp=1,wp=0};
+        f.Self["mp"]=2;f.Self["maxMp"]=2;f.History.Add(new{type="cast",spellId=7001});r=f.Decide();
+        Check(IsSupport(r),"support costing MP can repeat when native limits permit");
+        f.Self["mp"]=0;r=f.Decide();Check(!IsSupport(r),"support cannot repeat without required MP");
+        f=new();free=(Dictionary<string,object>)f.Spells[0];free["cost"]=0;free["nativeCosts"]=new{ap=0,mp=0,wp=0};free["perTurn"]=2;
+        f.History.Add(new{type="cast",spellId=7001});r=f.Decide();
+        Check(IsSupport(r),"free support with a finite native limit can repeat below that limit");
+        f.History.Add(new{type="cast",spellId=7001});r=f.Decide();
+        Check(!IsSupport(r),"free support cannot exceed its finite native limit");
         f=new();f.StateSupport();r=f.Decide();Check(IsSupport(r)&&Action(r).GetProperty("targetId").GetInt64()==3,"beneficial state aims at ally");
         f=new();f.StateSupport();f.Ally["states"]=new[]{new{reference=8800,level=1}};r=f.Decide();Check(!IsSupport(r),"already satisfied state does not receive invented additional benefit");
         f=new();f.StateSupport(benefit:"unknown");r=f.Decide();Check(!IsSupport(r),"unknown state benefit is not assumed positive");
@@ -80,11 +93,33 @@ internal static class NativeSupportCases
         f=new();f.StateSupport();Attack(f);r=f.Decide();Check(IsSupport(r),"known support benefit can outrank modest ordinary attack");
         f=new();f.StateSupport(confidence:"conditional");Attack(f);r=f.Decide();Check(!IsSupport(r),"conditional support confidence does not outrank confirmed attack");
         f=new();f.StateSupport(probability:25);Attack(f);r=f.Decide();Check(!IsSupport(r),"support probability affects comparison with confirmed ordinary action");
+        f=new();f.StateSupport();f.Ally["hp"]=90;f.Support["effects"]=new object[]{
+            new{kind="heal",amount=50,targets=new[]{"ally"},benefit="beneficial",probability=100,confidence="known",conditional=false,nativeReference=9901},
+            new{kind="heal",amount=50,targets=new[]{"ally"},benefit="beneficial",probability=100,confidence="known",conditional=false,nativeReference=9902}};
+        f.Spells.Add(new{id=7002,grade=1,cost=3,minRange=1,maxRange=5,damage=15,
+            rows=new[]{new{kind="damage",amount=15,target="enemy",nativeReference=9100}}});
+        r=f.Decide();Check(!IsSupport(r),"two healing rows cannot count more than the ally's missing HP when comparing an attack");
+        f=new();f.StateSupport();f.Self["hp"]=90;f.Ally["hp"]=90;f.Support["effects"]=new object[]{
+            new{kind="heal",amount=50,targets=new[]{"self","ally"},benefit="beneficial",probability=100,confidence="known",conditional=false,nativeReference=9901,inArea=false},
+            new{kind="heal",amount=50,targets=new[]{"self","ally"},benefit="beneficial",probability=100,confidence="known",conditional=false,nativeReference=9902,inArea=false}};
+        f.Spells.Add(new{id=7002,grade=1,cost=3,minRange=1,maxRange=5,damage=15,
+            rows=new[]{new{kind="damage",amount=15,target="enemy",nativeReference=9100}}});
+        r=f.Decide();Check(IsSupport(r),"healing caps apply independently to both native recipients");
+        f=new();f.StateSupport();f.Ally["hp"]=90;f.Support["effects"]=new object[]{
+            new{kind="heal",amount=50,targets=new[]{"ally"},benefit="beneficial",probability=20,confidence="known",conditional=false,nativeReference=9901},
+            new{kind="heal",amount=50,targets=new[]{"ally"},benefit="beneficial",probability=20,confidence="known",conditional=false,nativeReference=9902}};
+        f.Spells.Add(new{id=7002,grade=1,cost=3,minRange=1,maxRange=5,damage=5,
+            rows=new[]{new{kind="damage",amount=5,target="enemy",nativeReference=9100}}});
+        r=f.Decide();Check(!IsSupport(r),"probabilistic rows retain confidence weighting after their recipient cap");
         f=new();f.Support["summons"]=new object[]{new{reference=2975,probability=100,confidence="known",friendly=false,benefit="harmful"}};
         r=f.Decide();Check(!IsSupport(r),"enemy-affiliation summon not rewarded as friendly summon");
         f=new();f.StateSupport();f.Ally["states"]=new[]{new{reference=8800,level=0}};
         f.Support["effects"]=new object[]{new{kind="remove_state",stateId=8800,amount=(int?)null,presentOn=new[]{3L},targets=new[]{"ally"},benefit="beneficial",probability=100,confidence="known",conditional=false,nativeReference=9001}};
         r=f.Decide();Check(IsSupport(r),"native observed level-zero state can be removed without double-inverting benefit");
+        f.Support["effects"]=new object[]{new{kind="remove_state",stateId=8800,presentOn=new[]{3L},removableOn=System.Array.Empty<long>(),targets=new[]{"ally"},benefit="beneficial",probability=100,confidence="known",conditional=false,nativeReference=9001}};
+        r=f.Decide();Check(!IsSupport(r),"protected state is not credited as removable");
+        f.Support["effects"]=new object[]{new{kind="remove_state",stateId=8800,presentOn=new[]{3L},removableOn=new[]{3L},targets=new[]{"ally"},benefit="beneficial",probability=100,confidence="known",conditional=false,nativeReference=9001}};
+        r=f.Decide();Check(IsSupport(r),"recipient with an eligible state instance remains removable");
         f=new();f.StateSupport();f.Support["effects"]=new object[]{
             new{kind="stat_gain",statId=20,amount=10,percent=false,targets=new[]{"ally"},benefit="beneficial",probability=100,confidence="known",conditional=false,nativeReference=9001},
             new{kind="stat_loss",statId=29,amount=50,percent=false,targets=new[]{"ally"},benefit="harmful",probability=100,confidence="known",conditional=false,nativeReference=9002}};

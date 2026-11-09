@@ -4,17 +4,6 @@ from types import SimpleNamespace
 import unittest
 
 from wakfu_server import combat_materialized_event_history as helper
-from wakfu_ai.planning.turn_memory import attacked_this_turn, damaged_targets_this_turn
-
-
-class PlainGraph:
-    @staticmethod
-    def field(value, name):
-        return getattr(value, name)
-
-    @staticmethod
-    def plain(value):
-        return value
 
 
 def fight_from(rows):
@@ -82,43 +71,6 @@ class CompletedEventHistoryTests(unittest.TestCase):
         self.assertEqual(fight.events[-256:], before[-256:])
         self.assertEqual(fight.sequence, len(before))
         self.assertEqual(helper.prune_materialized_events(fight), 0)
-
-    def test_real_ai_turn_memory_is_equal_before_after_and_after_current_end(self):
-        rows = [dict(kind="turn_started", turn_id=8)]
-        rows.extend(
-            [
-                dict(kind="damage", source_id=1, target_id=-7, amount=12),
-                dict(kind="npc_cast", actor_id=1, turn_id=8),
-                dict(kind="turn_ended", turn_id=8),
-            ]
-        )
-        rows.extend(dict(kind="state_removed", uid=i) for i in range(300))
-        rows.extend(
-            [
-                dict(kind="turn_started", turn_id=9),
-                dict(kind="damage", source_id=1, target_id=-8, amount=10),
-                dict(kind="npc_cast", actor_id=1, turn_id=9),
-            ]
-        )
-        for ended in (False, True):
-            with self.subTest(ended=ended):
-                fight = fight_from(
-                    rows + ([dict(kind="turn_ended", turn_id=9)] if ended else [])
-                )
-                graph = PlainGraph()
-                before = (
-                    attacked_this_turn(graph, fight, 1),
-                    damaged_targets_this_turn(graph, fight, 1),
-                )
-                self.assertEqual(
-                    before, (False, frozenset()) if ended else (True, frozenset({-8}))
-                )
-                self.assertGreater(helper.prune_materialized_events(fight), 0)
-                after = (
-                    attacked_this_turn(graph, fight, 1),
-                    damaged_targets_this_turn(graph, fight, 1),
-                )
-                self.assertEqual(after, before)
 
     def test_real_ai_facing_uses_identical_recent_damage_and_materialized_positions(
         self,

@@ -72,6 +72,41 @@ class CurrentActor937IntegrationTests(unittest.TestCase):
             prepare_effect=handler.prepare,
         )
         self.assertTrue(dispatcher.execute(first))
+        # The real eYa handler creates a native pointer checkpoint. WakIA's
+        # local fingerprint must retain its opaque lineage across copies while
+        # still distinguishing a different checkpoint.
+        from copy import deepcopy
+        from types import SimpleNamespace
+        from wakfu_server.combat_pointer_qi_checkpoint import NativePointerCheckpoint
+        from wakfu_server.wakia_bridge.wakfu_ai.context.native_context import (
+            NativeGraph,
+        )
+        from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
+
+        oracle = object.__new__(NativeOracle)
+        # This fixture has no player viewer. Supply only detached metadata for
+        # serialization; neither the fight nor its authorities are changed.
+        oracle.characters, oracle.decks, oracle.excluded_decks = {}, {}, {}
+        oracle.monsters = {identity: {"id": identity} for identity in fight.actors}
+        oracle.viewer_id, oracle.companions = None, {}
+        oracle.outcome_features_provider, oracle.flags = None, {}
+        runtime = SimpleNamespace(fight=fight)
+        fingerprint = oracle._complete_fingerprint(fight)
+        self.assertEqual(oracle._complete_fingerprint(fight), fingerprint)
+        NativeGraph(oracle.complete_state(runtime))
+        NativeGraph(oracle.complete_state_bytes(runtime))
+        clone = deepcopy(fight)
+        original_lineage = fight.native_pointer_checkpoint._lineage
+        self.assertIs(clone.native_pointer_checkpoint._lineage, original_lineage)
+        lineages = oracle._native_fingerprint_lineages
+        self.assertEqual(
+            lineages.token(original_lineage),
+            lineages.token(clone.native_pointer_checkpoint._lineage),
+        )
+        replacement = NativePointerCheckpoint(clone.native_pointer_checkpoint._qi)
+        self.assertNotEqual(
+            lineages.token(original_lineage), lineages.token(replacement._lineage)
+        )
         self.assertEqual(fight.native_retained_order, [777, 778])
         self.assertFalse(handler.prepared)
         self.assertIs(current_registry(fight).qi, fight.native_pointer_checkpoint._qi)

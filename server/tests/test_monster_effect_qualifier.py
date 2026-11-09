@@ -212,6 +212,20 @@ class EffectQualifierResumeTests(unittest.TestCase):
 
 
 class EffectQualifierDependencyTests(unittest.TestCase):
+    def test_source_identity_includes_wakia_bridge(self):
+        import tempfile
+        from qualify_monster_effect_work import source_map
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bridge = root / "server/wakfu_server/wakia_bridge/wakfu_ai"
+            bridge.mkdir(parents=True)
+            (bridge / "__init__.py").write_text("# bridge\n")
+            self.assertIn(
+                "server/wakfu_server/wakia_bridge/wakfu_ai/__init__.py",
+                source_map(root),
+            )
+
     def test_transitive_nested_fixture_imports_are_pinned_unrelated_tools_are_excluded(
         self,
     ):

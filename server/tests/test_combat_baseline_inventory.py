@@ -85,7 +85,7 @@ class CombatBaselineInventoryTests(unittest.TestCase):
         names = (
             "server/tests/fixtures/scenario.json",
             "server/test-fixtures/combat/action.bin",
-            "server/ai-service/tests/fixtures/oracle.json.gz",
+            "server/tests/fixtures/wakia/oracle.json.gz",
             "server/admin-service/static/app.js",
             "server/admin-service/templates/fight.html",
         )

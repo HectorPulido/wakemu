@@ -33,7 +33,16 @@ class DamageExecutionContext:
 
 def _snapshot(actor):
     if plain_area_source(actor):
-        return {}  # faV.a(PC) is false; no source PA is read or written.
+        # Plain faV has no PA; verified fbc traps own a distinct native PA.
+        # Copy it because damage calculation may prepare local statistics.
+        characteristics = actor.native_characteristics
+        if characteristics is None:
+            return {}
+        if not isinstance(characteristics, dict) or any(
+            type(k) is not int or type(v) is not int for k, v in characteristics.items()
+        ):
+            raise ValueError("Invalid native area damage characteristics")
+        return dict(characteristics)
     if (
         not isinstance(actor.effect_stats, dict)
         or not isinstance(actor.effect_maxima, dict)

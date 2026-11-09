@@ -4,7 +4,7 @@ from dataclasses import asdict
 import unittest
 
 from test_gc_owned_collections import OwnedCollectionGCTests
-from wakfu_ai.native.native_stats import NativeStats
+from wakfu_server.wakia_bridge.wakfu_ai.native.native_stats import NativeStats
 from wakfu_server.combat_expiration_provider import OwnedExpirationFactory
 from wakfu_server.combat_retained_effects import RetainedEffect
 from wakfu_server.combat_retained_gc_authority import (

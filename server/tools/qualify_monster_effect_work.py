@@ -4,6 +4,7 @@ import ast
 from copy import deepcopy
 import gzip
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import sys
@@ -81,12 +82,10 @@ def plan_contexts(row, abilities, minimum=None, maximum=None, limit=1):
     return result
 
 
-def tool_dependency_paths(root, actual_ai=False):
+def tool_dependency_paths(root):
     directory = root / "server/tools"
     available = {path.stem: path for path in directory.glob("*.py")}
     pending = ["validate_monster_spell_activation"]
-    if actual_ai:
-        pending.append("monster_actual_ai_acceptance")
     visited, result = set(), []
     while pending:
         name = pending.pop()
@@ -112,7 +111,7 @@ def source_map(root, actual_ai=False):
             if p.name not in ("combat_tactical_ai.py", "combat_ai_capabilities.py")
         ]
     paths += [root / "server/protocol_codec.py"]
-    paths += tool_dependency_paths(root, actual_ai)
+    paths += tool_dependency_paths(root)
     return {str(p.relative_to(root)): sha(p) for p in paths if p.exists()}
 
 
@@ -231,7 +230,6 @@ def main():
     parser.add_argument("--contexts-per-spell", type=int, default=1)
     parser.add_argument("--initial-subscription-audit", type=Path)
     parser.add_argument("--trigger-index", type=Path)
-    parser.add_argument("--actual-ai", action="store_true")
     parser.add_argument("--new-contexts-only", action="store_true")
     parser.add_argument("--resume-report", type=Path)
     parser.add_argument("--resume-sha256")
@@ -240,14 +238,22 @@ def main():
     if args.output.exists() or args.max_cases <= 0:
         raise ValueError("Use a new output and a positive case budget")
     root, candidate = args.root.resolve(), args.candidate.resolve()
-    sys.path[:0] = [
-        str(root / p) for p in ("server", "server/tools", "server/ai-service")
-    ]
+    sdk = root / "server/wakfu_server/wakia_bridge"
+    if not (sdk / "wakfu_ai/native/native_oracle.py").is_file():
+        raise ValueError("Selected native AI SDK is unavailable")
+    sys.path[:0] = [str(root / p) for p in ("server", "server/tools")] + [str(sdk)]
+    spec = importlib.util.find_spec("wakfu_ai")
+    if (
+        spec is None
+        or spec.origin is None
+        or not Path(spec.origin).resolve().is_relative_to(sdk.resolve())
+    ):
+        raise RuntimeError(
+            "A different wakfu_ai SDK is already loaded; use a fresh process"
+        )
     index = json.loads(args.index.read_text())
     selected = select_spells(index, args.block, args.spell, args.max_spells)
-    before, manifest_hash = source_map(root, args.actual_ai), sha(
-        candidate / "manifest.json"
-    )
+    before, manifest_hash = source_map(root, False), sha(candidate / "manifest.json")
     started = time.monotonic()
     report = dict(
         schema="monster-effect-work-qualification-v1",
@@ -259,7 +265,8 @@ def main():
         source_sha256_before=before,
         worker_sha256=sha(Path(__file__)),
         cases=[],
-        actual_ai_enabled=args.actual_ai,
+        actual_ai_enabled=False,
+        sdk="wakia",
         status="running",
         admission=False,
         proof_scope="Selected actual native spell contexts only; no whole-book or exhaustive native-level claim",
@@ -479,30 +486,6 @@ def main():
                     case = annotate_pending(
                         case, context, trigger_document, report["trigger_index"]
                     )
-                if args.actual_ai and validator.case_qualification_complete(case):
-                    from monster_actual_ai_acceptance import prove_scene
-
-                    targets = [
-                        t
-                        for t in case.get("successful_targets", [])
-                        if t.get("effectful")
-                        and t.get("target_id") == 7
-                        and "damage" in t.get("event_kinds", [])
-                    ]
-                    case["optional_actual_ai"] = (
-                        prove_scene(
-                            context["reference"],
-                            context["actor_level"],
-                            targets[0]["enemy_cell"],
-                            targets[0].get("scenario"),
-                            validator,
-                        )
-                        if targets
-                        else dict(
-                            status="not_attempted",
-                            reason="No actual damage witness for selected spell",
-                        )
-                    )
                 fixture_cache.clear()
                 return case
 
@@ -544,7 +527,7 @@ def main():
         raise
     finally:
         report["catalog"] = catalog.receipt()
-        report["source_sha256_after"] = source_map(root, args.actual_ai)
+        report["source_sha256_after"] = source_map(root, False)
         report["sources_stable"] = before == report["source_sha256_after"]
         report["candidate_unchanged"] = (
             sha(candidate / "manifest.json") == manifest_hash

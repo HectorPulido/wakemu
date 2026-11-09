@@ -105,6 +105,16 @@ class NativeStateDecurseHandler:
             scope = scope_for(effect)
             uid = invocation.native_delayed_uid
             source = self.fight.native_owned_group_effects.get(uid)
+            source_invocation = None if source is None else source.get("invocation")
+            if (
+                isinstance(source_invocation, dict)
+                and "native_turn_boundary_context" in source_invocation
+            ):
+                # The queue retains the original event for identity, while the
+                # delayed execution copy must not reuse its expired turn facts.
+                source_invocation = dict(
+                    source_invocation, native_turn_boundary_context=None
+                )
             if (
                 scope is None
                 or scope["mode"] != "delivery"
@@ -112,7 +122,7 @@ class NativeStateDecurseHandler:
                 or source is None
                 or source.get("effect_class") != 321
                 or source.get("native_delayed") is not True
-                or source.get("invocation") != vars(invocation)
+                or source_invocation != vars(invocation)
                 or invocation.native_running_uid != uid
             ):
                 raise ValueError("Missing actual delayed eZi calculation source")

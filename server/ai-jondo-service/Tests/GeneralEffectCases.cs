@@ -197,6 +197,12 @@ internal static class GeneralEffectCases
         enemy=Actor(2,1,1,5,5);enemy.NativeStats=new Dictionary<int,int>{{87,0},{32,0},{97,5}};
         enemy.NativeArmorAuthority=new NativePoolAuthority(0,5,false);board=Board(new[]{caster,enemy});
         var armorHit=Spell(9110,Row("damage",0,5,"enemy"),5);
+        double primaryArmorValue=MonsterTactics.ValueOfRows(board,armorHit,caster,caster.CellId,enemy.CellId,new(){enemy});
+        enemy.NativeRegisteredSummon=true;
+        double summonArmorValue=MonsterTactics.ValueOfRows(board,armorHit,caster,caster.CellId,enemy.CellId,new(){enemy});
+        Check(Math.Abs(summonArmorValue-primaryArmorValue*0.6)<1e-9,
+            "breaking a registered hostile summon's armor receives the same discount as its HP damage");
+        enemy.NativeRegisteredSummon=false;
         plan=MonsterTactics.PlanTurn(board,caster,new[]{armorHit},budgetMs:1000);
         Check(plan.Count==2,"known unfrozen armor retains the necessary armor-breaking prefix before kill");
         using(var replay=MonsterTactics.Simulation.Replay(board,caster,plan))
@@ -231,10 +237,21 @@ internal static class GeneralEffectCases
         using(var sdk=JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,
             "Fixtures","NativeAmountSdkGoldens.json"))))
         {
-            var oldAssembly=System.Reflection.Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory,
-                "Fixtures","OldConsumer89179.dll"));
-            var oldDecide=oldAssembly.GetType("Wakfu.Jondo.Planner")!.GetMethod("Decide",
-                System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static)!;
+            // The historical 89179 consumer is an external artifact, not a
+            // dependency of the current engine or its regression fixtures.
+            // Explicitly report its absence; when requested, a missing or
+            // invalid binary is an error rather than a silently skipped check.
+            var oldPath=Environment.GetEnvironmentVariable("WAKIA_LEGACY_CONSUMER_DLL");
+            System.Reflection.MethodInfo? oldDecide=null;
+            if(string.IsNullOrWhiteSpace(oldPath))
+                Console.WriteLine("SKIP historical 89179 binary comparisons: set WAKIA_LEGACY_CONSUMER_DLL to the original JondoAI.dll");
+            else
+            {
+                var oldAssembly=System.Reflection.Assembly.LoadFrom(Path.GetFullPath(oldPath));
+                oldDecide=oldAssembly.GetType("Wakfu.Jondo.Planner")!.GetMethod("Decide",
+                    System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static)
+                    ?? throw new InvalidOperationException("Historical consumer does not expose Planner.Decide");
+            }
             object JsonActor(long id,int team,int cell,int hp)=>new{id,team,cell,hp,maxHp=100,ap=id==1?3:0,mp=0,
                 stats=new Dictionary<string,int>{{"87",0},{"32",0},{"21",500},{"97",0},{"100",0},{"92",0}},physicalRadius=0,direction=1,
                 nativeHp=new{version=1,minimum=0,frozen=false,rawCurrentMode="bounded",rawCurrent=(int?)null},
@@ -258,9 +275,12 @@ internal static class GeneralEffectCases
                 Check(action.GetProperty("type").GetString()=="cast"&&action.GetProperty("targetId").GetInt64()==2,
                     "actual Host selects wounded ally from real SDK zero-scalar native heal rows: "+record.Name);
                 Check(request.GetRawText()==original,"Host preserves actual SDK native amount DTO: "+record.Name);
-                var oldResponse=JsonSerializer.SerializeToElement(oldDecide.Invoke(null,new object?[]{request,null}));
-                Check(oldResponse.GetProperty("action").GetProperty("type").GetString()!="cast",
-                    "actual frozen89179 binary cannot fabricate health from closed typed geometry: "+record.Name);
+                if(oldDecide!=null)
+                {
+                    var oldResponse=JsonSerializer.SerializeToElement(oldDecide.Invoke(null,new object?[]{request,null}));
+                    Check(oldResponse.GetProperty("action").GetProperty("type").GetString()!="cast",
+                        "actual frozen89179 binary cannot fabricate health from closed typed geometry: "+record.Name);
+                }
             }
             using var witnessed=JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,
                 "Fixtures","Native1533ObservedCase.json")));
@@ -345,7 +365,7 @@ internal static class GeneralEffectCases
                 Check(carried==false?action.GetProperty("type").GetString()=="cast"&&action.GetProperty("targetId").GetInt64()==2
                     :action.GetProperty("type").GetString()!="cast",
                     "actual Host whole owned1533 mixed book respects exact carrying guard: "+carried);
-                if(carried==false)
+                if(carried==false&&oldDecide!=null)
                 {
                     var oldResponse=JsonSerializer.SerializeToElement(oldDecide.Invoke(null,new object?[]{request,null}));
                     Check(oldResponse.GetProperty("action").GetProperty("type").GetString()!="cast",

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "reported-jalato-shortest-route-when-viable",
+    "category": "movement",
+    "cells": [[0,0,0],[1,0,0],[2,0,0],[0,1,0],[1,1,0],[2,1,0],[3,1,0]],
+    "edges": [[0,1],[1,0],[0,3],[3,0],[3,4],[4,3],[4,6],[6,4],[6,5],[5,6]],
+    "actors": [
+      { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 3, "mp": 3 },
+      { "id": 2, "team": 1, "cell": 2, "hp": 100 }
+    ],
+    "spells": [{ "id": 601, "kind": "damage", "target": "enemy", "amount": 20,
+      "cost": 3, "minRange": 1, "maxRange": 1 }],
+    "expect": { "enemyDamageAtLeast": 20, "allyDamageAtMost": 0,
+      "pathPrefix": [0,1] }
+  },
+  {
+    "name": "reported-jalato-follows-viable-detour-when-short-route-is-absent",
+    "category": "movement",
+    "cells": [[0,0,0],[1,0,0],[2,0,0],[0,1,0],[1,1,0],[2,1,0]],
+    "edges": [[0,3],[3,0],[3,4],[4,3],[4,5],[5,4],[5,2],[2,5]],
+    "actors": [
+      { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 3, "mp": 3 },
+      { "id": 2, "team": 1, "cell": 2, "hp": 100 }
+    ],
+    "spells": [{ "id": 602, "kind": "damage", "target": "enemy", "amount": 20,
+      "cost": 3, "minRange": 1, "maxRange": 1 }],
+    "expect": { "enemyDamageAtLeast": 20, "allyDamageAtMost": 0,
+      "pathPrefix": [0,3,4,5] }
+  },
+  {
+    "name": "reported-jalato-spends-three-mp-approaching-a-distant-target",
+    "category": "movement",
+    "cells": [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[4,0,0],[5,0,0]],
+    "edges": [[0,1],[1,0],[1,2],[2,1],[2,3],[3,2],[3,4],[4,3],[4,5],[5,4]],
+    "actors": [
+      { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 3, "mp": 3 },
+      { "id": 2, "team": 1, "cell": 4, "hp": 100 }
+    ],
+    "spells": [{ "id": 603, "kind": "damage", "target": "enemy", "amount": 20,
+      "cost": 3, "minRange": 1, "maxRange": 1 }],
+    "expect": { "enemyDamageAtLeast": 20, "allyDamageAtMost": 0,
+      "pathPrefix": [0,1,2,3] }
+  }
+]

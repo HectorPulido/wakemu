@@ -131,6 +131,13 @@ def load_public_manifest(pack):
     return value, sha256(manifest_path)
 
 
+def _wakia_build_output(parts):
+    """Exclude generated .NET outputs, not similarly named product assets."""
+    return parts[:2] == ("server", "ai-jondo-service") and any(
+        part in ("bin", "obj") for part in parts[2:-1]
+    )
+
+
 def source_inventory(root=ROOT):
     """Hash complete build/helper sources; data chunks have their own pack identity."""
     files = {}
@@ -144,6 +151,8 @@ def source_inventory(root=ROOT):
                 continue
             if relative.parts[:3] == ("server", "data", "installation"):
                 continue
+            if _wakia_build_output(relative.parts):
+                continue
             if (
                 path.is_file()
                 and not path.is_symlink()
@@ -155,7 +164,7 @@ def source_inventory(root=ROOT):
     return files, hashlib.sha256(encoded).hexdigest()
 
 
-def archived_source_inventory(archive):
+def archived_source_inventory(archive, *, include_wakia_build_outputs=False):
     """Recover the exact previous installer inventory from preserved source."""
     files = {}
     with tarfile.open(archive, "r:*") as source:
@@ -178,6 +187,8 @@ def archived_source_inventory(archive):
                 not relevant
                 or not member.isfile()
                 or parts[:3] == ("server", "data", "installation")
+                or not include_wakia_build_outputs
+                and _wakia_build_output(parts)
                 or any(
                     part in ("__pycache__", ".pytest_cache", ".venv", "venv", ".git")
                     for part in parts
@@ -205,6 +216,18 @@ def migrations(root=ROOT):
     ):
         raise ValueError("Installation migrations must be unique and contiguous")
     return rows
+
+
+def world_services(state):
+    """Validate the planner configuration and start WakIA with World."""
+    selector = runpy.run_path(
+        str(
+            ROOT
+            / "server/wakfu_server/wakia_bridge/wakfu_ai/bridge/backend_selection.py"
+        )
+    )
+    selector["read_config"](state / "world/ai-backend.json")
+    return ["wakia", "shop", "world"]
 
 
 @contextmanager
@@ -239,7 +262,7 @@ class Installer:
         self.env = {
             k: v
             for k, v in os.environ.items()
-            if not k.startswith(("WAKFU_", "WAKEMU_", "COMPOSE_"))
+            if not k.startswith(("WAKFU_", "WAKEMU_", "WAKIA_", "COMPOSE_"))
         }
         self.progress = {
             "installation": self.identity,
@@ -311,6 +334,19 @@ class Installer:
             "run", "--rm", "--no-deps", "-T", "--entrypoint", "python3", "world", *args
         )
 
+    def start_world_services(self, selected_services):
+        self.run(
+            "start-world-ai-shop",
+            self.compose(
+                "up",
+                "-d",
+                "--no-build",
+                "--wait",
+                *selected_services,
+            ),
+            repeat=True,
+        )
+
     def install(self):
         self.state.mkdir(parents=True, exist_ok=True, mode=0o700)
         with installation_lock(self.state):
@@ -349,9 +385,21 @@ class Installer:
             )
         previous_files, previous_sha = archived_source_inventory(archive)
         if previous_sha != old["source_inventory_sha256"]:
-            raise ValueError(
-                "Previous source archive does not prove the installed source identity"
+            # Installations created before build outputs were excluded may
+            # have pinned them. Verify the original inventory before ignoring
+            # only these generated files when comparing source changes.
+            previous_files, previous_sha = archived_source_inventory(
+                archive, include_wakia_build_outputs=True
             )
+            if previous_sha != old["source_inventory_sha256"]:
+                raise ValueError(
+                    "Previous source archive does not prove the installed source identity"
+                )
+            previous_files = {
+                path: digest
+                for path, digest in previous_files.items()
+                if not _wakia_build_output(PurePosixPath(path).parts)
+            }
         changed = sorted(
             path
             for path in previous_files.keys() | self.source_files.keys()
@@ -416,7 +464,7 @@ class Installer:
                 raise ValueError("Materialized public seed identity changed")
         invalidated = {
             key: stages[key]
-            for key in ("compose-config", "build-world", "build-ai", "build-shop")
+            for key in ("compose-config", "build-world", "build-wakia", "build-shop")
             if key in stages
         }
         transition = dict(
@@ -436,11 +484,12 @@ class Installer:
             invalidated_stages=invalidated,
             previous_images={
                 kind: "wakemu-install-" + kind + ":" + previous_sha[:16]
-                for kind in ("world", "ai", "shop")
+                for kind in ("world", "ai", "wakia", "shop")
+                if kind != "wakia" or "build-wakia" in stages
             },
             next_images={
                 kind: "wakemu-install-" + kind + ":" + self.source_sha[:16]
-                for kind in ("world", "ai", "shop")
+                for kind in ("world", "ai", "wakia", "shop")
             },
         )
         name = (
@@ -549,7 +598,7 @@ class Installer:
             "WAKEMU_INSTALL_STATE_DIR": str(self.state),
             "WAKEMU_INSTALL_DATABASE": self.identity["database"],
             "WAKFU_WORLD_IMAGE": "wakemu-install-world:" + self.source_sha[:16],
-            "WAKFU_AI_IMAGE": "wakemu-install-ai:" + self.source_sha[:16],
+            "WAKIA_IMAGE": "wakemu-install-wakia:" + self.source_sha[:16],
             "WAKFU_SHOP_IMAGE": "wakemu-install-shop:" + self.source_sha[:16],
             "WAKFU_CATALOG_REVISION": active,
             "WAKFU_MINING_CATALOG_REVISION": mining,
@@ -573,9 +622,10 @@ class Installer:
         prepare = runpy.run_path(str(ROOT / "tools/prepare-local-runtime.py"))
         prepare["prepare"](self.state / "world", self.state / "database")
         prepare["configure_service_user"](self.state / "database", env_file)
+        selected_services = world_services(self.state)
         self.run("compose-config", self.compose("config", "--quiet"), repeat=True)
         self.run("build-world", self.compose("build", "world"))
-        self.run("build-ai", self.compose("build", "ai"))
+        self.run("build-wakia", self.compose("build", "wakia"))
         self.run("build-shop", self.compose("build", "shop"))
         self.run(
             "start-storage",
@@ -665,11 +715,7 @@ class Installer:
             ],
         }
         atomic_json(self.state / "receipts/verification-manifest.json", expected)
-        self.run(
-            "start-world-ai-shop",
-            self.compose("up", "-d", "--no-build", "--wait", "ai", "shop", "world"),
-            repeat=True,
-        )
+        self.start_world_services(selected_services)
         print(
             "World is available on localhost:"
             + str(self.args.world_port)

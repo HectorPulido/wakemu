@@ -317,17 +317,18 @@ class MovementCharacteristicPublicationTests(unittest.TestCase):
                 candidate.fight.server_move(actor.id, [(1, 0, 0)])
                 candidate.action_id = 1
                 if oracle_path:
-                    ai_root = str(Path(__file__).resolve().parents[1] / "ai-service")
-                    if ai_root not in sys.path:
-                        sys.path.insert(0, ai_root)
-                    from wakfu_ai.native.native_oracle import NativeOracle
+                    from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import (
+                        NativeOracle,
+                    )
 
                     oracle = object.__new__(NativeOracle)
                     oracle.runtime, oracle.flags = runtime, {}
                     oracle.authorities = lambda state: {}
                     oracle.preview = lambda *args, **kwargs: (candidate, [], None)
-                    with patch("wakfu_ai.native.native_oracle.check"), patch(
-                        "wakfu_ai.native.native_oracle.complete_fingerprint",
+                    with patch(
+                        "wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle.check"
+                    ), patch(
+                        "wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle.complete_fingerprint",
                         return_value="unit-owned",
                     ):
                         packets = oracle.commit(
@@ -553,10 +554,7 @@ class MovementCharacteristicPublicationTests(unittest.TestCase):
     def test_both_native_ai_commit_paths_project_movement_followups(self):
         from wakfu_server.combat_tactical_ai import NativeProvider, Preview
 
-        ai_root = str(Path(__file__).resolve().parents[1] / "ai-service")
-        if ai_root not in sys.path:
-            sys.path.insert(0, ai_root)
-        from wakfu_ai.native.native_oracle import NativeOracle
+        from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
 
         for oracle_path in (False, True):
             with self.subTest(oracle=oracle_path):
@@ -570,8 +568,10 @@ class MovementCharacteristicPublicationTests(unittest.TestCase):
                     oracle.flags = {}
                     oracle.authorities = lambda state: {}
                     oracle.preview = lambda *args, **kwargs: (candidate, [], None)
-                    with patch("wakfu_ai.native.native_oracle.check"), patch(
-                        "wakfu_ai.native.native_oracle.complete_fingerprint",
+                    with patch(
+                        "wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle.check"
+                    ), patch(
+                        "wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle.complete_fingerprint",
                         return_value="owned",
                     ):
                         packets = oracle.commit(

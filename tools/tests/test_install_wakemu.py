@@ -2,11 +2,14 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import stat
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location(
@@ -17,6 +20,54 @@ SPEC.loader.exec_module(installer)
 
 
 class InstallWakemuTests(unittest.TestCase):
+    def test_install_starts_only_selected_planner_for_world(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            state = Path(temporary)
+            (state / "world").mkdir()
+            self.assertEqual(
+                installer.world_services(state), ["wakia", "shop", "world"]
+            )
+            config = state / "world/ai-backend.json"
+            config.write_text(json.dumps({"version": 1, "backend": "current"}))
+            self.assertEqual(
+                installer.world_services(state), ["wakia", "shop", "world"]
+            )
+            config.write_text(json.dumps({"version": 1, "backend": "jondo"}))
+            self.assertEqual(
+                installer.world_services(state), ["wakia", "shop", "world"]
+            )
+            config.write_text(json.dumps({"version": 1, "backend": "invalid"}))
+            with self.assertRaisesRegex(ValueError, "Invalid AI backend configuration"):
+                installer.world_services(state)
+
+    def test_wakia_is_ready_before_world_starts(self):
+        instance = installer.Installer.__new__(installer.Installer)
+        instance.compose = lambda *args: list(args)
+        with patch.object(instance, "run") as run:
+            instance.start_world_services(["wakia", "shop", "world"])
+        run.assert_called_once_with(
+            "start-world-ai-shop",
+            ["up", "-d", "--no-build", "--wait", "wakia", "shop", "world"],
+            repeat=True,
+        )
+
+    def test_install_ignores_inherited_wakia_image_override(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            args = SimpleNamespace(
+                project="fresh", data_pack=root / "pack", state_dir=root / "state"
+            )
+            inherited = {
+                "PATH": "/bin",
+                "WAKIA_IMAGE": "unrelated:image",
+                "WAKFU_AI_IMAGE": "other:image",
+            }
+            with patch.dict(os.environ, inherited, clear=True), patch.object(
+                installer, "load_public_manifest", return_value=({}, "a" * 64)
+            ), patch.object(installer, "source_inventory", return_value=({}, "b" * 64)):
+                instance = installer.Installer(args)
+            self.assertEqual(instance.env, {"PATH": "/bin"})
+
     def test_public_artifact_guards_atomic_resume_lock_and_standalone_five_services(
         self,
     ):
@@ -102,10 +153,12 @@ class InstallWakemuTests(unittest.TestCase):
         services = compose.split("\nvolumes:", 1)[0].split("\nnetworks:", 1)[0]
         self.assertEqual(
             set(re.findall(r"^  ([a-z][a-z0-9_-]*):\s*$", services, re.M)),
-            {"postgres", "redis", "world", "ai", "shop"},
+            {"postgres", "redis", "world", "ai", "wakia", "shop"},
         )
         self.assertNotIn("restore", compose.lower())
         self.assertNotIn("external: true", compose)
+        self.assertIn("wakia: {condition: service_healthy}", compose)
+        self.assertIn("aliases: [ai-jondo]", compose)
         self.assertIn("./database/shop-assets:/shop-assets:ro", compose)
         self.assertRegex(
             compose, r"(?m)^\s+- 127\.0\.0\.1:\$\{WAKEMU_INSTALL_SHOP_PORT[^\n]+:18083$"

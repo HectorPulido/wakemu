@@ -267,7 +267,7 @@ def play_native_final(
     Callers supply real hydrated roster identities; no winner, health, native
     state or effect is assigned by this input strategy.
     """
-    from jondo_native_support_probe import _drain
+    from tests.jondo_native_support_probe import _drain
     from jondo_native_turn_probe import run
 
     if started is None:
@@ -333,7 +333,9 @@ def play_native_final(
             "No useful combat progress across two full rosters",
         )
         if identity not in case.characters:
-            from wakfu_ai.native.native_actor_source import registered_source
+            from wakfu_server.wakia_bridge.wakfu_ai.native.native_actor_source import (
+                registered_source,
+            )
             from wakfu_server.combat_effective_control import (
                 effective_server_controlled,
             )
@@ -594,7 +596,7 @@ def play_native_final(
 class WildGobballNativeTerminalTests(PostgresCase):
     def test_paid_repeated_totems_mordisco_real_ai_and_natural_victory(self):
         from native_recorded_instance_fixture import original_bootstrap_publication
-        from jondo_native_support_probe import _drain
+        from tests.jondo_native_support_probe import _drain
         from jondo_native_turn_probe import run
 
         receipt = dict(

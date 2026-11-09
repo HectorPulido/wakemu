@@ -12,11 +12,17 @@ def native_damage_source(fight, identity):
     if source is None:
         raise ValueError("Missing actual native eXt source PV")
     row = retained_area_pv_row(fight, identity)
-    # faP/faY inherit faV's absent PA contract. Other Qq subclasses have
-    # independent characteristic constructors and require their own adapters.
-    if row.get("native_area_contract") not in ("faP", "faY"):
+    # registered_area_pv already verifies fbc's own native constructor and
+    # characteristic set. Never substitute the trap owner's characteristics.
+    contract = row.get("native_area_contract")
+    if contract not in ("faP", "faY", "fbc"):
         raise ValueError("Unsupported native damage source PA contract")
-    if source.native_is_area is not True or source.native_characteristics is not None:
+    if source.native_is_area is not True or (
+        contract == "fbc"
+        and not isinstance(source.native_characteristics, dict)
+        or contract in ("faP", "faY")
+        and source.native_characteristics is not None
+    ):
         raise ValueError("Changed native faV source PA contract")
     return source
 

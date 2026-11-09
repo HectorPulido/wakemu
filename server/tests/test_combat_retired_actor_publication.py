@@ -1,9 +1,7 @@
 """Retired actors keep their client QK byte until native death cleanup."""
 from copy import deepcopy
 from dataclasses import replace
-from pathlib import Path
 import struct
-import sys
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -18,10 +16,9 @@ from wakfu_server.combat_wire import decode_actor_state
 
 class RetiredActorPublicationTests(unittest.TestCase):
     def test_native_oracle_lethal_movement_preserves_death_cleanup_handle(self):
-        ai_root = str(Path(__file__).resolve().parents[1] / "ai-service")
-        if ai_root not in sys.path:
-            sys.path.insert(0, ai_root)
-        from wakfu_ai.native.native_oracle import NativeOracle
+        from wakfu_server.wakia_bridge.wakfu_ai.native import native_oracle
+
+        NativeOracle = native_oracle.NativeOracle
 
         for reference in (3251, 1382):
             with self.subTest(reference=reference):
@@ -48,8 +45,9 @@ class RetiredActorPublicationTests(unittest.TestCase):
                     None,
                 )
                 serialized = []
-                with patch("wakfu_ai.native.native_oracle.check"), patch(
-                    "wakfu_ai.native.native_oracle.complete_fingerprint",
+                with patch.object(native_oracle, "check"), patch.object(
+                    native_oracle,
+                    "complete_fingerprint",
                     return_value="stable",
                 ):
                     packets = oracle.commit(

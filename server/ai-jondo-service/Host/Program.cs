@@ -12,6 +12,8 @@ internal static class Program
     private static readonly SemaphoreSlim Connections = new(64);
     private static readonly SemaphoreSlim Decisions = new(8);
     private static readonly PlanningGate Planning = new();
+    private static string Setting(string name, string legacy, string fallback) =>
+        Environment.GetEnvironmentVariable(name) ?? Environment.GetEnvironmentVariable(legacy) ?? fallback;
 
     public static async Task Main(string[] args)
     {
@@ -19,7 +21,7 @@ internal static class Program
         {
             using var peer = new TcpClient();
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            await peer.ConnectAsync("127.0.0.1", int.Parse(Environment.GetEnvironmentVariable("WAKFU_JONDO_PORT") ?? "8091"), deadline.Token);
+            await peer.ConnectAsync("127.0.0.1", int.Parse(Setting("WAKIA_PORT", "WAKFU_JONDO_PORT", "8091")), deadline.Token);
             using var channel = peer.GetStream();
             byte[] payload = JsonSerializer.SerializeToUtf8Bytes(new { id = 1, endpoint = "/health", payload = new { } });
             byte[] header = new byte[4]; BinaryPrimitives.WriteInt32BigEndian(header, payload.Length);
@@ -29,7 +31,7 @@ internal static class Program
             if (length <= 0 || length > MaxFrame) throw new IOException("Invalid health response");
             byte[] response = new byte[length]; await channel.ReadExactlyAsync(response, deadline.Token);
             using var document = JsonDocument.Parse(response);
-            if (document.RootElement.GetProperty("status").GetInt32() != 200) throw new IOException("Jondo is not ready");
+            if (document.RootElement.GetProperty("status").GetInt32() != 200) throw new IOException("WakIA is not ready");
             Console.WriteLine("healthy"); return;
         }
         if (args.Contains("--once"))
@@ -38,11 +40,11 @@ internal static class Program
             Console.WriteLine(JsonSerializer.Serialize(Planner.Decide(request.RootElement)));
             return;
         }
-        int port = int.Parse(Environment.GetEnvironmentVariable("WAKFU_JONDO_PORT") ?? "8091");
-        var bind = IPAddress.Parse(Environment.GetEnvironmentVariable("WAKFU_JONDO_BIND") ?? "127.0.0.1");
+        int port = int.Parse(Setting("WAKIA_PORT", "WAKFU_JONDO_PORT", "8091"));
+        var bind = IPAddress.Parse(Setting("WAKIA_BIND", "WAKFU_JONDO_BIND", "127.0.0.1"));
         var listener = new TcpListener(bind, port);
         listener.Start(64);
-        Console.WriteLine(JsonSerializer.Serialize(new { eventName = "jondo_ready", port, transport = "tcp", upstream = Planner.Upstream }));
+        Console.WriteLine(JsonSerializer.Serialize(new { eventName = "wakia_ready", port, transport = "tcp", upstream = Planner.Upstream }));
         while (true)
         {
             var client = await listener.AcceptTcpClientAsync();
@@ -85,15 +87,15 @@ internal static class Program
             if (endpoint == "/health")
             {
                 status = 200;
-                response = new { status = "ok", service = "wakfu-ai-jondo", transport = "tcp", protocols = new[] { 1 }, upstream = Planner.Upstream };
+                response = new { status = "ok", service = "wakfu-ai-jondo", name = "WakIA", transport = "tcp", protocols = new[] { 1 }, upstream = Planner.Upstream };
             }
-            else if (endpoint != "/jondo/decide")
+            else if (endpoint != "/wakia/decide" && endpoint != "/jondo/decide")
             {
-                status = 404; response = new { error = "Unknown Jondo endpoint" };
+                status = 404; response = new { error = "Unknown WakIA endpoint" };
             }
             else if (!Decisions.Wait(0))
             {
-                status = 503; response = new { error = "Jondo decision capacity reached" };
+                status = 503; response = new { error = "WakIA decision capacity reached" };
                 double elapsed = Stopwatch.GetElapsedTime(receivedTimestamp).TotalMilliseconds;
                 serviceTiming = new PlanningTiming(elapsed, 0, 0, elapsed);
             }
@@ -134,6 +136,20 @@ internal static class Program
     {
         if (value.ValueKind == JsonValueKind.Object)
         {
+            // Most map cells have just two fields. Avoid allocating a set for
+            // these objects while retaining decoded-name duplicate detection.
+            var iterator = value.EnumerateObject();
+            if (!iterator.MoveNext()) return;
+            var first = iterator.Current;
+            if (!iterator.MoveNext()) { UniqueKeys(first.Value); return; }
+            var second = iterator.Current;
+            if (!iterator.MoveNext())
+            {
+                if (second.NameEquals(first.Name)) throw new JsonException("Duplicate JSON key");
+                UniqueKeys(first.Value);
+                UniqueKeys(second.Value);
+                return;
+            }
             var seen = new HashSet<string>();
             foreach (var property in value.EnumerateObject())
             {

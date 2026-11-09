@@ -140,7 +140,9 @@ class SelectedScalarDirtyTests(unittest.TestCase):
             cloned_owner = bound_collections(vars(cloned))
             self.assertEqual(cloned_owner._selected_scalar_proofs.managers, {})
             self.assertEqual(cloned_owner._selected_scalar_proofs.dependents, {})
-        from wakfu_ai.context.native_context import _instance_fields
+        from wakfu_server.wakia_bridge.wakfu_ai.context.native_context import (
+            _instance_fields,
+        )
 
         self.assertNotIn("_selected_scalar_proofs", _instance_fields(owner))
         self.assertLessEqual(len(owner._selected_scalar_proofs.managers), 2)

@@ -1,0 +1,832 @@
+[
+  {
+    "name": "control-no-summon-evidence",
+    "category": "control",
+    "request": {
+      "protocol": 1,
+      "requestId": "control-no-summon-evidence",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "control-no-summon-evidence",
+        "turnId": 1
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -1,
+              0,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ]
+        ],
+        "actors": [
+          {
+            "id": 1,
+            "team": 1,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0
+          },
+          {
+            "id": 2,
+            "team": 0,
+            "cell": 1,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "maxAp": 6,
+            "mp": 0
+          },
+          {
+            "id": 3,
+            "team": 0,
+            "cell": 2,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "maxAp": 6,
+            "mp": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 42,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 1,
+          "removal": 6,
+          "rows": [
+            {
+              "kind": "remove_ap",
+              "amount": 6,
+              "target": "enemy"
+            }
+          ]
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "excludedActions": [],
+      "limits": {
+        "budgetMs": 500
+      }
+    },
+    "expect": {
+      "types": [
+        "cast"
+      ],
+      "spellId": 42,
+      "targetId": 2
+    }
+  },
+  {
+    "name": "control-companion-with-owner",
+    "category": "control",
+    "request": {
+      "protocol": 1,
+      "requestId": "control-companion-with-owner",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "control-companion-with-owner",
+        "turnId": 1
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -1,
+              0,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ]
+        ],
+        "actors": [
+          {
+            "id": 1,
+            "team": 1,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0
+          },
+          {
+            "id": 2,
+            "team": 0,
+            "cell": 1,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "maxAp": 6,
+            "mp": 0,
+            "registeredSummon": false,
+            "summonerId": 33
+          },
+          {
+            "id": 3,
+            "team": 0,
+            "cell": 2,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "maxAp": 6,
+            "mp": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 42,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 1,
+          "removal": 6,
+          "rows": [
+            {
+              "kind": "remove_ap",
+              "amount": 6,
+              "target": "enemy"
+            }
+          ]
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "excludedActions": [],
+      "limits": {
+        "budgetMs": 500
+      }
+    },
+    "expect": {
+      "types": [
+        "cast"
+      ],
+      "spellId": 42,
+      "targetId": 2
+    }
+  },
+  {
+    "name": "control-registered-summon-owner-known",
+    "category": "control",
+    "request": {
+      "protocol": 1,
+      "requestId": "control-registered-summon-owner-known",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "control-registered-summon-owner-known",
+        "turnId": 1
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -1,
+              0,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ]
+        ],
+        "actors": [
+          {
+            "id": 1,
+            "team": 1,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0
+          },
+          {
+            "id": 2,
+            "team": 0,
+            "cell": 1,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "maxAp": 6,
+            "mp": 0,
+            "registeredSummon": true,
+            "summonerId": 33
+          },
+          {
+            "id": 3,
+            "team": 0,
+            "cell": 2,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "maxAp": 6,
+            "mp": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 42,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 1,
+          "removal": 6,
+          "rows": [
+            {
+              "kind": "remove_ap",
+              "amount": 6,
+              "target": "enemy"
+            }
+          ]
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "excludedActions": [],
+      "limits": {
+        "budgetMs": 500
+      }
+    },
+    "expect": {
+      "types": [
+        "cast"
+      ],
+      "spellId": 42,
+      "targetId": 3
+    }
+  },
+  {
+    "name": "control-registered-summon-owner-unknown",
+    "category": "control",
+    "request": {
+      "protocol": 1,
+      "requestId": "control-registered-summon-owner-unknown",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "control-registered-summon-owner-unknown",
+        "turnId": 1
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -1,
+              0,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ]
+        ],
+        "actors": [
+          {
+            "id": 1,
+            "team": 1,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0
+          },
+          {
+            "id": 2,
+            "team": 0,
+            "cell": 1,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "maxAp": 6,
+            "mp": 0,
+            "registeredSummon": true,
+            "summonerId": null
+          },
+          {
+            "id": 3,
+            "team": 0,
+            "cell": 2,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "maxAp": 6,
+            "mp": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 42,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 1,
+          "removal": 6,
+          "rows": [
+            {
+              "kind": "remove_ap",
+              "amount": 6,
+              "target": "enemy"
+            }
+          ]
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "excludedActions": [],
+      "limits": {
+        "budgetMs": 500
+      }
+    },
+    "expect": {
+      "types": [
+        "cast"
+      ],
+      "spellId": 42,
+      "targetId": 3
+    }
+  },
+  {
+    "name": "support-heal-effective-target",
+    "category": "support",
+    "request": {
+      "protocol": 1,
+      "requestId": "support-heal-effective-target",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "support-heal-effective-target",
+        "turnId": 1
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 3,
+            "xyz": [
+              0,
+              1,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actors": [
+          {
+            "id": 1,
+            "team": 0,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0
+          },
+          {
+            "id": 2,
+            "team": 0,
+            "cell": 1,
+            "hp": 25,
+            "maxHp": 100,
+            "ap": 6,
+            "mp": 0
+          },
+          {
+            "id": 3,
+            "team": 0,
+            "cell": 2,
+            "hp": 95,
+            "maxHp": 100,
+            "ap": 6,
+            "mp": 0
+          },
+          {
+            "id": 4,
+            "team": 1,
+            "cell": 3,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "mp": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ],
+          [
+            0,
+            3,
+            true
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 43,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 1,
+          "heal": 30,
+          "rows": [
+            {
+              "kind": "heal",
+              "amount": 30,
+              "target": "ally"
+            }
+          ]
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "excludedActions": [],
+      "limits": {
+        "budgetMs": 500
+      }
+    },
+    "expect": {
+      "types": [
+        "cast"
+      ],
+      "spellId": 43,
+      "targetId": 2
+    }
+  },
+  {
+    "name": "control-invalid-summon-owner",
+    "category": "control",
+    "request": {
+      "protocol": 1,
+      "requestId": "control-invalid-summon-owner",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "control-invalid-summon-owner",
+        "turnId": 1
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -1,
+              0,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ]
+        ],
+        "actors": [
+          {
+            "id": 1,
+            "team": 1,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0
+          },
+          {
+            "id": 2,
+            "team": 0,
+            "cell": 1,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "maxAp": 6,
+            "mp": 0,
+            "registeredSummon": true,
+            "summonerId": "invalid"
+          },
+          {
+            "id": 3,
+            "team": 0,
+            "cell": 2,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 6,
+            "maxAp": 6,
+            "mp": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 42,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 1,
+          "removal": 6,
+          "rows": [
+            {
+              "kind": "remove_ap",
+              "amount": 6,
+              "target": "enemy"
+            }
+          ]
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "excludedActions": [],
+      "limits": {
+        "budgetMs": 500
+      }
+    },
+    "expect": {
+      "status": 400
+    }
+  }
+]

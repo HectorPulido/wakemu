@@ -21,6 +21,11 @@ from .combat_geometry import published_geometry, prepare_geometry, coordinate
 from .combat_qi_surface_catalog import native_qi_surfaces, native_qi_surface_provenance
 from .combat_qi_surface_selection import native_surface_indices
 from .combat_arena_empty_gaps import POLICY as EMPTY_GAP_POLICY, selected_gap_indices
+from . import combat_ground_support as _ground_support
+from . import combat_walk_surface_policy as _walk_policy
+
+_NATIVE_GROUND_SUPPORTED = _ground_support.supported
+_NATIVE_GROUND_MAP = _ground_support._map
 
 SOURCE = DATA_ROOT / "amakna-test-arena.json"
 
@@ -180,6 +185,33 @@ def local_arena(
     radii = radii_for(members, member_radii, player_radius)
     if type(ordinary_npc_placement) is not bool:
         raise ValueError("Invalid ordinary NPC placement policy")
+    placement_ground_cells = None
+    bulk_ground = False
+    if full_room_scope or compact:
+        placement_provenance = provenance or native_qi_surface_provenance(map_id)
+        all_cells = prepare_geometry(geometry).cells
+        if (
+            _ground_support.supported is _NATIVE_GROUND_SUPPORTED
+            and _ground_support._map is _NATIVE_GROUND_MAP
+        ):
+            revision = protocol_catalog.release()
+            allowed = _NATIVE_GROUND_MAP(
+                map_id, placement_provenance["source_sha256"], revision
+            )
+            placement_ground_cells = frozenset(
+                all_cells if allowed is None else all_cells & allowed
+            )
+            if protocol_catalog.release() != revision:
+                raise ValueError("Native ground catalog changed during arena selection")
+            bulk_ground = True
+        else:
+            placement_ground_cells = frozenset(
+                cell
+                for cell in all_cells
+                if _ground_support.supported(
+                    map_id, cell, placement_provenance["source_sha256"]
+                )
+            )
     member_point_cells = None
     if ordinary_npc_placement:
         from .combat_sn_path import NativeSnColumns
@@ -189,21 +221,26 @@ def local_arena(
         physical_provenance = provenance or native_qi_surface_provenance(map_id)
         if columns.source_sha256 != physical_provenance.get("source_sha256"):
             raise ValueError("Native placement physical source differs from arena")
-        member_point_cells = frozenset(
-            cell
-            for cell in prepare_geometry(geometry).cells
-            if native_npc_point_placement_allowed(columns, cell)
-        )
-    placement_ground_cells = None
-    if full_room_scope or compact:
-        from .combat_ground_support import supported
-
-        placement_provenance = provenance or native_qi_surface_provenance(map_id)
-        placement_ground_cells = frozenset(
-            cell
-            for cell in prepare_geometry(geometry).cells
-            if supported(map_id, cell, placement_provenance["source_sha256"])
-        )
+        if (
+            bulk_ground
+            and native_npc_point_placement_allowed
+            is _walk_policy._NATIVE_POINT_PLACEMENT
+        ):
+            member_point_cells = frozenset(
+                cell
+                for cell in prepare_geometry(geometry).cells
+                if native_npc_point_placement_allowed(
+                    columns, cell, _ground_supported=cell in placement_ground_cells
+                )
+            )
+        else:
+            member_point_cells = frozenset(
+                cell
+                for cell in prepare_geometry(geometry).cells
+                if native_npc_point_placement_allowed(columns, cell)
+            )
+    if bulk_ground and protocol_catalog.release() != revision:
+        raise ValueError("Native ground catalog changed during arena selection")
     configured_radius = int(os.environ.get("WAKFU_COMBAT_ARENA_RADIUS", "89"))
     if full_room_scope:
         selected = full_room_encounter(

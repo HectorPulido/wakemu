@@ -2,12 +2,19 @@
 
 A native control effect can leave a child fqL=false while its current controller
 is an NPC. The server supplies that controller's actions without changing fqL.
-Player controllers, absent/dead roots and cyclic relations never authorize AI.
+The explicitly marked AI player in a friendly duel may also control its summons.
+Other player controllers, absent/dead roots and cyclic relations never authorize AI.
 """
 POLICY = "wakemu.registered-npc-controller-actions-v1"
 
 
-def npc_controller_routes_ai(fight, actor):
+def npc_controller_routes_ai(fight, actor, *, required_bot_id=None):
+    if required_bot_id is not None and (
+        type(required_bot_id) is not int
+        or getattr(fight, "native_friendly_duel_ai_character_id", None)
+        != required_bot_id
+    ):
+        return False
     source = getattr(actor, "native_summon_source", None)
     if not isinstance(source, dict):
         return False
@@ -54,11 +61,16 @@ def npc_controller_routes_ai(fight, actor):
         # Immutable original player identity wins, even if the creation source
         # was an NPC; current fdy transfer is authoritative over that source.
         if controller.controlled:
-            return False
+            return (
+                controller.id
+                == getattr(fight, "native_friendly_duel_ai_character_id", None)
+                and getattr(controller, "native_controlled_by_ai", None) is True
+                and actor.owner_id == controller.owner_id
+            )
         flag = getattr(controller, "native_controlled_by_ai", None)
         if type(flag) is not bool:
             raise ValueError("Missing actual NPC controller AI authority")
-        if flag:
+        if flag and required_bot_id is None:
             return True
         if getattr(controller, "native_summon_source", None) is None:
             return False

@@ -50,7 +50,12 @@ namespace Jondo.Unity.Server.Managers
             public int MinRange { get; init; }
             public int MaxRange { get; init; }
             public bool NeedsLineOfSight { get; init; }
+            // Native casting has no target-dependent rule or category LOS override.
+            public bool NativeDirectLosRule { get; init; }
+            public bool NativeLinearPathRule { get; init; }
             public bool InLine { get; init; }
+            public bool? NativeDiagonal { get; init; }
+            public bool? NativeAllowSelf { get; init; }
             public int PerTurn { get; init; }
             public int PerTarget { get; init; }
 
@@ -193,6 +198,12 @@ namespace Jondo.Unity.Server.Managers
             /// </summary>
             public IReadOnlyList<SpellEffect> Rows { get; init; } = Array.Empty<SpellEffect>();
 
+            // World confirmed that projected rows preserve the direct native root order.
+            public bool NativeDirectHealthSequence { get; init; }
+
+            // World proved that every projected healing recipient excludes the caster.
+            public bool NativeNoSelfHeal { get; init; }
+
             public bool HasRows => Rows.Count > 0;
 
             /// <summary>Whether one of its rows summons -- a double too: it is then aimed at free cells too.</summary>
@@ -212,9 +223,48 @@ namespace Jondo.Unity.Server.Managers
             // Actor-specific ordinary movement; full geometry remains available to spells.
             public Func<Fighter, int, bool> MovementAnchorAllowed { get; init; } = (_, _) => true;
             public Func<Fighter, int, bool> MovementGoalAllowed { get; init; } = (_, _) => true;
+            // Actor-specific permissions describe the actor at this snapshot
+            // origin; they are not evidence for a hypothetical later position.
+            public int? NativeMovementPermissionOrigin { get; init; }
+            public long? NativeMovementPermissionActorId { get; init; }
             public Func<int, int, bool> Sees { get; init; } = (_, _) => true;
+            // Optional native observation: null means the pair was not measured.
+            // Casting retains the stricter Sees contract; defensive positioning
+            // must not interpret an absent observation as confirmed cover.
+            public Func<int, int, bool?>? SightEvidence { get; init; }
+            // Only native static failures observed for the original actor and
+            // target identity are stronger than advisory visibility.
+            public long? NativeStaticLosActorId { get; init; }
+            public int? NativeStaticLosOrigin { get; init; }
+            public IReadOnlySet<(int From,int To,long Target)> NativeStaticLosBlocked { get; init; }
+                = new HashSet<(int,int,long)>();
+            public IReadOnlySet<(int From,int To,long Target)> NativeLinearPathBlocked { get; init; }
+                = new HashSet<(int,int,long)>();
+            // Future summon observations must be bounded, in-memory and bound
+            // to this forecast state. Missing evidence fails closed, including
+            // for standalone callers; current-actor LOS does not prove it.
+            // True certifies this spell's native targeting/LOS requirement,
+            // criteria and all native costs for one future cast at this origin.
+            public Func<Fighter, Spell, Fighter, int, bool?>? SummonCastCriterion { get; init; }
+            public Func<Fighter, int, Fighter, bool?>? SummonSightEvidence { get; init; }
+            // True certifies that the scored rows reach this enemy and are not
+            // nullified by native protection or redirection in the forecast.
+            public Func<Fighter, Spell, Fighter, int, bool?>? SummonDamageEvidence { get; init; }
+            // Additional cells must already be reachable in this forecast,
+            // including movement budget, tackle, occupancy and native rules.
+            public Func<Fighter, IReadOnlyList<int>>? SummonReachableOrigins { get; init; }
+            // Previously observed, still-owned spells. These are heuristics,
+            // not the future-cast evidence required by SummonsNextTurn.
+            public Func<Fighter, IReadOnlyList<Spell>>? SummonEstimatedSpellsOf { get; init; }
             public Func<int,int,bool> IsPortalTravel { get; init; } = (_,_)=>false;
             public IReadOnlyList<Fighter> Fighters { get; init; } = Array.Empty<Fighter>();
+
+            // Optional encounter-local facts confirmed by World. These are
+            // advisory only and are absent until the native bridge supplies them.
+            public long? TeamFocusId { get; init; }
+            public IReadOnlySet<(int X, int Y)> TeamReservedXY { get; init; } = new HashSet<(int, int)>();
+            public IReadOnlyList<Wakfu.Jondo.TeamCorridor>? TeamCorridors { get; init; }
+            public bool? ActorBlocksNativeLos { get; init; }
 
             /// <summary>
             /// What leaving a cell costs the walker holding these AP and MP: the fight's own
@@ -223,6 +273,12 @@ namespace Jondo.Unity.Server.Managers
             public Func<Fighter, int, int, int, Tackle.Loss> TackleAt { get; init; } = (_, _, _, _) => Tackle.Loss.None;
 
             public bool Occupied(int cell) => Fighters.Any(f => f.IsAlive && FootprintAt(f, f.CellId).Contains(cell));
+            // Evaluate occupancy after the candidate caster's hypothetical route.
+            public bool OccupiedAt(Fighter mover, int origin, int cell)
+                => origin == mover.CellId ? Occupied(cell) : OccupiedAtMoved(mover, origin, cell);
+
+            private bool OccupiedAtMoved(Fighter mover, int origin, int cell)
+                => Fighters.Any(f => f.IsAlive && FootprintAt(f, ReferenceEquals(f, mover) ? origin : f.CellId).Contains(cell));
 
             /// <summary>
             /// Whom a row reaches when the caster stands on the first cell and aims at the second:
@@ -230,6 +286,10 @@ namespace Jondo.Unity.Server.Managers
             /// handed in by the fight. Without one, a plain reading of the zone and the sides.
             /// </summary>
             public Func<SpellEffect, Fighter, int, int, IReadOnlyList<Fighter>>? Reach { get; init; }
+
+            // Host reach uses only geometry, affiliation and living status. This
+            // permits local HP estimates without rerunning arbitrary callbacks.
+            internal bool NativeHealthReachStable { get; init; }
 
             /// <summary>
             /// Whether the caster may put out one more of this template at this grade: the fight's
@@ -283,7 +343,12 @@ namespace Jondo.Unity.Server.Managers
 
             // Wakemu adapter extension: advisory cost only; never consumes AP or MP.
             public Func<int, double>? MovementDanger { get; init; }
+            // Native tackle can make a shorter route preserve more MP but
+            // fewer AP than a detour to the same casting cell.
+            public bool TrackResourceRoutes { get; init; }
             public Func<Spell, int> SpellMovementCost { get; init; } = _ => 0;
+            public Func<Spell, int> SpellWakfuCost { get; init; } = _ => 0;
+            public bool HasEstimatedSummonBook { get; init; }
             public Func<bool>? SearchContinues { get; init; }
         }
 
@@ -372,13 +437,19 @@ namespace Jondo.Unity.Server.Managers
             }.Concat(frontier.OrderByDescending(a => a.Value)).Distinct().Take(ResourceOriginsKept).ToList();
         }
 
-        private static bool RepeatAvailable(Spell spell, int thisTurn)
+        private static bool RepeatAvailable(Board board, Fighter actor, Spell spell, int thisTurn)
         {
             if (thisTurn == 0) return true;
-            // Free actions require a real finite native limit. Paid healing is
-            // bounded by its price and actual missing HP, not a blanket buff rule.
             if (spell.Cost == 0)
-                return spell.PerTurn > 0 || spell.PerTarget > 0 || spell.Interval > 0;
+            {
+                if (spell.PerTurn > 0 || spell.PerTarget > 0 || spell.Interval > 0) return true;
+                // A known PM or WP payment bounds useful repeated damage/heals.
+                // Unknown WP and truly free actions retain the old guard.
+                int wpCost = board.SpellWakfuCost(spell);
+                if (wpCost > 0 && actor.NativeCurrentWp == null) return false;
+                bool paid = board.SpellMovementCost(spell) > 0 || wpCost > 0;
+                if (!paid) return false;
+            }
             return spell.Offensive || spell.Heal > 0 || spell.Rows.Any(row =>
                 row.EffectId is EffectSupport.FireHeal or EffectSupport.HealPercent);
         }
@@ -434,10 +505,10 @@ namespace Jondo.Unity.Server.Managers
             var portalCells = board.Portals?.Invoke()?.All.Where(p => p.Active).Select(p => p.Cell).ToList() ?? new List<int>();
             var options = new Dictionary<(int Spell, int Aim, int From, int Ap, int Mp, double Danger), Action>();
             var enemies = Foes(board, monster);
-            if (enemies.Count == 0 && Ghosts(board, monster).Count == 0) return new List<Action>();
             var allies = board.Fighters.Where(f => f.IsAlive && f.TeamId == monster.TeamId).ToList();
 
-            var variants = board.MovementDanger == null ? null : DangerRoutes(board, monster);
+            var variants = board.MovementDanger == null && !board.TrackResourceRoutes
+                ? null : DangerRoutes(board, monster);
             var reach = variants == null ? Routes(board, monster) : PreferredRoutes(variants, monster);
             var ordered = (variants == null ? reach.AsEnumerable() : variants.SelectMany(kv =>
                     kv.Value.Select(route => new KeyValuePair<int, Route>(kv.Key, route))))
@@ -455,13 +526,14 @@ namespace Jondo.Unity.Server.Managers
                 if (!SearchAvailable(board)) break;
                 var originFronts = new Dictionary<int, List<Action>>();
                 if (spell.Cost < 0 || spell.Cost > monster.CurrentAP) continue;
+                if (monster.NativeCurrentWp is int availableWp && board.SpellWakfuCost(spell) > availableWp) continue;
                 // A javelin that hits and leaves its lance is a blow first: only the spells that
                 // do nothing but summon wait for the next turn.
                 if (spell.Summons && summoned && !spell.Offensive) continue;
                 if (monster.Recarga.TryGetValue(spell.Id, out int wait) && wait > 0) continue;
                 monster.LanzadosEsteTurno.TryGetValue(spell.Id, out int thisTurn);
                 if (spell.PerTurn > 0 && thisTurn >= spell.PerTurn) continue;
-                if (!RepeatAvailable(spell, thisTurn)) continue;
+                if (!RepeatAvailable(board, monster, spell, thisTurn)) continue;
 
                 // Nearest cells first, and an aim weighed from the nearest cell it can be cast from:
                 // farther away it is worth the same and costs the walk -- unless where it is cast
@@ -629,17 +701,20 @@ namespace Jondo.Unity.Server.Managers
             // "Le nombre de gens qui passent leur tour sur la case où ils viennent de taper est
             // impressionnant": the turn ends where no enemy sees it, when it can, and not stuck
             // to one of them -- whoever ends next to an enemy is tackled on his next turn.
-            bool Seen(int cell) => enemies.Any(e => board.Sees(e.CellId, cell));
+            bool Seen(int cell) => enemies.Any(e => board.SightEvidence == null
+                ? board.Sees(e.CellId, cell)
+                : board.SightEvidence(e.CellId, cell) != false);
             bool Stuck(int cell) => enemies.Any(e => MapGeometry.Distance(cell, e.CellId) == 1);
 
             bool dying = monster.MaxHP > 0 && monster.CurrentHP * 100 / monster.MaxHP < 25
-                         && !spells.Any(s => s.Heal > 0);
+                         && (!spells.Any(s => s.Heal > 0) || spells.All(s => s.NativeNoSelfHeal));
             var attack = spells.Where(s => s.Damage > 0 && !s.OnSelf).OrderByDescending(s => s.Damage / Math.Max(1, s.Cost)).FirstOrDefault();
             bool ranged = attack != null && (attack.MinRange >= 2 || attack.MaxRange >= 4);
 
             IEnumerable<KeyValuePair<int, List<int>>> cells = reach;
             KeyValuePair<int, List<int>> chosen;
             Fighter? approachedEnemy = null;
+            bool detouring = false;
 
             if (dying)
             {
@@ -663,6 +738,11 @@ namespace Jondo.Unity.Server.Managers
                 chosen = default;
                 foreach (var enemy in weakest)
                 {
+                    // A hazard elsewhere must not make an unreachable weak
+                    // enemy preempt a nearer reachable one. The no-hazard
+                    // branch already requires an adjacent destination.
+                    if (!cells.Any(kv => MapGeometry.Distance(kv.Key, enemy.CellId) == 1))
+                        continue;
                     var next = board.MovementDanger == null
                         ? cells.Where(kv => MapGeometry.Distance(kv.Key, enemy.CellId) == 1)
                             .OrderBy(kv => kv.Value.Count).FirstOrDefault()
@@ -683,6 +763,14 @@ namespace Jondo.Unity.Server.Managers
                         .ThenBy(kv => kv.Value.Count).FirstOrDefault();
                     if (progress.Value != null) chosen = progress;
                 }
+                // A legal route can initially move away from a target around
+                // a wall. Search beyond this turn only when the ordinary
+                // policy would otherwise wait; execute only a current route.
+                if (chosen.Key == monster.CellId && !enemies.Any(e => MapGeometry.Distance(monster.CellId, e.CellId) == 1))
+                {
+                    var detour = LongApproach(board, monster, enemies, reach);
+                    if (detour.Value != null) { chosen = detour; detouring = true; }
+                }
             }
             // A terminal step with no cast should not casually close a nearby
             // ally's only approach. This is a soft topology preference, never
@@ -696,24 +784,87 @@ namespace Jondo.Unity.Server.Managers
                     : (approachedEnemy == null ? Nearest(option.Key)
                         : Math.Abs(MapGeometry.Distance(option.Key, approachedEnemy.CellId) - 1))
                         + Danger(option.Value);
-                var access = AllyAccessCost(board, monster, enemies);
-                if (access != null)
+                var access = AllyAccessCost(board, monster, enemies, out var blocksAllyAttack);
+                bool corridor = board.ActorBlocksNativeLos == true && board.TeamReservedXY.Count > 0;
+                if (access != null || corridor)
                 {
-                    double originalAccess = access(chosen.Key);
+                    var approach = chosen;
+                    double originalAccess = access?.Invoke(chosen.Key) ?? 0;
+                    var originalFootprint = corridor
+                        ? FootprintAt(monster, monster.CellId).Where(MapGeometry.IsValid).Select(MapGeometry.CellToPoint).ToArray()
+                        : Array.Empty<(int, int)>();
+                    double CorridorCost(int cell) => !corridor ? 0 : -Wakfu.Jondo.TeamCoordination.CorridorValue(
+                        board.TeamReservedXY, originalFootprint,
+                        FootprintAt(monster, cell).Where(MapGeometry.IsValid).Select(MapGeometry.CellToPoint), true);
                     chosen = cells.OrderBy(PositionCost).Take(8).Append(chosen)
                         .Append(new(monster.CellId, reach[monster.CellId]))
                         .DistinctBy(option => option.Key)
-                        .Where(option => option.Key == chosen.Key || access(option.Key) < originalAccess)
-                        .OrderBy(option => PositionCost(option) + access(option.Key))
-                        .ThenBy(option => access(option.Key))
+                        .Where(option => corridor || option.Key == chosen.Key || (access?.Invoke(option.Key) ?? 0) < originalAccess)
+                        .OrderBy(option => PositionCost(option) + (access?.Invoke(option.Key) ?? 0) + CorridorCost(option.Key))
+                        .ThenBy(option => access?.Invoke(option.Key) ?? 0)
                         .ThenBy(option => option.Value.Count).First();
+                    // Coordination is advisory: preserve an available melee
+                    // approach when its penalty would otherwise make the actor
+                    // wait indefinitely, even without a reserved corridor.
+                    if (!ranged && chosen.Key == monster.CellId
+                        && blocksAllyAttack?.Invoke(approach.Key) != true
+                        && approach.Key != monster.CellId
+                        && (detouring || Nearest(approach.Key) < Nearest(monster.CellId)))
+                        chosen = approach;
                 }
             }
             return chosen.Value;
         }
 
-        private static Func<int, double>? AllyAccessCost(Board board, Fighter monster, List<Fighter> enemies)
+        private static KeyValuePair<int, List<int>> LongApproach(Board board, Fighter monster,
+            List<Fighter> enemies, Dictionary<int, List<int>> currentReach)
         {
+            // Future portal use and future occupancy can change; retain the
+            // existing fallback rather than treating either as certified.
+            if (board.Portals?.Invoke()?.All.Any(p => p.Active) == true)
+                return default;
+            var blocked = OtherBodies(board, monster);
+            var distance = new Dictionary<int, double> { [monster.CellId] = 0 };
+            var parent = new Dictionary<int, int>();
+            var queue = new PriorityQueue<int, double>();
+            queue.Enqueue(monster.CellId, 0);
+            int visited = 0, inspectedEdges = 0, goal = -1;
+            while (queue.TryDequeue(out int cell, out double cost))
+            {
+                if (!SearchAvailable(board) || ++visited > 2048) return default;
+                if (!distance.TryGetValue(cell, out double known) || cost > known) continue;
+                if (cell != monster.CellId && board.MovementGoalAllowed(monster, cell)
+                    && enemies.Any(e => MapGeometry.Distance(cell, e.CellId) == 1))
+                { goal = cell; break; }
+                foreach (int next in MapGeometry.GetNeighbors(cell))
+                {
+                    if (++inspectedEdges > 8192 || (inspectedEdges & 63) == 0 && !SearchAvailable(board))
+                        return default;
+                    if (!CanOccupy(board, monster, next, blocked)) continue;
+                    double risk = board.MovementDanger?.Invoke(next) ?? 0;
+                    if (!double.IsFinite(risk) || risk < 0) return default;
+                    double total = cost + 1 + risk;
+                    if (distance.TryGetValue(next, out double previous) && previous <= total) continue;
+                    distance[next] = total;
+                    parent[next] = cell;
+                    queue.Enqueue(next, total);
+                }
+            }
+            if (goal < 0) return default;
+            // Pick the furthest prefix whose actual AP/MP/tackle-aware path
+            // was already established by Reachable. Never fabricate a move.
+            for (int cell = goal; cell != monster.CellId && parent.TryGetValue(cell, out cell); )
+            {
+                if (currentReach.TryGetValue(cell, out var path) && path.Count > 1)
+                    return new(cell, path);
+            }
+            return default;
+        }
+
+        private static Func<int, double>? AllyAccessCost(Board board, Fighter monster, List<Fighter> enemies,
+            out Func<int, bool>? blocksAllyAttack)
+        {
+            blocksAllyAttack = null;
             if (!SearchAvailable(board)) return null;
             var allies = board.Fighters.Where(f => f.IsAlive && f != monster
                     && f.TeamId == monster.TeamId && Math.Max(f.CurrentMP, f.MaxMP) > 0)
@@ -751,22 +902,29 @@ namespace Jondo.Unity.Server.Managers
                 return (Ally: ally, Fixed: fixedBodies, Count: access.Count, Near: Approach(access));
             }).ToArray();
             var costs = new Dictionary<int, double> { [monster.CellId] = 0 };
-            return anchor =>
+            var blockedAttacks = new Dictionary<int, bool> { [monster.CellId] = false };
+            double Cost(int anchor)
             {
                 if (costs.TryGetValue(anchor, out double known)) return known;
                 double penalty = 0;
+                bool losesAttack = false;
                 foreach (var baseline in baselines)
                 {
                     var blocked = baseline.Fixed.Concat(FootprintAt(monster, anchor)).ToHashSet();
                     var after = Access(baseline.Ally, blocked);
+                    int near = Approach(after);
+                    if (baseline.Near <= 1 && near > 1) losesAttack = true;
                     // Also reward releasing an approach already blocked by the
                     // caster, for example stepping aside after its last hit.
-                    penalty += 2 * Math.Clamp(Approach(after) - baseline.Near, -4, 4)
+                    penalty += 2 * Math.Clamp(near - baseline.Near, -4, 4)
                         + Math.Clamp((baseline.Count - after.Count) * 0.25, -2, 2);
                 }
                 costs[anchor] = penalty;
+                blockedAttacks[anchor] = losesAttack;
                 return penalty;
-            };
+            }
+            blocksAllyAttack = anchor => { Cost(anchor); return blockedAttacks[anchor]; };
+            return Cost;
         }
 
         /// <summary>What ending the turn out of every enemy's sight is worth, in cells of distance.</summary>
@@ -903,6 +1061,17 @@ namespace Jondo.Unity.Server.Managers
                 .ToDictionary(kv => kv.Key, kv => kv.Value);
         }
 
+        // A casting position may have several legal routes with incomparable
+        // AP/MP balances. Keep those alternatives for every spell consumer;
+        // ordinary movement still uses Routes' single preferred destination.
+        internal static IEnumerable<KeyValuePair<int, Route>> CastingRoutes(Board board, Fighter monster)
+        {
+            if (board.MovementDanger == null && !board.TrackResourceRoutes)
+                return Routes(board, monster);
+            return DangerRoutes(board, monster).SelectMany(pair => pair.Value.Select(
+                route => new KeyValuePair<int, Route>(pair.Key, route)));
+        }
+
         // Wakemu: resource-bounded weighted search. Keep nondominated resource/risk
         // labels until expansion completes: a safer detour may leave too little MP
         // for a farther cell or a spell, while the shorter risky route remains legal.
@@ -928,14 +1097,14 @@ namespace Jondo.Unity.Server.Managers
                     if (!CanOccupy(board, monster, next, blocked)) continue;
                     int destination = next;
                     var path = new List<int>(route.Path) { next };
-                    double danger = route.Danger + board.MovementDanger!(next);
+                    double danger = route.Danger + (board.MovementDanger?.Invoke(next) ?? 0);
                     bool portalUsed = item.PortalUsed || MapGeometry.Distance(item.Cell, next) > 1;
                     if (!item.PortalUsed && WayOut(board, monster, next) is int exit)
                     {
                         if (exit == next || !CanOccupy(board, monster, exit, blocked)) continue;
                         destination = exit;
                         path.Add(exit);
-                        danger += board.MovementDanger(exit);
+                        danger += board.MovementDanger?.Invoke(exit) ?? 0;
                         portalUsed = true;
                     }
                     var candidate = new Route(path, ap, mp - 1) { Danger = danger };
@@ -1063,15 +1232,20 @@ namespace Jondo.Unity.Server.Managers
         {
             if (spell.PerTarget > 0 && monster.LanzadosPorObjetivo.TryGetValue((spell.Id, target.Id), out int onIt)
                 && onIt >= spell.PerTarget) return false;
-            if (spell.NeedsFreeCell && (board.Occupied(aim) || aim == from || !board.Walkable(aim))) return false;
+            if (spell.NeedsFreeCell && (board.OccupiedAt(monster, from, aim) || aim == from || !board.Walkable(aim))) return false;
+            if (!NativeLinearPathAllows(board, spell, monster, from, aim, target)) return false;
             if (spell.OnSelf) return aim == from;
             if (!spell.HasRows && spell.Summons && target == monster && aim != from)
-                return board.Walkable(aim) && !board.Occupied(aim) && MapGeometry.Distance(from, aim) <= Math.Max(1, spell.MaxRange);
+                return board.Walkable(aim) && !board.OccupiedAt(monster, from, aim) && MapGeometry.Distance(from, aim) <= Math.Max(1, spell.MaxRange);
 
             int distance = MapGeometry.Distance(from, aim);
-            if (distance < spell.MinRange || distance > spell.ReachFor(monster)) return false;
-            if (spell.InLine && !InLine(from, aim)) return false;
-            if (spell.NeedsLineOfSight && distance > 1 && !board.Sees(from, aim)) return false;
+            if (!RangeAccepts(spell, distance, spell.ReachFor(monster))) return false;
+            if (!AlignmentAccepts(spell, from, aim)) return false;
+            if (spell.NeedsLineOfSight && (distance > 1 && !board.Sees(from, aim)
+                || distance == 1 && spell.NativeDirectLosRule
+                    && board.NativeStaticLosActorId == monster.Id && board.NativeStaticLosOrigin == from
+                    && monster.CellId == from && !monster.LanzadosEsteTurno.Any(row => row.Value > 0)
+                    && board.NativeStaticLosBlocked.Contains((from,aim,target.Id)))) return false;
 
             return true;
         }
@@ -1132,6 +1306,8 @@ namespace Jondo.Unity.Server.Managers
         private static double Worth(Spell spell, Fighter monster, Fighter enemy)
             => WorthOfBlow(Blow(spell, monster, enemy), enemy);
 
+        private const double HostileSummonValue = 0.6;
+
         private static double WorthOfBlow(double blow, Fighter enemy,double? killProbability=null)
         {
             if(!NativeHpForecast.Known(enemy)&&(enemy.NativeHpMinimum!=null||enemy.NativeHpFrozen!=null))return 0;
@@ -1153,7 +1329,7 @@ namespace Jondo.Unity.Server.Managers
             if(killProbability is double probability)worth+=enemy.MaxHP*0.5*Math.Clamp(probability,0,1);
             else if (blow >= enemy.CurrentHP) worth += enemy.MaxHP * 0.5;
             if (enemy.MaxHP > 0) worth *= 1.0 + 0.5 * (1.0 - (double)enemy.CurrentHP / enemy.MaxHP);
-            if (enemy.EsInvocado) worth *= 0.6;
+            if (enemy.EsInvocado) worth *= HostileSummonValue;
             return worth;
         }
 
@@ -1179,12 +1355,14 @@ namespace Jondo.Unity.Server.Managers
         }
 
         private static NativeAmountForecast? NativeForecast(SpellEffect row,Fighter source,Fighter target,int from,double bonus=0)
+            => NativeForecast(row,source,target,from,out _,bonus);
+        private static NativeAmountForecast? NativeForecast(SpellEffect row,Fighter source,Fighter target,int from,out NativeAmountForecast? amount,double bonus=0)
         {
             int previous=source.CellId;
             try
             {
                 source.CellId=from;
-                var amount=NativeEffectAmounts.Estimate(row,source,target,bonus);
+                amount=NativeEffectAmounts.Estimate(row,source,target,bonus);
                 if(amount==null)return null;
                 return NativeEffectAmounts.IsHealing(row)?NativeHpForecast.HealingGain(amount,target)
                     :NativeHpForecast.DamageLoss(amount,source,target,row);
@@ -1192,8 +1370,12 @@ namespace Jondo.Unity.Server.Managers
             finally {source.CellId=previous;}
         }
         private static double RowDamage(SpellEffect row,Fighter caster,Fighter target,int from,double bonus=0)
-            =>NativeEffectAmounts.Has(row)?NativeForecast(row,caster,target,from,bonus)?.Mean??0
-                :Blow(Average(row)+bonus,SemanticRows.NativeElementOf(row,ElementOf(row.EffectId,caster)),caster,target,row);
+        {
+            if (NativeEffectAmounts.Has(row)) return NativeForecast(row,caster,target,from,bonus)?.Mean ?? 0;
+            if (SemanticRows.TryApplicationEvidence(row, out double probability, out bool conditional))
+                return conditional ? 0 : probability * Blow(Average(row)+bonus,SemanticRows.NativeElementOf(row,ElementOf(row.EffectId,caster)),caster,target,row);
+            return Blow(Average(row)+bonus,SemanticRows.NativeElementOf(row,ElementOf(row.EffectId,caster)),caster,target,row);
+        }
 
         // ─── A class spell, weighed row by row ─────────────────────────────────────────────
 
@@ -1260,7 +1442,7 @@ namespace Jondo.Unity.Server.Managers
                             if(x is <int.MinValue or >int.MaxValue||y is <int.MinValue or >int.MaxValue)continue;
                             if(MapGeometry.Context.AtXY.TryGetValue(((int)x,(int)y),out var layered))
                                 foreach(int cell in layered)
-                                    if((!spell.InLine||InLine(from,cell))&&aims.Add(cell))yield return cell;
+                                    if(AlignmentAccepts(spell,from,cell)&&aims.Add(cell))yield return cell;
                         }
                         if(dx==distance)break;
                     }
@@ -1366,7 +1548,7 @@ namespace Jondo.Unity.Server.Managers
         {
             cache ??= new AimCache(board, monster, enemies);
             var aims = new HashSet<int>();
-            if (spell.OnSelf || spell.MinRange == 0) aims.Add(from);
+            if (spell.OnSelf || spell.MinRange == 0 || spell.NativeAllowSelf == true) aims.Add(from);
             bool Unseen(Fighter f) => f.TeamId != monster.TeamId && board.Hidden(f);
             if (!spell.OnSelf)
             {
@@ -1376,7 +1558,7 @@ namespace Jondo.Unity.Server.Managers
                             if (MapGeometry.IsValid(occupied)) aims.Add(occupied);
                 foreach (var enemy in enemies)
                     foreach (int cell in MapGeometry.GetNeighbors(enemy.CellId))
-                        if (board.Walkable(cell) && !board.Occupied(cell)) aims.Add(cell);
+                        if (board.Walkable(cell) && !board.OccupiedAt(monster, from, cell)) aims.Add(cell);
                 // Where an invisible one was last seen, and around it: a blow thrown there on a guess.
                 foreach (var (_, seen) in Ghosts(board, monster))
                 {
@@ -1388,7 +1570,7 @@ namespace Jondo.Unity.Server.Managers
                 // A portal goes by the enemy, its way out, and by the caster, its way in.
                 if (spell.LaysPortals)
                     foreach (int cell in MapGeometry.GetNeighbors(from))
-                        if (board.Walkable(cell) && !board.Occupied(cell)) aims.Add(cell);
+                        if (board.Walkable(cell) && !board.OccupiedAt(monster, from, cell)) aims.Add(cell);
 
                 // A throw lands what the caster carries on a free cell: next to it, to pick him up
                 // again, and as far as it goes, out of his way.
@@ -1397,7 +1579,7 @@ namespace Jondo.Unity.Server.Managers
                     int reach = spell.ReachFor(monster);
                     var free = Enumerable.Range(0, MapGeometry.MaxCells)
                         .Where(c => { int d = MapGeometry.Distance(from, c); return d >= Math.Max(1, spell.MinRange) && d <= reach; })
-                        .Where(c => board.Walkable(c) && !board.Occupied(c))
+                        .Where(c => board.Walkable(c) && !board.OccupiedAt(monster, from, c))
                         .ToList();
                     foreach (int cell in free.Where(c => MapGeometry.Distance(from, c) <= 1)) aims.Add(cell);
                     foreach (int cell in free.OrderByDescending(c => enemies.Where(e => e.Id != monster.Carrying)
@@ -1421,6 +1603,17 @@ namespace Jondo.Unity.Server.Managers
 
                 if (spell.SummonsByRow && enemies.Count > 0)
                 {
+                    // Cached free-cell rankings were built before the route.
+                    // Include cells vacated by this actor when they are now free.
+                    if (from != monster.CellId)
+                        foreach (int cell in FootprintAt(monster, monster.CellId))
+                        {
+                            if (!SearchAvailable(board)) break;
+                            int d = MapGeometry.Distance(from, cell);
+                            if (MapGeometry.IsValid(cell) && board.Walkable(cell)
+                                && !board.OccupiedAt(monster, from, cell)
+                                && d >= spell.MinRange && d <= spell.ReachFor(monster)) aims.Add(cell);
+                        }
                     int reach = spell.ReachFor(monster);
                     var toward = cache.Toward
                         .Where(c => c != from)
@@ -1440,7 +1633,7 @@ namespace Jondo.Unity.Server.Managers
                     {
                         if (castFrom != from) continue;
                         int d = MapGeometry.Distance(from, cell);
-                        if (cell != from && d >= spell.MinRange && d <= reach && board.Walkable(cell) && !board.Occupied(cell))
+                        if (cell != from && d >= spell.MinRange && d <= reach && board.Walkable(cell) && !board.OccupiedAt(monster, from, cell))
                             aims.Add(cell);
                     }
                 }
@@ -1460,8 +1653,8 @@ namespace Jondo.Unity.Server.Managers
                 if (!SearchAvailable(board)) break;
                 if (!aims.Add(aim)) continue;
                 int distance = MapGeometry.Distance(from, aim);
-                if (distance < spell.MinRange || distance > spell.ReachFor(monster)
-                    || spell.InLine && !InLine(from, aim)) continue;
+                if (!RangeAccepts(spell, distance, spell.ReachFor(monster))
+                    || !AlignmentAccepts(spell, from, aim)) continue;
                 var there = aim == from ? monster : board.Fighters.FirstOrDefault(f => f.IsAlive
                     && f != monster && !Unseen(f) && FootprintAt(f, f.CellId).Contains(aim));
                 yield return (there ?? monster, aim);
@@ -1550,15 +1743,87 @@ namespace Jondo.Unity.Server.Managers
         /// whatever did nothing it could weigh on itself: Eclipse, which only moves the lance,
         /// went out with no lance on the board.
         /// </remarks>
-        internal static double ValueOfRows(Board board, Spell spell, Fighter monster, int from, int aim, List<Fighter> enemies)
+        private sealed class HealthSequence
         {
+            private readonly Fighter _source;
+            private readonly Dictionary<Fighter,Fighter> _targets = new();
+            public bool Valid { get; private set; } = true;
+
+            public HealthSequence(Fighter source, int from)
+            {
+                _source=source.HealthEstimateCopy();
+                _source.CellId=from;
+                if (_source.NativeStats==null || !_source.NativeStats.TryGetValue(100,out int barrier)
+                    || barrier!=0 || NativeHpForecast.Barrier(_source)!=0) Valid=false;
+            }
+
+            public void Apply(Board board, SpellEffect row, Fighter who, int from, double p, double bonus)
+            {
+                if (!Valid) return;
+                if (!SearchAvailable(board) || p!=1 || who.TeamId==_source.TeamId)
+                { Valid=false; return; }
+                if (!_targets.TryGetValue(who,out var target))
+                {
+                    target=who.HealthEstimateCopy();
+                    if (!NativeHpForecast.Known(target)
+                        || target.NativeHpRawMode!="bounded" && target.NativeHpRawCurrent!=target.CurrentHP
+                        || target.NativeStats==null || !target.NativeStats.TryGetValue(97,out int armor) || armor!=0
+                        || !target.NativeStats.TryGetValue(92,out int virtualHp) || virtualHp!=0
+                        || target.NativeVirtualHpMax!=0 || NativeHpForecast.Armor(target)!=0
+                        || NativeHpForecast.Virtual(target)!=0)
+                    { Valid=false; return; }
+                    _targets.Add(who,target);
+                }
+                if (NativeEffectAmounts.IsDamage(row) && Shielded(_source,from,target)) return;
+                if (NativeEffectAmounts.IsHealing(row)
+                    && target.NativeHealingResistanceEnabled!=false && target.NativeHealingResistanceFrozen!=true)
+                { Valid=false; return; }
+                var forecast=NativeEffectAmounts.Estimate(row,_source,target,bonus);
+                if (forecast==null || forecast.Outcomes.Count!=1 || forecast.Outcomes[0].Probability!=1)
+                { Valid=false; return; }
+                int amount=(int)forecast.Outcomes[0].Amount;
+                var result=NativeHpForecast.Apply(target,amount,NativeEffectAmounts.IsDamage(row));
+                // Death can trigger native behavior not represented by this ledger.
+                if (result.Current==0) { Valid=false; return; }
+                target.CurrentHP=result.Current;
+                target.NativeHpRawCurrent=result.Raw;
+            }
+
+            public double Value()
+            {
+                double result=0;
+                foreach (var (original, current) in _targets)
+                {
+                    int delta=current.CurrentHP-original.CurrentHP;
+                    result+=delta<0 ? WorthOfBlow(-(double)delta,original) : -delta;
+                }
+                return result;
+            }
+        }
+
+        internal static double ValueOfRows(Board board, Spell spell, Fighter monster, int from, int aim, List<Fighter> enemies,
+                                           bool allowHealthSequence = true, int? actorPhysicalOrigin = null)
+        {
+            int physicalOrigin = actorPhysicalOrigin ?? from;
             var blows = new Dictionary<Fighter, double>();
             var heals = new Dictionary<Fighter, double>();
+            var enemyHeals = new Dictionary<Fighter, double>();
+            // Only adjacent, certain immediate control rows share this budget.
+            // Other effects may replenish resources or trigger unknown behavior.
+            var immediateControl = new Dictionary<(Fighter Who, int Characteristic), double>();
             var nativeKillOdds=new Dictionary<Fighter,double>();
             var nativeHealed=new HashSet<Fighter>();
             double value = 0;
             int Nearest(int cell) => enemies.Count == 0 ? 0 : enemies.Min(e => MapGeometry.Distance(cell, e.CellId));
             var ghosts = Ghosts(board, monster);
+            HealthSequence? sequence = allowHealthSequence && spell.NativeDirectHealthSequence && board.NativeHealthReachStable && ghosts.Count==0
+                && spell.Rows.Count>=2 && spell.Rows.Any(NativeEffectAmounts.IsDamage)
+                && spell.Rows.Any(NativeEffectAmounts.IsHealing)
+                && spell.Rows.All(row => (NativeEffectAmounts.IsDamage(row) && !StealsLife(row.EffectId)
+                    || NativeEffectAmounts.IsHealing(row)) && row.TargetMask=="A"
+                    && row.Delay==0 && row.Sorteo==0 && Timing(row)==1 && !(row.Probabilidad is >0 and <100)
+                    && (!SemanticRows.TryApplicationEvidence(row,out double chance,out bool conditional)
+                        || !conditional && chance==1)) ? new HealthSequence(monster,from) : null;
             bool trapped = false;
             // The states this cast puts, as it goes: what it casts after them sees them, as the
             // engine resolves a sub-cast (EffectEngine.Resolver, «estadosAlEmpezar»), and its own
@@ -1578,6 +1843,19 @@ namespace Jondo.Unity.Server.Managers
                     double chance = row.Probabilidad > 0 && row.Probabilidad < 100 ? row.Probabilidad / 100.0 : 1.0;
                     double p = weight * timing * chance;
                     int id = row.EffectId;
+                    bool certainImmediateControl = depth == 0 && id is 101 or 127
+                        && p == 1 && row.Duration < 2 && row.Delay == 0 && row.Sorteo == 0
+                        && string.Equals(row.Triggers?.Trim(), "I", StringComparison.OrdinalIgnoreCase);
+                    if (SemanticRows.TryApplicationEvidence(row, out double controlChance, out bool controlConditional))
+                    {
+                        // An unknown native condition is not a confirmed gain
+                        // or removal. A known row retains its native chance.
+                        if (controlConditional) { immediateControl.Clear(); continue; }
+                        p *= controlChance;
+                        certainImmediateControl &= controlChance == 1;
+                        if (p <= 0) { immediateControl.Clear(); continue; }
+                    }
+                    if (!certainImmediateControl) immediateControl.Clear();
 
                     if (id is KillsAndReplaces or KillsAndReplacesBySummon)
                     {
@@ -1601,7 +1879,7 @@ namespace Jondo.Unity.Server.Managers
                         // stands (SummonStanding); what it deals is counted at the plan's end. A
                         // double -- the Sram's, a copy of it that locks and takes the blows -- goes
                         // out the same way; the engine does not count it against the limit.
-                        if (!summoned && castAim != castFrom && board.Walkable(castAim) && !board.Occupied(castAim)
+                        if (!summoned && castAim != castFrom && board.Walkable(castAim) && !board.OccupiedAt(monster, physicalOrigin, castAim)
                             && !board.Trapped(castAim) && EffectEngine.CasterMeets(caster, row)
                             && (twin || board.CanSummon == null || board.CanSummon(caster, row.DiceNum, Math.Max(1, row.DiceSide))))
                         {
@@ -1673,7 +1951,9 @@ namespace Jondo.Unity.Server.Managers
                         var element = SemanticRows.NativeElementOf(row, ElementOf(id, caster));
                         foreach (var who in reached)
                         {
-                            var native=NativeEffectAmounts.Has(row)?NativeForecast(row,caster,who,castFrom,BaseBonus(board,caster,spellId)):null;
+                            sequence?.Apply(board,row,who,castFrom,p,BaseBonus(board,caster,spellId));
+                            NativeAmountForecast? rawAmount = null;
+                            var native=NativeEffectAmounts.Has(row)?NativeForecast(row,caster,who,castFrom,out rawAmount,BaseBonus(board,caster,spellId)):null;
                             double blow = Shielded(caster, castFrom, who) ? 0
                                 :(NativeEffectAmounts.Has(row)?native?.Mean??0:Blow(dice, element, caster, who, row))*p;
                             double preparation=0;
@@ -1683,14 +1963,13 @@ namespace Jondo.Unity.Server.Managers
                                 try
                                 {
                                     caster.CellId=castFrom;
-                                    var amount=NativeEffectAmounts.Estimate(row,caster,who,BaseBonus(board,caster,spellId));
-                                    if(amount!=null)preparation=NativeHpForecast.DamagePreparation(amount,caster,who,row)*p;
+                                    if(rawAmount!=null)preparation=NativeHpForecast.DamagePreparation(rawAmount,caster,who,row)*p;
                                 }
                                 finally {caster.CellId=previous;}
                             }
                             if (who.TeamId != monster.TeamId)
                             {
-                                value+=preparation;
+                                value+=preparation*(who.EsInvocado?HostileSummonValue:1.0);
                                 blows.TryGetValue(who, out double had);
                                 blows[who] = had + blow;
                                 if(NativeEffectAmounts.Has(row))
@@ -1736,6 +2015,7 @@ namespace Jondo.Unity.Server.Managers
                     {
                         foreach (var who in reached)
                         {
+                            sequence?.Apply(board,row,who,castFrom,p,0);
                             double amount = NativeEffectAmounts.Has(row)?NativeForecast(row,caster,who,castFrom)?.Mean??0
                                 :id == Jondo.Unity.World.Combat.EffectSupport.HealPercent
                                 ? who.MaxHP * Average(row) / 100.0
@@ -1743,13 +2023,17 @@ namespace Jondo.Unity.Server.Managers
                             if(!NativeEffectAmounts.Has(row)&&NativeHpForecast.Known(who))
                                 amount=NativeHpForecast.Apply(who,(int)Math.Clamp(Math.Floor(amount),0,int.MaxValue),false).Current-who.CurrentHP;
                             amount *= p;
+                            if(NativeEffectAmounts.Has(row)&&amount>0)nativeHealed.Add(who);
                             if (who.TeamId == monster.TeamId)
                             {
-                                if(NativeEffectAmounts.Has(row)&&amount>0)nativeHealed.Add(who);
                                 heals.TryGetValue(who, out double had);
                                 heals[who] = had + amount;
                             }
-                            else value -= Math.Min(amount, who.MaxHP - who.CurrentHP);
+                            else
+                            {
+                                enemyHeals.TryGetValue(who, out double had);
+                                enemyHeals[who] = had + amount;
+                            }
                         }
                         continue;
                     }
@@ -1953,7 +2237,16 @@ namespace Jondo.Unity.Server.Managers
                             if (onHim < 0 && (characteristic == 1 || characteristic == 23))
                             {
                                 int held = characteristic == 1 ? Math.Max(who.MaxAP, who.CurrentAP) : Math.Max(who.MaxMP, who.CurrentMP);
-                                onHim = Math.Max(onHim, -held * StatWeight(characteristic) * p);
+                                onHim = Math.Max(onHim, -held * StatWeight(characteristic) * p
+                                    * (who.EsInvocado ? 0.5 : 1.0));
+                                if (certainImmediateControl)
+                                {
+                                    var key = (who, characteristic);
+                                    double cap = held * StatWeight(characteristic) * (who.EsInvocado ? 0.5 : 1.0);
+                                    double remaining = Math.Max(0, cap - immediateControl.GetValueOrDefault(key));
+                                    onHim = Math.Max(onHim, -remaining);
+                                    immediateControl[key] = cap - remaining - onHim;
+                                }
                             }
                             value += mine ? onHim : -onHim;
                         }
@@ -1963,8 +2256,19 @@ namespace Jondo.Unity.Server.Managers
 
             Rows(spell.Id, spell.Rows, monster, from, aim, 1.0, 0);
 
+            // This is the net result within the existing direct-health model;
+            // World may still apply reactions not represented by the snapshot.
+            if (sequence?.Valid==true) return sequence.Value();
+
             foreach (var (enemy, blow) in blows) value += WorthOfBlow(blow, enemy,
                 nativeKillOdds.TryGetValue(enemy,out var probability)?probability:null);
+            foreach (var (enemy, healed) in enemyHeals)
+            {
+                double missing = Math.Max(0L, (long)enemy.MaxHP - enemy.CurrentHP);
+                if(nativeHealed.Contains(enemy)&&enemy.NativeVirtualHpFrozen==false)
+                    missing+=Math.Max(0L,(long)enemy.NativeVirtualHpMax-NativeHpForecast.Virtual(enemy));
+                value -= Math.Min(healed, missing);
+            }
             foreach (var (own, healed) in heals)
             {
                 int missing = own.MaxHP - own.CurrentHP;
@@ -1999,14 +2303,16 @@ namespace Jondo.Unity.Server.Managers
         {
             if (effect is BestElementDamage or BestElementLifeSteal or WorstElementDamage)
             {
-                var elements = new[]
-                {
-                    (ElementType.Earth, caster.Strength), (ElementType.Fire, caster.Intelligence),
-                    (ElementType.Water, caster.Chance), (ElementType.Air, caster.Agility),
-                };
-                return effect == WorstElementDamage
-                    ? elements.OrderBy(e => e.Item2).First().Item1
-                    : elements.OrderByDescending(e => e.Item2).First().Item1;
+                bool worst = effect == WorstElementDamage;
+                var element = ElementType.Earth;
+                int value = caster.Strength;
+                if (worst ? caster.Intelligence < value : caster.Intelligence > value)
+                    (element, value) = (ElementType.Fire, caster.Intelligence);
+                if (worst ? caster.Chance < value : caster.Chance > value)
+                    (element, value) = (ElementType.Water, caster.Chance);
+                if (worst ? caster.Agility < value : caster.Agility > value)
+                    element = ElementType.Air;
+                return element;
             }
             return ElementOfDamage(effect);
         }
@@ -2301,7 +2607,7 @@ namespace Jondo.Unity.Server.Managers
                 board.ThroughPortal?.Invoke(true);
                 try
                 {
-                    return ValueOfRows(board, spell, monster, through.Exit, through.Landing, enemies) * (100 + through.Bonus) / 100.0;
+                    return ValueOfRows(board, spell, monster, through.Exit, through.Landing, enemies, allowHealthSequence:false, actorPhysicalOrigin:from) * (100 + through.Bonus) / 100.0;
                 }
                 finally
                 {
@@ -2434,7 +2740,7 @@ namespace Jondo.Unity.Server.Managers
         /// every element -- a JondoBot: an AP is a spell, a hundred of an element a few percent
         /// of every blow, a point of resistance a point of every blow taken.
         /// </summary>
-        private static double StatWeight(int characteristic) => characteristic switch
+        internal static double StatWeight(int characteristic) => characteristic switch
         {
             1 => 55,                   // action points
             23 => 30,                  // movement points
@@ -2506,6 +2812,32 @@ namespace Jondo.Unity.Server.Managers
 
         private static bool Hit(Spell spell, int aim, Fighter who)
             => FootprintAt(who, who.CellId).Any(cell => MapGeometry.IsValid(cell) && MapGeometry.Distance(aim, cell) <= spell.Zone);
+
+        // A static Sn failure applies only to the original caster and target.
+        internal static bool NativeLinearPathAllows(Board board, Spell spell, Fighter caster,
+                                                    int from, int aim, Fighter? target)
+            => !spell.NativeLinearPathRule || target == null
+                || board.NativeStaticLosActorId != caster.Id || board.NativeStaticLosOrigin != from
+                || caster.CellId != from || caster.LanzadosEsteTurno.Any(row => row.Value > 0)
+                || !board.NativeLinearPathBlocked.Contains((from, aim, target.Id));
+
+        // Native fcj allows an XY-zero aim outside minimum range when explicitly enabled.
+        internal static bool RangeAccepts(Spell spell, int distance, int maximum)
+            => distance >= spell.MinRange && distance <= maximum
+                || distance == 0 && spell.NativeAllowSelf == true;
+
+        // Missing diagonal evidence preserves the prior linear-only rule.
+        // Native fcj uses wrapped int subtraction and Java abs, including MIN_VALUE.
+        internal static bool AlignmentAccepts(Spell spell, int from, int aim)
+        {
+            if (spell.NativeDiagonal != true) return !spell.InLine || InLine(from, aim);
+            var (ax, ay) = MapGeometry.CellToPoint(from);
+            var (bx, by) = MapGeometry.CellToPoint(aim);
+            int dx = unchecked(bx - ax), dy = unchecked(by - ay);
+            int absX = dx == int.MinValue ? int.MinValue : Math.Abs(dx);
+            int absY = dy == int.MinValue ? int.MinValue : Math.Abs(dy);
+            return spell.InLine && (ax == bx || ay == by) || absX == absY;
+        }
 
         /// <summary>Same row or same column of the diamond grid: a straight line.</summary>
         private static bool InLine(int a, int b)

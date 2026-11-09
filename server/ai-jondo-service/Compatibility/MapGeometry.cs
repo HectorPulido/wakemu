@@ -30,15 +30,39 @@ public sealed class GeometryContext
         if (copy.Distinct().Count() != copy.Length) throw new ArgumentException("Duplicate XYZ cell");
         Cells = Array.AsReadOnly(copy);
         OriginZ = originZ;
-        AtXY = copy.Select((p, id) => (p, id)).GroupBy(v => (v.p.X, v.p.Y))
-            .ToDictionary(g => g.Key, g => g.Select(v => v.id).ToArray());
-        var next = Enumerable.Range(0, copy.Length).Select(_ => new HashSet<int>()).ToArray();
+        var atXY = new Dictionary<(int X, int Y), List<int>>();
+        for (int id = 0; id < copy.Length; id++)
+        {
+            var key = (copy[id].X, copy[id].Y);
+            if (!atXY.TryGetValue(key, out var indices))
+            {
+                indices = new List<int>();
+                atXY.Add(key, indices);
+            }
+            indices.Add(id);
+        }
+        AtXY = new Dictionary<(int X, int Y), int[]>(atXY.Count);
+        foreach (var (key, indices) in atXY)
+            AtXY.Add(key, indices.ToArray());
+        var next = new List<int>?[copy.Length];
         foreach (var (from, to) in directedEdges)
         {
             RequireCell(from); RequireCell(to);
-            next[from].Add(to);
+            (next[from] ??= new List<int>()).Add(to);
         }
-        Neighbors = next.Select(v => v.OrderBy(n => n).ToArray()).ToArray();
+        Neighbors = new int[copy.Length][];
+        for (int i = 0; i < next.Length; i++)
+        {
+            var neighbors = next[i];
+            if (neighbors == null) { Neighbors[i] = Array.Empty<int>(); continue; }
+            neighbors.Sort();
+            int count = 0;
+            for (int j = 0; j < neighbors.Count; j++)
+                if (count == 0 || neighbors[j] != neighbors[count - 1]) neighbors[count++] = neighbors[j];
+            var result = new int[count];
+            neighbors.CopyTo(0, result, 0, count);
+            Neighbors[i] = result;
+        }
         PortalRoutes = new();
         foreach (var route in portalRoutes ?? Array.Empty<NativePortalRoute>())
         {

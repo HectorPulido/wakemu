@@ -23,32 +23,8 @@ def files(root, *, full_server=False):
                 and path.suffix in (".py", ".json", ".gz", ".bin", ".csv")
             ):
                 result.add(path.relative_to(root))
-    # Movement fixtures import these standalone modules through test_ai_service.
-    # Capture their source only; no service configuration or process is needed.
-    if (root / "server/tests/test_ai_service.py").is_file():
-        for name in ("planner.py", "server.py"):
-            path = root / "server/ai-service" / name
-            if path.is_file() and not path.is_symlink():
-                result.add(path.relative_to(root))
-        # The compatibility entries now delegate into the actual source package.
-        for path in (root / "server/ai-service/wakfu_ai").rglob("*.py"):
-            if (
-                path.is_file()
-                and not path.is_symlink()
-                and "__pycache__" not in path.parts
-            ):
-                result.add(path.relative_to(root))
-        # Server regressions import native oracle/session fixtures from this
-        # directory without running the separate AI suite. Those fixtures are
-        # required inputs of the server validation snapshot too.
-        for path in (root / "server/ai-service/tests").rglob("*"):
-            if (
-                path.is_file()
-                and not path.is_symlink()
-                and "__pycache__" not in path.parts
-                and path.suffix in (".py", ".json", ".gz", ".bin", ".csv")
-            ):
-                result.add(path.relative_to(root))
+    # The World-owned WakIA bridge and server-owned fixtures are captured by
+    # the directories above. Legacy planner sources are not validation inputs.
     for path in (root / "server/protocol").rglob("*"):
         if path.is_file() and path.suffix in (".json", ".gz", ".csv", ".tsv", ".txt"):
             result.add(path.relative_to(root))

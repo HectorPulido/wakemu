@@ -10,7 +10,7 @@ class WorldPreparedDispatchWiringTests(unittest.TestCase):
         if not source.exists():
             source = (
                 Path(__file__).resolve().parents[1]
-                / "ai-service/wakfu_ai/bridge/world_shared.py"
+                / "wakfu_server/wakia_bridge/wakfu_ai/bridge/world_shared.py"
             )
         tree = ast.parse(source.read_text())
         helper = next(

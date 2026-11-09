@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 import gzip
 import hashlib
+import importlib.util
 import json
 import os
 import sys
@@ -83,10 +84,20 @@ def main():
         )
     if args.output.exists():
         raise ValueError("Use a fresh immutable run output")
-    sys.path[:0] = [
-        str(root / f)
-        for f in ("server", "server/tools", "server/tests", "server/ai-service")
-    ]
+    sdk = root / "server/wakfu_server/wakia_bridge"
+    if not (sdk / "wakfu_ai/native/native_oracle.py").is_file():
+        raise ValueError("Selected native AI SDK is unavailable")
+    sys.path[:0] = [str(root / f) for f in ("server", "server/tools", "server/tests")]
+    sys.path.insert(3, str(sdk))
+    spec = importlib.util.find_spec("wakfu_ai")
+    if (
+        spec is None
+        or spec.origin is None
+        or not Path(spec.origin).resolve().is_relative_to(sdk.resolve())
+    ):
+        raise RuntimeError(
+            "A different wakfu_ai SDK is already loaded; use a fresh process"
+        )
     os.environ["WAKFU_NATIVE_GRANTED_CAST"] = "1"
     os.environ["WAKFU_NATIVE_AREA_CALLBACKS"] = "1"
     sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -128,6 +139,8 @@ def main():
         schema="actual-low50-native-book-worker-v1",
         status="running",
         source_root=str(root),
+        sdk="wakia",
+        sdk_oracle_sha256=sha(sdk / "wakfu_ai/native/native_oracle.py"),
         candidate_manifest_sha256=sha(args.candidate / "manifest.json"),
         worker_sha256=sha(Path(__file__)),
         input_sha256=input_hashes,

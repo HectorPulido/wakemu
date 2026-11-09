@@ -1,0 +1,29 @@
+[
+  {
+    "name": "directed-detour-to-attack", "category": "geometry",
+    "cells": [[0,0,0],[1,0,0],[2,0,0],[0,1,0],[1,1,0],[2,1,0]],
+    "edges": [[0,3],[3,0],[3,4],[4,3],[4,5],[5,4],[5,2],[2,5]],
+    "actors": [ { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 3, "mp": 3 },
+                { "id": 2, "team": 1, "cell": 2, "hp": 100 } ],
+    "spells": [ { "id": 20, "kind": "damage", "target": "enemy", "amount": 20, "cost": 3, "minRange": 1, "maxRange": 1 } ],
+    "expect": { "enemyDamageAtLeast": 20, "allyDamageAtMost": 0, "hpAtMost": { "2": 80 },
+      "pathPrefix": [0, 3, 4, 5] }
+  },
+  {
+    "name": "area-hits-two-enemies", "category": "area", "length": 6,
+    "actors": [ { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 3 },
+                { "id": 2, "team": 1, "cell": 2, "hp": 100 },
+                { "id": 3, "team": 1, "cell": 3, "hp": 100 } ],
+    "spells": [ { "id": 21, "kind": "damage", "target": "enemy", "amount": 20, "cost": 3, "minRange": 1, "maxRange": 4, "zone": 1 } ],
+    "expect": { "enemyDamageAtLeast": 40, "allyDamageAtMost": 0, "hpAtMost": { "2": 80, "3": 80 } }
+  },
+  {
+    "name": "area-avoids-hurting-ally", "category": "area", "length": 6,
+    "actors": [ { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 3 },
+                { "id": 2, "team": 1, "cell": 2, "hp": 100 },
+                { "id": 3, "team": 0, "cell": 3, "hp": 10 } ],
+    "spells": [ { "id": 22, "kind": "damage", "target": "enemy", "amount": 20, "cost": 3, "minRange": 1, "maxRange": 4, "zone": 1, "hurtsAllies": true },
+                { "id": 23, "kind": "damage", "target": "enemy", "amount": 20, "cost": 3, "minRange": 1, "maxRange": 4 } ],
+    "expect": { "enemyDamageAtLeast": 20, "allyDamageAtMost": 0, "hpAtLeast": { "3": 10 } }
+  }
+]

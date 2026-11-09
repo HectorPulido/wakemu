@@ -147,14 +147,15 @@ def main():
     parser.add_argument("--output", required=True, type=Path)
     arguments = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
-    for path in (root / "server", root / "server" / "ai-service"):
+    sdk = root / "server/wakfu_server/wakia_bridge"
+    for path in (root / "server", sdk):
         if str(path) not in sys.path:
             sys.path.insert(0, str(path))
     from tools.sublimation_semantic_fixture import build_fixture
 
     fixture = build_fixture(27159, arguments.manifest)
     # The source-pinned metadata backend is installed before AI/runtime imports.
-    from wakfu_ai.native.native_oracle import NativeOracle
+    from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
     from wakfu_server.combat_characteristic_link import bind_characteristic_stats
     from wakfu_server.combat_runtime_messages import RuntimeMessages
     from wakfu_server.fight_checkpoint_store import snapshot
@@ -221,7 +222,7 @@ def main():
         source_files={
             str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in (
-                root / "server/ai-service/wakfu_ai/native/native_oracle.py",
+                sdk / "wakfu_ai/native/native_oracle.py",
                 root / "server/wakfu_server/combat/combat_runtime_messages.py",
                 Path(__file__).resolve(),
             )

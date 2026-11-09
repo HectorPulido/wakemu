@@ -196,6 +196,11 @@ class NativeDelayedEffects:
             ):
                 raise ValueError("Missing exact retained delayed Qe authority")
             invocation = EffectInvocation(**pending["invocation"])
+            # The retained invocation preserves the original turn-event
+            # provenance for queue identity. Delivery happens at a later
+            # boundary and is not a replay of that original event: its owned
+            # actor/turn facts cannot describe the currently active turn.
+            invocation = replace(invocation, native_turn_boundary_context=None)
             effect = self.dispatcher.effects[str(invocation.reference)]
             if effect["effect_class"] not in SUPPORTED:
                 raise ValueError("Unaudited delayed Qe family")

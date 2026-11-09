@@ -50,9 +50,8 @@ def main():
     if args.output.exists() or args.seconds_per_context <= 0:
         raise ValueError("Require new output and positive time bound")
     root = args.root.resolve()
-    sys.path[:0] = [
-        str(root / p) for p in ("server", "server/tools", "server/ai-service")
-    ]
+    sdk = "server/wakfu_server/wakia_bridge"
+    sys.path[:0] = [str(root / p) for p in ("server", "server/tools", sdk)]
     from qualify_monster_effect_work import source_map
     from offline_monster_catalog import OfflineMonsterCatalog
 

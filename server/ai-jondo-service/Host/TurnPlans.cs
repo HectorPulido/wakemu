@@ -25,10 +25,10 @@ internal static class TurnPlans
     private const int Capacity = 128;
 
     public static bool TryGet(JsonElement request, MonsterTactics.Board board, Fighter actor,
-        IReadOnlyList<MonsterTactics.Spell> spells, out MonsterTactics.Action? step)
+        IReadOnlyList<MonsterTactics.Spell> spells, out MonsterTactics.Action? step, Lazy<string?>? requestKey = null)
     {
         step = null;
-        var key = Key(request);
+        var key = requestKey != null ? requestKey.Value : Key(request);
         Cleanup();
         if (key == null || !Entries.TryGetValue(key, out var entry)) return false;
         bool Reject()
@@ -55,7 +55,8 @@ internal static class TurnPlans
         }
         var spell = spells.SingleOrDefault(s => s.Id == pending.Spell && s.Grade == pending.Grade);
         var target = board.Fighters.FirstOrDefault(f => f.Id == pending.Target && f.IsAlive);
-        if (spell == null || target == null || pending.Target != actor.Id && target.CellId != pending.Aim)
+        if (spell == null || target == null || pending.Target != actor.Id && target.CellId != pending.Aim
+            && !MonsterTactics.FootprintAt(target, target.CellId).Contains(pending.Aim))
             return Reject();
         if (!global::Jondo.Unity.World.Maps.MapGeometry.IsValid(pending.From)
             || !global::Jondo.Unity.World.Maps.MapGeometry.IsValid(pending.Aim)) return Reject();
@@ -69,9 +70,9 @@ internal static class TurnPlans
         return true;
     }
 
-    public static void Store(JsonElement request, IReadOnlyList<MonsterTactics.Action> plan)
+    public static void Store(JsonElement request, IReadOnlyList<MonsterTactics.Action> plan, Lazy<string?>? requestKey = null)
     {
-        var key = Key(request);
+        var key = requestKey != null ? requestKey.Value : Key(request);
         Cleanup();
         if (key == null) return;
         if (plan.Count == 0) { Entries.Remove(key); return; }
@@ -80,9 +81,9 @@ internal static class TurnPlans
         Cleanup();
     }
 
-    public static void CaptureOffer(JsonElement request, Fighter actor, string type, int? spellId = null)
+    public static void CaptureOffer(JsonElement request, Fighter actor, string type, int? spellId = null, Lazy<string?>? requestKey = null)
     {
-        var key = Key(request);
+        var key = requestKey != null ? requestKey.Value : Key(request);
         if (key == null || !Entries.TryGetValue(key, out var entry)) return;
         var pending = entry.Steps[entry.Index];
         if (type == "end_turn" || type == "cast" && spellId != pending.Spell)
@@ -94,13 +95,13 @@ internal static class TurnPlans
         entry.LastUsed = DateTime.UtcNow;
     }
 
-    public static void Invalidate(JsonElement request)
+    public static void Invalidate(JsonElement request, Lazy<string?>? requestKey = null)
     {
-        var key = Key(request);
+        var key = requestKey != null ? requestKey.Value : Key(request);
         if (key != null) Entries.Remove(key);
     }
 
-    private static string? Key(JsonElement request)
+    internal static string? Key(JsonElement request)
     {
         if (!request.TryGetProperty("source", out var source)
             || !request.TryGetProperty("board", out var board)

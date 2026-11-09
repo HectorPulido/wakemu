@@ -240,6 +240,7 @@ class NativeSnColumns:
     chunks: tuple
     map_id: int
     source_sha256: str
+    _chunk_index: object
 
     def __init__(self, data, *, map_id, source_sha256):
         if (
@@ -293,7 +294,18 @@ class NativeSnColumns:
                     raise ValueError("Invalid native Sn ordered physical surfaces")
                 columns[cx, cy] = tuple(NativePhysicalSurface(*row) for row in rows)
             chunks.append((bounds, MappingProxyType(columns)))
+        chunk_index = {}
+        for bounds, columns in chunks:
+            x, y, width, height = bounds
+            for bx in range(x // 18, (x + width - 1) // 18 + 1):
+                for by in range(y // 18, (y + height - 1) // 18 + 1):
+                    chunk_index.setdefault((bx, by), []).append((bounds, columns))
         object.__setattr__(self, "chunks", tuple(chunks))
+        object.__setattr__(
+            self,
+            "_chunk_index",
+            MappingProxyType({key: tuple(value) for key, value in chunk_index.items()}),
+        )
         object.__setattr__(self, "map_id", map_id)
         object.__setattr__(self, "source_sha256", source_sha256)
 
@@ -363,7 +375,9 @@ class NativeSnColumns:
             for value in (x, y)
         ):
             raise ValueError("Invalid native Sn physical coordinates")
-        for (cx, cy, width, height), columns in self.chunks:
+        for (cx, cy, width, height), columns in self._chunk_index.get(
+            (x // 18, y // 18), ()
+        ):
             if cx <= x < cx + width and cy <= y < cy + height:
                 return columns.get((x, y), ())
         return None

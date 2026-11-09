@@ -67,10 +67,10 @@ def _qualified(runtime, action):
         raise RiftReplayError("Unsupported native runtime clock")
 
 
-def _stats_payload(runtime):
+def _stats_payload(runtime, *, sdk_source=None):
     from .combat_npc_reproduction import _sdk_modules
 
-    _, stats_module, _ = _sdk_modules()
+    _, stats_module, _ = _sdk_modules(runtime, sdk_source=sdk_source)
     provider = runtime.stats_serializer
     if (
         type(provider) is not stats_module.NativeStats
@@ -173,7 +173,7 @@ def capture_before(runtime, action):
     from .combat_reproduction import source_identity, catalog_identity
     from .combat_npc_reproduction import _sdk_modules, sdk_identity
 
-    _, _, directory = _sdk_modules()
+    _, _, directory = _sdk_modules(runtime)
     from .combat_npc_reproduction import ENVIRONMENT
 
     return {
@@ -219,14 +219,14 @@ def observe_operation(runtime):
         yield tape
 
 
-def _restore_stats(runtime, payload):
+def _restore_stats(runtime, payload, *, sdk_source=None):
     from .combat_npc_reproduction import _sdk_modules
 
-    _, stats_module, _ = _sdk_modules()
+    _, stats_module, _ = _sdk_modules(runtime, sdk_source=sdk_source)
     provider = stats_module.NativeStats(**payload["fields"])
     provider.__dict__.update(payload["fields"])
     runtime.stats_serializer = runtime.runtime_stats_serializer = provider
-    _stats_payload(runtime)
+    _stats_payload(runtime, sdk_source=sdk_source)
 
 
 @contextmanager
@@ -318,7 +318,7 @@ def replay(receipt):
         or receipt.get("comparison_policy") != COMPARISON_POLICY
     ):
         raise RiftReplayError("Unsupported Rift reproduction receipt")
-    _, _, directory = _sdk_modules()
+    _, _, directory = _sdk_modules(sdk_source=receipt["identity"]["sdk"])
     identity = {
         "source": source_identity(),
         "catalog": catalog_identity(),
@@ -338,15 +338,17 @@ def replay(receipt):
     if state["native_callback_proof"] is not True:
         raise RiftReplayError("Missing captured native callback provenance")
     runtime.clock = time.monotonic
-    _restore_stats(runtime, state["stats"])
-    restore_providers(runtime, state["providers"])
+    _restore_stats(runtime, state["stats"], sdk_source=receipt["identity"]["sdk"])
+    restore_providers(
+        runtime, state["providers"], sdk_source=receipt["identity"]["sdk"]
+    )
     _restore_rail_aliases(runtime, state["rail"])
     if _binding_aliases(runtime) != state["aliases"]:
         raise RiftReplayError("Reconstructed callback aliases differ")
     # Issued only after every captured provider has passed the fixed recipe.
     from importlib import import_module
 
-    oracle_module, _, _ = _sdk_modules()
+    oracle_module, _, _ = _sdk_modules(runtime, sdk_source=receipt["identity"]["sdk"])
     authority = import_module(oracle_module.__package__ + ".native_callback_authority")
     authority.renew_native_callbacks(runtime, _NativeCallbacks(()))
     _qualified(runtime, action)

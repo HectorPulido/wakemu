@@ -49,8 +49,8 @@ actual_sources = {
     ).hexdigest()
     for name in source_names
 }
-from jondo_native_support_probe import build_fixture, _oracle, _drain
-from wakfu_ai.native.native_stats import NativeStats
+from tests.jondo_native_support_probe import build_fixture, _oracle, _drain
+from wakfu_server.wakia_bridge.wakfu_ai.native.native_stats import NativeStats
 from wakfu_server.fight_checkpoint_store import snapshot
 
 source = (

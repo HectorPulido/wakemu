@@ -139,11 +139,7 @@ class SpatialPilotNewAttackTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Borrow only the genuine native actor/arena constructor, not AI policy.
-        ai_root = Path(__file__).resolve().parents[1] / "ai-service"
-        for path in (ai_root, ai_root / "tests"):
-            if str(path) not in sys.path:
-                sys.path.insert(0, str(path))
-        from test_native_oracle import NativeOracleTests
+        from tests.native_oracle_fixture import NativeOracleTests
         from wakfu_server.combat_npc_attack import npc_spell_catalog
         from wakfu_server.combat_native_spell_casting import catalog
         from wakfu_server.monsters import native_abilities

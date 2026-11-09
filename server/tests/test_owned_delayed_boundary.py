@@ -9,16 +9,12 @@ from pathlib import Path
 import sys
 
 _SERVER = Path(__file__).resolve().parents[1]
-for _fixture_path in (
-    _SERVER / "tests",
-    _SERVER / "ai-service",
-    _SERVER / "ai-service" / "tests",
-):
+for _fixture_path in (_SERVER / "tests",):
     if str(_fixture_path) not in sys.path:
         sys.path.insert(0, str(_fixture_path))
 
-from test_native_callback_handoff import NativeCallbackHandoffTests
-import test_native_oracle as native_fixture
+from tests.native_callback_handoff_fixture import NativeCallbackHandoffTests
+from tests import native_oracle_fixture as native_fixture
 from wakfu_server import combat_native_action_ids as action_ids
 from wakfu_server import combat_native_delay_queue as delay_queue
 from wakfu_server.combat_geometry_snapshot import source_snapshot
@@ -120,6 +116,47 @@ class OwnedDelayedBoundaryTests(unittest.TestCase):
                 )
             )
         self.assertEqual(*results)
+        # A delayed runner may have been registered by an earlier owned turn
+        # event. Its original provenance remains in both retained copies, but
+        # that event is no longer the current turn when the runner executes.
+        stale = deepcopy(original)
+        old_context = dict(
+            policy="wakemu.owned-turn-boundary-facts-v1",
+            actor_id=fixture.pc.id,
+            turn_id=0,
+            phase="start",
+            event_id=1001,
+        )
+        retained = stale.fight.native_owned_group_effects[uid]["invocation"]
+        queued = stale.fight.native_delay_queue["entries"][0]["invocation"]
+        retained["native_turn_boundary_context"] = deepcopy(old_context)
+        queued["native_turn_boundary_context"] = deepcopy(old_context)
+        self.assertEqual(retained, queued)
+        broken = deepcopy(stale)
+        broken.fight.native_delay_queue["entries"][0]["invocation"][
+            "native_turn_boundary_context"
+        ]["turn_id"] += 1
+        broken_oracle = native_fixture.NativeOracleTests.oracle_for(
+            broken, fixture.character, fixture.monster, decks[fixture.character["id"]]
+        )
+        with self.assertRaisesRegex(ValueError, "retained delayed Qe authority"):
+            broken_oracle.commit(
+                {"type": "end_turn"}, stats_serializer=broken.stats_serializer
+            )
+        stale_oracle = native_fixture.NativeOracleTests.oracle_for(
+            stale, fixture.character, fixture.monster, decks[fixture.character["id"]]
+        )
+        with patch(
+            "wakfu_server.combat_runtime_messages.wall_time", return_value=1234.5
+        ):
+            stale_packets = stale_oracle.commit(
+                {"type": "end_turn"}, stats_serializer=stale.stats_serializer
+            )
+        self.assertEqual(tuple(stale_packets), results[1][0])
+        self.assertEqual(stale.fight.native_delay_queue["entries"], [])
+        self.assertNotIn(uid, stale.fight.native_owned_group_effects)
+        self.assertEqual(retained["native_turn_boundary_context"], old_context)
+        self.assertEqual(queued["native_turn_boundary_context"], old_context)
         runtime = deepcopy(original)
         oracle = native_fixture.NativeOracleTests.oracle_for(
             runtime, fixture.character, fixture.monster, decks[fixture.character["id"]]

@@ -6,7 +6,7 @@ A personal experiment in understanding game protocols and building a Python serv
 
 - **Accounts and characters:** local login, character creation, saved progression, and multiple client profiles.
 - **World exploration:** map movement, interactive objects, and transport between supported locations.
-- **Turn-based combat:** placement, movement, spells, states, summons, and monster AI.
+- **Turn-based combat:** placement, movement, spells, states, summons, and [WakIA monster AI](server/ai-jondo-service/README.md).
 - **Multiplayer:** player groups, trading, joining fights, and combat spectating.
 - **Inventory and builds:** bags, equipment, spell decks, and saved build selection.
 - **Professions:** harvesting, planting, crafting, and profession experience.

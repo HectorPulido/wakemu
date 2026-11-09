@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Core/**/*.cs" />
+    <Compile Include="../../Compatibility/**/*.cs" />
+    <Compile Include="../../Host/Planner.cs" />
+    <Compile Include="../../Host/TurnPlans.cs" />
+    <Compile Include="../../Host/SpecificAi.cs" />
+    <Compile Include="../../Host/PlanningGate.cs" />
+    <Compile Include="../../Host/BasicMechanicAis.cs" />
+    <Compile Include="../../Host/SupremeMechanicAis.cs" />
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+</Project>

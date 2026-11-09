@@ -24,7 +24,7 @@ class RushuVestigeCallbackOwnershipTests(PostgresCase):
         from wakfu_server.combat_effect_dispatch import EffectDispatcher
         from wakfu_server.combat_runtime_messages import RuntimeMessages
         from wakfu_server.combat_rushu_scene_layout import reconstructed_scene
-        from wakfu_ai.native.native_oracle import NativeOracle
+        from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
         from native_recorded_instance_fixture import original_bootstrap_publication
         from native_supreme_paid_component_runtime import PaidComponentRuntime
         import native_paid_party_fixture as party

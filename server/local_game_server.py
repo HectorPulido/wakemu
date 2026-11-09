@@ -5927,6 +5927,9 @@ def session(raw, peer, service, context):
                 refresh_shared_combat()
                 drain_shared_combat()
                 checkpoint_fight("ended")
+                from wakfu_server.friendly_duel_bot_ack import return_settled
+
+                return_settled(COMBAT_SESSIONS, shared)
                 character.update(
                     refresh_owned_character(
                         STORE.character(account_id, character["id"])
@@ -6511,11 +6514,8 @@ def session(raw, peer, service, context):
         import sys
         import types
 
-        directory = pathlib.Path(
-            os.environ.get(
-                "WAKFU_AI_SDK_DIR",
-                str(pathlib.Path(__file__).resolve().parent / "ai-service"),
-            )
+        directory = (
+            pathlib.Path(__file__).resolve().parent / "wakfu_server" / "wakia_bridge"
         )
         path = directory / "world_loader.py"
         source = path.read_bytes()
@@ -8020,6 +8020,13 @@ def session(raw, peer, service, context):
                     for packet in public_combat_events(delivered_batches[sequence])
                 ),
             )
+        from wakfu_server.friendly_duel_bot_ack import acknowledge_delivered
+
+        # A headless duel bot has no client to acknowledge its delivered
+        # presentation. Human participants still ACK their own packets.
+        if acknowledge_delivered(COMBAT_SESSIONS, shared):
+            refresh_shared_combat()
+            return drain_shared_combat(blocking=blocking)
         return True
 
     def spectator_session_for_current_character():
@@ -8830,7 +8837,7 @@ def session(raw, peer, service, context):
         return True
 
     @PROFILER.profile("combat.readiness")
-    def apply_readiness(ready):
+    def apply_readiness(ready, *, acting_session=None):
         nonlocal fight, fight_messages
         if fight is None or fight.phase != "placement":
             return False
@@ -8903,11 +8910,25 @@ def session(raw, peer, service, context):
             from wakfu_server.fight_store import activate
 
             shared = refresh_shared_combat()
+            ready_session = combat_session if acting_session is None else acting_session
 
             @PROFILER.profile("combat.readiness.prepare")
             def ready_operation(candidate, runtime):
+                bot_id = (shared.join_context or {}).get("ai_bot_character_id")
+                if (
+                    getattr(shared, "is_duel", False)
+                    and ready_session.character_id == bot_id
+                    and ready
+                ):
+                    from wakfu_server.friendly_duel_runtime import (
+                        enable_friendly_bot_ai,
+                    )
+
+                    enable_friendly_bot_ai(
+                        candidate, tuple(shared.duel_leaders.values()), bot_id
+                    )
                 prepared = COMBAT_SESSIONS.ready_transition(
-                    combat_session,
+                    ready_session,
                     candidate,
                     runtime,
                     ready,
@@ -8931,17 +8952,17 @@ def session(raw, peer, service, context):
                 if candidate.phase == "placement" and prepared.fight.phase == "active":
                     activate(
                         STORE,
-                        combat_session.account_id,
-                        combat_session.generation,
-                        combat_session.character_id,
+                        ready_session.account_id,
+                        ready_session.generation,
+                        ready_session.character_id,
                         candidate.id,
                     )
                 return prepared
 
             COMBAT_SESSIONS.execute(
-                combat_session,
+                ready_session,
                 fight.id,
-                character["id"],
+                ready_session.character_id,
                 ready_operation,
                 require_turn=False,
             )
@@ -12723,7 +12744,44 @@ def session(raw, peer, service, context):
                         result = invite_challenge(
                             STORE, challenger_session, target_session, body
                         )
-                        if not WORLD.send_to(
+                        bot_runtime = (
+                            None if BOTS_BRIDGE is None else BOTS_BRIDGE.runtime
+                        )
+                        bot_target = False
+                        if bot_runtime is not None:
+                            with bot_runtime.lock:
+                                bot_target = any(
+                                    lease["character_id"] == target_character["id"]
+                                    for lease in bot_runtime.active.values()
+                                )
+                        if bot_target:
+                            from wakfu_server.bots.friendly_duel import (
+                                accept as accept_bot_duel,
+                            )
+
+                            try:
+                                accepted = accept_bot_duel(
+                                    bot_runtime,
+                                    COMBAT_SESSIONS,
+                                    target_session,
+                                    character["id"],
+                                    flush_positions,
+                                )
+                            except Exception:
+                                cancel_undelivered_invitation(
+                                    STORE,
+                                    account_id,
+                                    character["id"],
+                                    result["invitation_id"],
+                                )
+                                raise
+                            if not accepted.get("accepted"):
+                                raise ValueError("Bot challenge was not accepted")
+                            adopt_shared_duel()
+                            drain_shared_combat()
+                            apply_readiness(True, acting_session=target_session)
+                            checkpoint_fight()
+                        elif not WORLD.send_to(
                             delivery_character_id,
                             target_generation,
                             *result["packet"],
@@ -22371,22 +22429,10 @@ def main():
         else:
             catalog_info = startup_prewarm["details"]
             prewarm_elapsed_ms = startup_prewarm["elapsed_ms"]
-        import subprocess, sys
+        # Import the World-owned bridge at startup so optional WakIA workers
+        # initialize outside an actor turn.
+        from wakfu_server.wakia_bridge.wakfu_ai.bridge import backend_selection
 
-        subprocess.run(
-            [
-                sys.executable,
-                os.path.join(
-                    os.environ.get(
-                        "WAKFU_AI_SDK_DIR",
-                        os.path.join(os.path.dirname(__file__), "ai-service"),
-                    ),
-                    "prepare_catalog_cache.py",
-                ),
-                "--seal",
-            ],
-            check=True,
-        )
         record(
             event="combat_catalogs_ready",
             elapsed_ms=round(

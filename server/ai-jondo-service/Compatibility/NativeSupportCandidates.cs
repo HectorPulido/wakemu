@@ -8,6 +8,7 @@ namespace Wakfu.Jondo;
 /// <summary>Native support advice only. Never simulates a summon or grants a state.</summary>
 internal static class NativeSupportCandidates
 {
+    internal const double PartialConfidence = 0.25;
     internal sealed record Candidate(object Action, int SpellId, double Score, string Reason);
     private static string Text(JsonElement v, string key) => v.TryGetProperty(key, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString()! : "";
     private static int Int(JsonElement v, string key, int fallback = 0) => v.TryGetProperty(key, out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetInt32(out int n) ? n : fallback;
@@ -29,6 +30,9 @@ internal static class NativeSupportCandidates
         IReadOnlyList<Candidate> Finish() => candidates.OrderByDescending(c => c.Score).Take(16).ToArray();
         var enemies = board.Fighters.Where(f => f.IsAlive && f.TeamId != actor.TeamId && !board.Hidden(f)).ToList();
         var allies = board.Fighters.Where(f => f.IsAlive && f.TeamId == actor.TeamId).ToList();
+        // Host snapshots may explicitly mark an opposing actor hidden. Its
+        // current position and identity must not generate aims or recipients.
+        var visibleFighters = board.Fighters.Where(f => f.TeamId == actor.TeamId || !board.Hidden(f)).ToList();
         foreach (var rawSpell in request.GetProperty("spells").EnumerateArray().Take(64))
         {
             if (canExplore?.Invoke() == false) return Finish();
@@ -38,18 +42,25 @@ internal static class NativeSupportCandidates
                 || Int(support, "version") != 1 || actor.Recarga.GetValueOrDefault(id) > 0) continue;
             int count = Math.Max(actor.LanzadosEsteTurno.GetValueOrDefault(id), history.Count(a => Text(a, "type") == "cast" && Int(a, "spellId") == id));
             var cost = costs(spell);
+            // A zero-AP spell may still pay MP or WP. Only an action with no
+            // resource cost and no finite per-turn bound needs the conservative
+            // repeat guard; native usage limits remain decisive.
+            bool unboundedFree = cost.Ap == 0 && cost.Mp == 0 && cost.Wp == 0
+                && spell.PerTurn <= 0;
             if (cost.Ap > actor.CurrentAP || cost.Mp > actor.CurrentMP || cost.Wp > wp
-                || spell.PerTurn > 0 && count >= spell.PerTurn || cost.Ap == 0 && count > 0) continue;
+                || spell.PerTurn > 0 && count >= spell.PerTurn || unboundedFree && count > 0) continue;
             // This provider supplies missing support semantics; ordinary numeric
             // rows retain their existing multi-action planner and healing logic.
             var projected = Array(rawSpell, "rows").Select(r => Int(r, "nativeReference", -1)).Where(r => r >= 0).ToHashSet();
             var effects = Array(support, "effects").Where(e => !projected.Contains(Int(e, "nativeReference", -2))).Take(32).ToArray();
             var summons = Array(support, "summons").Take(8).ToArray();
+            var traps = NativeTrapForecast.Read(request, rawSpell, support, board, actor)
+                .GroupBy(t => t.Aim).ToDictionary(g => g.Key, g => g.OrderBy(t => t.Value).First());
             bool anchorOnly = Flag(support, "castAnchorRequired") && (spell.HasRows || spell.Utility > 0);
-            if (effects.Length == 0 && summons.Length == 0 && !anchorOnly) continue;
-            origins ??= MonsterTactics.Routes(board, actor).OrderBy(p => p.Value.Steps).ThenBy(p => p.Value.Danger).Take(128).ToArray();
+            if (effects.Length == 0 && summons.Length == 0 && traps.Count == 0 && !anchorOnly) continue;
+            origins ??= MonsterTactics.CastingRoutes(board, actor).OrderBy(p => p.Value.Steps).ThenBy(p => p.Value.Danger).Take(128).ToArray();
             var aims = new HashSet<int>();
-            foreach (var target in board.Fighters.Where(f => f.IsAlive))
+            foreach (var target in visibleFighters.Where(f => f.IsAlive))
             {
                 string relation = target.Id == actor.Id ? "self" : target.TeamId == actor.TeamId ? "ally" : "enemy";
                 if (Names(support, "aimKinds", relation) || Flag(support, "castAnchorRequired") && !spell.NeedsFreeCell)
@@ -58,8 +69,15 @@ internal static class NativeSupportCandidates
             if (Names(support, "aimKinds", "emptyCell"))
                 foreach (var c in Array(support, "candidateCells").Take(32))
                     if (c.TryGetInt32(out int cell) && MapGeometry.IsValid(cell)) aims.Add(cell);
+            foreach (int cell in traps.Keys) aims.Add(cell);
             var bestByAim = new Dictionary<int, Candidate>();
-            foreach (int fixedAim in aims.OrderBy(c => MapGeometry.Distance(actor.CellId, c)).Take(48))
+            // The caster's current cell is a fixed aim. Keep it while adding
+            // a distinct self anchor for each hypothetical movement route.
+            // -1 is internal only and never reaches geometry or the response.
+            var fixedAims = aims.OrderBy(c => MapGeometry.Distance(actor.CellId, c)).Take(48);
+            bool movedSelfAim = spell.NativeAllowSelf == true && spell.MinRange > 0
+                && Names(support, "aimKinds", "self");
+            foreach (int fixedAim in movedSelfAim ? new[] { -1 }.Concat(fixedAims) : fixedAims)
             foreach (var (from, route) in origins)
             {
                 if (canExplore?.Invoke() == false)
@@ -70,15 +88,16 @@ internal static class NativeSupportCandidates
                 if (cost.Ap > route.ActionPoints || cost.Mp > route.MovementPoints) continue;
                 // A zero-range aura is aimed at the hypothetical source anchor,
                 // regardless of its effect recipient relations.
-                int aim = spell.MaxRange == 0 && Names(support, "aimKinds", "self") ? from : fixedAim;
+                int aim = fixedAim == -1 || spell.MaxRange == 0 && Names(support, "aimKinds", "self") ? from : fixedAim;
                 int distance = MapGeometry.Distance(from, aim);
                 int maximum = spell.MaxRange + (spell.RangeBoostable ? actor.Range : 0);
-                if (distance < spell.MinRange || distance > maximum) continue;
+                if (!MonsterTactics.RangeAccepts(spell, distance, maximum)) continue;
                 var p = cells[from]; var q = cells[aim];
-                if (spell.InLine && p.X != q.X && p.Y != q.Y) continue;
+                if (!MonsterTactics.AlignmentAccepts(spell, from, aim)) continue;
                 if (spell.NeedsLineOfSight && from != aim && !board.Sees(from, aim)) continue;
-                Fighter? target = board.Fighters.FirstOrDefault(f => f.IsAlive
+                Fighter? target = visibleFighters.FirstOrDefault(f => f.IsAlive
                     && MonsterTactics.FootprintAt(f, f == actor ? from : f.CellId).Contains(aim));
+                if (!MonsterTactics.NativeLinearPathAllows(board, spell, actor, from, aim, target)) continue;
                 if (spell.NeedsFreeCell && target != null) continue;
                 if (target != null && spell.PerTarget > 0
                     && actor.LanzadosPorObjetivo.GetValueOrDefault((id, target.Id)) >= spell.PerTarget) continue;
@@ -86,7 +105,10 @@ internal static class NativeSupportCandidates
                 actor.NativeDirection=NativeDirectionalArea.DirectionAfterPath(board,route.Path,previousDirection);
                 try
                 {
-                    double supportValue = Value(support, effects, summons, target, actor, rawActors, board.Fighters, from, aim, count);
+                    double supportValue = Value(support, effects, summons, target, actor, rawActors, visibleFighters, from, aim, count);
+                    NativeTrapForecast.Candidate trap = default;
+                    bool forecastUsed = from == actor.CellId && target == null && traps.TryGetValue(aim, out trap);
+                    if (forecastUsed) supportValue += trap.Value;
                     if ((!anchorOnly && !(supportValue > 0)) || !double.IsFinite(supportValue)) continue;
                     // Existing pure-mechanic utility is exploration, not proof of a
                     // repeatable benefit. Do not spend paid AP on that same unknown
@@ -107,8 +129,10 @@ internal static class NativeSupportCandidates
                         * Math.Max(0.1, 1 - 0.06 * (route.Steps + route.LostToTackles(actor))) / (1 + 0.06 * route.Danger);
                     object action = route.Path.Count > 1 ? Movement(route.Path, cells, gates)
                         : new { type = "cast", spellId = id, level = spell.Grade, target = new[] { q.X, q.Y, q.Z }, targetId = target?.Id };
-                    string reason = supportValue > 0
-                        ? "Typed native support candidate; benefit is advisory, effects remain native"
+                    string reason = forecastUsed
+                        ? trap.Partial ? "Partial native trap counterfactual; existing confidence discount applies"
+                            : "Native trap counterfactual; future movement remains uncertain"
+                        : supportValue > 0 ? "Typed native support candidate; benefit is advisory, effects remain native"
                         : "Native cast-anchor candidate; preserves existing utility without predicting unknown effects";
                     var proposal = new Candidate(action, id, score, reason);
                     if (!bestByAim.TryGetValue(aim, out var best) || score > best.Score) bestByAim[aim] = proposal;
@@ -125,13 +149,17 @@ internal static class NativeSupportCandidates
         double probability = effect.TryGetProperty("probability", out var p) && p.ValueKind == JsonValueKind.Number
             ? Math.Clamp(p.GetDouble(), 0, 100) / 100.0 : 0;
         string confidence = Text(effect, "confidence");
-        return probability * (confidence == "known" && !Flag(effect, "conditional") && !Flag(effect, "triggered") && !Flag(effect, "fromState") ? 1 : confidence is "known" or "conditional" ? 0.25 : 0);
+        return probability * (confidence == "known" && !Flag(effect, "conditional") && !Flag(effect, "triggered") && !Flag(effect, "fromState") ? 1 : confidence is "known" or "conditional" ? PartialConfidence : 0);
     }
 
     private static double Value(JsonElement support, JsonElement[] effects, JsonElement[] summons, Fighter? target,
         Fighter actor, IReadOnlyDictionary<long, JsonElement> rawActors, IReadOnlyList<Fighter> fighters, int from, int aim, int castCount)
     {
         double value = 0;
+        // Multiple native support rows can heal the same recipient. Track
+        // their expected credited amounts so later rows cannot reward health
+        // that is already covered by earlier rows of this cast.
+        var creditedHealing = new Dictionary<long, double>();
         string relation = target == null ? "emptyCell" : target.Id == actor.Id ? "self" : target.TeamId == actor.TeamId ? "ally" : "enemy";
         // A role bonus ranks only real authored summon capabilities; it is not
         // a prediction of an invented creature's HP, spells or future damage.
@@ -204,10 +232,11 @@ internal static class NativeSupportCandidates
                     var existing = Array(raw, "states").Where(s => Int(s, "reference") == state).ToArray();
                     bool present = existing.Length > 0 || Array(effect, "presentOn").Any(a => a.ValueKind == JsonValueKind.Number && a.GetInt64() == recipient.Id);
                     bool increaseProven = Array(effect, "increaseOn").Any(a => a.ValueKind == JsonValueKind.Number && a.GetInt64() == recipient.Id);
+                    bool removable = !effect.TryGetProperty("removableOn", out _) || Array(effect, "removableOn").Any(a => a.ValueKind == JsonValueKind.Number && a.GetInt64() == recipient.Id);
                     // Presence and level are distinct: level zero can still be
                     // a real native buff. Existing states earn additional value
                     // only from a source-attested stacking increase for this target.
-                    if (state <= 0 || kind == "add_state" && present && !increaseProven || kind == "remove_state" && !present) continue;
+                    if (state <= 0 || kind == "add_state" && present && !increaseProven || kind == "remove_state" && (!present || !removable)) continue;
                     value += sign * 16 * weight;
                 }
                 else if (kind == "heal")
@@ -218,8 +247,11 @@ internal static class NativeSupportCandidates
                         if (Text(effect, "percentBase") != "maximum_hp") continue;
                         amount = recipient.MaxHP * amount / 100.0;
                     }
-                    value += sign * Math.Min(Math.Max(0, recipient.MaxHP - recipient.CurrentHP), amount)
-                        * (recipient.CurrentHP * 2 < recipient.MaxHP ? 1.5 : 1) * weight;
+                    double missing = Math.Max(0, (double)recipient.MaxHP - recipient.CurrentHP);
+                    double expected = Math.Min(missing, amount) * weight;
+                    double credited = Math.Min(Math.Max(0, missing - creditedHealing.GetValueOrDefault(recipient.Id)), expected);
+                    creditedHealing[recipient.Id] = creditedHealing.GetValueOrDefault(recipient.Id) + credited;
+                    value += sign * credited * (recipient.CurrentHP * 2L < recipient.MaxHP ? 1.5 : 1);
                 }
                 else if (kind is "stat_gain" or "stat_loss")
                 {

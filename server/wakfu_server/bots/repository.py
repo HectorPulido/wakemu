@@ -7,7 +7,7 @@ import secrets
 from psycopg.types.json import Jsonb
 
 
-CAPABILITIES = frozenset(("chat", "exchange"))
+CAPABILITIES = frozenset(("chat", "exchange", "duel"))
 PUBLIC_CHARACTER_FIELDS = (
     "id",
     "name",

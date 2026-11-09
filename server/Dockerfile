@@ -7,9 +7,6 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY local_game_server.py protocol_codec.py ./
 COPY wakfu_server ./wakfu_server
-COPY ai-service/wakfu_ai ./ai-service/wakfu_ai
-COPY ai-service/*.py ./ai-service/
-COPY ai-service/scripts/*.py ./ai-service/scripts/
 COPY migrations ./migrations
 COPY seeds ./seeds
 COPY protocol/npc-dialogues.json.gz protocol/npc-observed-dialogue-edges.json.gz ./protocol/

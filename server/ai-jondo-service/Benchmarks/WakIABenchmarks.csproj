@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- The host entry point is included for its actual frame validator; the
+         benchmark's top-level entry point remains the executable entry point. -->
+    <NoWarn>$(NoWarn);CS7022</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Core/**/*.cs" />
+    <Compile Include="../Compatibility/**/*.cs" />
+    <Compile Include="../Host/*.cs" />
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+</Project>

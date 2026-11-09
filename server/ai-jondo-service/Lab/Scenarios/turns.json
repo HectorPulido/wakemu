@@ -1,0 +1,11 @@
+[
+  {
+    "name": "two-allies-attack-sequentially", "category": "team", "length": 6,
+    "turns": [1, 3],
+    "actors": [ { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 3, "spellIds": [30] },
+                { "id": 3, "team": 0, "cell": 1, "hp": 100, "ap": 3, "spellIds": [30] },
+                { "id": 2, "team": 1, "cell": 4, "hp": 35 } ],
+    "spells": [ { "id": 30, "kind": "damage", "target": "enemy", "amount": 20, "cost": 3, "minRange": 1, "maxRange": 4 } ],
+    "expect": { "enemyDamageAtLeast": 35, "allyDamageAtMost": 0, "hpAtMost": { "2": 0 }, "actionsAtMost": 2 }
+  }
+]

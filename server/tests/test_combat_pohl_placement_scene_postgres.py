@@ -13,7 +13,7 @@ import unittest
 from postgres_case import PostgresCase
 
 _SERVER_ROOT = Path(__file__).resolve().parents[1]
-for _path in (_SERVER_ROOT / "tools", _SERVER_ROOT / "ai-service"):
+for _path in (_SERVER_ROOT / "tools",):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
@@ -414,7 +414,7 @@ class PohlPlacementScenePostgresTests(PostgresCase):
         import uuid
 
         runtime.tactical_encounter_id = uuid.uuid4().hex
-        from wakfu_ai.native.native_oracle import NativeOracle
+        from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
 
         oracle = NativeOracle(
             runtime,
@@ -425,7 +425,9 @@ class PohlPlacementScenePostgresTests(PostgresCase):
             viewer_id=character["id"],
             flags=dict(native_area_callbacks=True, native_start_events=True),
         )
-        from wakfu_ai.bridge.jondo_snapshot import build_snapshot
+        from wakfu_server.wakia_bridge.wakfu_ai.bridge.jondo_snapshot import (
+            build_snapshot,
+        )
 
         jondo = build_snapshot(oracle, budget_ms=1000)
         self.assertFalse({7604, 7605} & {row["id"] for row in jondo["spells"]})

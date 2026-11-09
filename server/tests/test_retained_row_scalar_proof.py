@@ -74,7 +74,9 @@ class RetainedRowScalarProofTests(unittest.TestCase):
             )
             self.assertEqual(query.manager_query(current, 1).entries, expected)
 
-        from wakfu_ai.context.native_fingerprint import fingerprint
+        from wakfu_server.wakia_bridge.wakfu_ai.context.native_fingerprint import (
+            fingerprint,
+        )
 
         isolated = OwnedStateSourceRow(uid=42, payload="00")
         before = fingerprint(isolated)

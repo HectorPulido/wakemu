@@ -2,9 +2,21 @@ using Jondo.Unity.Server.Managers;
 using Jondo.Unity.World.Fights;
 using Jondo.Unity.World.Maps;
 
+if (args.SequenceEqual(new[]{"--mixed-health-regression"}))
+{
+    MixedHealthRegression.Run();
+    return;
+}
+
 if (args.SequenceEqual(new[]{"--general-effects-only"}))
 {
     Console.WriteLine($"{GeneralEffectCases.Run()} general effect checks passed");
+    return;
+}
+
+if (args.SequenceEqual(new[]{"--native-trap-forecast-only"}))
+{
+    Console.WriteLine($"{NativeTrapForecastCases.Run()} native trap forecast checks passed");
     return;
 }
 
@@ -23,6 +35,24 @@ if (args.SequenceEqual(new[]{"--directional-only"}))
 if (args.SequenceEqual(new[]{"--hazard-only"}))
 {
     Console.WriteLine($"{HazardRouteCases.Run()} hazard checks passed");
+    return;
+}
+
+if (args.SequenceEqual(new[]{"--host-resource-continuation-only"}))
+{
+    Console.WriteLine($"{HostProjectionCases.ResourceCases()} Host resource continuation checks passed");
+    return;
+}
+
+if (args.SequenceEqual(new[]{"--host-xyz-only"}))
+{
+    Console.WriteLine($"{HostProjectionCases.XYZValidationCases()} Host XYZ checks passed");
+    return;
+}
+
+if (args.SequenceEqual(new[]{"--geometry-context-only"}))
+{
+    Console.WriteLine($"{GeometryContextCases.Run()} geometry context checks passed");
     return;
 }
 

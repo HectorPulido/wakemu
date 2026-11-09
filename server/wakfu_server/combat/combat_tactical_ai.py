@@ -1,7 +1,7 @@
 """Small native bridge for the separate tactical service.
 
 Only world certifies forecasts and commits actions. Service plans are advisory.
-No model/rules from ai-service are imported into the game server.
+WakIA does not own or commit native combat rules.
 """
 from wakfu_server import native_catalog as protocol_catalog
 from collections import deque

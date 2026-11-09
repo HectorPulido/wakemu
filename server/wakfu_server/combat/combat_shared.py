@@ -1098,7 +1098,27 @@ class Registry:
                 if expected_sequence != shared.sequence:
                     raise ValueError("Stale server combat sequence")
                 actor = shared.fight.current
-                if actor is None or actor.id != actor_id or actor.controlled:
+                bot_id = (shared.join_context or {}).get("ai_bot_character_id")
+                is_friendly_bot = (
+                    actor is not None
+                    and getattr(shared, "is_duel", False)
+                    and type(bot_id) is int
+                )
+                if is_friendly_bot:
+                    from .combat_effective_control import effective_server_controlled
+                    from .combat_npc_controller_policy import npc_controller_routes_ai
+
+                    is_friendly_bot = (
+                        actor.id == bot_id
+                        or npc_controller_routes_ai(
+                            shared.fight, actor, required_bot_id=bot_id
+                        )
+                    ) and effective_server_controlled(shared.fight, actor)
+                if (
+                    actor is None
+                    or actor.id != actor_id
+                    or (actor.controlled and not is_friendly_bot)
+                ):
                     raise ValueError("Not current server-controlled turn")
                 if _prepared_transition is not None:
                     from .combat_state import Fight

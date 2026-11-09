@@ -995,7 +995,7 @@ class NativeOraclePiouFusionForecastTests(unittest.TestCase):
     """The AI oracle must apply the same partner admission before forecasting."""
 
     def _oracle(self, character, monsters, fight):
-        from wakfu_ai.native.native_oracle import NativeOracle
+        from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
         from wakfu_server.combat_runtime_messages import RuntimeMessages
         from wakfu_server.spells import encode_deck
 
@@ -1082,7 +1082,7 @@ class NativeOracleGenericRecipientForecastTests(unittest.TestCase):
 
     @staticmethod
     def _oracle(character, monsters, fight):
-        from wakfu_ai.native.native_oracle import NativeOracle
+        from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
         from wakfu_server.combat_runtime_messages import RuntimeMessages
         from wakfu_server.spells import encode_deck
 

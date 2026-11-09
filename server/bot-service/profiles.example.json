@@ -13,6 +13,13 @@
       "behaviors": {"buyer": {"purchase_percent": 80}}
     },
     {
+      "bot_id": "friendly-duelist",
+      "character": {"name": "FriendlyDuelist", "breed": 15, "sex": 0},
+      "enabled": false,
+      "capabilities": [],
+      "behaviors": {"friendly_duel": {}}
+    },
+    {
       "bot_id": "town-crier",
       "character": {"name": "TownCrier", "breed": 15, "sex": 0},
       "enabled": false,

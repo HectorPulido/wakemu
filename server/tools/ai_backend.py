@@ -9,7 +9,7 @@ import sys
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--use", choices=("current", "jondo"))
+    mode.add_argument("--use", choices=("current", "jondo", "wakia"))
     mode.add_argument("--status", action="store_true")
     parser.add_argument("--timeout", type=float, default=2.0)
     args = parser.parse_args(argv)
@@ -30,7 +30,7 @@ def main(argv=None):
         "-T",
         "world",
         "python3",
-        "/app/ai-service/scripts/ai_backend.py",
+        "/app/wakfu_server/wakia_bridge/ai_backend.py",
         "--config",
         "/data/ai-backend.json",
     ]
@@ -42,7 +42,7 @@ def main(argv=None):
                 "--use",
                 args.use,
                 "--health-host",
-                "ai" if args.use == "current" else "ai-jondo",
+                "ai" if args.use == "current" else "wakia",
                 "--timeout",
                 str(args.timeout),
             ]

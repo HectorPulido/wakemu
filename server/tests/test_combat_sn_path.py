@@ -187,6 +187,60 @@ class NativeSnColumnsTests(unittest.TestCase):
         self.assertEqual(columns.column(1, 0), ())
         self.assertIsNone(columns.column(18, 0))
 
+    def test_spatial_chunk_index_matches_ordered_bounds_scan_at_offsets_and_edges(self):
+        chunks = []
+        for x in (-19, -1):
+            for y in (-19, -1):
+                chunks.append(
+                    dict(
+                        x=x,
+                        y=y,
+                        width=18,
+                        height=18,
+                        columns=[
+                            [x, y, [[x, 0, 0, 0, 1, False]]],
+                            [x + 17, y + 17, [[x + 17, 0, 0, 0, 1, False]]],
+                        ],
+                    )
+                )
+        data = self.data()
+        data["chunks"] = chunks
+        columns = NativeSnColumns(data, map_id=1, source_sha256="a" * 64)
+
+        def ordered_scan(x, y):
+            for (cx, cy, width, height), rows in columns.chunks:
+                if cx <= x < cx + width and cy <= y < cy + height:
+                    return rows.get((x, y), ())
+            return None
+
+        # Includes negative floor-division buckets, non-aligned chunk origins,
+        # each seam, in-chunk missing columns, and coordinates outside chunks.
+        for x in range(-22, 20):
+            for y in range(-22, 20):
+                with self.subTest(x=x, y=y):
+                    self.assertEqual(columns.column(x, y), ordered_scan(x, y))
+        self.assertEqual(columns.column(-19, -19), (surface(-19),))
+        self.assertEqual(columns.column(-1, -1), (surface(-1),))
+        self.assertEqual(columns.column(-18, -18), ())
+        self.assertIsNone(columns.column(17, 0))
+
+    def test_spatial_chunk_index_handles_signed_coordinate_limits(self):
+        minimum = -(1 << 31)
+        maximum_start = (1 << 31) - 20
+        data = self.data()
+        data["chunks"] = [
+            dict(x=minimum, y=minimum, width=18, height=18, columns=[]),
+            dict(x=maximum_start, y=maximum_start, width=18, height=18, columns=[]),
+        ]
+        columns = NativeSnColumns(data, map_id=1, source_sha256="a" * 64)
+        self.assertEqual(columns.column(minimum, minimum), ())
+        self.assertEqual(columns.column(minimum + 17, minimum + 17), ())
+        with self.assertRaisesRegex(ValueError, "coordinates"):
+            columns.column(minimum - 1, minimum)
+        self.assertEqual(columns.column(maximum_start, maximum_start), ())
+        self.assertEqual(columns.column(maximum_start + 17, maximum_start + 17), ())
+        self.assertIsNone(columns.column(maximum_start + 18, maximum_start))
+
     def test_matching_topology_provenance_and_signed_fields_are_required(self):
         with self.assertRaises(ValueError):
             NativeSnColumns(self.data(), map_id=2, source_sha256="a" * 64)

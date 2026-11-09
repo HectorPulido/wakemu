@@ -6,6 +6,67 @@ using Jondo.Unity.World.Maps;
 
 internal static class HostProjectionCases
 {
+    public static int XYZValidationCases()
+    {
+        JsonElement Request(object[] source, object[] target) => JsonSerializer.SerializeToElement(new
+        {
+            protocol = 1,
+            requestId = "xyz-focal",
+            source = new { actorId = 1L, fightInstanceId = "xyz-focal", turnId = 1, catalogRevision = "xyz-v1" },
+            board = new
+            {
+                cells = new[] { new { id = 0, xyz = source }, new { id = 1, xyz = target } },
+                edges = new[] { new[] { 0, 1 }, new[] { 1, 0 } },
+                actors = new[]
+                {
+                    new { id = 1L, team = 0, cell = 0, hp = 100, maxHp = 100, ap = 6, maxAp = 6, mp = 0, maxMp = 0 },
+                    new { id = 2L, team = 1, cell = 1, hp = 100, maxHp = 100, ap = 6, maxAp = 6, mp = 0, maxMp = 0 },
+                },
+                lineOfSight = new[] { new object[] { 0, 1, true }, new object[] { 1, 0, true } },
+            },
+            spells = new[] { new
+            {
+                id = 1, grade = 1, cost = 3, minRange = 1, maxRange = 1, damage = 20,
+                rows = new[] { new { kind = "damage", amount = 20, target = "enemy", fixedCells = new[] { new[] { 0, 0 } } } },
+            } },
+            native = new { usage = Array.Empty<object>() },
+            excludedActions = Array.Empty<string>(),
+            limits = new { budgetMs = 1000 },
+        });
+
+        var ordinary = Decide(Request(new object[] { 0, 0, 0 }, new object[] { 1, 0, 0 }));
+        var translated = Decide(Request(new object[] { -321, 123, 7 }, new object[] { -320, 123, 7 }));
+        var ordinaryAction = ordinary.GetProperty("action");
+        var translatedAction = translated.GetProperty("action");
+        if (ordinaryAction.GetProperty("type").GetString() != "cast"
+            || translatedAction.GetProperty("type").GetString() != "cast"
+            || ordinaryAction.GetProperty("spellId").GetInt32() != translatedAction.GetProperty("spellId").GetInt32()
+            || ordinaryAction.GetProperty("targetId").GetInt64() != translatedAction.GetProperty("targetId").GetInt64())
+            throw new Exception("Translated native XYZ should preserve the captured cast decision");
+
+        int checks = 1;
+        foreach (var malformed in new object[][]
+        {
+            Array.Empty<object>(),
+            new object[] { 0, 0 },
+            new object[] { 0, 0, 0, 0 },
+            new object[] { "0", 0, 0 },
+            new object[] { 0, null!, 0 },
+            new object[] { long.MaxValue, 0, 0 },
+        })
+        {
+            bool rejected = false;
+            try { _ = Decide(Request(malformed, new object[] { 1, 0, 0 })); }
+            catch (Exception error) when (error is ArgumentException or InvalidOperationException or FormatException or JsonException)
+            { rejected = true; }
+            if (!rejected) throw new Exception("Malformed native XYZ was accepted: " + JsonSerializer.Serialize(malformed));
+            checks++;
+        }
+        Console.WriteLine("PASS: zero/two/four XYZ components and nonnumeric/overflow values remain rejected");
+        Console.WriteLine("PASS: translated valid XYZ preserves the captured cast/target decision");
+        return checks + 1;
+    }
+
     public static int Run()
     {
         var request=JsonSerializer.SerializeToElement(new
@@ -105,7 +166,7 @@ internal static class HostProjectionCases
     private static JsonElement Decide(JsonElement request)=>JsonSerializer.SerializeToElement(Planner.Decide(request));
     private static bool IsSpell(JsonElement action,int id)=>action.GetProperty("type").GetString()=="cast"
         && action.GetProperty("spellId").GetInt32()==id;
-    private static int ResourceCases()
+    public static int ResourceCases()
     {
         int count=0;
         void Check(bool okay,string message)

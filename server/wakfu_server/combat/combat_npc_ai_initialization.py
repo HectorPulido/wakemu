@@ -35,8 +35,8 @@ def initial_ai_actors(fight, monsters):
         ):
             result.add(identity)
             continue
-        # The same owned repertoire and activation gate select the real
-        # NativeProvider/ai-service cast implementation for this fresh NPC.
+        # The owned repertoire and activation gate select native combat
+        # execution for this fresh NPC.
         if any(
             imports_enabled(
                 policy, monster["ref"], actor.effective_level, ability["spell_id"]

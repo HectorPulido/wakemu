@@ -7,6 +7,44 @@ from copy import deepcopy
 from random import Random
 
 
+def wakia_decision(runtime, character, monsters, deck, *, endpoint=None):
+    """Ask WakIA about a private native state without committing its proposal."""
+    import os
+    from wakfu_server.wakia_bridge.wakfu_ai.bridge.jondo_snapshot import build_snapshot
+    from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
+    from wakfu_server.wakia_bridge.wakfu_ai.transport.endpoint import tcp_address
+    from wakfu_server.wakia_bridge.wakfu_ai.transport.framed import FramedClient
+
+    if not getattr(runtime, "tactical_encounter_id", None):
+        raise ValueError("Private creator witness requires an encounter identity")
+    identity = character["id"]
+    oracle = NativeOracle(
+        runtime,
+        characters={identity: character},
+        monsters=monsters,
+        decks={identity: deck},
+        excluded_decks={identity: frozenset()},
+        viewer_id=identity,
+        flags={"native_start_events": True},
+    )
+    request = build_snapshot(oracle, budget_ms=5000)
+    address = endpoint or os.environ.get("WAKIA_ENDPOINT", "tcp://wakia:8091")
+    channel = FramedClient(*tcp_address(address), timeout=10)
+    try:
+        status, reply = channel.request("/wakia/decide", request)
+    finally:
+        channel.close()
+    if (
+        status != 200
+        or not isinstance(reply, dict)
+        or not isinstance(reply.get("action"), dict)
+    ):
+        raise ValueError(
+            "WakIA did not return an action for the private creator witness"
+        )
+    return request, reply
+
+
 def npc_creator_plans(index, native, reference, *, limit=4):
     if type(reference) is not int or type(limit) is not int or not 1 <= limit <= 8:
         raise ValueError("Invalid bounded native creator query")
@@ -224,14 +262,13 @@ def construct_native_summon(validator, plan, *, attempt_cap=6):
 
 def witness_owned_actions(validator, plan, *, progress=None):
     """Commit the creator, reach its real child's turn and use actual AI actions."""
-    from wakfu_server.combat_tactical_ai import NativeProvider, build_request
+    from wakfu_server.combat_tactical_ai import NativeProvider
     from wakfu_server.combat_runtime_messages import RuntimeMessages
     from wakfu_server.combat_actor import actual_actor_stats, actual_monster_actor_stats
     from wakfu_server.combat_summon_stats import registered_summon_stats
     from wakfu_server.combat_server_spell import prepare_server_turn_end
     from wakfu_server.fight_checkpoint_store import snapshot
     from wakfu_server.combat_summon_spellbook import actor_action_book
-    import planner
 
     fight, transaction, character, monsters, deck, receipt = construct_native_summon(
         validator, plan
@@ -330,22 +367,23 @@ def witness_owned_actions(validator, plan, *, progress=None):
     provider = NativeProvider(character, monsters, deck)
     provider.capabilities(fight)  # Warm metadata before the unchanged search deadline.
     runtime = RuntimeMessages(fight)
+    import uuid
+
+    runtime.tactical_encounter_id = uuid.uuid4().hex
     actions = []
     for step in range(3):
         before = snapshot(fight, runtime=runtime)
-        request = build_request(
-            runtime, provider, max_previews=48, budget_ms=5000, depth=2
-        )
+        request, decision = wakia_decision(runtime, character, monsters, deck)
         if snapshot(fight, runtime=runtime) != before:
             raise ValueError("Actual child forecast mutated source")
-        decision = planner.decide(request)
-        action = decision["decision"]["actions"][0]
+        action = decision["action"]
         receipt.setdefault("actual_child_ai_diagnostics", []).append(
             dict(
                 decision=decision,
-                producer_trace=request.get("producerTrace"),
-                forecast_states=deepcopy(request.get("states", [])),
-                forecast_root=request.get("rootState"),
+                producer_trace=None,
+                forecast_states=[],
+                forecast_root=None,
+                planner="WakIA",
                 capabilities=provider.capabilities(fight),
                 actor_position=list(fight.current.position),
                 roster=provider.roster(fight),
@@ -465,8 +503,7 @@ def main():
     if args.output.exists():
         raise ValueError("Use a fresh output; preserve historical actual witnesses")
     sys.path[:0] = [
-        str(root / folder)
-        for folder in ("server", "server/tools", "server/tests", "server/ai-service")
+        str(root / folder) for folder in ("server", "server/tools", "server/tests")
     ]
     os.environ["WAKFU_NATIVE_GRANTED_CAST"] = "1"
     os.environ["WAKFU_NATIVE_AREA_CALLBACKS"] = "1"

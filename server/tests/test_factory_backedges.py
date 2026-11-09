@@ -2,7 +2,6 @@
 from copy import deepcopy
 from collections import Counter
 import gc
-import sys
 import unittest
 import weakref
 from unittest.mock import patch
@@ -181,7 +180,12 @@ class FactoryBackedgeTests(unittest.TestCase):
         self.assertIs(clone.component.dispatcher, clone)
         self.assertIs(clone.callback(8)[0], clone)
         self.assertIs(clone.copyable(9)[0], clone)
-        from wakfu_ai.context.native_context import _instance_fields, encode
+        from wakfu_server.wakia_bridge.wakfu_ai.context import native_context
+
+        _instance_fields, encode = (
+            native_context._instance_fields,
+            native_context.encode,
+        )
 
         self.assertIs(_instance_fields(clone.component)["dispatcher"], clone)
         self.assertIs(_instance_fields(clone.callback.owner)["owner"], clone)

@@ -1,24 +1,21 @@
 """Native control decisions use current team while constructor identity stays intact."""
-from pathlib import Path
-import sys
 import unittest
-
-AI_ROOT = Path(__file__).resolve().parents[1] / "ai-service"
-if str(AI_ROOT) not in sys.path:
-    sys.path.insert(0, str(AI_ROOT))
 
 import test_combat_controller_registry as registry_fixtures
 from wakfu_server.combat_state import Actor
 from wakfu_server.combat_controller_registry import (
-    register_native_controller,
     apply_native_controller_transfer,
     remove_native_controller_transfer,
 )
 from wakfu_server.combat_effective_control import effective_affiliation
 from wakfu_server.combat_ai_capabilities import target_affinity
 from wakfu_server.combat_tactical_ai import NativeProvider
-from wakfu_ai.planning.team_blackboard import observe, team_context
-from wakfu_ai.bridge.world_host import execute
+from wakfu_server.combat_global_pv_collections import register_global_fighter
+from wakfu_server.wakia_bridge.wakfu_ai.planning.team_blackboard import (
+    observe,
+    team_context,
+)
+from wakfu_server.wakia_bridge.wakfu_ai.bridge.world_host import execute
 
 
 class ControllerAffiliation207Tests(unittest.TestCase):
@@ -32,7 +29,7 @@ class ControllerAffiliation207Tests(unittest.TestCase):
         self.old_ally = Actor(8, 0, (0, 1, 0), 100, 6, 3, 1, 68, 3, True)
         self.old_ally.native_controlled_by_ai = False
         self.fight.actors[8] = self.old_ally
-        register_native_controller(self.fight, 8, team=0, controller_id=8)
+        register_global_fighter(self.fight, 8, controller_id=8)
         self.fight.current = self.player
         self.fight.phase = "active"
         self.fight.turn_id = 3

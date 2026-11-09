@@ -37,12 +37,12 @@ internal sealed class PlanningGate
             double remaining = Stopwatch.GetElapsedTime(Stopwatch.GetTimestamp(), deadline).TotalMilliseconds;
             cancellationToken.ThrowIfCancellationRequested();
             if (remaining < 1)
-                throw new TimeoutException("Jondo decision deadline reached before admission");
+                throw new TimeoutException("WakIA decision deadline reached before admission");
             entered = await core.WaitAsync(TimeSpan.FromMilliseconds(remaining), cancellationToken);
             queueMs = Stopwatch.GetElapsedTime(queuedTimestamp).TotalMilliseconds;
             cancellationToken.ThrowIfCancellationRequested();
             if (!entered || Stopwatch.GetTimestamp() >= deadline)
-                throw new TimeoutException("Jondo decision deadline reached in queue");
+                throw new TimeoutException("WakIA decision deadline reached in queue");
             long planningTimestamp = Stopwatch.GetTimestamp();
             try
             {
@@ -54,7 +54,7 @@ internal sealed class PlanningGate
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (Stopwatch.GetTimestamp() >= deadline)
-                throw new TimeoutException("Jondo decision completed after its deadline");
+                throw new TimeoutException("WakIA decision completed after its deadline");
             status = 200;
         }
         catch (Exception error) when (error is TimeoutException or OperationCanceledException)

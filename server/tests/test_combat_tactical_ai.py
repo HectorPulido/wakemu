@@ -6,7 +6,6 @@ import io
 import json
 import pstats
 import struct
-import threading
 import time
 import unittest
 import urllib.request
@@ -472,22 +471,9 @@ class NativeTacticalPreviewTests(unittest.TestCase):
         # The native compiled catalog is process cached and costly to build.
         from wakfu_server.combat_npc_attack import npc_runtime_catalog
         from wakfu_server.combat_server_spell import prewarm_runtime_catalogs
-        from wakfu_ai.transport.framed_server import FramedServer
 
         npc_runtime_catalog()
         prewarm_runtime_catalogs()
-        cls.channel = FramedServer(("127.0.0.1", 0))
-        cls.channel_thread = threading.Thread(
-            target=cls.channel.serve_forever, daemon=True
-        )
-        cls.channel_thread.start()
-        cls.ai_url = "tcp://127.0.0.1:" + str(cls.channel.server_address[1])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.channel.shutdown()
-        cls.channel.server_close()
-        cls.channel_thread.join(2)
 
     def test_real_native_los_known_map_1134_adjacent_edge(self):
         from tests.test_combat_npc_attack import NativeNpcAttackTests
@@ -579,12 +565,6 @@ class NativeTacticalPreviewTests(unittest.TestCase):
             request["producerTrace"]["rejectedReasons"],
             {"Native spell casting eligibility rejected: twI": 1},
         )
-        from tests.test_ai_service import planner
-
-        result = planner.decide(request)
-        first_action = result["decision"]["actions"][0]
-        self.assertEqual(first_action["type"], "move")
-        self.assertLess(abs(first_action["path"][-1][0] - 6), 6)
         self.assertEqual(fight_snapshot(runtime.fight, runtime=runtime), before)
 
     def test_wonejo_forecast_uses_native_los_and_commit_failure_rolls_back(self):
@@ -671,15 +651,37 @@ class NativeTacticalPreviewTests(unittest.TestCase):
         )
         responses = []
 
-        def post_to_local_ai(request):
-            from wakfu_ai.transport.framed import FramedClient
-
-            client = FramedClient(*self.channel.server_address, timeout=5)
-            try:
-                status, response = client.request("/v2/decide", request)
-            finally:
-                client.close()
-            self.assertEqual(status, 200)
+        def certified_response(request):
+            root = next(
+                state
+                for state in request["states"]
+                if state["key"] == request["rootState"]
+            )
+            if not responses:
+                action = next(
+                    row["action"]
+                    for row in root["transitions"]
+                    if row["supported"] and row["action"].get("spellId") == 7962
+                )
+            else:
+                action = {"type": "end_turn"}
+            response = {
+                field: request[field]
+                for field in (
+                    "protocol",
+                    "requestId",
+                    "stateKey",
+                    "fightInstanceId",
+                    "turnId",
+                    "stateRevision",
+                    "catalogVersion",
+                    "policyVersion",
+                )
+            }
+            response["decision"] = {
+                "actor_id": request["actor_id"],
+                "actions": [action],
+            }
             responses.append((request, response))
             return response
 
@@ -708,7 +710,7 @@ class NativeTacticalPreviewTests(unittest.TestCase):
                 runtime,
                 provider,
                 actual_stats,
-                transport_call=post_to_local_ai,
+                transport_call=certified_response,
             )
             self.assertEqual(diagnostic["action"]["type"], "cast")
             self.assertEqual(diagnostic["action"]["spellId"], 7962)
@@ -724,7 +726,7 @@ class NativeTacticalPreviewTests(unittest.TestCase):
                 runtime,
                 provider,
                 actual_stats,
-                transport_call=post_to_local_ai,
+                transport_call=certified_response,
             )
 
         self.assertEqual(diagnostic["action"], {"type": "end_turn"})

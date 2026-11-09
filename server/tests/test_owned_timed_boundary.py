@@ -8,16 +8,12 @@ from pathlib import Path
 
 # Reuse native fixtures through the production module namespaces.
 _SERVER = Path(__file__).resolve().parents[1]
-for _fixture_path in (
-    _SERVER / "tests",
-    _SERVER / "ai-service",
-    _SERVER / "ai-service" / "tests",
-):
+for _fixture_path in (_SERVER / "tests",):
     if str(_fixture_path) not in sys.path:
         sys.path.insert(0, str(_fixture_path))
 
-from test_native_callback_handoff import NativeCallbackHandoffTests
-import test_native_oracle as native_fixture
+from tests.native_callback_handoff_fixture import NativeCallbackHandoffTests
+from tests import native_oracle_fixture as native_fixture
 from test_combat_timed_expiration import TimedExpirationTests
 from wakfu_server import combat_native_action_ids as action_ids
 from wakfu_server import combat_timed_expiration as expiration
@@ -86,7 +82,9 @@ class OwnedTimedBoundaryTests(unittest.TestCase):
         fixture, original, decks, uid = self.setup_runtime()
         # Forecast never receives an in-place boundary, independently of
         # the otherwise valid native callback owner.
-        from wakfu_ai.native.native_oracle import _owned_live_boundary_fight
+        from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import (
+            _owned_live_boundary_fight,
+        )
 
         lifecycle = original.turn_end_provider.__self__
         self.assertIsNone(

@@ -1,0 +1,286 @@
+[
+  {
+    "name": "hidden-opposition-heals-visible-ally",
+    "category": "support",
+    "request": {
+      "protocol": 1,
+      "requestId": "hidden-opposition-heals-visible-ally",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "hidden-opposition-heals-visible-ally",
+        "turnId": 1
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 3,
+            "xyz": [
+              0,
+              1,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actors": [
+          {
+            "id": 1,
+            "team": 0,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0
+          },
+          {
+            "id": 2,
+            "team": 0,
+            "cell": 1,
+            "hp": 25,
+            "maxHp": 100,
+            "ap": 6,
+            "mp": 0
+          },
+          {
+            "id": 3,
+            "team": 0,
+            "cell": 2,
+            "hp": 95,
+            "maxHp": 100,
+            "ap": 6,
+            "mp": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ],
+          [
+            0,
+            3,
+            true
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 43,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 1,
+          "heal": 30,
+          "rows": [
+            {
+              "kind": "heal",
+              "amount": 30,
+              "target": "ally"
+            }
+          ]
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "excludedActions": [],
+      "limits": {
+        "budgetMs": 500
+      }
+    },
+    "expect": {
+      "types": [
+        "cast"
+      ],
+      "spellId": 43,
+      "targetId": 2
+    }
+  },
+  {
+    "name": "hidden-opposition-no-valid-attack",
+    "category": "support",
+    "request": {
+      "protocol": 1,
+      "requestId": "hidden-opposition-no-valid-attack",
+      "source": {
+        "actorId": 1,
+        "fightInstanceId": "hidden-opposition-no-valid-attack",
+        "turnId": 1
+      },
+      "board": {
+        "cells": [
+          {
+            "id": 0,
+            "xyz": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "xyz": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "xyz": [
+              -1,
+              0,
+              0
+            ]
+          },
+          {
+            "id": 3,
+            "xyz": [
+              0,
+              1,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actors": [
+          {
+            "id": 1,
+            "team": 0,
+            "cell": 0,
+            "hp": 100,
+            "maxHp": 100,
+            "ap": 3,
+            "mp": 0
+          }
+        ],
+        "lineOfSight": [
+          [
+            0,
+            1,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ],
+          [
+            0,
+            3,
+            true
+          ]
+        ]
+      },
+      "spells": [
+        {
+          "id": 44,
+          "grade": 1,
+          "cost": 3,
+          "minRange": 1,
+          "maxRange": 1,
+          "damage": 30,
+          "rows": [
+            {
+              "kind": "damage",
+              "amount": 30,
+              "target": "enemy"
+            }
+          ]
+        }
+      ],
+      "native": {
+        "usage": []
+      },
+      "excludedActions": [],
+      "limits": {
+        "budgetMs": 500
+      }
+    },
+    "expect": {
+      "types": [
+        "end_turn"
+      ]
+    }
+  }
+]

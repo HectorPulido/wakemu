@@ -62,6 +62,7 @@ internal sealed class SpecificContext
     private readonly HashSet<(int, int)> gates;
     private readonly Dictionary<int, string> suppressed = new();
     private Dictionary<int, MonsterTactics.Route>? routes;
+    private KeyValuePair<int, MonsterTactics.Route>[]? castingRoutes;
     public IReadOnlyDictionary<int, MonsterTactics.Route> Routes => routes ??= MonsterTactics.Routes(Board, Actor);
     public IReadOnlyDictionary<int, string> SuppressedSpells => suppressed;
     private IEnumerable<JsonElement> TurnActions => Request.TryGetProperty("native", out var n)
@@ -127,13 +128,14 @@ internal sealed class SpecificContext
             if (target != null && spell.PerTarget > 0
                 && Actor.LanzadosPorObjetivo.GetValueOrDefault((spellId, target.Id)) >= spell.PerTarget) continue;
             SpecificAction? best = null;
-            foreach (var (from, route) in Routes)
+            foreach (var (from, route) in castingRoutes ??= MonsterTactics.CastingRoutes(Board, Actor).ToArray())
             {
                 if (cost.Ap > route.ActionPoints || cost.Mp > route.MovementPoints) continue;
                 int distance = Distance(from, aim);
                 int maximum = spell.MaxRange + (spell.RangeBoostable ? Actor.Range : 0);
-                if (distance < spell.MinRange || distance > maximum) continue;
-                if (spell.InLine && Cells[from].X != Cells[aim].X && Cells[from].Y != Cells[aim].Y) continue;
+                if (!MonsterTactics.RangeAccepts(spell, distance, maximum)) continue;
+                if (!MonsterTactics.AlignmentAccepts(spell, from, aim)) continue;
+                if (!MonsterTactics.NativeLinearPathAllows(Board, spell, Actor, from, aim, target)) continue;
                 if (spell.NeedsFreeCell && Occupied(aim, from)) continue;
                 if (spell.NeedsLineOfSight && from != aim && !Board.Sees(from, aim)) continue;
                 double value = quality?.Invoke(from, aim) ?? 0;

@@ -10,8 +10,8 @@ from wakfu_server.combat_entry_executor import private_entry_preview
 from wakfu_server.combat_preview_copy import scalar_actor_memo
 from wakfu_server.combat_retained_collections import bound_collections
 from wakfu_server.combat_runtime_messages import RuntimeMessages
-from wakfu_ai.native.native_oracle import NativeOracle
-from wakfu_ai.native import native_oracle
+from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import NativeOracle
+from wakfu_server.wakia_bridge.wakfu_ai.native import native_oracle
 
 
 class StopAfterClone(Exception):

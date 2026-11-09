@@ -308,9 +308,26 @@ def _restore_rail(runtime, facts):
     )
 
 
-def _sdk_modules():
+def _sdk_modules(runtime=None, *, sdk_source=None):
+    """Load the World-owned WakIA SDK only for its exact captured identity.
+
+    Old receipts from another SDK cannot safely be replayed with WakIA.
+    """
+    root = Path(__file__).resolve().parents[2]
+    directory = root / "wakfu_server" / "wakia_bridge"
+    if sdk_source is not None:
+        if not directory.is_dir() or sdk_identity(directory) != sdk_source:
+            raise UnsupportedNPCReproduction(
+                "Captured native SDK is unavailable or changed; the legacy Python AI SDK was removed"
+            )
+    else:
+        pin = getattr(runtime, "native_ai_backend_pin", None)
+        backend = pin.get("backend") if isinstance(pin, dict) else None
+        if backend not in (None, "jondo"):
+            raise UnsupportedNPCReproduction(
+                "Cannot reproduce a legacy Python AI turn: its SDK was removed"
+            )
     # Imports are selected by trusted code, never by a receipt's module names.
-    directory = Path(__file__).resolve().parents[2] / "ai-service"
     path = directory / "world_loader.py"
     spec = importlib.util.spec_from_file_location(
         "_wakemu_npc_reproduction_loader", path
@@ -554,7 +571,9 @@ def replay_npc_receipt(receipt, *, return_runtime=False):
         or identity["catalog"] != catalog_identity()
     ):
         raise UnsupportedNPCReproduction("Native engine source or catalog changed")
-    oracle_module, stats_module, directory = _sdk_modules()
+    oracle_module, stats_module, directory = _sdk_modules(
+        sdk_source=receipt["sdk_source"]
+    )
     if receipt["sdk_source"] != sdk_identity(directory):
         raise UnsupportedNPCReproduction("Native SDK source changed")
     state = decode_state(receipt["before"])

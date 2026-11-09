@@ -1,16 +1,2 @@
-services:
-  ai-jondo:
-    image: ${WAKFU_JONDO_AI_IMAGE:-wakemu-ai-jondo:local}
-    build:
-      context: ./server/ai-jondo-service
-    profiles: [jondo]
-    init: true
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    pids_limit: 128
-    mem_limit: 512m
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=32m
-    networks: [isolated]
-    restart: unless-stopped
+# Legacy Compose override: WakIA is now defined in the base Compose file.
+services: {}

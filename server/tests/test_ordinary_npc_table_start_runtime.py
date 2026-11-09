@@ -10,7 +10,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [
     str(ROOT / "tests"),
     str(ROOT / "tools"),
-    str(ROOT / "ai-service" / "tests"),
 ]
 
 
@@ -19,7 +18,7 @@ sys.path[:0] = [
 )
 class OrdinaryNpcTableStartRuntimeTests(unittest.TestCase):
     def test_real_constructor_receives_later_table_callbacks(self):
-        from jondo_native_support_probe import build_fixture
+        from tests.jondo_native_support_probe import build_fixture
         from native_recorded_instance_fixture import original_bootstrap_publication
         from wakfu_server.combat_effect_dispatch import EffectDispatcher
 
@@ -74,7 +73,7 @@ class OrdinaryNpcTableStartRuntimeTests(unittest.TestCase):
                 )
 
     def test_herd_repeats_with_two_real_human_owners_and_paid_ack_turns(self):
-        from jondo_native_support_probe import build_fixture, _drain
+        from tests.jondo_native_support_probe import build_fixture, _drain
         from native_recorded_instance_fixture import original_bootstrap_publication
         from wakfu_server.combat_effect_dispatch import EffectDispatcher
         from wakfu_server.combat_server_spell import server_runtime, states_catalog

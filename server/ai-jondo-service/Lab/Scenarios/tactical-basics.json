@@ -1,0 +1,38 @@
+[
+  {
+    "name": "ranged-attack-without-movement", "category": "attack", "length": 6,
+    "actors": [ { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 3 },
+                { "id": 2, "team": 1, "cell": 4, "hp": 100 } ],
+    "spells": [ { "id": 11, "kind": "damage", "target": "enemy", "amount": 25, "cost": 3, "minRange": 1, "maxRange": 4 } ],
+    "expect": { "enemyDamageAtLeast": 25, "allyDamageAtMost": 0, "actionsAtMost": 1 }
+  },
+  {
+    "name": "single-cast-resource-budget", "category": "resources", "length": 5,
+    "actors": [ { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 3 },
+                { "id": 2, "team": 1, "cell": 1, "hp": 100 } ],
+    "spells": [ { "id": 12, "kind": "damage", "target": "enemy", "amount": 20, "cost": 3, "minRange": 1, "maxRange": 1 } ],
+    "expect": { "enemyDamageAtLeast": 20, "allyDamageAtMost": 0, "actionsAtMost": 1 }
+  },
+  {
+    "name": "unaffordable-cast-ends-turn", "category": "resources", "length": 5,
+    "actors": [ { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 2 },
+                { "id": 2, "team": 1, "cell": 1, "hp": 100 } ],
+    "spells": [ { "id": 13, "kind": "damage", "target": "enemy", "amount": 20, "cost": 3, "minRange": 1, "maxRange": 1 } ],
+    "expect": { "allyDamageAtMost": 0, "actionsAtMost": 0 }
+  },
+  {
+    "name": "target-out-of-reach-ends-turn", "category": "movement", "length": 6,
+    "actors": [ { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 3, "mp": 0 },
+                { "id": 2, "team": 1, "cell": 5, "hp": 100 } ],
+    "spells": [ { "id": 14, "kind": "damage", "target": "enemy", "amount": 20, "cost": 3, "minRange": 1, "maxRange": 1 } ],
+    "expect": { "allyDamageAtMost": 0, "actionsAtMost": 0 }
+  },
+  {
+    "name": "healing-caps-at-missing-health", "category": "support", "length": 5,
+    "actors": [ { "id": 1, "team": 0, "cell": 0, "hp": 100, "ap": 6 },
+                { "id": 3, "team": 0, "cell": 1, "hp": 70 },
+                { "id": 2, "team": 1, "cell": 4, "hp": 100 } ],
+    "spells": [ { "id": 15, "kind": "heal", "target": "ally", "amount": 40, "cost": 2, "minRange": 1, "maxRange": 3 } ],
+    "expect": { "allyHealingAtLeast": 30, "allyDamageAtMost": 0, "actionsAtMost": 1 }
+  }
+]

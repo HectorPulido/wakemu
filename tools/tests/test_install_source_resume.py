@@ -1,6 +1,7 @@
 """Explicit pre-World source recovery preserves immutable completed data."""
 from copy import deepcopy
 import hashlib
+import io
 import importlib.util
 import json
 from pathlib import Path
@@ -18,6 +19,45 @@ SPEC.loader.exec_module(installer)
 
 
 class InstallerSourceResumeTests(unittest.TestCase):
+    def test_wakia_build_artifacts_do_not_change_source_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            files = {
+                "compose.install.yaml": b"compose",
+                "server/ai-jondo-service/Core/Planner.cs": b"planner",
+                "server/ai-jondo-service/Lab/bin/Release/lab.dll": b"build output",
+                "server/ai-jondo-service/obj/project.assets.json": b"intermediate",
+                "server/other/bin/asset.bin": b"real asset",
+                "tools/install-wakemu.py": b"installer",
+            }
+            for name, contents in files.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(contents)
+            original_files, original_sha = installer.source_inventory(root)
+            archive = root / "source.tar"
+            with tarfile.open(archive, "w") as tar:
+                for name in files:
+                    tar.add(root / name, arcname=name)
+            archived_files, archived_sha = installer.archived_source_inventory(archive)
+            legacy_files, legacy_sha = installer.archived_source_inventory(
+                archive, include_wakia_build_outputs=True
+            )
+            self.assertEqual(
+                (original_files, original_sha), (archived_files, archived_sha)
+            )
+            self.assertIn("server/other/bin/asset.bin", original_files)
+            self.assertIn(
+                "server/ai-jondo-service/Lab/bin/Release/lab.dll", legacy_files
+            )
+            self.assertNotEqual(legacy_sha, original_sha)
+            (root / "server/ai-jondo-service/Lab/bin/Release/lab.dll").write_bytes(
+                b"rebuilt"
+            )
+            self.assertEqual(installer.source_inventory(root)[1], original_sha)
+            (root / "server/ai-jondo-service/Core/Planner.cs").write_bytes(b"changed")
+            self.assertNotEqual(installer.source_inventory(root)[1], original_sha)
+
     def test_prior_archive_data_identity_rebuild_audit_negative_guards_and_crash_recovery(
         self,
     ):
@@ -209,6 +249,30 @@ class InstallerSourceResumeTests(unittest.TestCase):
                 obj.run("bootstrap", old["stages"]["bootstrap"]["command"])
                 with self.assertRaisesRegex(ValueError, "command differs"):
                     obj.run("bootstrap", ["changed"])
+            # An older installation may have pinned generated .NET output.
+            # Its original full archive must still prove the old identity, but
+            # those outputs must not be treated as a runtime source change.
+            obj = fixture(base / "legacy-build-output")
+            archive = obj.args.resume_source_archive
+            with tarfile.open(archive, "r:gz") as source:
+                members = [
+                    (row, source.extractfile(row).read())
+                    for row in source
+                    if row.isfile()
+                ]
+            with tarfile.open(archive, "w:gz") as target:
+                for row, data in members:
+                    target.addfile(row, io.BytesIO(data))
+                data = b"historical generated assembly"
+                row = tarfile.TarInfo("server/ai-jondo-service/Lab/bin/Release/lab.dll")
+                row.size = len(data)
+                target.addfile(row, io.BytesIO(data))
+            _, legacy_sha = installer.archived_source_inventory(
+                archive, include_wakia_build_outputs=True
+            )
+            obj.progress["installation"]["source_inventory_sha256"] = legacy_sha
+            obj.resume_source()
+            self.assertEqual(obj.progress["installation"], obj.identity)
             # The exact audit can be committed after a crash between its write
             # and the installation-progress replacement, without a second transition.
             obj = fixture(base / "crash")

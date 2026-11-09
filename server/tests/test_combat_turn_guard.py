@@ -1,6 +1,4 @@
 import threading
-import sys
-from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -171,10 +169,7 @@ class SharedNpcGuardTests(unittest.TestCase):
         self.assertIsNone(self.shared.native_npc_retry_claim)
 
     def test_inflight_claim_survives_actual_ai_shared_context_encoding(self):
-        ai_root = str(Path(__file__).resolve().parents[1] / "ai-service")
-        if ai_root not in sys.path:
-            sys.path.insert(0, ai_root)
-        from wakfu_ai.context.native_context import encode_bytes
+        from wakfu_server.wakia_bridge.wakfu_ai.context import native_context
 
         def actual_metadata_boundary():
             metadata = dict(vars(self.shared))
@@ -187,7 +182,7 @@ class SharedNpcGuardTests(unittest.TestCase):
             )
             token = self.shared.native_npc_retry_claim
             self.assertIsInstance(token, str)
-            self.assertIn(token.encode(), encode_bytes(metadata))
+            self.assertIn(token.encode(), native_context.encode_bytes(metadata))
 
         self.assertTrue(self.run_attempt(actual_metadata_boundary))
         self.assertEqual(self.failures, [])

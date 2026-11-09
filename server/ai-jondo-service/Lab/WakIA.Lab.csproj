@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="../Core/**/*.cs" />
+    <Compile Include="../Compatibility/**/*.cs" />
+    <Compile Include="../Host/**/*.cs" Exclude="../Host/Program.cs" />
+    <None Include="Scenarios/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -6,6 +6,8 @@ namespace Jondo.Unity.World.Fights
 {
     public class Fighter
     {
+        // Advisory arithmetic changes scalar HP only; shared collections remain read-only.
+        internal Fighter HealthEstimateCopy() => (Fighter)MemberwiseClone();
         public long Id { get; set; }
         public string Name { get; set; }
         public int TeamId { get; set; } // 0 = Team Blue (Players), 1 = Team Red (Monsters)
@@ -69,6 +71,8 @@ namespace Jondo.Unity.World.Fights
         public int CurrentAP { get; set; }
         public int MaxMP { get; set; }
         public int CurrentMP { get; set; }
+        // Null means the caller did not provide authoritative WP evidence.
+        public int? NativeCurrentWp { get; set; }
         public int Initiative { get; set; }
 
         /// <summary>Experience this fighter awards on death (gradeXp from its record).</summary>
@@ -308,7 +312,11 @@ namespace Jondo.Unity.World.Fights
         /// </summary>
         public long Invocador { get; set; }
 
-        public bool EsInvocado => Invocador != 0;
+        // World may certify summon registration without knowing its owner.
+        // Keep this separate from ownership; a companion can have an owner
+        // without being a registered summon.
+        public bool? NativeRegisteredSummon { get; set; }
+        public bool EsInvocado => NativeRegisteredSummon ?? Invocador != 0;
 
         /// <summary>
         /// The spell it behaves with, its grade's <c>startingSpellId</c> in the creature

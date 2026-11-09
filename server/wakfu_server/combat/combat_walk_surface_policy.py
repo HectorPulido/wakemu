@@ -1,13 +1,14 @@
-"""Original Sn/Sp point-mover surface gates before paid movement commits.
+"""Point-mover surface gates before paid movement commits.
 
-Sm supplies physical transitions; Sn additionally enforces prototype surface
-flags and the actual bjo RELIC_SPECIAL_JUMP world property. Displacement and
-birth constructors do not use this paid walking boundary.
+Sm supplies physical transitions. Combat walking also excludes fight-sterile
+surfaces as a server floor policy; mob-sterile alone remains usable. Special
+jumps and ordinary encounter placement retain their separate restrictions.
 """
 from types import SimpleNamespace
 
 # Original Vy.bmd/bmg/bmj over exported native-sn-columns.bLF.
 _MOB_STERILE = 1 << 1
+_FIGHT_STERILE = 1 << 0
 _SPECIAL_JUMP = 1 << 3
 _SPECIAL_JUMP_ORIGIN = 1 << 4
 
@@ -49,9 +50,8 @@ def require_native_walk_surfaces(fight, actor, path):
     previous = actor.position
     for destination in path:
         source, target = surface(previous), surface(destination)
-        # beS.dgt: original bje NPCs cannot traverse mob-sterile surfaces.
-        if kind == "bje" and target.blf & _MOB_STERILE:
-            raise ValueError("Native walking destination forbids this actor kind")
+        if kind == "bje" and target.blf & _FIGHT_STERILE:
+            raise ValueError("Combat walking destination is fight-sterile")
         if target.blf & _SPECIAL_JUMP or source.blf & _SPECIAL_JUMP:
             if special_jump is None:
                 from .combat_world_properties import has_world_property, registry
@@ -92,23 +92,36 @@ def require_native_walk_surfaces(fight, actor, path):
     require_walk(fight, actor, path, air_crossing_cells=air_crossing_cells)
 
 
-def native_npc_point_placement_allowed(columns, cell):
+def native_npc_point_placement_allowed(
+    columns, cell, *, _matches=None, _ground_supported=None
+):
     """Ordinary encounter policy; special spell birth contracts stay separate.
 
     Formation is reconstructed server policy. Its point NPC anchors must be
     normal native surfaces, rather than mob-sterile or special-jump surfaces.
     """
-    matches = [row for row in columns.column(*cell[:2]) or () if row.z == cell[2]]
+    matches = (
+        _matches
+        if _matches is not None
+        else [row for row in columns.column(*cell[:2]) or () if row.z == cell[2]]
+    )
     from .combat_ground_support import supported
 
     return (
         bool(matches)
         and not matches[-1].blf & (_MOB_STERILE | _SPECIAL_JUMP)
-        and supported(columns.map_id, cell, columns.source_sha256)
+        and (
+            supported(columns.map_id, cell, columns.source_sha256)
+            if _ground_supported is None
+            else _ground_supported
+        )
     )
 
 
-def native_npc_walk_blocked_cells(fight, actor, cells):
+_NATIVE_POINT_PLACEMENT = native_npc_point_placement_allowed
+
+
+def native_npc_walk_blocked_cells(fight, actor, cells, *, columns_observer=None):
     """Filter ordinary NPC planner anchors without changing displacement QI."""
     provenance = getattr(fight, "native_qi_surface_provenance", None)
     status = getattr(actor, "native_death_status", None)
@@ -126,19 +139,22 @@ def native_npc_walk_blocked_cells(fight, actor, cells):
     columns = NativeSnColumns.from_published(provenance["map_id"])
     if columns.source_sha256 != provenance.get("source_sha256"):
         raise ValueError("Native walking physical source differs from arena")
+    if columns_observer is not None:
+        columns_observer(columns)
     from .combat_ground_support import escape_prefix_cells
+    from .combat_ground_support import supported
 
     escape = escape_prefix_cells(fight, actor)
     blocked = set()
     for cell in cells:
         matches = [row for row in columns.column(*cell[:2]) or () if row.z == cell[2]]
         physical = bool(matches) and not matches[-1].blf & (
-            _MOB_STERILE | _SPECIAL_JUMP
+            _FIGHT_STERILE | _SPECIAL_JUMP
         )
         if (
             not physical
             or cell not in escape
-            and not native_npc_point_placement_allowed(columns, cell)
+            and not supported(columns.map_id, cell, columns.source_sha256)
         ):
             blocked.add(cell)
     return blocked

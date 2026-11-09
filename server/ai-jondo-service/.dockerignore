@@ -1,6 +1,12 @@
 bin
 obj
 Tests
+Lab
+HostLab
+Benchmarks
+CoordinationChecks
+CoordinationPlannerChecks
+DiagnosticsChecks
 **/bin
 **/obj
 .git

@@ -1,22 +1,19 @@
 """Real Ready/cast/rebind/copy regression for native callback ownership."""
 import gc
-from pathlib import Path
-import sys
 import unittest
 import weakref
 from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import patch
 
-_AI = Path(__file__).resolve().parents[1] / "ai-service"
-sys.path.insert(0, str(_AI))
-sys.path.insert(0, str(_AI / "tests"))
-
 from tests import test_weak_owner_native_handoff as handoff_fixtures
-import test_native_oracle as native_fixtures
-from wakfu_ai.native.native_oracle import NativeOracle, native_boundary_owner
-from wakfu_ai.bridge.world_sources import bind_private_sources
-from wakfu_ai.context.native_fingerprint import fingerprint
+from native_combat_fixture import NativeOracleTests as native_fixtures
+from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import (
+    NativeOracle,
+    native_boundary_owner,
+)
+from wakfu_server.wakia_bridge.wakfu_ai.bridge.world_sources import bind_private_sources
+from wakfu_server.wakia_bridge.wakfu_ai.context.native_fingerprint import fingerprint
 from wakfu_server.combat_retained_gc_authority import native_callbacks_known
 from wakfu_server.combat_retained_gc_ephemeral import ephemeral_sources_known
 from wakfu_server.combat_retained_gc_boundary import (
@@ -56,7 +53,7 @@ class CallbackOwnerCycleTests(unittest.TestCase):
         adopt_fight(runtime.fight, initialized)
         self.assertTrue(runtime.fight.native_start_event_delivered)
         del initialized, initialization_packets
-        oracle = native_fixtures.NativeOracleTests.oracle_for(
+        oracle = native_fixtures.oracle_for(
             runtime, fixture.character, fixture.monster, decks[fixture.character["id"]]
         )
         original_runtime = weakref.ref(runtime)
@@ -102,31 +99,31 @@ class CallbackOwnerCycleTests(unittest.TestCase):
         return clone, refs
 
     def assert_existing_rift_callback_rebind(self):
-        from test_rift_background_qualification import fixture as rift_fixture
-
-        case = rift_fixture()
-        runtime = case.runtime
+        case = handoff_fixtures.NativeCallbackHandoffTests()
+        fixture, runtime, decks = case.runtime_for()
         provider = runtime.expiration_runtime_factory
+        runtime.fight.rift_monsters = dict(provider.monsters)
         planning = NativeOracle(
             runtime,
             characters=provider.characters,
-            monsters=case.fight.rift_monsters,
+            monsters=fixture.fight.rift_monsters,
             decks=provider.decks,
-            excluded_decks={key: b"" for key in provider.decks},
-            viewer_id=case.session.character_id,
+            excluded_decks={key: frozenset() for key in provider.decks},
+            viewer_id=fixture.character["id"],
             flags={},
         )
         boundary = native_boundary_owner(planning, runtime)
         self.assertIsNone(boundary.runtime)
         runtime.turn_start_provider = boundary.live_start_boundary
         runtime.turn_end_provider = boundary.live_end_boundary
-        bind_private_sources(runtime, case.session)
         for callback in (runtime.turn_start_provider, runtime.turn_end_provider):
             self.assertIsNone(callback.__self__.runtime)
-            self.assertEqual(callback.__self__._native_boundary_fight_id, case.fight.id)
+            self.assertEqual(
+                callback.__self__._native_boundary_fight_id, fixture.fight.id
+            )
         self.assertEqual(
-            set(runtime.expiration_runtime_factory.monsters),
-            set(case.fight.rift_monsters),
+            set(provider.monsters),
+            set(fixture.fight.rift_monsters),
         )
 
     def test_real_callback_owner_releases_runtime_and_survives_private_copy(self):

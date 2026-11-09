@@ -38,7 +38,7 @@ services:
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
-      ai: {condition: service_healthy}
+      wakia: {condition: service_healthy}
     environment:
       PYTHONPATH: /app
       WAKFU_RUNTIME: /data
@@ -50,7 +50,6 @@ services:
       WAKFU_FISHING_CATALOG_REVISION: ${WAKFU_FISHING_CATALOG_REVISION}
       WAKFU_BOOTSTRAP_SOURCE_SHA256: ${WAKFU_BOOTSTRAP_SOURCE_SHA256}
       WAKFU_REDIS_URL: redis://redis:6379/0
-      WAKFU_AI_URL: tcp://ai:8090
       WAKFU_ECOLOGY_MODE: inline
       WAKFU_OBJECTIVES_MODE: local
       WAKFU_ECOLOGY_TOKEN_FILE: /run/secrets/ecology-token
@@ -77,7 +76,6 @@ services:
       - ${WAKEMU_INSTALL_STATE_DIR}/database/secrets:/run/secrets:ro
       - ${WAKEMU_INSTALL_STATE_DIR}/inputs:/installation:ro
       - ${WAKEMU_INSTALL_STATE_DIR}/receipts:/installation-receipts
-      - ./server/ai-service:/app/ai-service:ro
     networks: [isolated, client-access]
     healthcheck:
       test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18081/health',timeout=2)"]
@@ -85,33 +83,22 @@ services:
       timeout: 3s
       retries: 5
       start_period: 8m
-  ai:
-    image: ${WAKFU_AI_IMAGE:?Installer AI image is required}
+  wakia:
+    image: ${WAKIA_IMAGE:-${WAKFU_JONDO_AI_IMAGE:-wakemu-wakia:local}}
     build:
-      context: ./server/ai-service
-      args:
-        WORLD_IMAGE: ${WAKFU_WORLD_IMAGE}
-        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION}
+      context: ./server/ai-jondo-service
     init: true
-    depends_on:
-      postgres: {condition: service_healthy}
-      redis: {condition: service_healthy}
-    environment:
-      WAKFU_AI_PORT: '8090'
-      WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION}
-      WAKFU_DATABASE_URL: host=postgres dbname=${WAKEMU_INSTALL_DATABASE} user=wakemu
-      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
-      WAKFU_REDIS_URL: redis://redis:6379/0
-    volumes:
-      - ${WAKEMU_INSTALL_STATE_DIR}/database/secrets/postgres-password:/run/secrets/postgres-password:ro
-      - ai-context-data:/var/lib/wakfu-ai-context
-    networks: [isolated]
-    healthcheck:
-      test: [CMD, python3, -m, wakfu_ai.transport.health]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 180s
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    networks:
+      isolated:
+        aliases: [ai-jondo]
+    restart: unless-stopped
   shop:
     image: ${WAKFU_SHOP_IMAGE:?Installer shop image is required}
     build:
@@ -142,7 +129,6 @@ services:
 volumes:
   postgres-data:
   redis-data:
-  ai-context-data:
 networks:
   isolated: {internal: true}
   client-access: {driver: bridge}

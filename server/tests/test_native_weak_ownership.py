@@ -1,17 +1,14 @@
 """Native preview ownership, weak cycles and public serialization contracts."""
 import gc
-import sys
 import unittest
 import weakref
-from pathlib import Path
 from copy import deepcopy
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ai-service"))
 from wakfu_server.combat_state import Fight
 from wakfu_server import combat_retained_collections as storage
 from wakfu_server.combat_reproduction_state import encode_state, decode_state
-from wakfu_ai.context.native_fingerprint import fingerprint
-from wakfu_ai.context.native_context import _instance_fields
+from wakfu_server.wakia_bridge.wakfu_ai.context.native_fingerprint import fingerprint
+from wakfu_server.wakia_bridge.wakfu_ai.context.native_context import _instance_fields
 
 
 def fixture(*, qi=True):

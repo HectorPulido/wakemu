@@ -30,7 +30,7 @@ SOURCE_SCOPE = (
     "server/**/requirements*.txt",
     "server/migrations/*.sql",
     "server/protocol/**/*.json",
-    "server/{tests/fixtures,test-fixtures,ai-service/tests/fixtures}/**/*.{json,gz,bin,csv,tsv,txt}",
+    "server/{tests/fixtures,test-fixtures}/**/*.{json,gz,bin,csv,tsv,txt}",
     "server/**/*.{js,html,css,svg,png}",
     "server/**/Dockerfile and server/**/*.sh",
     "compose*.yml, compose*.yaml, docker-compose*.yml, docker-compose*.yaml",
@@ -94,7 +94,7 @@ def _source_paths(root):
         candidates.update(server.rglob(pattern))
     candidates.update((server / "migrations").glob("*.sql"))
     candidates.update((server / "protocol").rglob("*.json"))
-    for directory in ("tests/fixtures", "test-fixtures", "ai-service/tests/fixtures"):
+    for directory in ("tests/fixtures", "test-fixtures"):
         candidates.update(
             path
             for path in (server / directory).rglob("*")

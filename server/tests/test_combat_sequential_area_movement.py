@@ -10,12 +10,7 @@ from wakfu_server.combat_state import Actor, Fight
 class SequentialAreaMovementTests(unittest.TestCase):
     @staticmethod
     def _native_wonejo_runtime(*, native_area_callbacks=True):
-        ai_root = str(Path(__file__).resolve().parents[1] / "ai-service")
-        ai_tests = str(Path(ai_root) / "tests")
-        for path in (ai_root, ai_tests):
-            if path not in sys.path:
-                sys.path.insert(0, path)
-        from test_native_oracle import NativeOracleTests
+        from tests.native_oracle_fixture import NativeOracleTests
         from wakfu_server.combat_runtime_messages import RuntimeMessages
         from wakfu_server.spells import default_deck
 
@@ -30,36 +25,6 @@ class SequentialAreaMovementTests(unittest.TestCase):
             flags={"native_area_callbacks": native_area_callbacks},
         )
         return NativeOracleTests, fixture, runtime, oracle, deck
-
-    @staticmethod
-    def _search_decision(oracle, runtime, deck):
-        from test_native_session import StubTransport
-        from wakfu_ai.bridge.world_bridge import NativeSession
-        from wakfu_ai.planning.query_search import search
-
-        transport = StubTransport()
-        session = NativeSession(
-            oracle,
-            transport,
-            None,
-            policy=dict(limits=dict(depth=2, beam=8, nodes=40, budgetMs=10000)),
-            policy_version="sequential-movement-regression",
-            fight_instance_id="sequential-movement-regression",
-        )
-        envelope = session.envelope()
-        envelope["operations"] = [
-            operation
-            for operation in envelope["operations"]
-            if operation != "project_turn"
-        ]
-        store = type("Store", (), {"json": lambda _, key: transport.graphs[key]})()
-        coroutine = search(envelope, store)
-        request = next(coroutine)
-        while True:
-            try:
-                request = coroutine.send(session.query(request))
-            except StopIteration as completed:
-                return session, completed.value
 
     def test_ref46_mp_loss_interrupts_after_the_paid_entry_step(self):
         """The actual ref46 entry effect can consume MP before the next step."""
@@ -209,13 +174,7 @@ class SequentialAreaMovementTests(unittest.TestCase):
         from pathlib import Path
         import sys
 
-        ai_root = str(Path(__file__).resolve().parents[1] / "ai-service")
-        ai_tests = str(Path(ai_root) / "tests")
-        for import_path in (ai_root, ai_tests):
-            if import_path not in sys.path:
-                sys.path.insert(0, import_path)
-
-        from test_native_oracle import NativeOracleTests
+        from tests.native_oracle_fixture import NativeOracleTests
         from wakfu_server.combat_runtime_messages import RuntimeMessages
         from wakfu_server.combat_effect_area import native_effect_areas
         from wakfu_server.combat_effect_area_catalog import area_effect_catalog
@@ -450,7 +409,7 @@ class SequentialAreaMovementTests(unittest.TestCase):
         self.assertEqual(oracle.state_identity(runtime), before)
         self.assertEqual((actor.position, actor.mp), ((-7, -7, -1), 3))
 
-    def test_native_committed_cast_searches_retreat_and_replan_does_not_approach(self):
+    def test_native_committed_cast_then_retreat_preserves_world_state(self):
         from unittest.mock import patch
 
         _, fixture, runtime, oracle, deck = self._native_wonejo_runtime()
@@ -519,39 +478,17 @@ class SequentialAreaMovementTests(unittest.TestCase):
         )
         freeze_terrain(runtime.fight)
 
+        retreat_cell = route[1]
         with patch("wakfu_server.combat_los.authoritative_visible", return_value=True):
-            session, decision = self._search_decision(oracle, runtime, deck)
-        session.guard()
-        self.assertTrue(decision["plan"], decision)
-        self.assertEqual(decision["plan"][0]["type"], "move", decision)
-        retreat = decision["plan"][0]
-        retreat_cell = tuple(retreat["path"][-1])
+            oracle.commit(
+                {"type": "move", "path": [list(retreat_cell)]},
+                stats_serializer=lambda current, fight: b"",
+            )
+        self.assertEqual(runtime.fight.actors[actor.id].position, retreat_cell)
         retreat_distance = sum(
             abs(a - b) for a, b in zip(retreat_cell[:2], target.position[:2])
         )
         self.assertGreater(retreat_distance, initial_distance)
-
-        with patch("wakfu_server.combat_los.authoritative_visible", return_value=True):
-            oracle.commit(
-                {"type": "move", "path": retreat["path"]},
-                stats_serializer=lambda current, fight: b"",
-            )
-            _, replanned = self._search_decision(oracle, runtime, deck)
-        if not replanned["plan"]:
-            # An empty search result proposes no step at all. The actor remains
-            # at the committed retreat cell, so it cannot approach the target.
-            self.assertEqual(runtime.fight.actors[actor.id].position, retreat_cell)
-            self.assertGreater(retreat_distance, initial_distance)
-            return
-        next_action = replanned["plan"][0]
-        if next_action["type"] == "move":
-            next_distance = sum(
-                abs(a - b)
-                for a, b in zip(tuple(next_action["path"][-1])[:2], target.position[:2])
-            )
-            self.assertGreaterEqual(next_distance, retreat_distance)
-        else:
-            self.assertEqual(next_action["type"], "end_turn")
 
 
 if __name__ == "__main__":

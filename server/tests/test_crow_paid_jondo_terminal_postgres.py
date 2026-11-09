@@ -591,11 +591,21 @@ class CrowPaidJondoTerminalTests(PostgresCase):
                         return
                     import time
                     import uuid
-                    from wakfu_ai.native.native_oracle import NativeOracle
-                    from wakfu_ai.native.native_stats import NativeStats
-                    from wakfu_ai.transport.framed import FramedClient
-                    from wakfu_ai.transport.endpoint import tcp_address
-                    from wakfu_ai.bridge.jondo_entry import run_prepared_turn
+                    from wakfu_server.wakia_bridge.wakfu_ai.native.native_oracle import (
+                        NativeOracle,
+                    )
+                    from wakfu_server.wakia_bridge.wakfu_ai.native.native_stats import (
+                        NativeStats,
+                    )
+                    from wakfu_server.wakia_bridge.wakfu_ai.transport.framed import (
+                        FramedClient,
+                    )
+                    from wakfu_server.wakia_bridge.wakfu_ai.transport.endpoint import (
+                        tcp_address,
+                    )
+                    from wakfu_server.wakia_bridge.wakfu_ai.bridge.jondo_entry import (
+                        run_prepared_turn,
+                    )
 
                     actor = runtime.fight.current
                     original_turn = runtime.fight.turn_id

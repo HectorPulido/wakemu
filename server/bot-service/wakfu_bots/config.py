@@ -109,6 +109,8 @@ def validate_profile(value):
             or "\x00" in message
         ):
             raise ValueError("Invalid announcement text")
+    if "friendly_duel" in behaviors and behaviors["friendly_duel"]:
+        raise ValueError("Friendly duel behavior has no settings")
     return copy.deepcopy(dict(value, capabilities=capabilities, behaviors=behaviors))
 
 
@@ -125,7 +127,9 @@ def atomic_json(path, value):
 
 
 class Profiles:
-    def __init__(self, path, *, behavior_names=("buyer", "llm", "announcer")):
+    def __init__(
+        self, path, *, behavior_names=("buyer", "llm", "announcer", "friendly_duel")
+    ):
         self.path = Path(path)
         self.lock = threading.RLock()
         self.behavior_names = frozenset(behavior_names)

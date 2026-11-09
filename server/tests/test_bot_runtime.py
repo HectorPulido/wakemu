@@ -2,6 +2,7 @@
 
 import unittest
 from contextlib import contextmanager
+from unittest.mock import patch
 
 from wakfu_server.bots.runtime import BotsRuntime
 from wakfu_server.bots.bridge import BotConflict
@@ -149,6 +150,16 @@ class BotRuntimeTests(unittest.TestCase):
                 "capabilities": list(capabilities),
             },
         )
+
+    def test_friendly_duel_keeps_bot_online_when_worker_stops(self):
+        self.create(capabilities=("duel",))
+        self.runtime.execute("bot_1", "activate", {})
+        with patch.object(self.runtime, "_duel_active", return_value=True):
+            with self.assertRaisesRegex(BotConflict, "bot_has_active_duel"):
+                self.runtime.execute("bot_1", "deactivate", {})
+            self.runtime.deactivate_idle()
+        self.assertIn("bot_1", self.runtime.active)
+        self.assertEqual(self.world.leaves, [])
 
     def test_headless_chat_exchange_and_deactivation_share_world_lifecycle(self):
         self.create()

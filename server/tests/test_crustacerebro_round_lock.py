@@ -9,7 +9,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [
     str(ROOT / "tests"),
     str(ROOT / "tools"),
-    str(ROOT / "ai-service" / "tests"),
 ]
 
 
@@ -18,7 +17,7 @@ sys.path[:0] = [
 )
 class CrustacerebroRoundLockTests(unittest.TestCase):
     def test_actual_round_reset_rearms_only_original_unlimited_constructor(self):
-        from jondo_native_support_probe import build_fixture
+        from tests.jondo_native_support_probe import build_fixture
         from native_recorded_instance_fixture import original_bootstrap_publication
         from wakfu_server.combat_effect_dispatch import EffectDispatcher
 

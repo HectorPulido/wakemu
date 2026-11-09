@@ -194,15 +194,12 @@ class CapabilityGenerationTests(unittest.TestCase):
             runtime, provider, max_previews=3, budget_ms=1000, depth=1
         )
         actions = self.root_transitions(request)
-        result = self.decide(request)
 
         self.assertEqual(request["producerTrace"]["previews"], 3)
         self.assertEqual(actions[0]["type"], "cast")
         self.assertEqual((actions[0]["spellId"], actions[0]["targetId"]), (101, -11))
         self.assertEqual((actions[1]["spellId"], actions[1]["targetId"]), (202, 7))
         self.assertEqual(actions[2]["type"], "move")
-        self.assertEqual(result["decision"]["intent"], "heal")
-        self.assertEqual(result["decision"]["target_id"], -11)
 
     def test_ranged_repertoire_moves_only_to_first_legal_casting_distance(self):
         runtime = self.fight(npc_position=0, enemy_position=4, mp=3)
@@ -213,13 +210,23 @@ class CapabilityGenerationTests(unittest.TestCase):
         request = build_request(
             runtime, provider, max_previews=32, budget_ms=1000, depth=2
         )
-        result = self.decide(request)
-        first = result["decision"]["actions"][0]
-
-        self.assertEqual(first, {"type": "move", "path": [[1, 0, 0]]})
-        self.assertEqual(len(result["decision"]["actions"]), 2)
-        self.assertEqual(result["decision"]["actions"][1]["spellId"], 303)
-        self.assertEqual(result["decision"]["actions"][1]["targetId"], 7)
+        root = next(
+            state for state in request["states"] if state["key"] == request["rootState"]
+        )
+        move = next(
+            row for row in root["transitions"] if row["action"]["type"] == "move"
+        )
+        self.assertEqual(move["action"]["path"], [[1, 0, 0]])
+        child = next(
+            state for state in request["states"] if state["key"] == move["nextState"]
+        )
+        self.assertTrue(
+            any(
+                row["action"].get("spellId") == 303
+                and row["action"].get("targetId") == 7
+                for row in child["transitions"]
+            )
+        )
 
     def test_heal_only_capability_does_not_chase_a_full_health_enemy(self):
         runtime = self.fight(npc_position=0, enemy_position=5, ally=(2, 30, 30), mp=3)
@@ -230,14 +237,12 @@ class CapabilityGenerationTests(unittest.TestCase):
         request = build_request(
             runtime, provider, max_previews=32, budget_ms=1000, depth=1
         )
-        result = self.decide(request)
 
         self.assertTrue(
             all(
                 action.get("targetId") != 7 for action in self.root_transitions(request)
             )
         )
-        self.assertEqual(result["decision"]["actions"], [{"type": "end_turn"}])
 
     def test_movement_shortlist_preserves_back_and_side_cells_for_all_directions(self):
         from types import SimpleNamespace
@@ -307,23 +312,17 @@ class CapabilityGenerationTests(unittest.TestCase):
         request = build_request(
             runtime, provider, max_previews=16, budget_ms=1000, depth=1
         )
-        result = self.decide(request)
 
-        self.assertEqual(result["decision"]["actions"][0]["type"], "move")
-        self.assertGreater(
-            result["decision"]["score_components"]["feature:geometric_threat_cells"], 0
+        self.assertTrue(
+            any(
+                "geometric_threat_cells" in state.get("outcomeFeatures", {})
+                for state in request["states"]
+            )
         )
-        self.assertEqual(result["decision"]["score_components"]["damage"], 0)
         self.assertEqual(
             {identity: actor.hp for identity, actor in runtime.fight.actors.items()},
             original_hp,
         )
-
-    @staticmethod
-    def decide(request):
-        from tests.test_ai_service import planner
-
-        return planner.decide(request)
 
 
 if __name__ == "__main__":
