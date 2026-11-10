@@ -1,4 +1,5 @@
 """Bounded real SQL publication; no whole combat catalog or World startup."""
+
 import hashlib
 import json
 import os
@@ -82,9 +83,31 @@ class CompiledCatalogPublicationTests(PostgresCase):
                 documents={"small": document},
             )
             with self.store.connection() as db:
+                # Exercise the old-table publication path even though this
+                # migration converts an initially empty table into a view.
+                db.execute("DROP VIEW native_compiled_catalog_records")
+                db.execute(
+                    "CREATE TABLE native_compiled_catalog_records ("
+                    "generation text NOT NULL,collection text NOT NULL,"
+                    "record_key text NOT NULL,ordinal integer NOT NULL CHECK(ordinal>=0),"
+                    "raw bytea NOT NULL,sha256 text NOT NULL,"
+                    "PRIMARY KEY(generation,collection,record_key),"
+                    "UNIQUE(generation,collection,ordinal),"
+                    "FOREIGN KEY(generation,collection) REFERENCES "
+                    "native_compiled_catalog_collections(generation,collection))"
+                )
                 generation = publisher.publish(
                     db, spool, manifest, storage.canonical_bytes
                 )
+                second_generation = publisher.publish(
+                    db,
+                    spool,
+                    dict(manifest, config_sha256="e" * 64),
+                    storage.canonical_bytes,
+                )
+            from tools.compact_compiled_catalog import compact
+
+            self.assertTrue(compact(self.store.database)["compacted"])
             backend = storage.CompiledCatalogBackend(
                 self.store, lambda: redis, cache=BoundedByteCache()
             )
@@ -107,10 +130,30 @@ class CompiledCatalogPublicationTests(PostgresCase):
                     "SELECT raw,sha256 FROM native_compiled_catalog_records WHERE generation=%s AND collection='raw.keys' AND record_key='7'",
                     (generation,),
                 ).fetchone()
+                shared = db.execute(
+                    "SELECT c.content_id,c.collection,c.kind,cc.representation,cc.complete,r.record_key,r.ordinal,r.raw,r.sha256 "
+                    "FROM native_compiled_catalog_collections c "
+                    "JOIN native_compiled_collection_contents cc ON cc.content_id=c.content_id "
+                    "JOIN native_compiled_content_records r ON r.content_id=cc.content_id "
+                    "WHERE c.generation=%s AND c.collection='raw.keys' AND r.record_key='7'",
+                    (generation,),
+                ).fetchone()
             self.assertEqual(bytes(stored["raw"]), publisher.ordered_bytes(raw[7]))
             self.assertEqual(
                 stored["sha256"], hashlib.sha256(bytes(stored["raw"])).hexdigest()
             )
+            self.assertEqual(shared["representation"], "native_json")
+            self.assertTrue(shared["complete"])
+            self.assertEqual(shared["record_key"], "7")
+            self.assertEqual(bytes(shared["raw"]), bytes(stored["raw"]))
+            # The legacy relation remains a read-compatible view after compaction.
+            with self.store.connection() as db:
+                compat = db.execute(
+                    "SELECT record_key,ordinal,raw,sha256 FROM native_compiled_catalog_records "
+                    "WHERE generation=%s AND collection='raw.keys' AND record_key='7'",
+                    (generation,),
+                ).fetchone()
+            self.assertEqual(bytes(compat["raw"]), bytes(stored["raw"]))
             redis_key = backend._raw_key(descriptor, "7", stored["sha256"])
             self.addCleanup(redis.delete, redis_key)
             redis.setex(redis_key, 60, b"corrupt")
@@ -141,8 +184,15 @@ class CompiledCatalogPublicationTests(PostgresCase):
                     db.execute(
                         "SELECT count(*) AS n FROM native_compiled_catalog_releases"
                     ).fetchone()["n"],
-                    1,
+                    2,
                 )
+                shared_ids = db.execute(
+                    "SELECT content_id FROM native_compiled_catalog_collections "
+                    "WHERE collection='raw.keys' AND generation=ANY(%s) ORDER BY generation",
+                    ([generation, second_generation],),
+                ).fetchall()
+            self.assertEqual(len(shared_ids), 2)
+            self.assertEqual(shared_ids[0]["content_id"], shared_ids[1]["content_id"])
             with patch.dict(os.environ), patch.object(
                 publisher,
                 "compile_manifest",

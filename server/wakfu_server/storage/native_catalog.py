@@ -3,6 +3,7 @@
 Plain files are import artifacts. Readers pin one published release so a
 process never mixes catalog versions. Protocol reads never fall back to files.
 """
+
 import builtins
 import hashlib
 import io
@@ -68,6 +69,9 @@ def release():
     expected = os.environ.get("WAKFU_CATALOG_REVISION")
     if expected and row["revision"] != expected:
         raise RuntimeError("Published native catalog release differs from image")
+    pin = getattr(_database(), "pin_native_revision", None)
+    if pin is not None:
+        pin(row["revision"])
     return row["revision"]
 
 

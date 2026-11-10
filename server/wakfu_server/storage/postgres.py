@@ -1,9 +1,11 @@
 """PostgreSQL connection ownership and versioned schema; no dialect adapters."""
+
 from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import Path
 import re
 import time
+import threading
 
 from psycopg import connect
 from psycopg.rows import dict_row
@@ -29,6 +31,8 @@ class Database:
         self.conninfo = conninfo
         self.connection_kwargs = kwargs
         self.runtime_lock_connection = None
+        self._compiled_pins = {}
+        self._compiled_pin_lock = threading.Lock()
         self.pool = ConnectionPool(
             conninfo,
             kwargs=kwargs,
@@ -81,10 +85,72 @@ class Database:
             raise
         self.runtime_lock_connection = connection
 
+    def pin_compiled_generation(self, generation):
+        """Keep immutable publications alive until this database client closes."""
+        self._pin_catalog("compiled_generation", generation)
+
+    def pin_native_revision(self, revision):
+        """Protect source bytes held by live native catalog readers."""
+        self._pin_catalog("native_revision", revision)
+
+    def _pin_catalog(self, kind, generation):
+        if not re.fullmatch(r"[0-9a-f]{64}", generation):
+            raise ValueError("Invalid catalog identity")
+        key = (kind, generation)
+        with self._compiled_pin_lock:
+            pinned = self._compiled_pins.get(key)
+            if pinned is not None:
+                try:
+                    pinned.execute("SELECT 1")
+                    return
+                except Exception:
+                    pinned.close()
+                    del self._compiled_pins[key]
+            connection = connect(
+                self.conninfo,
+                **self.connection_kwargs,
+                autocommit=True,
+                connect_timeout=10,
+            )
+            try:
+                connection.execute(
+                    "SELECT pg_advisory_lock_shared(hashtextextended("
+                    "current_database()||':'||current_schema()||':'||%s||':'||%s,0))",
+                    (kind, generation),
+                )
+                table, column = (
+                    ("native_compiled_catalog_releases", "generation")
+                    if kind == "compiled_generation"
+                    else ("native_catalog_releases", "revision")
+                )
+                payload = (
+                    " AND (document_count=0 OR EXISTS(SELECT 1 FROM native_catalog_documents d "
+                    "WHERE d.revision=native_catalog_releases.revision))"
+                    if kind == "native_revision"
+                    else ""
+                )
+                if (
+                    connection.execute(
+                        f"SELECT 1 FROM {table} WHERE {column}=%s AND complete"
+                        + payload,
+                        (generation,),
+                    ).fetchone()
+                    is None
+                ):
+                    raise FileNotFoundError("No complete compiled catalog generation")
+            except BaseException:
+                connection.close()
+                raise
+            self._compiled_pins[key] = connection
+
     def close(self):
         try:
             self.pool.close()
         finally:
+            with self._compiled_pin_lock:
+                for connection in self._compiled_pins.values():
+                    connection.close()
+                self._compiled_pins.clear()
             if self.runtime_lock_connection is not None:
                 self.runtime_lock_connection.close()
                 self.runtime_lock_connection = None
@@ -103,11 +169,9 @@ def migrate(db, directory):
         raise ValueError("Migration versions must form a contiguous sequence")
     with db.transaction():
         db.execute("SELECT pg_advisory_xact_lock(%s)", (5790545553,))
-        db.execute(
-            """CREATE TABLE IF NOT EXISTS schema_migrations (
+        db.execute("""CREATE TABLE IF NOT EXISTS schema_migrations (
             version integer PRIMARY KEY, checksum text NOT NULL,
-            applied_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP)"""
-        )
+            applied_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
         applied = {
             r["version"]: r["checksum"]
             for r in db.execute("SELECT version,checksum FROM schema_migrations")

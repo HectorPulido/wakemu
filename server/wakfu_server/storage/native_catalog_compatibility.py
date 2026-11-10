@@ -5,6 +5,7 @@ Historical inventories are either complete PostgreSQL releases or original
 inventories carried by a current immutable published document. Neither path
 accepts a revision alias, an incomplete inventory, or a changed dependency.
 """
+
 from functools import lru_cache
 import hashlib
 import json
@@ -114,10 +115,26 @@ def _historical_documents(revision, current):
                 'WHERE revision=%s ORDER BY path COLLATE "C"',
                 (revision,),
             ).fetchall()
-            return _inventory(
-                dict(row, documents=[dict(document) for document in documents]),
-                revision,
-            )
+            if (
+                documents
+                and row["complete"]
+                and len(documents) == row["document_count"]
+            ):
+                return _inventory(
+                    dict(row, documents=[dict(document) for document in documents]),
+                    revision,
+                )
+            archived = db.execute(
+                "SELECT inventory FROM native_catalog_retired_inventories WHERE revision=%s",
+                (revision,),
+            ).fetchone()
+            if archived is not None:
+                return _inventory(archived["inventory"], revision)
+            if documents:
+                return _inventory(
+                    dict(row, documents=[dict(document) for document in documents]),
+                    revision,
+                )
     # Fresh installations may carry only the newest release. Its authoritative
     # published metadata includes the unchanged original public inventories.
     document = json.loads(native_catalog.read_published_bytes(MANIFEST_DOCUMENT))

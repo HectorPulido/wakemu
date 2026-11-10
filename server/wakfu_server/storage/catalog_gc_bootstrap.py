@@ -4,6 +4,7 @@ CPython cannot freeze selected objects. This module must therefore run before
 the world module is imported, before listeners, live registries or workers.
 The pinned catalogue generation is intentionally retained until process exit.
 """
+
 import gc
 import json
 import os
@@ -128,6 +129,15 @@ def main():
         result = freeze_startup_heap(_prewarm, _cleanup)
         startup_globals["_COMBAT_STARTUP_PREWARM"] = result
         print(json.dumps(dict(event="catalog_heap_frozen", **result)), flush=True)
+    # Prewarm deliberately closes its temporary database sessions. Reacquire
+    # lifetime pins after that cleanup and before World consumes frozen readers.
+    from wakfu_server import native_catalog
+
+    database = native_catalog._database()
+    database.pin_native_revision(native_catalog.release())
+    generation = os.environ.get("WAKFU_COMPILED_CATALOG_GENERATION")
+    if generation:
+        database.pin_compiled_generation(generation)
     world = Path(__file__).resolve().parents[2] / "local_game_server.py"
     runpy.run_path(str(world), run_name="__main__", init_globals=startup_globals)
 

@@ -110,6 +110,8 @@ def put_profile(db, definition, expected_revision):
     ).fetchone()
     if (old["revision"] if old else 0) != expected_revision:
         raise ConflictError("Challenge profile revision changed")
+    if old and old["definition"] == value:
+        return old
     from .rankings import week_key
 
     # A scored weekly competition must keep the same content for every entrant.

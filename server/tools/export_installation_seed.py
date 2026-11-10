@@ -4,6 +4,7 @@ Use --plan for metadata only. Bootstrap export is private and opt-in: either
 exact original JSONL or explicit canonical recovery with a new file identity.
 No destination import, schema migration, service startup or activation occurs.
 """
+
 import argparse
 import hashlib
 import json
@@ -298,6 +299,8 @@ def release_digest(documents):
 
 
 def plan(db, extra_revisions, capture_key):
+    from tools.native_catalog_provenance import export_retired_inventories
+
     active = db.execute(
         "SELECT revision FROM native_catalog_active WHERE id=1"
     ).fetchone()
@@ -321,7 +324,7 @@ def plan(db, extra_revisions, capture_key):
         "FROM bootstrap_capture_manifests WHERE capture_key=%s",
         (capture_key,),
     ).fetchone()
-    return {
+    result = {
         "format": "wakemu-installation-seed-v1",
         "player_tables_exported": [],
         "catalog_privacy": "Native source documents only; embedded captured templates have not been privacy-certified",
@@ -331,6 +334,10 @@ def plan(db, extra_revisions, capture_key):
         "bootstrap_exported": False,
         "bootstrap_privacy": "Captured protocol bodies are not certified player-free",
     }
+    retired = export_retired_inventories(db, payload_revisions=revisions)
+    if retired:
+        result["retired_inventories"] = retired
+    return result
 
 
 def write_private(path, raw):
@@ -377,6 +384,11 @@ def export_catalogs(db, destination, manifest):
             len(documents) != release["document_count"]
             or sum(row["source_bytes"] for row in documents) != release["source_bytes"]
         ):
+            if not documents:
+                raise ValueError(
+                    "Catalog release payload is retired or unavailable; reimport the full "
+                    "source before exporting revision " + revision
+                )
             raise ValueError("Exported release differs from its immutable manifest")
         release.update(
             release_identity(

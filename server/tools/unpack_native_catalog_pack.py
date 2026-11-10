@@ -1,4 +1,5 @@
 """Verify and materialize immutable catalog documents without a client or database."""
+
 import argparse
 import gzip
 import hashlib
@@ -32,6 +33,7 @@ def digest(value):
 def unpack(manifest_path, output_directory):
     """Return a legacy seed manifest; never activate or import its releases."""
     from tools.import_native_catalogs import validate_release_inventory
+    from tools.native_catalog_provenance import validated_retired_inventories
 
     manifest_path = Path(manifest_path)
     pack = json.loads(manifest_path.read_text())
@@ -61,6 +63,10 @@ def unpack(manifest_path, output_directory):
                 raise ValueError("Conflicting document sizes")
     if active not in revisions or set(pack["blobs"]) != set(required):
         raise ValueError("Catalog pack contains missing or unreferenced content")
+    retired = validated_retired_inventories(
+        pack.get("retired_inventories", []),
+        payload_revisions=revisions,
+    )
     output_directory = Path(output_directory)
     output_directory.mkdir(parents=True, exist_ok=False)
     (output_directory / "INCOMPLETE").write_text("Catalog materialization incomplete\n")
@@ -135,6 +141,8 @@ def unpack(manifest_path, output_directory):
         "releases": pack["releases"],
         "player_tables_exported": [],
     }
+    if retired:
+        result["retired_inventories"] = retired
     (output_directory / "catalog-manifest.json").write_text(
         json.dumps(result, sort_keys=True, indent=2) + "\n"
     )

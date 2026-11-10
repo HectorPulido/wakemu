@@ -1,4 +1,5 @@
 """Validated PostgreSQL settings and versioned reward/dungeon policy editing."""
+
 from contextlib import nullcontext
 from decimal import Decimal
 import importlib
@@ -7,7 +8,6 @@ import math
 import re
 from psycopg.types.json import Jsonb
 from wakfu_server.reward_rates import MAX_REWARD_MULTIPLIER, REWARD_RATE_SCALE
-
 
 _COMBAT_MULTIPLIERS = {
     "combat_xp_multiplier": ("combat_reward_policy", "xp_rate_bp"),
@@ -221,42 +221,54 @@ class AdminSettings:
         category = (
             "Dungeons"
             if dungeon or name.startswith("dungeon_")
-            else "Combat"
-            if name.startswith(("combat_", "fight_", "friendly_"))
-            else "Ecology"
-            if name.startswith(
-                (
-                    "monster_",
-                    "personal_ecology",
-                    "weather_",
-                    "planting_",
-                    "open_planting",
-                    "resource_",
-                    "fishing_",
-                    "mining_",
+            else (
+                "Combat"
+                if name.startswith(("combat_", "fight_", "friendly_"))
+                else (
+                    "Ecology"
+                    if name.startswith(
+                        (
+                            "monster_",
+                            "personal_ecology",
+                            "weather_",
+                            "planting_",
+                            "open_planting",
+                            "resource_",
+                            "fishing_",
+                            "mining_",
+                        )
+                    )
+                    else (
+                        "Items and economy"
+                        if name.startswith(
+                            (
+                                "socket_",
+                                "mount",
+                                "pet_",
+                                "recycling",
+                                "profession_",
+                                "player_exchange",
+                            )
+                        )
+                        else (
+                            "Social and access"
+                            if name.startswith(
+                                ("guild_", "chat_", "player_", "emote_", "exploration_")
+                            )
+                            else "General"
+                        )
+                    )
                 )
             )
-            else "Items and economy"
-            if name.startswith(
-                (
-                    "socket_",
-                    "mount",
-                    "pet_",
-                    "recycling",
-                    "profession_",
-                    "player_exchange",
-                )
-            )
-            else "Social and access"
-            if name.startswith(("guild_", "chat_", "player_", "emote_", "exploration_"))
-            else "General"
         )
         edit_mode = (
             "new_version"
             if name.startswith("dungeon_runtime_config:")
-            else "select_version"
-            if name.startswith("dungeon_runtime_active:")
-            else "json"
+            else (
+                "select_version"
+                if name.startswith("dungeon_runtime_active:")
+                else "json"
+            )
         )
         summary = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
         return dict(
@@ -310,13 +322,13 @@ class AdminSettings:
                         (route_key,),
                     )
                 ]
-        result[
-            "validation"
-        ] = "Preserve configured fields and JSON types. Numeric ranges, supported consumer policies and immutable dungeon versions are checked before commit."
+        result["validation"] = (
+            "Preserve configured fields and JSON types. Numeric ranges, supported consumer policies and immutable dungeon versions are checked before commit."
+        )
         if name == "server_name":
-            result[
-                "validation"
-            ] = "Use 1–80 characters, at most 255 UTF-8 bytes, without control characters or surrounding whitespace."
+            result["validation"] = (
+                "Use 1–80 characters, at most 255 UTF-8 bytes, without control characters or surrounding whitespace."
+            )
         return result
 
     @staticmethod
@@ -532,29 +544,32 @@ class AdminSettings:
                         + "_versions v USING(version) WHERE a.singleton=true"
                     ).fetchone()
                 )
-                version = db.execute(
-                    "SELECT max(version)+1 AS version FROM " + policy + "_versions"
-                ).fetchone()["version"]
-                current[column] = int(scaled)
-                columns = (
-                    ["drop_rate_bp"]
-                    if policy == "combat_drop_policy"
-                    else ["xp_rate_bp", "kamas_rate_bp", "conquest_rate_bp"]
-                )
-                db.execute(
-                    "INSERT INTO "
-                    + policy
-                    + "_versions(version,"
-                    + ",".join(columns)
-                    + ") VALUES ("
-                    + ",".join(["%s"] * (len(columns) + 1))
-                    + ")",
-                    (version, *(current[c] for c in columns)),
-                )
-                db.execute(
-                    "UPDATE " + policy + "_active SET version=%s WHERE singleton=true",
-                    (version,),
-                )
+                if current[column] != int(scaled):
+                    version = db.execute(
+                        "SELECT max(version)+1 AS version FROM " + policy + "_versions"
+                    ).fetchone()["version"]
+                    current[column] = int(scaled)
+                    columns = (
+                        ["drop_rate_bp"]
+                        if policy == "combat_drop_policy"
+                        else ["xp_rate_bp", "kamas_rate_bp", "conquest_rate_bp"]
+                    )
+                    db.execute(
+                        "INSERT INTO "
+                        + policy
+                        + "_versions(version,"
+                        + ",".join(columns)
+                        + ") VALUES ("
+                        + ",".join(["%s"] * (len(columns) + 1))
+                        + ")",
+                        (version, *(current[c] for c in columns)),
+                    )
+                    db.execute(
+                        "UPDATE "
+                        + policy
+                        + "_active SET version=%s WHERE singleton=true",
+                        (version,),
+                    )
             elif name.startswith("dungeon_runtime_config:"):
                 from wakfu_server.dungeon_runtime_config import (
                     prepare_configuration,

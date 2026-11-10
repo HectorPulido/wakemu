@@ -264,6 +264,10 @@ class IndexedCatalog:
             raise ValueError("Invalid expected native collection count")
         if type(allow_empty) is not bool:
             raise TypeError("Native empty-index policy must be explicit")
+        owner = getattr(self.database, "database", self.database)
+        pin = getattr(owner, "pin_native_revision", None)
+        if pin is not None:
+            pin(revision)
         with self.database.connection() as db:
             row = db.execute(
                 "SELECT d.sha256,d.record_count FROM native_catalog_documents d "

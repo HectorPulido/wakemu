@@ -4,6 +4,7 @@ PostgreSQL holds immutable complete generations and authoritative record hashes.
 Redis is disposable. Native and derived readers share one bounded byte cache;
 no decoded record, ordered-key inventory or database client is retained here.
 """
+
 from contextlib import contextmanager
 from functools import lru_cache
 import hashlib
@@ -253,6 +254,12 @@ class CompiledCatalogBackend:
 
     def header(self, generation):
         generation = _digest(generation)
+        provider = self.database_provider
+        database = provider() if callable(provider) else provider
+        owner = getattr(database, "database", database)
+        pin = getattr(owner, "pin_compiled_generation", None)
+        if pin is not None:
+            pin(generation)
         cache_key = "wakemu:compiled:manifest:v1:" + generation
         raw = self.cache.get(cache_key)
         if raw is None:
@@ -604,9 +611,7 @@ class PublishedCollectionReader:
             collection = (
                 value
                 if type(value) is str
-                else value.get("collection")
-                if type(value) is dict
-                else None
+                else value.get("collection") if type(value) is dict else None
             )
             if collection == self._descriptor["collection"]:
                 matching.append(name)

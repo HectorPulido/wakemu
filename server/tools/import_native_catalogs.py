@@ -284,6 +284,11 @@ def import_catalogs(
             identity_scheme=identity_scheme,
         )
     revision = identity["revision"]
+    contract = hashlib.sha256(
+        Path(__file__).read_bytes()
+        + Path(__file__).with_name("native_catalog_streaming.py").read_bytes()
+        + identity["record_policy"].encode("ascii")
+    ).hexdigest()
     expected_records = (
         {}
         if expected_release is None
@@ -294,13 +299,22 @@ def import_catalogs(
         }
     )
     total_bytes = sum(size for _, _, size in manifest)
-    imported = skipped = total_records = 0
+    imported = skipped = reused = total_records = 0
     # Locking the release row serializes concurrent imports of this exact revision.
     with database.connection() as db:
         db.execute(
             """INSERT INTO native_catalog_releases(revision,document_count,source_bytes)
             VALUES(%s,%s,%s) ON CONFLICT(revision) DO NOTHING""",
             (revision, len(manifest), total_bytes),
+        )
+        # Restoring a retired artifact is staging again until all payloads have
+        # returned. Retention protects incomplete imports across document commits.
+        db.execute(
+            "UPDATE native_catalog_releases r SET complete=false "
+            "WHERE revision=%s AND complete AND EXISTS("
+            "SELECT 1 FROM native_catalog_retired_inventories a WHERE a.revision=r.revision) "
+            "AND NOT EXISTS(SELECT 1 FROM native_catalog_documents d WHERE d.revision=r.revision)",
+            (revision,),
         )
     for position, (path, checksum, size) in enumerate(manifest, 1):
         if size >= 50_000_000:
@@ -343,6 +357,41 @@ def import_catalogs(
                     report_progress(
                         position, len(manifest), imported, skipped, total_records
                     )
+                continue
+            # A digest match alone cannot prove that an old index used the same
+            # extraction policy. Only indexes stamped by this implementation
+            # can bypass parsing and record generation across source releases.
+            reusable = db.execute(
+                "SELECT d.revision,d.record_count FROM native_catalog_documents d "
+                "JOIN native_catalog_document_index_contracts c USING(revision,path) "
+                "JOIN native_catalog_releases r USING(revision) "
+                "WHERE d.path=%s AND d.sha256=%s AND d.source_bytes=%s "
+                "AND c.contract_sha256=%s AND r.complete "
+                "ORDER BY r.created_at DESC LIMIT 1",
+                (path, checksum, size, contract),
+            ).fetchone()
+            if reusable is not None and (
+                path not in expected_records
+                or expected_records[path] == reusable["record_count"]
+            ):
+                db.execute(
+                    "INSERT INTO native_catalog_documents "
+                    "SELECT %s,path,raw,sha256,source_bytes,record_count "
+                    "FROM native_catalog_documents WHERE revision=%s AND path=%s",
+                    (revision, reusable["revision"], path),
+                )
+                db.execute(
+                    "INSERT INTO native_catalog_records "
+                    "SELECT %s,path,collection,record_key,payload "
+                    "FROM native_catalog_records WHERE revision=%s AND path=%s",
+                    (revision, reusable["revision"], path),
+                )
+                db.execute(
+                    "INSERT INTO native_catalog_document_index_contracts VALUES(%s,%s,%s)",
+                    (revision, path, contract),
+                )
+                reused += 1
+                total_records += reusable["record_count"]
                 continue
             if size >= STREAM_DOCUMENT_BYTES:
                 from tools.native_catalog_streaming import (
@@ -417,6 +466,10 @@ def import_catalogs(
                 WHERE revision=%s AND path=%s""",
                 (count, revision, path),
             )
+            db.execute(
+                "INSERT INTO native_catalog_document_index_contracts VALUES(%s,%s,%s)",
+                (revision, path, contract),
+            )
             total_records += count
             imported += 1
         if position % 100 == 0 or position == len(manifest):
@@ -438,6 +491,10 @@ def import_catalogs(
             completed_at=coalesce(completed_at,now()) WHERE revision=%s""",
             (revision,),
         )
+        db.execute(
+            "DELETE FROM native_catalog_retired_inventories WHERE revision=%s",
+            (revision,),
+        )
         if activate:
             db.execute(
                 """INSERT INTO native_catalog_active(id,revision) VALUES(1,%s)
@@ -451,6 +508,7 @@ def import_catalogs(
         "records": total_records,
         "imported": imported,
         "skipped": skipped,
+        "reused": reused,
         "activated": activate,
     }
 
@@ -529,15 +587,25 @@ def main():
     if args.profile_memory:
         os.environ["WAKFU_CATALOG_IMPORT_PROFILE"] = "1"
     expected_release = None
+    retired_inventories = []
+    payload_revisions = []
     if args.release_manifest is not None:
         exported = json.loads(args.release_manifest.read_text())
         releases = exported.get("releases", [exported])
+        retired_inventories = exported.get("retired_inventories", [])
+        payload_revisions = [row.get("revision") for row in releases]
         matches = [
             row for row in releases if row.get("revision") == args.expected_revision
         ]
         if len(matches) != 1:
             parser.error("--release-manifest requires one exact --expected-revision")
         expected_release = matches[0]
+        from tools.native_catalog_provenance import validated_retired_inventories
+
+        retired_inventories = validated_retired_inventories(
+            retired_inventories,
+            payload_revisions=payload_revisions,
+        )
     from wakfu_server.postgres import Database
 
     database = Database(
@@ -545,19 +613,23 @@ def main():
         password_file=os.environ.get("WAKFU_DATABASE_PASSWORD_FILE"),
     )
     try:
-        print(
-            json.dumps(
-                import_catalogs(
-                    database,
-                    args.directory,
-                    activate=not args.stage_only,
-                    expected_release=expected_release,
-                    expected_revision=args.expected_revision,
-                    identity_scheme=args.identity_scheme,
-                ),
-                sort_keys=True,
-            )
+        result = import_catalogs(
+            database,
+            args.directory,
+            activate=not args.stage_only,
+            expected_release=expected_release,
+            expected_revision=args.expected_revision,
+            identity_scheme=args.identity_scheme,
         )
+        if not args.stage_only:
+            from tools.native_catalog_provenance import restore_retired_inventories
+
+            restore_retired_inventories(
+                database,
+                retired_inventories,
+                payload_revisions=payload_revisions,
+            )
+        print(json.dumps(result, sort_keys=True))
     finally:
         database.close()
 

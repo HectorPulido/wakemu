@@ -64,11 +64,13 @@ def put_policy(db, policy_key, policy, expected_revision, operator="api"):
         raise ValueError("Invalid expected revision")
     db.execute("SELECT pg_advisory_xact_lock(747117401)")
     prior = db.execute(
-        "SELECT revision FROM objectives_reward_policies WHERE key=%s FOR UPDATE",
+        "SELECT * FROM objectives_reward_policies WHERE key=%s FOR UPDATE",
         (policy_key,),
     ).fetchone()
     if (prior["revision"] if prior else 0) != expected_revision:
         raise ConflictError("Reward policy revision changed")
+    if prior and prior["policy"] == policy:
+        return prior
     native_items(db, policy)
     row = db.execute(
         "INSERT INTO objectives_reward_policies(key,policy,revision) VALUES(%s,%s,1) ON CONFLICT(key) DO UPDATE SET policy=EXCLUDED.policy,revision=objectives_reward_policies.revision+1,updated_at=CURRENT_TIMESTAMP RETURNING *",

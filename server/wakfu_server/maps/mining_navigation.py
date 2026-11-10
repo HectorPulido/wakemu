@@ -3,6 +3,7 @@
 This catalog validates native profession adjacency independently of combat movement.
 Missing or malformed native evidence fails closed; no filesystem fallback exists.
 """
+
 from wakfu_server import native_catalog
 from .paths import DATA_ROOT
 from functools import lru_cache
@@ -86,6 +87,9 @@ def _map_index(revision, map_id):
     if os.environ.get("WAKFU_MINING_CATALOG_REVISION"):
         if len(revision) != 64 or any(c not in "0123456789abcdef" for c in revision):
             raise ValueError("Invalid pinned mining navigation revision")
+        pin = getattr(native_catalog._database(), "pin_native_revision", None)
+        if pin is not None:
+            pin(revision)
         with native_catalog._database().connection() as db:
             row = db.execute(
                 "SELECT d.raw,d.sha256 FROM native_catalog_documents d "

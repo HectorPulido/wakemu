@@ -3,6 +3,7 @@
 No client, JAR, gameplay gifts, direct ticket minting or existing fixture reuse.
 Credentials and tokens remain in memory and are never included in the receipt.
 """
+
 import argparse
 import hashlib
 import json
@@ -466,6 +467,47 @@ def existing_probe_fixtures(db):
     return dict(accounts=len(accounts), characters=len(characters))
 
 
+def verify_native_release_storage(db, releases, active_revision):
+    """Accept complete payloads or authenticated, inactive provenance archives."""
+    from wakfu_server.native_catalog_compatibility import _inventory
+
+    archived = []
+    for release in releases:
+        revision = release["revision"]
+        count, size = db.execute(
+            "SELECT count(*),coalesce(sum(source_bytes),0) FROM native_catalog_documents WHERE revision=%s",
+            (revision,),
+        ).fetchone()
+        archive = db.execute(
+            "SELECT inventory FROM native_catalog_retired_inventories WHERE revision=%s",
+            (revision,),
+        ).fetchone()
+        if archive is None:
+            require(
+                (count, size) == (release["document_count"], release["source_bytes"]),
+                "Native catalog document totals differ from their release",
+            )
+            continue
+        require(
+            revision != active_revision, "Active native catalog payload was retired"
+        )
+        require(
+            (count, size) == (0, 0),
+            "Retired native catalog still owns document payloads",
+        )
+        inventory = archive[0]
+        _inventory(inventory, revision)
+        require(
+            all(
+                inventory.get(key) == release[key]
+                for key in ("revision", "document_count", "source_bytes")
+            ),
+            "Retired native catalog inventory differs from its release header",
+        )
+        archived.append(revision)
+    return archived
+
+
 def check_installation(db, manifest, migrations, *, recheck_witness=None):
     expected_schema = migration_manifest(manifest.get("schema_versions"))
     require(
@@ -577,15 +619,7 @@ def check_installation(db, manifest, migrations, *, recheck_witness=None):
         type(catalog.get("documents")) is int and documents == catalog["documents"],
         "Native document count mismatch",
     )
-    for release in actual_release_rows:
-        count, size = db.execute(
-            "SELECT count(*),coalesce(sum(source_bytes),0) FROM native_catalog_documents WHERE revision=%s",
-            (release["revision"],),
-        ).fetchone()
-        require(
-            (count, size) == (release["document_count"], release["source_bytes"]),
-            "Native catalog document totals differ from their release",
-        )
+    retired = verify_native_release_storage(db, actual_release_rows, active[0])
     seed_inputs = manifest.get(
         "declared_seed_inputs", manifest.get("installed_seed_receipts", [])
     )
@@ -609,7 +643,10 @@ def check_installation(db, manifest, migrations, *, recheck_witness=None):
         content_counts=counts,
         semantics=semantics,
         native_catalog=dict(
-            active_revision=active[0], documents=documents, releases=actual_release_rows
+            active_revision=active[0],
+            documents=documents,
+            releases=actual_release_rows,
+            retired_revisions=retired,
         ),
         declared_seed_inputs=seed_inputs,
         recheck_baseline=baseline_fixture_counts,

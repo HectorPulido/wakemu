@@ -1,4 +1,5 @@
 """Publish exact eager combat outputs outside World; PostgreSQL is authority."""
+
 import argparse
 from collections.abc import Mapping
 from contextlib import contextmanager, redirect_stdout
@@ -11,7 +12,6 @@ import sqlite3
 import sys
 import tempfile
 import time
-
 
 RAW_DOCUMENTS = (
     "spell-effect-trees.json",
@@ -296,17 +296,94 @@ def compile_manifest(spool, identity):
         manifest["documents"][name] = spool.document(
             name, value, record_mapping=record_mapping
         )
-    from wakfu_server.prepared_los_compiled import COLLECTION, SCHEMA, CompilerRecords
+    from wakfu_server.prepared_los_compiled import publish_map_collection
 
-    spool.collection(COLLECTION, CompilerRecords(identity))
-    manifest["prepared_los"] = {"schema": SCHEMA, "collection": COLLECTION}
+    manifest["prepared_los"], maps_reused = publish_map_collection(spool, identity)
+    log(
+        (
+            "compiled_map_collection_reused"
+            if maps_reused
+            else "compiled_map_collection_built"
+        ),
+        inputs_sha256=manifest["prepared_los"]["inputs_sha256"],
+    )
     manifest["collections"] = spool.collections
     return manifest
+
+
+def shared_collection_storage(db):
+    """The compactor activates sharing atomically with the compatibility view."""
+    row = db.execute(
+        "SELECT relkind FROM pg_class WHERE oid=to_regclass('native_compiled_catalog_records')"
+    ).fetchone()
+    return row is not None and row.get("relkind") == "v"
+
+
+def publish_shared_collection(db, spool, name, metadata):
+    """Reuse a sealed, byte-identical collection across compiler generations."""
+    identity = (
+        name,
+        metadata["kind"],
+        metadata["representation"],
+        metadata["count"],
+        metadata["ordered_keys_sha256"],
+        metadata["records_sha256"],
+    )
+    # Different compiler generations can publish the same new content at once.
+    # Serialize only this content identity, never the whole catalog compiler.
+    db.execute(
+        "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+        ("native_compiled_content:" + digest(ordered_bytes(identity)),),
+    )
+    row = db.execute(
+        "SELECT content_id,complete FROM native_compiled_collection_contents "
+        "WHERE collection=%s AND kind=%s AND representation=%s AND record_count=%s "
+        "AND ordered_keys_sha256=%s AND records_sha256=%s",
+        identity,
+    ).fetchone()
+    if row is not None:
+        if not row["complete"]:
+            raise ValueError("Existing shared compiled collection is incomplete")
+        return row["content_id"], False
+    content_id = db.execute(
+        "INSERT INTO native_compiled_collection_contents "
+        "(collection,kind,representation,record_count,ordered_keys_sha256,records_sha256) "
+        "VALUES(%s,%s,%s,%s,%s,%s) RETURNING content_id",
+        identity,
+    ).fetchone()["content_id"]
+    count = 0
+    with db.cursor().copy(
+        "COPY native_compiled_content_records "
+        "(content_id,record_key,ordinal,raw,sha256) FROM STDIN (FORMAT BINARY)"
+    ) as copy:
+        copy.set_types(["int8", "text", "int4", "bytea", "text"])
+        for row in spool.db.execute(
+            "SELECT record_key,ordinal,raw,sha256 FROM records "
+            "WHERE collection=? ORDER BY ordinal",
+            (name,),
+        ):
+            copy.write_row((content_id, *row))
+            count += 1
+    actual = db.execute(
+        "SELECT count(*) AS n FROM native_compiled_content_records WHERE content_id=%s",
+        (content_id,),
+    ).fetchone()["n"]
+    if count != metadata["count"] or actual != count:
+        raise ValueError("Shared compiled collection count differs after COPY")
+    db.execute(
+        "UPDATE native_compiled_collection_contents SET complete=true WHERE content_id=%s",
+        (content_id,),
+    )
+    return content_id, True
 
 
 def publish(db, spool, manifest, canonical_bytes, *, identity_check=None):
     from psycopg.types.json import Jsonb
 
+    db.execute(
+        "SELECT pg_advisory_xact_lock_shared(hashtextextended("
+        "current_database()||':'||current_schema()||':compiled_catalog_maintenance',0))"
+    )
     raw = canonical_bytes(manifest)
     generation = digest(raw)
     db.execute(
@@ -324,10 +401,19 @@ def publish(db, spool, manifest, canonical_bytes, *, identity_check=None):
             Jsonb(manifest),
         ),
     )
+    shared = shared_collection_storage(db)
+    new_contents = 0
+    shared_copied_records = 0
     for name, metadata in spool.collections.items():
+        content_id = None
+        if shared:
+            content_id, created = publish_shared_collection(db, spool, name, metadata)
+            new_contents += int(created)
+            if created:
+                shared_copied_records += metadata["count"]
         db.execute(
             "INSERT INTO native_compiled_catalog_collections "
-            "(generation,collection,kind,record_count,ordered_keys_raw,ordered_keys_sha256) VALUES(%s,%s,%s,%s,%s,%s)",
+            "(generation,collection,kind,record_count,ordered_keys_raw,ordered_keys_sha256,content_id) VALUES(%s,%s,%s,%s,%s,%s,%s)",
             (
                 generation,
                 name,
@@ -335,6 +421,7 @@ def publish(db, spool, manifest, canonical_bytes, *, identity_check=None):
                 metadata["count"],
                 spool.keys[name],
                 metadata["ordered_keys_sha256"],
+                content_id,
             ),
         )
     began = time.monotonic()
@@ -349,20 +436,25 @@ def publish(db, spool, manifest, canonical_bytes, *, identity_check=None):
     )
     count = 0
     began = time.monotonic()
-    with db.cursor().copy(
-        "COPY native_compiled_catalog_records "
-        "(generation,collection,record_key,ordinal,raw,sha256) FROM STDIN (FORMAT BINARY)"
-    ) as copy:
-        copy.set_types(["text", "text", "text", "int4", "bytea", "text"])
-        for row in spool.db.execute(
-            "SELECT collection,record_key,ordinal,raw,sha256 FROM records ORDER BY collection,ordinal"
-        ):
-            copy.write_row((generation, *row))
-            count += 1
+    if not shared:
+        with db.cursor().copy(
+            "COPY native_compiled_catalog_records "
+            "(generation,collection,record_key,ordinal,raw,sha256) FROM STDIN (FORMAT BINARY)"
+        ) as copy:
+            copy.set_types(["text", "text", "text", "int4", "bytea", "text"])
+            for row in spool.db.execute(
+                "SELECT collection,record_key,ordinal,raw,sha256 FROM records ORDER BY collection,ordinal"
+            ):
+                copy.write_row((generation, *row))
+                count += 1
+    else:
+        count = sum(row["count"] for row in spool.collections.values())
     log(
         "compiled_publication_copied",
         generation=generation,
         records=count,
+        copied_records=shared_copied_records if shared else count,
+        new_contents=new_contents if shared else None,
         seconds=time.monotonic() - began,
     )
     expected = sum(row["count"] for row in spool.collections.values())
@@ -377,7 +469,12 @@ def publish(db, spool, manifest, canonical_bytes, *, identity_check=None):
     # New generation/collection statistics must be visible with the seal.
     # Otherwise a one-key lookup can scan an entire collection by ordinal.
     began = time.monotonic()
-    db.execute("ANALYZE native_compiled_catalog_records")
+    if shared:
+        if new_contents:
+            db.execute("ANALYZE native_compiled_content_records")
+        db.execute("ANALYZE native_compiled_catalog_collections")
+    else:
+        db.execute("ANALYZE native_compiled_catalog_records")
     log(
         "compiled_publication_analyzed",
         generation=generation,
@@ -410,6 +507,10 @@ def ensure_publication(*, warm_redis=False):
         )
     )
     with native_catalog._database().connection() as db:
+        db.execute(
+            "SELECT pg_advisory_xact_lock_shared(hashtextextended("
+            "current_database()||':'||current_schema()||':compiled_catalog_maintenance',0))"
+        )
         db.execute(
             "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
             ("native_compiled_catalog:" + digest(canonical_bytes(pins)),),
@@ -482,9 +583,11 @@ def main():
         seconds=time.monotonic() - began,
     )
     print(
-        generation
-        if args.print_generation
-        else json.dumps(dict(generation=generation, complete=True)),
+        (
+            generation
+            if args.print_generation
+            else json.dumps(dict(generation=generation, complete=True))
+        ),
         flush=True,
     )
 

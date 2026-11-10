@@ -2,6 +2,7 @@
 
 Decode only at the original lazy topology operand. No decoded RAM memo is added.
 """
+
 import base64
 from collections.abc import Mapping
 import hashlib
@@ -17,6 +18,12 @@ COLLECTION = "derived.los_columns.v1"
 MAX_RECORD_BYTES = 2 * 1024 * 1024
 MAX_DECODED_BYTES = 32 * 1024 * 1024
 ABI = (sys.implementation.name, sys.implementation.cache_tag, marshal.version)
+_COMPILER_INPUTS = (
+    "wakfu_server/storage/prepared_los_compiled.py",
+    "wakfu_server/combat/combat_native_los_ray.py",
+    "wakfu_server/combat/combat_los_runtime_seal.py",
+    "tools/publish_compiled_combat_catalog.py",
+)
 _FIELDS = frozenset(
     (
         "schema",
@@ -205,6 +212,74 @@ class CompilerRecords(Mapping):
         )
 
 
+def compilation_fingerprint(identity):
+    """Exact map inputs, independent of unrelated release/compiler changes."""
+    sources = identity["compiler_sources"]
+    compiler = {name: sources[name] for name in _COMPILER_INPUTS}
+    maps = {
+        name: checksum
+        for name, checksum in identity["source_documents"].items()
+        if re.fullmatch(r"native-los-topology/([1-9][0-9]*)\.json", name)
+    }
+    raw = json.dumps(
+        dict(schema=SCHEMA, abi=ABI, compiler=compiler, maps=maps),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode()
+    return _sha(raw)
+
+
+def publish_map_collection(spool, identity):
+    """Attach authenticated existing map content without loading any map rows."""
+    from wakfu_server import native_catalog
+
+    fingerprint = compilation_fingerprint(identity)
+    with native_catalog._database().connection() as db:
+        storage = db.execute(
+            "SELECT relkind FROM pg_class "
+            "WHERE oid=to_regclass('native_compiled_catalog_records')"
+        ).fetchone()
+        row = None
+        if storage is not None and storage["relkind"] == "v":
+            row = db.execute(
+                "SELECT r.manifest->'prepared_los' AS prepared_los,"
+                "r.manifest->'collections'->c.collection AS metadata,c.ordered_keys_raw "
+                "FROM native_compiled_catalog_releases r "
+                "JOIN native_compiled_catalog_collections c USING(generation) "
+                "JOIN native_compiled_collection_contents p USING(content_id) "
+                "WHERE r.complete AND p.complete AND c.collection=%s "
+                "AND r.manifest->'prepared_los'->>'inputs_sha256'=%s "
+                "ORDER BY r.created_at DESC LIMIT 1",
+                (COLLECTION, fingerprint),
+            ).fetchone()
+    if row is not None:
+        entry = row["prepared_los"]
+        metadata = row["metadata"]
+        keys = bytes(row["ordered_keys_raw"])
+        if (
+            entry["schema"] != SCHEMA
+            or entry["collection"] != COLLECTION
+            or not _digest(entry.get("compiled_source_revision"))
+            or metadata["collection"] != COLLECTION
+            or _sha(keys) != metadata["ordered_keys_sha256"]
+        ):
+            raise ValueError("Reusable map collection authority mismatch")
+        spool.collections[COLLECTION] = metadata
+        spool.keys[COLLECTION] = keys
+        return dict(entry), True
+    spool.collection(COLLECTION, CompilerRecords(identity))
+    return (
+        dict(
+            schema=SCHEMA,
+            collection=COLLECTION,
+            inputs_sha256=fingerprint,
+            compiled_source_revision=identity["source_revision"],
+        ),
+        False,
+    )
+
+
 class NoRetentionBytes:
     """Operation-local backend adapter: Redis holds reusable derivative bytes."""
 
@@ -234,11 +309,25 @@ def published_columns(map_id):
         name = f"native-los-topology/{map_id}.json"
         source_sha = publication.get("source_documents", {}).get(name)
         entry = publication.get("prepared_los")
-        if (
-            type(entry) is not dict
-            or entry != {"schema": SCHEMA, "collection": COLLECTION}
-            or not _digest(source_sha)
-        ):
+        if type(entry) is not dict or not _digest(source_sha):
+            return None
+        legacy_entry = {"schema": SCHEMA, "collection": COLLECTION}
+        compiled_revision = revision
+        if entry != legacy_entry:
+            if (
+                set(entry)
+                != set(legacy_entry) | {"inputs_sha256", "compiled_source_revision"}
+                or entry.get("schema") != SCHEMA
+                or entry.get("collection") != COLLECTION
+                or not _digest(entry.get("compiled_source_revision"))
+                or not _digest(entry.get("inputs_sha256"))
+            ):
+                return None
+            # The authenticated manifest binds the offline reuse decision.
+            # Verify this map's current source hash below; do not rehash the
+            # complete map/compiler inventories on every topology cache miss.
+            compiled_revision = entry["compiled_source_revision"]
+        if not _digest(compiled_revision):
             return None
         descriptor = descriptor_for(publication, COLLECTION)
         if native_catalog.release() != revision:
@@ -252,7 +341,7 @@ def published_columns(map_id):
         collection = backend.collection(descriptor)
         raw = collection.record_bytes(map_id)
         columns = decode_record(
-            raw, map_id=map_id, revision=revision, source_sha256=source_sha
+            raw, map_id=map_id, revision=compiled_revision, source_sha256=source_sha
         )
         if native_catalog.release() != revision:
             return None

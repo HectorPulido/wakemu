@@ -1,4 +1,5 @@
 """Small offline installation export contract; no catalog heap or real database."""
+
 from contextlib import redirect_stdout
 from copy import deepcopy
 import hashlib
@@ -278,6 +279,9 @@ class InstallationSeedExportTests(unittest.TestCase):
             def fetchall(self):
                 return self.rows
 
+            def __iter__(self):
+                return iter(self.rows)
+
         class Cursor:
             def __enter__(self):
                 return self
@@ -313,6 +317,8 @@ class InstallationSeedExportTests(unittest.TestCase):
                     return Result([])
                 if sql == "SELECT revision FROM native_catalog_active WHERE id=1":
                     return Result([dict(revision=revision)])
+                if "LEFT JOIN native_catalog_retired_inventories" in sql:
+                    return Result([])
                 if sql.startswith(
                     "SELECT revision,document_count,source_bytes,complete "
                 ):

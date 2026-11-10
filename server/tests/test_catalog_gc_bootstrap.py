@@ -8,20 +8,62 @@ import unittest
 class CatalogGCBootstrapTests(unittest.TestCase):
     def test_startup_freezes_once_and_passes_receipt_before_world_import(self):
         from unittest.mock import patch
+        from types import SimpleNamespace
         from wakfu_server import catalog_gc_bootstrap as bootstrap
 
+        revision = "a" * 64
+        generation = "b" * 64
+        events = []
+        database = SimpleNamespace(
+            pin_native_revision=lambda value: events.append(("pin_native", value)),
+            pin_compiled_generation=lambda value: events.append(
+                ("pin_compiled", value)
+            ),
+        )
         receipt = dict(
             details=dict(combat_modules=1, effect_definitions=2),
             elapsed_ms=3.0,
             gc_enabled=True,
         )
-        with patch.dict(os.environ, {"WAKFU_ENABLE_COMBAT_TEST": "1"}), patch.object(
-            bootstrap, "freeze_startup_heap", return_value=receipt
-        ) as freeze, patch.object(bootstrap.runpy, "run_path") as run, patch(
+
+        def freeze(prewarm, cleanup):
+            events.append("freeze")
+            cleanup()
+            return receipt
+
+        with patch.dict(
+            os.environ,
+            {
+                "WAKFU_ENABLE_COMBAT_TEST": "1",
+                "WAKFU_COMPILED_CATALOG_GENERATION": generation,
+            },
+        ), patch.object(
+            bootstrap, "freeze_startup_heap", side_effect=freeze
+        ) as freeze_mock, patch.object(
+            bootstrap, "_cleanup", side_effect=lambda: events.append("cleanup")
+        ), patch.object(
+            bootstrap.runpy,
+            "run_path",
+            side_effect=lambda *args, **kwargs: events.append("world"),
+        ) as run, patch(
+            "wakfu_server.native_catalog._database", return_value=database
+        ), patch(
+            "wakfu_server.native_catalog.release", return_value=revision
+        ), patch(
             "builtins.print"
         ):
             bootstrap.main()
-            freeze.assert_called_once_with(bootstrap._prewarm, bootstrap._cleanup)
+            freeze_mock.assert_called_once_with(bootstrap._prewarm, bootstrap._cleanup)
+            self.assertEqual(
+                events,
+                [
+                    "freeze",
+                    "cleanup",
+                    ("pin_native", revision),
+                    ("pin_compiled", generation),
+                    "world",
+                ],
+            )
             run.assert_called_once_with(
                 str(
                     Path(bootstrap.__file__).resolve().parents[2]
@@ -30,16 +72,27 @@ class CatalogGCBootstrapTests(unittest.TestCase):
                 run_name="__main__",
                 init_globals={"_COMBAT_STARTUP_PREWARM": receipt},
             )
-            freeze.reset_mock()
+            events.clear()
+            freeze_mock.reset_mock()
             run.reset_mock()
-            freeze.side_effect = RuntimeError("unsafe startup boundary")
+            freeze_mock.side_effect = RuntimeError("unsafe startup boundary")
             with self.assertRaisesRegex(RuntimeError, "unsafe startup boundary"):
                 bootstrap.main()
             run.assert_not_called()
+            self.assertEqual(events, [])
             with patch.dict(os.environ, {"WAKFU_ENABLE_COMBAT_TEST": "0"}):
-                freeze.reset_mock()
+                events.clear()
+                freeze_mock.reset_mock()
                 bootstrap.main()
-                freeze.assert_not_called()
+                freeze_mock.assert_not_called()
+                self.assertEqual(
+                    events,
+                    [
+                        ("pin_native", revision),
+                        ("pin_compiled", generation),
+                        "world",
+                    ],
+                )
                 run.assert_called_once_with(
                     str(
                         Path(bootstrap.__file__).resolve().parents[2]
@@ -126,8 +179,7 @@ class CatalogGCBootstrapTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
 
     def test_static_heap_frozen_future_gameplay_cycles_still_collect(self):
-        self.run_case(
-            """
+        self.run_case("""
 import gc, weakref
 from wakfu_server.catalog_gc_bootstrap import freeze_startup_heap
 static = []
@@ -145,12 +197,10 @@ static.pop()
 gc.collect()
 assert reference() is None
 assert static == [[1,2,3]]
-"""
-        )
+""")
 
     def test_world_import_rejected_before_prewarm_or_freeze(self):
-        self.run_case(
-            """
+        self.run_case("""
 import gc, sys, types
 from wakfu_server.catalog_gc_bootstrap import freeze_startup_heap
 sys.modules['local_game_server'] = types.ModuleType('local_game_server')
@@ -158,12 +208,10 @@ try: freeze_startup_heap(lambda: (_ for _ in ()).throw(AssertionError()), lambda
 except RuntimeError: pass
 else: raise AssertionError('world import accepted')
 assert gc.get_freeze_count() == initial_frozen and gc.isenabled()
-"""
-        )
+""")
 
     def test_live_fight_created_by_prewarm_rejected_cleanup_runs(self):
-        self.run_case(
-            """
+        self.run_case("""
 import gc
 from wakfu_server.catalog_gc_bootstrap import freeze_startup_heap
 Fight = type('Fight', (), {'__module__': 'wakfu_server.combat_state'})
@@ -172,12 +220,10 @@ try: freeze_startup_heap(lambda: live.append(Fight()) or {}, lambda: cleanup.app
 except RuntimeError: pass
 else: raise AssertionError('live fight accepted')
 assert cleanup and gc.get_freeze_count() == initial_frozen
-"""
-        )
+""")
 
     def test_prewarm_failure_does_not_freeze_and_releases_resources(self):
-        self.run_case(
-            """
+        self.run_case("""
 import gc
 from wakfu_server.catalog_gc_bootstrap import freeze_startup_heap
 cleanup=[]
@@ -186,16 +232,13 @@ try: freeze_startup_heap(fail, lambda: cleanup.append(True))
 except ValueError: pass
 else: raise AssertionError('failure swallowed')
 assert cleanup and gc.get_freeze_count() == initial_frozen and gc.isenabled()
-"""
-        )
+""")
 
     def test_second_freeze_rejected(self):
-        self.run_case(
-            """
+        self.run_case("""
 from wakfu_server.catalog_gc_bootstrap import freeze_startup_heap
 freeze_startup_heap(lambda: {}, lambda: None)
 try: freeze_startup_heap(lambda: {}, lambda: None)
 except RuntimeError: pass
 else: raise AssertionError('second freeze accepted')
-"""
-        )
+""")

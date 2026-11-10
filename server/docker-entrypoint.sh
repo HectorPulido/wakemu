@@ -14,4 +14,8 @@ PYTHONPATH=/app python3 -c 'from wakfu_server.native_catalog import release; pri
 # before World opens sockets. Existing complete publications are reused.
 WAKFU_COMPILED_CATALOG_GENERATION=$(PYTHONPATH=/app python3 /app/tools/publish_compiled_combat_catalog.py --ensure --print-generation --warm-redis)
 export WAKFU_COMPILED_CATALOG_GENERATION
+PYTHONPATH=/app python3 /app/tools/compact_compiled_catalog.py --keep "$WAKFU_COMPILED_CATALOG_GENERATION"
+# Payload maintenance must not delay player access. Its transactional table
+# replacement supports active readers after the new World has acquired pins.
+PYTHONPATH=/app python3 /app/tools/maintain_native_catalog_after_startup.py &
 exec python3 -m wakfu_server.catalog_gc_bootstrap

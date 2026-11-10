@@ -430,6 +430,8 @@ class Installer:
         )
         if (
             seed.get("releases") != catalog.get("releases")
+            or seed.get("retired_inventories", [])
+            != catalog.get("retired_inventories", [])
             or seed.get("active_revision") != self.public["catalogs"]["active_revision"]
             or seed.get("format") != "wakemu-installation-seed-v1"
             or seed.get("contains_private_capture") is not False
@@ -702,7 +704,10 @@ class Installer:
                         key: row[key]
                         for key in ("revision", "document_count", "source_bytes")
                     }
-                    for row in revisions.values()
+                    for row in [
+                        *revisions.values(),
+                        *seed.get("retired_inventories", []),
+                    ]
                 ],
                 "documents": sum(row["document_count"] for row in revisions.values()),
             },

@@ -154,6 +154,8 @@ def put_definition(db, definition, expected_revision):
     ).fetchone()
     if (prior["revision"] if prior else 0) != expected_revision:
         raise ConflictError("Definition revision has changed")
+    if prior and prior["definition"] == value:
+        return prior
     if prior and semantic_signature(prior["definition"]) != semantic_signature(value):
         if (
             db.execute(

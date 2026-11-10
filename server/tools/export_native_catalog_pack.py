@@ -4,6 +4,7 @@ Read-only database access; no bootstrap captures, player tables, activation,
 release rewriting or normalization. Public distribution needs a separate review
 of embedded source documents; --plan never writes document bodies.
 """
+
 import argparse
 import gzip
 import hashlib
@@ -17,6 +18,7 @@ from tools.unpack_native_catalog_pack import FORMAT, PART_BYTES
 
 def inventory(db, revisions):
     from tools.import_native_catalogs import release_identity
+    from tools.native_catalog_provenance import export_retired_inventories
 
     active = db.execute(
         "SELECT revision FROM native_catalog_active WHERE id=1"
@@ -44,6 +46,11 @@ def inventory(db, revisions):
             len(documents) != release["document_count"]
             or sum(row["source_bytes"] for row in documents) != release["source_bytes"]
         ):
+            if not documents:
+                raise ValueError(
+                    "Catalog release payload is retired or unavailable; reimport the full "
+                    "source before exporting revision " + revision
+                )
             raise ValueError("Catalog release inventory mismatch")
         release = dict(release)
         release.update(
@@ -57,11 +64,17 @@ def inventory(db, revisions):
         )
         release["documents"] = documents
         releases.append(release)
-    return {
+    result = {
         "format": FORMAT,
         "active_revision": active["revision"],
         "releases": releases,
     }
+    retired = export_retired_inventories(
+        db, payload_revisions=[row["revision"] for row in releases]
+    )
+    if retired:
+        result["retired_inventories"] = retired
+    return result
 
 
 def export(db, output_directory, revisions=()):
