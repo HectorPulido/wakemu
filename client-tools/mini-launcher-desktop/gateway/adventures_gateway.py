@@ -1,4 +1,5 @@
 """Expose native-account Adventures without exposing operator routes or credentials."""
+
 import hashlib
 import http.client
 import json
@@ -260,10 +261,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(503, {"error": "Adventures is busy; try again shortly"})
         try:
             self.route()
-        except (ValueError, TypeError, UnicodeError, json.JSONDecodeError):
-            self.reply(400, {"error": "Invalid Adventures request"})
+        # TLS verification errors also inherit ValueError. Classify transport
+        # failures before malformed client input, without exposing their detail.
         except (OSError, http.client.HTTPException):
             self.reply(503, {"error": "Adventures is unavailable; try again shortly"})
+        except (ValueError, TypeError, UnicodeError, json.JSONDecodeError):
+            self.reply(400, {"error": "Invalid Adventures request"})
         finally:
             CAPACITY.release()
 

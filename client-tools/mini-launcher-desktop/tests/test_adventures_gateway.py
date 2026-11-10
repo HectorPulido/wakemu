@@ -1,10 +1,12 @@
 """Exercise the public Adventures bridge over real loopback HTTP connections."""
+
 import importlib.util
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import socket
+import ssl
 import tempfile
 import threading
 import unittest
@@ -106,6 +108,32 @@ class GatewayTests(unittest.TestCase):
             {"username": "fixture_user", "password": "fixture-password"},
             **kwargs
         )
+
+    def test_auth_transport_errors_are_unavailable_and_bad_json_remains_invalid(self):
+        headers = {"Host": urlsplit(gateway.UNIFIED_ORIGIN).netloc}
+        credentials = {"username": "fixture_user", "password": "fixture-password"}
+        for error in (
+            ssl.SSLCertVerificationError(1, "expired-sensitive-fixture"),
+            http.client.InvalidURL("upstream-sensitive-fixture"),
+        ):
+            with self.subTest(error=type(error).__name__), patch.object(
+                gateway, "auth_upstream", side_effect=error
+            ) as upstream:
+                status, body, _ = self.request(
+                    "POST", "/login", credentials, headers=headers
+                )
+                self.assertEqual(status, 503)
+                self.assertEqual(
+                    json.loads(body),
+                    {"error": "Adventures is unavailable; try again shortly"},
+                )
+                self.assertNotIn(b"sensitive-fixture", body)
+                upstream.assert_called_once()
+        with patch.object(gateway, "auth_upstream") as upstream:
+            status, body, _ = self.request("POST", "/login", raw=b"{", headers=headers)
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(body), {"error": "Invalid Adventures request"})
+            upstream.assert_not_called()
 
     def test_unified_discovery_is_public_same_origin_and_unknown_hosts_are_rejected(
         self,
