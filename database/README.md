@@ -1,46 +1,38 @@
-# Database snapshot
+# Clean PostgreSQL installation backup
 
-`backups/wakemu-runtime-20261012.dump.part-*` is a complete PostgreSQL custom-format snapshot, including native catalogs and the current development accounts, characters, sessions, ecology state and test schemas. It is not an empty installation seed.
+`backups/wakemu-clean.dump` is a PostgreSQL 17 custom-format installation seed, stored with Git LFS. It is built in a new isolated database from the versioned schema and verified public installation data, not by deleting players from a production dump.
 
-The snapshot is **773,917,699 bytes (774 MB)** compressed, split into **450,000,000** and **323,917,699** byte parts. It uses PostgreSQL custom-format Zstandard level 3 compression and is split into parts of at most 450,000,000 bytes, each below 500 MB. All parts are required. Git LFS tracks `*.dump.part-*`; the checksums remain normal text files. [The manifest](backups/wakemu-runtime-20261012.dump.manifest.json) records the exact compressed size, snapshot timestamp, checksums and retained revisions. This captures PostgreSQL, not Redis, game-process memory or runtime files.
+It contains the active native catalog, its mining and fishing dependencies, the synthetic identity-free protocol bootstrap, public dungeon/shop/treasure definitions and static environmental policies. It contains no existing accounts, characters, sessions, tokens, inventories, live creatures, planted resources, ecological progress or private captured bootstrap. The only account is a newly generated administrator:
 
-Verify from the repository root:
+- Username: `admin`
+- Password: `admin`
+- Characters: none
+- Wallet: zero
+
+Compiled catalog caches are omitted because they can be rebuilt. World prepares them on its first startup and reuses unchanged publications thereafter. Static ecology definitions let a new world generate its own population; no running world's ecology is restored.
+
+## Fetch and verify
 
 ```sh
-(cd database/backups && shasum -a 256 -c wakemu-runtime-20261012.dump.parts.sha256)
-cat database/backups/wakemu-runtime-20261012.dump.part-* > /tmp/wakemu-runtime-20261012.dump
-shasum -a 256 /tmp/wakemu-runtime-20261012.dump
-# Compare with database/backups/wakemu-runtime-20261012.dump.sha256.
+git lfs install
+git lfs pull --include='database/backups/*.dump'
+(cd database/backups && shasum -a 256 -c wakemu-clean.dump.sha256)
 ```
 
-Restore into a **new, empty database** with a PostgreSQL 17 client. This imports the snapshot; it does not merge player state. Supply the connection through normal PostgreSQL environment variables or a private password file:
+The accompanying `wakemu-clean.dump.manifest.json` records the schema, public inputs, allowed seed tables, privacy audit, archive size and checksum.
+
+## Restore
+
+For a fresh installation, copy `.env.example` to `.env`, configure its local secrets and run `docker compose up -d --build` so service images match the current schema. The default native revision matches this seed.
+
+The standard Compose PostgreSQL service mounts this directory and runs `docker/20-restore-runtime.sh` only while initializing an empty data volume. The script validates the manifest/checksum/archive, restores it and verifies the administrator and empty player state. Existing volumes are preserved on normal restarts and never receive the seed again.
+
+For a separate empty database using PostgreSQL 17 tools:
 
 ```sh
 createdb wakemu_restore
 pg_restore --no-owner --no-acl --exit-on-error --dbname wakemu_restore \
-  /tmp/wakemu-runtime-20261012.dump
-psql --dbname wakemu_restore -c "SELECT revision, document_count FROM native_catalog_releases ORDER BY revision;"
-# Expected: exactly four releases, matching the manifest.
+  database/backups/wakemu-clean.dump
 ```
 
-The archive excludes global roles/role passwords. Create deployment roles and permissions separately. Restoring the file does not start the server or generate protocol replay templates.
-
-## Docker initialization
-
-Compose mounts the backup directory into PostgreSQL, verifies part checksums, reconstructs a temporary archive, and runs `docker/20-restore-runtime.sh` **only when `postgres-data` is empty**. The initial database is `wakemu_runtime`; world and AI use that database. Normal restarts retain the database volume and do not restore the snapshot again. New migrations are applied by the world entrypoint after PostgreSQL initialization.
-
-For a fresh checkout:
-
-```sh
-git lfs pull
-python3 tools/prepare-local-runtime.py
-docker compose up -d postgres redis
-```
-
-An existing installation keeps its current volume. Do not delete that volume to apply ordinary code changes. Build world before AI with `bash tools/build-local.sh`, then use `docker compose up -d --build` to build the remaining services and start the stack. Persistent private credentials belong in `.database/secrets/`; `database/` contains the repository bootstrap scripts and snapshot. See the [setup guide](../docs/getting-started.md#current-setup-requirements) before upgrading an existing installation. Current world source reads verified bootstrap records from PostgreSQL; verify their presence rather than assuming catalog restoration supplies them. See [bootstrap internals](../docs/protocol/world-synchronization.md).
-
-## Catalog retention
-
-The snapshot follows a verified live cleanup of 16 obsolete releases, 18,369,041 catalog records and 112,293 catalog documents. Four complete releases remain: the active catalog, the pinned mining and fishing releases, and the dungeon launcher's required source revision. Their document counts, source sizes and path/hash inventories were preserved. All other gameplay data was retained.
-
-The full pre-cleanup snapshot was archived privately under `.runtime/local/backups/wakemu-runtime-20261012-full-before-cleanup.dump`, outside Git. It is 5,547,093,201 bytes and passed a complete archive read/decompression check before cleanup. The superseded October 8 snapshot and checksum were removed from Git after verification. The game stack was shut down with its data volumes preserved, so the old archive mount and its temporary compatibility marker were also removed. Fresh and existing checkouts use the backup directory mount configured in Compose.
+Do not import this installation seed over an existing player database. Server secrets, TLS keys and Redis state are generated/configured separately and are not part of the archive.
