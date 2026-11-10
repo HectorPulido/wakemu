@@ -2,7 +2,7 @@
 
 [Wiki home](README.md) · Next: [Architecture](architecture.md)
 
-This guide starts a new Wakemu server from the files in this repository. You do not need the game client, a database dump or private captures to install the server. Installing the client is an optional final step.
+This guide starts a new Wakemu server using the clean PostgreSQL backup included in this repository. You do not need private captures or the game client to install the server. Installing the client is an optional final step.
 
 If you already have a working server with characters you want to keep, go to [Existing installations](#existing-installations) instead.
 
@@ -26,7 +26,7 @@ GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/HectorPulido/wakemu.git
 cd wakemu
 ```
 
-Skipping Git LFS downloads avoids fetching old recovery dumps and capture archives. They are not needed for this installation.
+Skipping automatic Git LFS downloads lets you fetch only the clean backup in the next step.
 
 Then prepare the host:
 
@@ -34,46 +34,58 @@ Then prepare the host:
 sudo bash tools/bootstrap-debian-host.sh
 ```
 
-This helper supports Debian 12 and 13. It installs missing prerequisites and preserves a working Docker installation. The complete clean-install flow has been verified on Debian 12.
+This helper supports Debian 12 and 13. It installs missing prerequisites and preserves a working Docker installation. The host preparation has been verified on Debian 12.
 
-The server commands below use `sudo` for Docker access. If you are already root, omit `sudo`. On a machine where your user can already run Docker, you can also run the installer and Docker commands without it.
+The server commands below use `sudo` for Docker access. If you are already root, omit `sudo`. On a machine where your user can already run Docker, you can run the Docker commands without it.
 
 ## 2. Install the server
 
-Run this from the repository root:
+From the repository root, install Git LFS and download only the installation backup:
 
 ```sh
-sudo python3 tools/install-wakemu.py
+sudo apt-get install -y git-lfs
+git lfs install --local
+git lfs pull --include="database/backups/wakemu-clean.dump" --exclude=""
+(cd database/backups && sha256sum -c wakemu-clean.dump.sha256)
 ```
 
-The installer creates its own configuration and credentials. You do not need to copy `.env.example`, run `git lfs pull`, restore a snapshot or import SQL by hand.
+Expect `wakemu-clean.dump: OK`. On macOS, use `shasum -a 256 -c` instead of `sha256sum -c`.
 
-It builds and starts five services: PostgreSQL, Redis, World, AI and the shop. It also applies migrations and loads the versioned game data, fresh bootstrap templates, environmental missions, dungeon configuration, shop content and treasure rules.
+The archive is approximately **240 MB**. It contains the native catalogs and their mining/fishing dependencies, synthetic protocol templates, public dungeon/shop/treasure content and static environmental rules. It has no existing characters, sessions, tokens, inventories or running-world ecology. Its only game account is:
 
-Keep the terminal open while it works. Large catalog imports can spend time on a single document. The latest verified cold installation took about 14 minutes; downloads and machine speed affect the duration.
+| Username | Password | Permissions |
+| --- | --- | --- |
+| `admin` | `admin` | Administrator |
 
-At the end, expect:
+The account starts with no characters and a zero wallet. The administration website has separate locally generated credentials; see [Administration](administration.md).
 
-```text
-Installation VERIFIED; receipts: ...
+In a **new checkout with no existing server data**, prepare the configuration and start the stack:
+
+```sh
+cp .env.example .env
+python3 tools/prepare-local-runtime.py --runtime-root .local-state/wakemu/world
+cp -R database/shop-assets/. .database/shop-assets/
+sudo docker compose up -d --build
 ```
 
-`VERIFIED` means the content checks passed and a real registration, character creation, native login and reconnection succeeded. The check creates a dedicated test account and character; register your own account when you play. It does not replace testing gameplay with the graphical client.
+Preparation creates private service secrets and matches service permissions to their owner. The example configuration selects the catalog revision included in the backup. The copy command installs the shop images shipped with the repository.
 
-`READY_UNVERIFIED` means login verification was explicitly skipped. It is not the same result.
+PostgreSQL restores and validates the archive only when its data volume is empty. Existing volumes are never overwritten on restart. World then applies any newer migrations and builds the omitted compiled catalogs on its first startup; allow several minutes for this initial publication before game connections become available. Later unchanged starts reuse those publications. Ecology generates a new population from the static rules.
+
+The archive was fully restored into an isolated PostgreSQL 17 database: all 561 table counts matched its manifest, empty player/ecology state was checked, and `admin` / `admin` authenticated successfully. See [Database setup](../database/README.md) for its manifest and standalone restore commands.
 
 ## 3. Check that it is running
 
-Use the installation's generated configuration, rather than the separate development Compose stack:
+Use the repository's standard Compose configuration:
 
 ```sh
-sudo docker compose \
-  --env-file .local-state/installation/wakemu-install/compose.env \
-  -f compose.install.yaml \
-  -p wakemu-install ps
+sudo docker compose ps
+sudo docker compose logs --tail=100 postgres world
 ```
 
-All five services should be running and healthy. On the server machine, you can also open:
+PostgreSQL logs should include `Wakemu clean seed restored (admin/admin)`. World should become healthy after its first compiled publication. Normal restarts use `sudo docker compose up -d`; rebuilding is needed only when delivering code changes.
+
+The services should be running and healthy. On the server machine, you can also open:
 
 | Address | What it provides |
 | --- | --- |
@@ -82,56 +94,30 @@ All five services should be running and healthy. On the server machine, you can 
 
 The native game and dispatcher ports are `15556` and `15558`. By default, the host ports are bound to localhost. On a remote machine, `127.0.0.1` means that server, not your desktop; this command does not publish an internet-facing game server.
 
-To read recent World logs:
-
-```sh
-sudo docker compose \
-  --env-file .local-state/installation/wakemu-install/compose.env \
-  -f compose.install.yaml \
-  -p wakemu-install logs --tail=100 world
-```
-
 Gameplay events are written to the World data directory:
 
 ```sh
-sudo tail -n 100 .local-state/installation/wakemu-install/world/logs/game-server.jsonl
+sudo tail -n 100 .local-state/wakemu/world/logs/game-server.jsonl
 ```
 
 ## 4. Keep the installation data
 
-The default installation directory is:
+The default local paths are:
 
 ```text
-.local-state/installation/wakemu-install/
-  compose.env       Generated configuration and image references
-  database/         Private service credentials
-  inputs/           Materialized installation data
-  world/            World runtime files
-  receipts/         Installation checks and verification results
+.env                         Compose configuration and image references
+.database/secrets/           Private service and administration credentials
+.database/shop-assets/       Shop images copied from the repository
+.local-state/wakemu/world/   World runtime files and logs
 ```
 
-PostgreSQL and Redis data are stored in Docker volumes. Keep those volumes and the installation directory together when backing up or moving the server. Do not commit credentials or runtime data to Git.
+PostgreSQL and Redis data are stored in Docker volumes. Keep those volumes, `.database/secrets/`, `.env` and the World directory together when backing up or moving a running server. Do not commit credentials or runtime data to Git. The repository's clean seed does not back up your players' later progress.
 
 ### If installation stops
 
-If a download or build is interrupted, rerun the same installer command from the same checkout. Completed stages are recorded and reused. If it reports a source or data-pack mismatch, keep the existing state and inspect the error; do not delete volumes to force an update.
+Inspect `sudo docker compose logs --tail=100 postgres world`. If the backup is missing or is still an LFS pointer, repeat the targeted LFS download and checksum check before continuing. Keep existing volumes and inspect any restore error; do not delete a volume containing player data to force initialization.
 
-### If the final login check fails
-
-For a failure during the final login check, keep the output and the files in `receipts/`. If the probe reached character creation, it may already have created its test account. After resolving the reported cause, use the explicit recheck:
-
-```sh
-sudo docker compose \
-  --env-file .local-state/installation/wakemu-install/compose.env \
-  -f compose.install.yaml \
-  -p wakemu-install exec -T world \
-  python3 /app/tools/verify_clean_install.py \
-  --manifest /installation-receipts/verification-manifest.json \
-  --receipt /installation-receipts/native-login-reconnect.json \
-  --recheck-after-failed-probe /installation-receipts/zero-player-state.json
-```
-
-This requires the original empty-database witness and permits only the verifier's own test accounts. It refuses to overwrite a successful receipt. See [Administration](administration.md#troubleshooting) for further diagnosis.
+The first compiled publication can take several minutes. A later unchanged start should report `compiled_publication_reused` instead of recompiling the catalogs. See [Administration](administration.md#troubleshooting) for further diagnosis.
 
 ## 5. Optional: install and launch the client
 
@@ -156,7 +142,7 @@ For a server running on the same desktop, launch from the repository root:
 bash client-tools/client.sh play
 ```
 
-The login dialog can register your account. Use credentials for this server rather than your official game account, then create a character.
+Sign in as `admin` / `admin` and create your first character, or register a separate player account in the login dialog. Use credentials for this server rather than your official game account.
 
 For a second player:
 
@@ -174,8 +160,8 @@ For a server on another machine, read [Choose a private server](../client-tools/
 
 ## Existing installations
 
-The clean installer above is for a new installation, not an upgrade or restore command for an existing development stack. Keep using your existing Compose files, environment, credentials and database volumes. Do not replace them with a newly generated clean-install configuration.
+The steps above are for a new installation. The clean backup is an installation seed, not a replacement for an existing player database or an upgrade command for an existing development stack. Keep using your existing Compose files, environment, credentials and database volumes. Do not replace them with a newly generated clean-install configuration.
 
 The older local stack uses `.database/` for persistent credentials and administration state, and `.runtime/` for generated logs, agents and temporary files. Preserve its secrets before running preparation. If migrating from the former `database/secrets/` or `.runtime/local/secrets/` directories, copy the existing values into `.database/secrets/` without overwriting files, and keep the originals until the services are verified. An existing PostgreSQL volume must keep its matching password.
 
-Read [Database setup](../database/README.md) for recovery and [Administration](administration.md) for operation. [Bootstrap internals](protocol/world-synchronization.md) explains the protocol templates; it is not a prerequisite for following the clean-install steps above.
+Read [Database setup](../database/README.md) for recovery and [Administration](administration.md) for operation. [Bootstrap internals](protocol/world-synchronization.md) explains the protocol templates; it is not a prerequisite for following the backup-based steps above.
