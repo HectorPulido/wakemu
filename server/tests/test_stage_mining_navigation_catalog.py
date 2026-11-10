@@ -1,4 +1,5 @@
 """Read-only staging and immutable manifest regressions."""
+
 from contextlib import nullcontext
 import importlib.util
 import json
@@ -14,6 +15,13 @@ import stage_mining_navigation_catalog as staging
 class FakeConnection:
     def __init__(self, revision="base", existing=None):
         self.revision, self.existing, self.sql = revision, existing, []
+        self.rowcount = 1
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
 
     def transaction(self):
         return nullcontext()
@@ -26,6 +34,8 @@ class FakeConnection:
     def fetchone(self):
         if "native_catalog_active" in self.current:
             return (self.revision,)
+        if "pg_class" in self.current:
+            return {"relkind": "r"}
         return self.existing
 
     def fetchall(self):
@@ -140,7 +150,7 @@ class NavigationStagingTests(unittest.TestCase):
                     super().fetchall(), staging.documents(self.root)
                 )
 
-            def cursor(inner):
+            def cursor(inner, **kwargs):
                 return inner
 
             def copy(inner, sql):

@@ -263,7 +263,12 @@ def import_catalogs(
     expected_revision=None,
     identity_scheme=None,
 ):
-    from psycopg.types.json import Jsonb
+    from wakfu_server.native_shared_storage import (
+        clone_documents,
+        copy_records,
+        finalize_document,
+        seal_release,
+    )
 
     manifest = source_manifest(directory)
     if expected_release is not None:
@@ -374,20 +379,10 @@ def import_catalogs(
                 path not in expected_records
                 or expected_records[path] == reusable["record_count"]
             ):
+                clone_documents(db, revision, reusable["revision"], only_paths=(path,))
                 db.execute(
-                    "INSERT INTO native_catalog_documents "
-                    "SELECT %s,path,raw,sha256,source_bytes,record_count "
-                    "FROM native_catalog_documents WHERE revision=%s AND path=%s",
-                    (revision, reusable["revision"], path),
-                )
-                db.execute(
-                    "INSERT INTO native_catalog_records "
-                    "SELECT %s,path,collection,record_key,payload "
-                    "FROM native_catalog_records WHERE revision=%s AND path=%s",
-                    (revision, reusable["revision"], path),
-                )
-                db.execute(
-                    "INSERT INTO native_catalog_document_index_contracts VALUES(%s,%s,%s)",
+                    "INSERT INTO native_catalog_document_index_contracts VALUES(%s,%s,%s) "
+                    "ON CONFLICT(revision,path) DO NOTHING",
                     (revision, path, contract),
                 )
                 reused += 1
@@ -406,11 +401,11 @@ def import_catalogs(
                     profile("verified_snapshot")
                     copy_raw_document(db, revision, path, snapshot, checksum, size)
                     profile("stored_raw")
-                    count = 0
-                    with db.cursor().copy(
-                        "COPY native_catalog_records(revision,path,collection,record_key,payload) FROM STDIN"
-                    ) as copy:
-                        for collection, key, payload in streamed_records(
+                    count = copy_records(
+                        db,
+                        revision,
+                        path,
+                        streamed_records(
                             snapshot,
                             path,
                             entity_key=entity_key,
@@ -418,11 +413,8 @@ def import_catalogs(
                             spatial_collections=SPATIAL_COLLECTIONS,
                             index_records=identity["record_policy"] != "raw-only",
                             stage=profile,
-                        ):
-                            copy.write_row(
-                                (revision, path, collection, key, Jsonb(payload))
-                            )
-                            count += 1
+                        ),
+                    )
                     profile("stored_records")
             else:
                 profile_memory(path, size, "before_raw_read")
@@ -439,20 +431,16 @@ def import_catalogs(
                     (revision, path, raw, checksum, size),
                 )
                 profile_memory(path, size, "stored_raw")
-                count = 0
-                with db.cursor().copy(
-                    "COPY native_catalog_records(revision,path,collection,record_key,payload) FROM STDIN"
-                ) as copy:
-                    records = (
+                count = copy_records(
+                    db,
+                    revision,
+                    path,
+                    (
                         ()
                         if identity["record_policy"] == "raw-only"
                         else catalog_records(path, document)
-                    )
-                    for collection, key, payload in records:
-                        copy.write_row(
-                            (revision, path, collection, key, Jsonb(payload))
-                        )
-                        count += 1
+                    ),
+                )
                 profile_memory(path, size, "stored_records")
                 # Do not retain the previous small decoded document while
                 # indexing the next large snapshot.
@@ -466,6 +454,7 @@ def import_catalogs(
                 WHERE revision=%s AND path=%s""",
                 (count, revision, path),
             )
+            finalize_document(db, revision, path, count=count)
             db.execute(
                 "INSERT INTO native_catalog_document_index_contracts VALUES(%s,%s,%s)",
                 (revision, path, contract),
@@ -486,6 +475,7 @@ def import_catalogs(
         ).fetchone()
         if actual["documents"] != len(manifest) or actual["bytes"] != total_bytes:
             raise ValueError("Incomplete native release; activation refused")
+        seal_release(db, revision)
         db.execute(
             """UPDATE native_catalog_releases SET complete=true,
             completed_at=coalesce(completed_at,now()) WHERE revision=%s""",

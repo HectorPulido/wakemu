@@ -1,4 +1,5 @@
 """Bounded native import staging; raw bytes and record-key policy stay exact."""
+
 from contextlib import contextmanager
 from decimal import Decimal
 import hashlib
@@ -29,6 +30,11 @@ def verified_snapshot(path, checksum, size):
 
 def copy_raw_document(db, revision, path, source, checksum, size):
     """Stream the single bytea field with PostgreSQL's binary COPY protocol."""
+    from wakfu_server.native_shared_storage import shared_storage, store_raw_document
+
+    if shared_storage(db):
+        store_raw_document(db, revision, path, source, checksum, size)
+        return
     source.seek(0)
     with db.cursor().copy(
         "COPY native_catalog_documents(revision,path,raw,sha256,source_bytes,record_count) "
@@ -112,8 +118,7 @@ def streamed_records(
     with tempfile.TemporaryDirectory(prefix="wakemu-catalog-index-") as directory:
         db = sqlite3.connect(str(Path(directory) / "records.sqlite"))
         try:
-            db.executescript(
-                """
+            db.executescript("""
                 PRAGMA journal_mode=OFF;
                 PRAGMA synchronous=OFF;
                 PRAGMA cache_size=-8192;
@@ -124,8 +129,7 @@ def streamed_records(
                 CREATE UNIQUE INDEX object_keys ON records(collection,key) WHERE is_dict=1;
                 CREATE INDEX base_keys ON records(collection,key);
                 CREATE TABLE emitted(collection TEXT,key TEXT,PRIMARY KEY(collection,key));
-            """
-            )
+            """)
             sequence = 0
 
             def collection(name, first):

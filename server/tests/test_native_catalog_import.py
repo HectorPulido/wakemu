@@ -1,4 +1,5 @@
 """Deterministic manifest and isolated PostgreSQL tests for catalog imports."""
+
 import hashlib
 import os
 import tempfile
@@ -163,20 +164,23 @@ class NativeCatalogImportPostgresTests(PostgresCase):
         self.assertEqual(activated["skipped"], 2)
 
     def test_failed_record_write_rolls_back_document_and_retry_completes(self):
+        from unittest.mock import patch
+
+        from wakfu_server import native_shared_storage
+
         raw = b'{"items":{"9":{"id":9}}}'
         self.source(raw=raw)
         revision = release_revision(source_manifest(self.directory))
-        with self.import_database.connection() as db:
-            db.execute(
-                """CREATE FUNCTION reject_native_record() RETURNS trigger LANGUAGE plpgsql AS $$
-                BEGIN RAISE EXCEPTION 'intentional catalog import failure'; END $$"""
-            )
-            db.execute(
-                "CREATE TRIGGER reject_native_record BEFORE INSERT ON native_catalog_records "
-                "FOR EACH ROW EXECUTE FUNCTION reject_native_record()"
-            )
 
-        with self.assertRaisesRegex(Exception, "intentional catalog import failure"):
+        copy_records = native_shared_storage.copy_records
+
+        def partial_copy_then_fail(*args, **kwargs):
+            copy_records(*args, **kwargs)
+            raise RuntimeError("intentional catalog import failure")
+
+        with patch.object(
+            native_shared_storage, "copy_records", side_effect=partial_copy_then_fail
+        ), self.assertRaisesRegex(Exception, "intentional catalog import failure"):
             import_catalogs(self.import_database, self.directory)
         self.assertEqual(
             self.query(
@@ -193,13 +197,76 @@ class NativeCatalogImportPostgresTests(PostgresCase):
             False,
         )
 
-        with self.import_database.connection() as db:
-            db.execute("DROP TRIGGER reject_native_record ON native_catalog_records")
-            db.execute("DROP FUNCTION reject_native_record()")
         result = import_catalogs(self.import_database, self.directory)
         self.assertEqual(result["revision"], revision)
         self.assertTrue(result["activated"])
         self.assertEqual(result["imported"], 1)
+
+    def test_index_contract_survives_clone_and_is_cleared_by_copy_on_write(self):
+        self.source("stable.json", b'{"items":{"7":{"value":1}}}')
+        self.source("changed.json", b'{"items":{"1":{"value":1}}}')
+        first = import_catalogs(self.import_database, self.directory)
+
+        self.source("changed.json", b'{"items":{"1":{"value":2}}}')
+        second = import_catalogs(self.import_database, self.directory)
+        self.assertEqual(second["reused"], 1)
+        contract_sql = (
+            "SELECT contract_sha256 FROM native_catalog_document_index_contracts "
+            "WHERE revision=%s AND path='stable.json'"
+        )
+        first_contract = self.query(contract_sql, (first["revision"],))[0][
+            "contract_sha256"
+        ]
+        self.assertEqual(
+            self.query(contract_sql, (second["revision"],))[0]["contract_sha256"],
+            first_contract,
+        )
+        ids = self.query(
+            "SELECT revision,index_set_id FROM native_catalog_document_links "
+            "WHERE revision=ANY(%s) AND path='stable.json' ORDER BY revision",
+            ([first["revision"], second["revision"]],),
+        )
+        self.assertEqual(ids[0]["index_set_id"], ids[1]["index_set_id"])
+
+        staging_revision = "e" * 64
+        with self.import_database.connection() as db:
+            raw = b'{"items":{"7":{"value":1}}}'
+            db.execute(
+                "INSERT INTO native_catalog_releases "
+                "(revision,document_count,source_bytes,complete) VALUES(%s,1,%s,false)",
+                (staging_revision, len(raw)),
+            )
+            from wakfu_server.native_shared_storage import clone_documents
+
+            clone_documents(
+                db, staging_revision, first["revision"], only_paths=("stable.json",)
+            )
+            db.execute(
+                "UPDATE native_catalog_records SET payload='\"mutated\"'::jsonb "
+                "WHERE revision=%s AND path='stable.json' AND collection='items' AND record_key='7'",
+                (staging_revision,),
+            )
+        self.assertEqual(self.query(contract_sql, (staging_revision,)), [])
+        self.assertEqual(
+            self.query(contract_sql, (first["revision"],))[0]["contract_sha256"],
+            first_contract,
+        )
+        self.assertEqual(
+            self.query(contract_sql, (second["revision"],))[0]["contract_sha256"],
+            first_contract,
+        )
+
+        self.source("changed.json", b'{"items":{"1":{"value":3}}}')
+        third = import_catalogs(self.import_database, self.directory)
+        self.assertEqual(third["reused"], 1)
+        self.assertEqual(
+            self.query(
+                "SELECT payload FROM native_catalog_records WHERE revision=%s "
+                "AND path='stable.json' AND collection='items' AND record_key='7'",
+                (third["revision"],),
+            )[0]["payload"],
+            {"value": 1},
+        )
 
 
 if __name__ == "__main__":

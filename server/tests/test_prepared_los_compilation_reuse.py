@@ -24,6 +24,18 @@ def identity():
 
 
 class MapCompilationReuseTests(unittest.TestCase):
+    def test_serializer_alias_preserves_exact_bytes_order_and_nan_rejection(self):
+        from tools import publish_compiled_combat_catalog as publisher
+        from wakfu_server.catalog_serialization import ordered_bytes
+
+        self.assertIs(publisher.ordered_bytes, ordered_bytes)
+        self.assertEqual(
+            ordered_bytes({"z": ["é", True], "a": {"b": 2, "a": 1}}),
+            b'{"z":["\\u00e9",true],"a":{"b":2,"a":1}}',
+        )
+        with self.assertRaises(ValueError):
+            ordered_bytes(float("nan"))
+
     def test_exact_inputs_invalidate_but_unrelated_release_code_and_data_do_not(self):
         original = identity()
         fingerprint = prepared.compilation_fingerprint(original)
@@ -31,8 +43,18 @@ class MapCompilationReuseTests(unittest.TestCase):
         unrelated["source_revision"] = "e" * 64
         unrelated["source_documents"]["spell-costs.json"] = "e" * 64
         unrelated["compiler_sources"]["wakfu_server/combat/combat_spell.py"] = "e" * 64
+        unrelated["compiler_sources"]["tools/publish_compiled_combat_catalog.py"] = (
+            "e" * 64
+        )
         self.assertEqual(prepared.compilation_fingerprint(unrelated), fingerprint)
-        for change in ("map", "added_map", "removed_map", "compiler", "abi"):
+        for change in (
+            "map",
+            "added_map",
+            "removed_map",
+            "compiler",
+            "serializer",
+            "abi",
+        ):
             with self.subTest(change=change):
                 altered = deepcopy(original)
                 if change == "map":
@@ -43,6 +65,10 @@ class MapCompilationReuseTests(unittest.TestCase):
                     altered["source_documents"].pop("native-los-topology/7.json")
                 elif change == "compiler":
                     altered["compiler_sources"][prepared._COMPILER_INPUTS[0]] = "f" * 64
+                elif change == "serializer":
+                    altered["compiler_sources"][
+                        "wakfu_server/storage/catalog_serialization.py"
+                    ] = ("f" * 64)
                 with patch.object(
                     prepared,
                     "ABI",

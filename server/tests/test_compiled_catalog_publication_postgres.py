@@ -64,6 +64,11 @@ class CompiledCatalogPublicationTests(PostgresCase):
                 representation="frozen_effect",
             )
             spool.collection("player.source_effects", effects)
+            # Different logical collections may contain the same exact bytes;
+            # the later body-pool compactor should share only the body.
+            repeated_record = {"same": {"same": True}}
+            spool.collection("fixture.duplicate_one", repeated_record)
+            spool.collection("fixture.duplicate_two", repeated_record)
             # Integer and string keys remain separate, including nested insertion order.
             raw = {7: {"z": [1, 2], "a": {"b": 2, "a": 1}}, "7": [True, None, -0.0]}
             spool.collection("raw.keys", raw)
@@ -86,6 +91,15 @@ class CompiledCatalogPublicationTests(PostgresCase):
                 # Exercise the old-table publication path even though this
                 # migration converts an initially empty table into a view.
                 db.execute("DROP VIEW native_compiled_catalog_records")
+                db.execute("DROP VIEW native_compiled_content_records")
+                db.execute(
+                    "CREATE TABLE native_compiled_content_records ("
+                    "content_id bigint NOT NULL REFERENCES "
+                    "native_compiled_collection_contents(content_id),"
+                    "record_key text NOT NULL,ordinal integer NOT NULL CHECK(ordinal>=0),"
+                    "raw bytea NOT NULL,sha256 text NOT NULL,"
+                    "PRIMARY KEY(content_id,record_key),UNIQUE(content_id,ordinal))"
+                )
                 db.execute(
                     "CREATE TABLE native_compiled_catalog_records ("
                     "generation text NOT NULL,collection text NOT NULL,"
@@ -106,8 +120,40 @@ class CompiledCatalogPublicationTests(PostgresCase):
                     storage.canonical_bytes,
                 )
             from tools.compact_compiled_catalog import compact
+            from tools.compact_compiled_bodies import compact as compact_bodies
 
             self.assertTrue(compact(self.store.database)["compacted"])
+            with self.store.connection() as db:
+                content_id = db.execute(
+                    "SELECT content_id FROM native_compiled_catalog_collections "
+                    "WHERE generation=%s AND collection='fixture.duplicate_one'",
+                    (generation,),
+                ).fetchone()["content_id"]
+                body = publisher.ordered_bytes({"same": True})
+                body_hash = hashlib.sha256(body).hexdigest()
+                db.execute(
+                    "INSERT INTO native_compiled_content_records "
+                    "(content_id,record_key,ordinal,raw,sha256) "
+                    "VALUES(%s,'corrupt-fixture',99,%s,%s)",
+                    (content_id, b"corrupt bytes", body_hash),
+                )
+            with self.assertRaisesRegex(ValueError, "checksum mismatch"):
+                compact_bodies(self.store.database)
+            with self.store.connection() as db:
+                relation = db.execute(
+                    "SELECT relkind FROM pg_class WHERE oid=to_regclass('native_compiled_content_records')"
+                ).fetchone()["relkind"]
+                corrupt = db.execute(
+                    "SELECT raw FROM native_compiled_content_records "
+                    "WHERE record_key='corrupt-fixture'"
+                ).fetchone()
+                self.assertEqual(relation, "r")
+                self.assertEqual(bytes(corrupt["raw"]), b"corrupt bytes")
+                db.execute(
+                    "DELETE FROM native_compiled_content_records "
+                    "WHERE record_key='corrupt-fixture'"
+                )
+            self.assertTrue(compact_bodies(self.store.database)["compacted"])
             backend = storage.CompiledCatalogBackend(
                 self.store, lambda: redis, cache=BoundedByteCache()
             )
@@ -193,6 +239,23 @@ class CompiledCatalogPublicationTests(PostgresCase):
                 ).fetchall()
             self.assertEqual(len(shared_ids), 2)
             self.assertEqual(shared_ids[0]["content_id"], shared_ids[1]["content_id"])
+            with self.store.connection() as db:
+                reused_bodies = db.execute(
+                    "SELECT c.collection,c.content_id,l.body_id,b.raw "
+                    "FROM native_compiled_catalog_collections c "
+                    "JOIN native_compiled_record_links l USING(content_id) "
+                    "JOIN native_compiled_record_bodies b USING(body_id) "
+                    "WHERE c.generation=%s AND c.collection=ANY(%s) ORDER BY c.collection",
+                    (generation, ["fixture.duplicate_one", "fixture.duplicate_two"]),
+                ).fetchall()
+            self.assertEqual(len(reused_bodies), 2)
+            self.assertNotEqual(
+                reused_bodies[0]["content_id"], reused_bodies[1]["content_id"]
+            )
+            self.assertEqual(reused_bodies[0]["body_id"], reused_bodies[1]["body_id"])
+            self.assertEqual(
+                bytes(reused_bodies[0]["raw"]), publisher.ordered_bytes({"same": True})
+            )
             with patch.dict(os.environ), patch.object(
                 publisher,
                 "compile_manifest",

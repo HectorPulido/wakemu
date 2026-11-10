@@ -8,11 +8,18 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import psycopg
-from psycopg.types.json import Jsonb
 
 from import_native_catalogs import catalog_records, release_revision
+from wakfu_server.native_shared_storage import (
+    clone_documents,
+    copy_records,
+    seal_release,
+)
 
 PATH = "native-class-copy-book-flags.json"
 
@@ -81,9 +88,11 @@ def stage(connection, exported, expected_revision):
             (active,),
         ).fetchall()
         manifest = [
-            (p, replacements[p][2], len(replacements[p][1]))
-            if p in replacements
-            else (p, h, n)
+            (
+                (p, replacements[p][2], len(replacements[p][1]))
+                if p in replacements
+                else (p, h, n)
+            )
             for p, h, n in manifest
         ]
         revision = release_revision(manifest)
@@ -99,18 +108,7 @@ def stage(connection, exported, expected_revision):
             "INSERT INTO native_catalog_releases(revision,document_count,source_bytes) VALUES(%s,%s,%s)",
             (revision, len(manifest), sum(n for _, _, n in manifest)),
         )
-        connection.execute(
-            "INSERT INTO native_catalog_documents(revision,path,raw,sha256,source_bytes,record_count) "
-            "SELECT %s,path,raw,sha256,source_bytes,record_count FROM native_catalog_documents "
-            "WHERE revision=%s AND NOT(path=ANY(%s))",
-            (revision, active, list(replacements)),
-        )
-        connection.execute(
-            "INSERT INTO native_catalog_records(revision,path,collection,record_key,payload) "
-            "SELECT %s,path,collection,record_key,payload FROM native_catalog_records "
-            "WHERE revision=%s AND NOT(path=ANY(%s))",
-            (revision, active, list(replacements)),
-        )
+        clone_documents(connection, revision, active, exclude_paths=list(replacements))
         for path, (document, document_raw, document_hash) in replacements.items():
             records = list(catalog_records(path, document))
             connection.execute(
@@ -125,11 +123,7 @@ def stage(connection, exported, expected_revision):
                     len(records),
                 ),
             )
-            with connection.cursor().copy(
-                "COPY native_catalog_records(revision,path,collection,record_key,payload) FROM STDIN"
-            ) as copy:
-                for collection, key, payload in records:
-                    copy.write_row((revision, path, collection, key, Jsonb(payload)))
+            copy_records(connection, revision, path, records)
         actual = connection.execute(
             "SELECT path,sha256,source_bytes FROM native_catalog_documents "
             "WHERE revision=%s ORDER BY path",
@@ -137,6 +131,7 @@ def stage(connection, exported, expected_revision):
         ).fetchall()
         if actual != manifest:
             raise ValueError("Staged full catalog manifest mismatch")
+        seal_release(connection, revision)
         connection.execute(
             "UPDATE native_catalog_releases SET complete=true,completed_at=now() WHERE revision=%s",
             (revision,),

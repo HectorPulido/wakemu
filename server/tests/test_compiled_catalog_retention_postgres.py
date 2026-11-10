@@ -3,12 +3,129 @@
 import hashlib
 import json
 import tempfile
+import uuid
 from pathlib import Path
 
 from postgres_case import PostgresCase
 
 
 class CompiledCatalogRetentionPostgresTests(PostgresCase):
+    def test_compatibility_writer_fails_fast_during_body_maintenance(self):
+        with self.store.connection() as db:
+            content_id = db.execute(
+                "INSERT INTO native_compiled_collection_contents "
+                "(collection,kind,representation,record_count,ordered_keys_sha256,records_sha256) "
+                "VALUES('fixture.lock','dict','native_json',1,%s,%s) RETURNING content_id",
+                ("a" * 64, "b" * 64),
+            ).fetchone()["content_id"]
+        from wakfu_server.storage.compiled_catalog_retention import MAINTENANCE_LOCK
+
+        with self.store.connection() as maintenance:
+            maintenance.execute(
+                "SELECT pg_advisory_xact_lock(" + MAINTENANCE_LOCK + ")"
+            )
+            with self.assertRaisesRegex(Exception, "maintenance is active"):
+                with self.store.connection() as writer:
+                    writer.execute(
+                        "INSERT INTO native_compiled_content_records "
+                        "(content_id,record_key,ordinal,raw,sha256) VALUES(%s,'key',0,%s,%s)",
+                        (content_id, b"body", hashlib.sha256(b"body").hexdigest()),
+                    )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM native_compiled_record_bodies"
+                ).fetchone()["n"],
+                0,
+            )
+
+    def test_untrusted_writer_uses_only_compatibility_view(self):
+        raw = b'{"value": 1}'
+        checksum = hashlib.sha256(raw).hexdigest()
+        writer = "compiled_view_writer_" + uuid.uuid4().hex[:10]
+        with self.store.connection() as db:
+            schema = db.execute("SELECT current_schema() AS schema").fetchone()[
+                "schema"
+            ]
+            db.execute(f"CREATE ROLE {writer} NOLOGIN")
+            db.execute(f"GRANT USAGE ON SCHEMA {schema} TO {writer}")
+            db.execute(
+                f"GRANT SELECT,INSERT,UPDATE ON native_compiled_content_records TO {writer}"
+            )
+            content_id = db.execute(
+                "INSERT INTO native_compiled_collection_contents "
+                "(collection,kind,representation,record_count,ordered_keys_sha256,records_sha256) "
+                "VALUES('fixture.writer','dict','native_json',1,%s,%s) RETURNING content_id",
+                ("a" * 64, "b" * 64),
+            ).fetchone()["content_id"]
+            db.execute(
+                f"CREATE VIEW native_compiled_attacker AS SELECT content_id,record_key,ordinal,raw,sha256 "
+                f"FROM native_compiled_content_records WHERE false"
+            )
+            db.execute(
+                "CREATE TRIGGER attacker_writer INSTEAD OF INSERT ON native_compiled_attacker "
+                "FOR EACH ROW EXECUTE FUNCTION write_native_compiled_content_record()"
+            )
+            db.execute(f"GRANT INSERT ON native_compiled_attacker TO {writer}")
+
+        def drop_writer_role():
+            with self.store.connection() as db:
+                db.execute(f"DROP OWNED BY {writer}")
+                db.execute(f"DROP ROLE {writer}")
+
+        self.addCleanup(drop_writer_role)
+
+        with self.store.connection() as db:
+            db.execute(f"SET LOCAL ROLE {writer}")
+            db.execute(
+                "INSERT INTO native_compiled_content_records "
+                "(content_id,record_key,ordinal,raw,sha256) VALUES(%s,'key',0,%s,%s)",
+                (content_id, raw, checksum),
+            )
+        with self.assertRaisesRegex(Exception, "permission denied"):
+            with self.store.connection() as db:
+                db.execute(f"SET LOCAL ROLE {writer}")
+                db.execute(
+                    "INSERT INTO native_compiled_record_bodies(sha256,raw,source_bytes) "
+                    "VALUES(decode(%s,'hex'),%s,%s)",
+                    (checksum, raw, len(raw)),
+                )
+        with self.assertRaisesRegex(Exception, "unexpected relation"):
+            with self.store.connection() as db:
+                db.execute(f"SET LOCAL ROLE {writer}")
+                db.execute(
+                    "INSERT INTO native_compiled_attacker "
+                    "(content_id,record_key,ordinal,raw,sha256) "
+                    "VALUES(%s,'attack',0,%s,%s)",
+                    (content_id, raw, checksum),
+                )
+
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE native_compiled_collection_contents SET complete=true "
+                "WHERE content_id=%s",
+                (content_id,),
+            )
+            before = db.execute(
+                "SELECT count(*) AS n FROM native_compiled_record_bodies"
+            ).fetchone()["n"]
+        with self.assertRaisesRegex(Exception, "immutable"):
+            with self.store.connection() as db:
+                db.execute(f"SET LOCAL ROLE {writer}")
+                changed_raw = b'{"value": 2}'
+                db.execute(
+                    "UPDATE native_compiled_content_records SET raw=%s,sha256=%s "
+                    "WHERE content_id=%s AND record_key='key'",
+                    (changed_raw, hashlib.sha256(changed_raw).hexdigest(), content_id),
+                )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM native_compiled_record_bodies"
+                ).fetchone()["n"],
+                before,
+            )
+
     def _legacy_records_table(self):
         with self.store.connection() as db:
             db.execute("DROP VIEW native_compiled_catalog_records")

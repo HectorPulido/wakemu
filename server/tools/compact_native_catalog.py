@@ -99,6 +99,87 @@ def _restore_table_access(db, table):
         )
 
 
+def plan_retention(db, *, keep=(), retain=2):
+    """Choose only resident releases; callers hold the maintenance lock."""
+    if type(retain) is not int or retain < 1:
+        raise ValueError("At least one native payload release must be retained")
+    releases = db.execute(
+        "SELECT r.*,EXISTS(SELECT 1 FROM native_catalog_documents d "
+        "WHERE d.revision=r.revision) AS has_payload "
+        "FROM native_catalog_releases r ORDER BY created_at DESC,revision DESC"
+    ).fetchall()
+    known = {row["revision"]: row for row in releases}
+    retained = set(keep)
+    retained.update(row["revision"] for row in releases if not row["complete"])
+    retained.update(
+        [row["revision"] for row in releases if row["complete"] and row["has_payload"]][
+            :retain
+        ]
+    )
+    retained.update(
+        row["revision"]
+        for row in db.execute("SELECT revision FROM native_catalog_active")
+    )
+    retained.update(
+        row["source_revision"]
+        for row in db.execute(
+            "SELECT DISTINCT source_revision FROM native_compiled_catalog_releases"
+        )
+    )
+    if retained - known.keys():
+        raise ValueError("Required native release does not exist")
+    if any(
+        known[revision]["complete"]
+        and known[revision]["document_count"] > 0
+        and not known[revision]["has_payload"]
+        for revision in retained
+    ):
+        raise ValueError("Required native payload has already been retired")
+    removed = []
+    for row in releases:
+        revision = row["revision"]
+        if revision in retained or not row["has_payload"]:
+            continue
+        locked = db.execute(
+            "SELECT pg_try_advisory_xact_lock(hashtextextended("
+            "current_database()||':'||current_schema()||':native_revision:'||%s,0)) AS acquired",
+            (revision,),
+        ).fetchone()["acquired"]
+        if locked:
+            removed.append(revision)
+        else:
+            retained.add(revision)
+    return known, sorted(retained), removed
+
+
+def archive_revisions(db, known, removed):
+    """Keep cryptographically authenticated provenance while retiring payloads."""
+    from wakfu_server.native_catalog_compatibility import _inventory
+
+    for revision in removed:
+        documents = [
+            dict(row)
+            for row in db.execute(
+                "SELECT path,sha256,source_bytes,record_count FROM native_catalog_documents "
+                'WHERE revision=%s ORDER BY path COLLATE "C"',
+                (revision,),
+            )
+        ]
+        inventory = {
+            key: value
+            for key, value in known[revision].items()
+            if key in ("revision", "document_count", "source_bytes", "complete")
+        }
+        inventory["documents"] = documents
+        _inventory(inventory, revision)
+        db.execute(
+            "INSERT INTO native_catalog_retired_inventories(revision,inventory) "
+            "VALUES(%s,%s) ON CONFLICT(revision) DO UPDATE SET "
+            "inventory=excluded.inventory,retired_at=now()",
+            (revision, Jsonb(inventory)),
+        )
+
+
 def compact(database, *, keep=(), retain=2):
     """Rebuild payload relations from retained revisions; never touch player data.
 
@@ -107,7 +188,7 @@ def compact(database, *, keep=(), retain=2):
     """
     if type(retain) is not int or retain < 1:
         raise ValueError("At least one native payload release must be retained")
-    from wakfu_server.native_catalog_compatibility import _inventory
+    from wakfu_server.native_shared_storage import garbage_collect, shared_storage
 
     with database.connection() as db:
         db.execute(
@@ -120,82 +201,38 @@ def compact(database, *, keep=(), retain=2):
         db.execute(
             "LOCK TABLE native_catalog_documents,native_catalog_records IN SHARE MODE"
         )
-        releases = db.execute(
-            "SELECT r.*,EXISTS(SELECT 1 FROM native_catalog_documents d "
-            "WHERE d.revision=r.revision) AS has_payload "
-            "FROM native_catalog_releases r ORDER BY created_at DESC,revision DESC"
-        ).fetchall()
-        known = {row["revision"]: row for row in releases}
-        retained = set(keep)
-        retained.update(row["revision"] for row in releases if not row["complete"])
-        retained.update(
-            [
-                row["revision"]
-                for row in releases
-                if row["complete"] and row["has_payload"]
-            ][:retain]
-        )
-        retained.update(
-            row["revision"]
-            for row in db.execute("SELECT revision FROM native_catalog_active")
-        )
-        retained.update(
-            row["source_revision"]
-            for row in db.execute(
-                "SELECT DISTINCT source_revision FROM native_compiled_catalog_releases"
-            )
-        )
-        if retained - known.keys():
-            raise ValueError("Required native release does not exist")
-        if any(
-            known[revision]["complete"] and not known[revision]["has_payload"]
-            for revision in retained
-        ):
-            raise ValueError("Required native payload has already been retired")
-        removed = []
-        for row in releases:
-            revision = row["revision"]
-            if revision in retained or not row["has_payload"]:
-                continue
-            locked = db.execute(
-                "SELECT pg_try_advisory_xact_lock(hashtextextended("
-                "current_database()||':'||current_schema()||':native_revision:'||%s,0)) AS acquired",
-                (revision,),
-            ).fetchone()["acquired"]
-            if locked:
-                removed.append(revision)
-            else:
-                retained.add(revision)
+        known, retained, removed = plan_retention(db, keep=keep, retain=retain)
+        normalized = shared_storage(db)
         if not removed:
-            return dict(compacted=False, retained=sorted(retained), retired=[])
+            result = dict(compacted=False, retained=sorted(retained), retired=[])
+            if normalized:
+                result.update(garbage_collect(db))
+            return result
         originals = (
             "native_catalog_documents",
             "native_catalog_records",
             "native_catalog_document_index_contracts",
         )
-        tables, views = _replacement_metadata(db, originals)
-        for revision in removed:
-            documents = [
-                dict(row)
-                for row in db.execute(
-                    "SELECT path,sha256,source_bytes,record_count FROM native_catalog_documents "
-                    'WHERE revision=%s ORDER BY path COLLATE "C"',
-                    (revision,),
-                )
-            ]
-            inventory = {
-                key: value
-                for key, value in known[revision].items()
-                if key in ("revision", "document_count", "source_bytes", "complete")
-            }
-            inventory["documents"] = documents
-            _inventory(inventory, revision)
+        if not normalized:
+            tables, views = _replacement_metadata(db, originals)
+        archive_revisions(db, known, removed)
+        if normalized:
             db.execute(
-                "INSERT INTO native_catalog_retired_inventories(revision,inventory) "
-                "VALUES(%s,%s) ON CONFLICT(revision) DO UPDATE SET "
-                "inventory=excluded.inventory,retired_at=now()",
-                (revision, Jsonb(inventory)),
+                "DELETE FROM native_catalog_document_index_contracts WHERE revision=ANY(%s)",
+                (removed,),
             )
+            db.execute(
+                "DELETE FROM native_catalog_document_links WHERE revision=ANY(%s)",
+                (removed,),
+            )
+            result = dict(
+                compacted=True,
+                retained=sorted(retained),
+                retired=removed,
+                **garbage_collect(db),
+            )
+            _log("native_catalog_shared_retention", **result)
+            return result
         suffix = uuid.uuid4().hex[:12]
         docs_name = "native_catalog_documents_" + suffix
         records_name = "native_catalog_records_" + suffix
@@ -341,7 +378,7 @@ def main():
     try:
         _log(
             "native_catalog_retention_complete",
-            **compact(database, keep=keep, retain=args.retain)
+            **compact(database, keep=keep, retain=args.retain),
         )
     finally:
         database.close()

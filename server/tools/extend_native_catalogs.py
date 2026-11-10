@@ -1,14 +1,19 @@
 """Stage an immutable catalog revision with explicit additions/replacements, without activation."""
+
 import argparse
 import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
 
-from psycopg.types.json import Jsonb
 
 from tools.import_native_catalogs import catalog_records, release_revision
 from wakfu_server.postgres import Database
+from wakfu_server.native_shared_storage import (
+    clone_documents,
+    copy_records,
+    seal_release,
+)
 
 
 def _manifest(rows):
@@ -115,15 +120,8 @@ def stage_extension(database, base_manifest, additions, *, replacements=None):
                 "INSERT INTO native_catalog_releases(revision,document_count,source_bytes) VALUES(%s,%s,%s)",
                 (revision, len(full), source_bytes),
             )
-            db.execute(
-                "INSERT INTO native_catalog_documents(revision,path,raw,sha256,source_bytes,record_count) "
-                "SELECT %s,path,raw,sha256,source_bytes,record_count FROM native_catalog_documents WHERE revision=%s AND path<>ALL(%s)",
-                (revision, base_revision, list(replacements)),
-            )
-            db.execute(
-                "INSERT INTO native_catalog_records(revision,path,collection,record_key,payload) "
-                "SELECT %s,path,collection,record_key,payload FROM native_catalog_records WHERE revision=%s AND path<>ALL(%s)",
-                (revision, base_revision, list(replacements)),
+            clone_documents(
+                db, revision, base_revision, exclude_paths=list(replacements)
             )
             for path, checksum, size in sorted(extra):
                 db.execute(
@@ -138,13 +136,7 @@ def stage_extension(database, base_manifest, additions, *, replacements=None):
                         len(records[path]),
                     ),
                 )
-                with db.cursor().copy(
-                    "COPY native_catalog_records(revision,path,collection,record_key,payload) FROM STDIN"
-                ) as copy:
-                    for collection, key, payload in records[path]:
-                        copy.write_row(
-                            (revision, path, collection, key, Jsonb(payload))
-                        )
+                copy_records(db, revision, path, records)
         elif (
             present["document_count"] != len(full)
             or present["source_bytes"] != source_bytes
@@ -168,6 +160,7 @@ def stage_extension(database, base_manifest, additions, *, replacements=None):
             or sum(row["record_count"] for row in actual) != expected_records
         ):
             raise ValueError("Incomplete extension record count")
+        seal_release(db, revision)
         db.execute(
             "UPDATE native_catalog_releases SET complete=true,completed_at=coalesce(completed_at,now()) "
             "WHERE revision=%s",

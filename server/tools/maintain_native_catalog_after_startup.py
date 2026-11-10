@@ -1,4 +1,4 @@
-"""Run native payload retention after World is available, in the same container."""
+"""Compact immutable catalog storage after World opens, in the same container."""
 
 import json
 import time
@@ -15,9 +15,14 @@ def main():
         except (URLError, OSError, ValueError):
             pass
         time.sleep(1)
-    from tools.compact_native_catalog import main as maintain
+    from tools.compact_compiled_bodies import main as compact_compiled
+    from tools.compact_native_storage import main as compact_native
 
-    maintain()
+    # Each converter keeps legacy interfaces available until its verified,
+    # transactional cutover. Native conversion also retires obsolete payloads,
+    # avoiding a legacy rewrite immediately before normalized storage.
+    compact_compiled()
+    compact_native()
 
 
 if __name__ == "__main__":

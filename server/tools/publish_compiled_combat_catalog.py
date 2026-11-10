@@ -13,6 +13,8 @@ import sys
 import tempfile
 import time
 
+from wakfu_server.catalog_serialization import ordered_bytes
+
 RAW_DOCUMENTS = (
     "spell-effect-trees.json",
     "combat-state-definitions.json",
@@ -42,12 +44,6 @@ RECORD_FIELDS = frozenset(
         "definitions",
     )
 )
-
-
-def ordered_bytes(value):
-    return json.dumps(
-        value, ensure_ascii=True, separators=(",", ":"), allow_nan=False
-    ).encode()
 
 
 def digest(raw):
@@ -351,19 +347,25 @@ def publish_shared_collection(db, spool, name, metadata):
         "VALUES(%s,%s,%s,%s,%s,%s) RETURNING content_id",
         identity,
     ).fetchone()["content_id"]
-    count = 0
-    with db.cursor().copy(
-        "COPY native_compiled_content_records "
-        "(content_id,record_key,ordinal,raw,sha256) FROM STDIN (FORMAT BINARY)"
-    ) as copy:
-        copy.set_types(["int8", "text", "int4", "bytea", "text"])
-        for row in spool.db.execute(
-            "SELECT record_key,ordinal,raw,sha256 FROM records "
-            "WHERE collection=? ORDER BY ordinal",
-            (name,),
-        ):
-            copy.write_row((content_id, *row))
-            count += 1
+    from wakfu_server import compiled_body_storage
+
+    records = spool.db.execute(
+        "SELECT record_key,ordinal,raw,sha256 FROM records "
+        "WHERE collection=? ORDER BY ordinal",
+        (name,),
+    )
+    if compiled_body_storage.enabled(db):
+        count = compiled_body_storage.publish_records(db, content_id, records)
+    else:
+        count = 0
+        with db.cursor().copy(
+            "COPY native_compiled_content_records "
+            "(content_id,record_key,ordinal,raw,sha256) FROM STDIN (FORMAT BINARY)"
+        ) as copy:
+            copy.set_types(["int8", "text", "int4", "bytea", "text"])
+            for row in records:
+                copy.write_row((content_id, *row))
+                count += 1
     actual = db.execute(
         "SELECT count(*) AS n FROM native_compiled_content_records WHERE content_id=%s",
         (content_id,),
@@ -471,7 +473,13 @@ def publish(db, spool, manifest, canonical_bytes, *, identity_check=None):
     began = time.monotonic()
     if shared:
         if new_contents:
-            db.execute("ANALYZE native_compiled_content_records")
+            from wakfu_server import compiled_body_storage
+
+            if compiled_body_storage.enabled(db):
+                db.execute("ANALYZE native_compiled_record_bodies")
+                db.execute("ANALYZE native_compiled_record_links")
+            else:
+                db.execute("ANALYZE native_compiled_content_records")
         db.execute("ANALYZE native_compiled_catalog_collections")
     else:
         db.execute("ANALYZE native_compiled_catalog_records")

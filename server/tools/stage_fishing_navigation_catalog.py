@@ -1,4 +1,5 @@
 """Stage a compact immutable fishing navigation release without activation."""
+
 import argparse
 import hashlib
 import json
@@ -8,6 +9,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from wakfu_server.fishing_navigation import _incoming
+from wakfu_server.native_shared_storage import seal_release
 
 
 def stage(connection, directory, *, dry_run=True):
@@ -65,6 +67,7 @@ def stage(connection, directory, *, dry_run=True):
                         "INSERT INTO native_catalog_documents(revision,path,raw,sha256,source_bytes,record_count) VALUES(%s,%s,%s,%s,%s,0)",
                         (revision, path, raw, digest, len(raw)),
                     )
+                seal_release(connection, revision)
                 connection.execute(
                     "UPDATE native_catalog_releases SET complete=true,completed_at=now() WHERE revision=%s",
                     (revision,),

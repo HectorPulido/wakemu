@@ -51,13 +51,24 @@ def delete_publications(db, generations):
         "WHERE r.content_id=c.content_id)"
     ).fetchall()
     ids = [row["content_id"] for row in unused]
-    db.execute(
-        "DELETE FROM native_compiled_content_records WHERE content_id=ANY(%s)", (ids,)
-    )
+    from wakfu_server import compiled_body_storage
+
+    shared_bodies = compiled_body_storage.enabled(db)
+    if shared_bodies:
+        db.execute(
+            "DELETE FROM native_compiled_record_links WHERE content_id=ANY(%s)", (ids,)
+        )
+    else:
+        db.execute(
+            "DELETE FROM native_compiled_content_records WHERE content_id=ANY(%s)",
+            (ids,),
+        )
     db.execute(
         "DELETE FROM native_compiled_collection_contents WHERE content_id=ANY(%s)",
         (ids,),
     )
+    if shared_bodies and ids:
+        compiled_body_storage.collect_unreferenced_bodies(db)
     return len(ids)
 
 

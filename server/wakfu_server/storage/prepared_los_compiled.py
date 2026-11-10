@@ -22,7 +22,7 @@ _COMPILER_INPUTS = (
     "wakfu_server/storage/prepared_los_compiled.py",
     "wakfu_server/combat/combat_native_los_ray.py",
     "wakfu_server/combat/combat_los_runtime_seal.py",
-    "tools/publish_compiled_combat_catalog.py",
+    "wakfu_server/storage/catalog_serialization.py",
 )
 _FIELDS = frozenset(
     (
