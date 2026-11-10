@@ -1,4 +1,5 @@
 """Lifecycle broker contracts with fake Docker; these tests never invoke Docker."""
+
 import json
 from pathlib import Path
 import threading
@@ -101,6 +102,51 @@ class AdminControlTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 control.container("postgres")
             self.assertEqual(control.project, "wakfu-local")
+
+    def test_world_release_rebuilds_and_activates_attached_shop_after_world(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "server").mkdir()
+            (root / "compose.yaml").write_text("services: {}\n")
+            calls = []
+
+            class FakeDockerControl(DockerControl):
+                def container(self, name):
+                    if name not in {"world", "shop"}:
+                        return None
+                    return {
+                        "id": name + "-container",
+                        "state": {"Status": "running"},
+                        "image": "current-" + name + ":release",
+                    }
+
+                def active_catalog(self):
+                    return "a" * 64
+
+                def build(self, names):
+                    calls.append(("build", names))
+
+                def validate_world(self):
+                    calls.append(("validate", "world"))
+
+                def activate(self, name, force=False):
+                    calls.append(("activate", name, force))
+
+            control = FakeDockerControl(root, "wakfu-local", root / "data")
+            phases = []
+            control.restart("world", phases.append)
+            self.assertEqual(
+                calls,
+                [
+                    ("build", ["world"]),
+                    ("build", ["shop"]),
+                    ("validate", "world"),
+                    ("activate", "world", True),
+                    ("activate", "shop", True),
+                ],
+            )
+            self.assertEqual(control.env["WAKFU_SHOP_IMAGE"], "current-shop:release")
+            self.assertEqual(phases[-1], "healthy")
 
     def test_control_http_requires_bearer_and_broker_allowlist(self):
         class FakeControl:

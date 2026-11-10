@@ -6,6 +6,6 @@ COPY protocol_codec.py ./
 COPY wakfu_server ./wakfu_server
 COPY tools/publish_compiled_combat_catalog.py ./tools/publish_compiled_combat_catalog.py
 COPY migrations/320_native_compiled_catalogs.sql ./migrations/320_native_compiled_catalogs.sql
-COPY shop-service/service.py ./
+COPY shop-service/service.py shop-service/readiness.py ./
 ENV PYTHONUNBUFFERED=1
 CMD ["python", "service.py"]

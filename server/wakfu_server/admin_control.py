@@ -1,4 +1,5 @@
 """Private serialized Docker lifecycle broker; no client-supplied commands."""
+
 import hashlib
 import hmac
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -170,6 +171,7 @@ class DockerControl:
         for name, key in (
             ("world", "WAKFU_WORLD_IMAGE"),
             ("ecology", "WAKFU_ECOLOGY_IMAGE"),
+            ("shop", "WAKFU_SHOP_IMAGE"),
         ):
             item = self.container(name)
             if item:
@@ -214,9 +216,9 @@ class DockerControl:
                     and "__pycache__" not in path.parts
                     and path.suffix not in {".pyc", ".pyo"}
                 ):
-                    expected[
-                        str(path.relative_to(self.root / "server"))
-                    ] = hashlib.sha256(path.read_bytes()).hexdigest()
+                    expected[str(path.relative_to(self.root / "server"))] = (
+                        hashlib.sha256(path.read_bytes()).hexdigest()
+                    )
         for relative in (
             "local_game_server.py",
             "protocol_codec.py",
@@ -316,7 +318,11 @@ class DockerControl:
         phase("prepare")
         self.configure_build()
         if name == "world":
-            attached = [n for n in ("ai", "ecology", "profiler") if self.container(n)]
+            # Shop grants items through the same published native rules as World.
+            # Keep its package compatible when World publishes a new generation.
+            attached = [
+                n for n in ("shop", "ai", "ecology", "profiler") if self.container(n)
+            ]
             phase("build")
             self.build(["world"])
             if any(n != "profiler" for n in attached):

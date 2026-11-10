@@ -1,4 +1,5 @@
 """Cron policy refresh must never fall back to a stale operational file."""
+
 from contextlib import contextmanager
 import json
 from pathlib import Path
@@ -64,6 +65,7 @@ class CronDatabasePolicyTests(unittest.TestCase):
         connection.execute.assert_called_with(
             "SELECT value FROM settings WHERE name = %s", ("cron_scheduler_policy",)
         )
+
 
 if __name__ == "__main__":
     unittest.main()

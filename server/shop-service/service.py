@@ -1,8 +1,9 @@
 """Run the Wakemu native shop HTTP service."""
+
 import logging
 import os
 from wakfu_server.shop_domain import ShopService
-from wakfu_server.shop_http import make_server
+from readiness import make_ready_server
 from wakfu_server.shop_cache import PublicCatalogCache, redis_from_environment
 from wakfu_server.storage.store import Store
 
@@ -22,7 +23,7 @@ try:
     logging.info("Warmed shop catalog: %d active articles", len(snapshot["articles"]))
 except Exception:
     logging.exception("Shop catalog warmup failed; requests will retry the database")
-server = make_server(
+server = make_ready_server(
     domain,
     os.environ.get("WAKFU_SHOP_HOST", "0.0.0.0"),
     int(os.environ.get("WAKFU_SHOP_PORT", "18083")),
