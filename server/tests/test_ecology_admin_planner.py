@@ -7,6 +7,7 @@ from collections import Counter
 from unittest.mock import patch
 
 from wakfu_server import ecology_admin_planner
+import wakfu_server.native_catalog  # noqa: F401 - initializes the package attribute fixture patch
 
 
 class EcologyAdminPlannerTests(unittest.TestCase):
@@ -362,3 +363,79 @@ class EcologyAdminPlannerTests(unittest.TestCase):
         )
         self.assertEqual(len(constrained), 1)
         self.assertIn(len(constrained[0]), (2, 3))
+
+    def test_explicit_member_target_adds_exact_individual_count_with_singletons(self):
+        from wakfu_server.ecology_admin_planner import plan_groups
+
+        prepared = ecology_admin_planner.prepare(1000, 7)
+        arguments = dict(
+            map_id=1000,
+            region_id=7,
+            counts=Counter(),
+            occupied=set(),
+            group_counts={},
+            min_members=2,
+            max_members=5,
+            capacity=64,
+            max_groups=100,
+            member_budget=500,
+            prepared=prepared,
+            rng=random.Random(9),
+        )
+        for target in (1, 5, 7):
+            planned = plan_groups(**arguments, member_target=target)
+            self.assertEqual(sum(map(len, planned)), target)
+            self.assertTrue(all(1 <= len(group) <= 5 for group in planned))
+        self.assertEqual(
+            [len(group) for group in plan_groups(**arguments, member_target=1)], [1]
+        )
+
+    def test_explicit_member_target_respects_existing_population_and_capacity(self):
+        from wakfu_server.ecology_admin_planner import plan_groups
+
+        prepared = ecology_admin_planner.prepare(1000, 7)
+        arguments = dict(
+            map_id=1000,
+            region_id=7,
+            counts=Counter({10: 62}),
+            occupied=set(),
+            group_counts={10: 31},
+            min_members=2,
+            max_members=5,
+            capacity=64,
+            max_groups=100,
+            member_budget=500,
+            prepared=prepared,
+            rng=random.Random(9),
+        )
+        planned = plan_groups(**arguments, member_target=5)
+        self.assertEqual(sum(map(len, planned)), 2)
+        self.assertTrue(all(1 <= len(group) <= 5 for group in planned))
+
+        constrained = plan_groups(
+            **{**arguments, "counts": Counter(), "member_budget": 1},
+            member_target=5,
+        )
+        self.assertEqual(sum(map(len, constrained)), 1)
+
+        # Omitting member_target preserves the legacy quota planner's minimum size.
+        defaults = dict(arguments, counts=Counter(), group_counts={})
+        legacy = plan_groups(**defaults, target_groups=2)
+        self.assertTrue(all(len(group) >= 2 for group in legacy))
+
+    def test_explicit_member_target_rejects_invalid_values(self):
+        from wakfu_server.ecology_admin_planner import plan_groups
+
+        arguments = dict(
+            map_id=1000,
+            region_id=7,
+            counts=Counter(),
+            occupied=set(),
+            group_counts={},
+            capacity=64,
+            max_groups=100,
+            member_budget=500,
+        )
+        for target in (0, -1, 1.5, True):
+            with self.subTest(target=target), self.assertRaises(ValueError):
+                plan_groups(**arguments, member_target=target)

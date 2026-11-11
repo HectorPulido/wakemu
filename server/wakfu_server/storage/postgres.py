@@ -169,9 +169,11 @@ def migrate(db, directory):
         raise ValueError("Migration versions must form a contiguous sequence")
     with db.transaction():
         db.execute("SELECT pg_advisory_xact_lock(%s)", (5790545553,))
-        db.execute("""CREATE TABLE IF NOT EXISTS schema_migrations (
+        db.execute(
+            """CREATE TABLE IF NOT EXISTS schema_migrations (
             version integer PRIMARY KEY, checksum text NOT NULL,
-            applied_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
+            applied_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP)"""
+        )
         applied = {
             r["version"]: r["checksum"]
             for r in db.execute("SELECT version,checksum FROM schema_migrations")

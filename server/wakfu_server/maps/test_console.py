@@ -13,7 +13,7 @@ from .inventory_move import STACKS
 from .monsters import owned_instance, statistics, reference as monster_reference
 from .combat_monster_world import spawn_group
 
-HELP = "!help | !position | !astrub | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon | !winfight | !losefight | !nuke | !nuke-all | !genesis | !genesis-all | !eco-status | !nuke-all-flora | !genesis-all-flora"
+HELP = "!help | !position | !astrub | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon | !winfight | !losefight | !nuke | !nuke-all | !genesis [count] | !genesis-all [count] | !eco-status | !nuke-all-flora | !genesis-all-flora"
 
 TARGET_ARITY = {"!nivel": 1, "!tp": 4, "!item": 2, "!mob": 3, "!kamas": 1}
 
@@ -103,7 +103,12 @@ def execute(
             )
         },
     }
-    if command not in expected or len(args) != expected[command]:
+    from .ecology_admin_jobs import parse_mob_count
+
+    mob_count = None
+    if command in ("!genesis", "!genesis-all"):
+        mob_count = parse_mob_count(command, args)
+    elif command not in expected or len(args) != expected[command]:
         raise ValueError(HELP)
     try:
         values = [int(value, 10) for value in args]
@@ -155,6 +160,7 @@ def execute(
                 players=ecology_players,
                 coordination=ecology_coordination,
                 publish=ecology_publish,
+                **({"mob_count": mob_count} if mob_count is not None else {}),
             )
         )
     elif command == "!ayuda":

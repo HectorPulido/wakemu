@@ -9,10 +9,70 @@ import unittest
 from unittest.mock import Mock, patch
 
 from wakfu_server.ecology_admin_jobs import COMMANDS
+from wakfu_server.ecology_admin_jobs import parse_mob_count
+from wakfu_server.ecology_admin_jobs import EcologyAdminJobs
 from wakfu_server.world import World
 
 
 class EcologyAdminDispatchTests(unittest.TestCase):
+    def test_genesis_count_arguments_are_parsed_and_invalid_forms_rejected(self):
+        for command in ("!genesis", "!genesis-all"):
+            self.assertIsNone(parse_mob_count(command, []))
+            self.assertEqual(parse_mob_count(command, ["1"]), 1)
+            self.assertEqual(parse_mob_count(command, ["17"]), 17)
+            for args in (["0"], ["100001"], ["nope"], ["1", "2"]):
+                with self.subTest(command=command, args=args), self.assertRaisesRegex(
+                    ValueError, "Uso"
+                ):
+                    parse_mob_count(command, args)
+        with self.assertRaisesRegex(ValueError, "Uso"):
+            parse_mob_count("!nuke-all", ["1"])
+
+    def test_active_jobs_coalesce_only_when_the_requested_count_matches(self):
+        class DeferredThread:
+            def __init__(self, *, target, args, **kwargs):
+                self.target, self.args = target, args
+
+            def start(self):
+                pass
+
+        jobs = EcologyAdminJobs(object(), object())
+        character = {
+            "id": 7,
+            "account_id": 1,
+            "map_id": 1134,
+            "instance_id": 0,
+            "x": 5,
+            "y": 6,
+            "z": 0,
+        }
+        with patch("wakfu_server.ecology_admin_jobs.threading.Thread", DeferredThread):
+            first = jobs.request(
+                account_id=1,
+                generation="lease",
+                character=character,
+                command="!genesis",
+                mob_count=3,
+            )
+            repeated = jobs.request(
+                account_id=1,
+                generation="lease",
+                character=character,
+                command="!genesis",
+                mob_count=3,
+            )
+            self.assertTrue(repeated["coalesced"])
+            self.assertEqual(repeated["handle"], first["handle"])
+            with self.assertRaisesRegex(ValueError, "en curso"):
+                jobs.request(
+                    account_id=1,
+                    generation="lease",
+                    character=character,
+                    command="!genesis",
+                    mob_count=4,
+                )
+        self.assertEqual(jobs.active["job"]["mob_count"], 3)
+
     def test_authorized_command_returns_before_flush_and_late_notice_is_generation_fenced(
         self,
     ):

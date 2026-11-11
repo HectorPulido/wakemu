@@ -611,7 +611,9 @@ class PublishedCollectionReader:
             collection = (
                 value
                 if type(value) is str
-                else value.get("collection") if type(value) is dict else None
+                else value.get("collection")
+                if type(value) is dict
+                else None
             )
             if collection == self._descriptor["collection"]:
                 matching.append(name)

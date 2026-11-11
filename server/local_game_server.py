@@ -924,8 +924,9 @@ def submit_ecology_admin_command(
     """Accept an authorized ecology command before any foreground checkpoint."""
     if command not in ASYNC_ECOLOGY_COMMANDS:
         return None
-    if len(text.split()) != 1:
-        raise ValueError("Uso: " + command)
+    from wakfu_server.ecology_admin_jobs import parse_mob_count
+
+    mob_count = parse_mob_count(command, text.split()[1:])
     from wakfu_server.ecology_feedback import information
 
     actor_id = character["id"]
@@ -954,6 +955,7 @@ def submit_ecology_admin_command(
         character=character,
         command=command,
         notify=notify,
+        **({"mob_count": mob_count} if mob_count is not None else {}),
     )
     send(connection, service, *information(receipt["message"]))
     record(

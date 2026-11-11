@@ -340,7 +340,17 @@ def validate_genesis_policy(value):
     return value
 
 
-def _genesis(db, groups, map_id, instance_id, region_id, *, players=(), prepared=None):
+def _genesis(
+    db,
+    groups,
+    map_id,
+    instance_id,
+    region_id,
+    *,
+    players=(),
+    prepared=None,
+    mob_count=None,
+):
     from .ecology_admin_planner import plan_groups
     from .npc_actor_identity import allocate_block
     from .combat_monster_world import spawn_group
@@ -422,6 +432,7 @@ def _genesis(db, groups, map_id, instance_id, region_id, *, players=(), prepared
         max_groups=group_budget,
         member_budget=member_budget,
         prepared=prepared,
+        **({"member_target": mob_count} if mob_count is not None else {}),
     )
     packets, added, created_groups = [], 0, []
     for chunk in planned:
@@ -450,7 +461,11 @@ def _genesis(db, groups, map_id, instance_id, region_id, *, players=(), prepared
         )
         added += len(members)
     target = genesis["groups_per_region"]
-    if len(regional_groups) + len(planned) < target:
+    if mob_count is not None and added < mob_count:
+        warnings.append(
+            f"Map {map_id}, region {region_id}: {added}/{mob_count} requested monsters added; capacity or free terrain prevents completing genesis."
+        )
+    if mob_count is None and len(regional_groups) + len(planned) < target:
         warnings.append(
             f"Map {map_id}, region {region_id}: {len(regional_groups) + len(planned)}/{target} groups; native capacity, free terrain or map population budgets prevent completing genesis."
         )
@@ -490,12 +505,16 @@ def execute(
     prepare_scope=None,
     validate_actor=None,
     job=None,
+    mob_count=None,
 ):
     """Commit one bounded habitat at a time, then publish inside its fence.
 
     Geometry preparation happens before live-world locks. A global command
     preserves completed scopes if a later scope is unavailable or delivery fails.
     """
+    from .ecology_admin_jobs import validate_mob_count
+
+    validate_mob_count(command, mob_count)
     if command not in COMMANDS:
         raise ValueError("Unknown ecology administrator command")
     if store is None or groups is None:
@@ -559,6 +578,11 @@ def execute(
                                     *scope,
                                     players=current_players,
                                     prepared=prepared,
+                                    **(
+                                        {"mob_count": mob_count}
+                                        if mob_count is not None
+                                        else {}
+                                    ),
                                 )
                                 if genesis
                                 else _nuke(db, *scope)
@@ -582,6 +606,8 @@ def execute(
                                 for key, value in scope_result.items()
                                 if key != "location_packets"
                             }
+                            if mob_count is not None:
+                                audit["requested_mob_count"] = mob_count
                             operation = db.execute(
                                 "INSERT INTO ecology_admin_operations(account_id,character_id,command,outcome) VALUES(%s,%s,%s,%s) RETURNING id",
                                 (

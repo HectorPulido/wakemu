@@ -22,7 +22,9 @@ class CleanBackupRestoreTests(unittest.TestCase):
         self.commands = self.root / "commands"
         self.commands.mkdir()
         self.log = self.root / "calls.jsonl"
-        mock = f"#!{sys.executable}\n" + r"""
+        mock = (
+            f"#!{sys.executable}\n"
+            + r"""
 import json, os, pathlib, sys
 name = pathlib.Path(sys.argv[0]).name
 text = sys.stdin.read() if name == "psql" else ""
@@ -34,6 +36,7 @@ else:
     failure = "MOCK_MANIFEST_FAIL" if "clean_seed_manifest_valid" in text else "MOCK_AUDIT_FAIL"
 raise SystemExit(1 if os.environ.get(failure) else 0)
 """
+        )
         for name in ("pg_restore", "psql"):
             path = self.commands / name
             path.write_text(mock)

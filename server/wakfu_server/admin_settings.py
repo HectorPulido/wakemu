@@ -322,13 +322,13 @@ class AdminSettings:
                         (route_key,),
                     )
                 ]
-        result["validation"] = (
-            "Preserve configured fields and JSON types. Numeric ranges, supported consumer policies and immutable dungeon versions are checked before commit."
-        )
+        result[
+            "validation"
+        ] = "Preserve configured fields and JSON types. Numeric ranges, supported consumer policies and immutable dungeon versions are checked before commit."
         if name == "server_name":
-            result["validation"] = (
-                "Use 1–80 characters, at most 255 UTF-8 bytes, without control characters or surrounding whitespace."
-            )
+            result[
+                "validation"
+            ] = "Use 1–80 characters, at most 255 UTF-8 bytes, without control characters or surrounding whitespace."
         return result
 
     @staticmethod

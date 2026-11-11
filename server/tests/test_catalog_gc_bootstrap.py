@@ -179,7 +179,8 @@ class CatalogGCBootstrapTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
 
     def test_static_heap_frozen_future_gameplay_cycles_still_collect(self):
-        self.run_case("""
+        self.run_case(
+            """
 import gc, weakref
 from wakfu_server.catalog_gc_bootstrap import freeze_startup_heap
 static = []
@@ -197,10 +198,12 @@ static.pop()
 gc.collect()
 assert reference() is None
 assert static == [[1,2,3]]
-""")
+"""
+        )
 
     def test_world_import_rejected_before_prewarm_or_freeze(self):
-        self.run_case("""
+        self.run_case(
+            """
 import gc, sys, types
 from wakfu_server.catalog_gc_bootstrap import freeze_startup_heap
 sys.modules['local_game_server'] = types.ModuleType('local_game_server')
@@ -208,10 +211,12 @@ try: freeze_startup_heap(lambda: (_ for _ in ()).throw(AssertionError()), lambda
 except RuntimeError: pass
 else: raise AssertionError('world import accepted')
 assert gc.get_freeze_count() == initial_frozen and gc.isenabled()
-""")
+"""
+        )
 
     def test_live_fight_created_by_prewarm_rejected_cleanup_runs(self):
-        self.run_case("""
+        self.run_case(
+            """
 import gc
 from wakfu_server.catalog_gc_bootstrap import freeze_startup_heap
 Fight = type('Fight', (), {'__module__': 'wakfu_server.combat_state'})
@@ -220,10 +225,12 @@ try: freeze_startup_heap(lambda: live.append(Fight()) or {}, lambda: cleanup.app
 except RuntimeError: pass
 else: raise AssertionError('live fight accepted')
 assert cleanup and gc.get_freeze_count() == initial_frozen
-""")
+"""
+        )
 
     def test_prewarm_failure_does_not_freeze_and_releases_resources(self):
-        self.run_case("""
+        self.run_case(
+            """
 import gc
 from wakfu_server.catalog_gc_bootstrap import freeze_startup_heap
 cleanup=[]
@@ -232,13 +239,16 @@ try: freeze_startup_heap(fail, lambda: cleanup.append(True))
 except ValueError: pass
 else: raise AssertionError('failure swallowed')
 assert cleanup and gc.get_freeze_count() == initial_frozen and gc.isenabled()
-""")
+"""
+        )
 
     def test_second_freeze_rejected(self):
-        self.run_case("""
+        self.run_case(
+            """
 from wakfu_server.catalog_gc_bootstrap import freeze_startup_heap
 freeze_startup_heap(lambda: {}, lambda: None)
 try: freeze_startup_heap(lambda: {}, lambda: None)
 except RuntimeError: pass
 else: raise AssertionError('second freeze accepted')
-""")
+"""
+        )

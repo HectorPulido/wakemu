@@ -118,7 +118,8 @@ def streamed_records(
     with tempfile.TemporaryDirectory(prefix="wakemu-catalog-index-") as directory:
         db = sqlite3.connect(str(Path(directory) / "records.sqlite"))
         try:
-            db.executescript("""
+            db.executescript(
+                """
                 PRAGMA journal_mode=OFF;
                 PRAGMA synchronous=OFF;
                 PRAGMA cache_size=-8192;
@@ -129,7 +130,8 @@ def streamed_records(
                 CREATE UNIQUE INDEX object_keys ON records(collection,key) WHERE is_dict=1;
                 CREATE INDEX base_keys ON records(collection,key);
                 CREATE TABLE emitted(collection TEXT,key TEXT,PRIMARY KEY(collection,key));
-            """)
+            """
+            )
             sequence = 0
 
             def collection(name, first):

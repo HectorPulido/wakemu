@@ -21,6 +21,36 @@ COMMANDS = frozenset(
 )
 
 
+def validate_mob_count(command, mob_count):
+    if mob_count is not None and (
+        command not in ("!genesis", "!genesis-all")
+        or type(mob_count) is not int
+        or not 1 <= mob_count <= 100000
+    ):
+        raise ValueError("Uso: " + command + " [cantidad: 1..100000]")
+    return mob_count
+
+
+def parse_mob_count(command, args):
+    if not args:
+        return None
+    try:
+        if len(args) != 1:
+            raise ValueError
+        count = int(args[0], 10)
+        return validate_mob_count(command, count)
+    except ValueError:
+        raise ValueError(
+            "Uso: "
+            + command
+            + (
+                " [cantidad: 1..100000]"
+                if command in ("!genesis", "!genesis-all")
+                else ""
+            )
+        ) from None
+
+
 def job_message(result):
     handle, status = result["handle"], result["status"]
     if status == "running":
@@ -96,9 +126,19 @@ class EcologyAdminJobs:
         if self.validate_actor is not None:
             self.validate_actor(db, job)
 
-    def request(self, *, account_id, generation, character, command, notify=None):
+    def request(
+        self,
+        *,
+        account_id,
+        generation,
+        character,
+        command,
+        notify=None,
+        mob_count=None,
+    ):
         if command not in COMMANDS or character.get("account_id") != account_id:
             raise ValueError("Invalid administrative ecology request")
+        validate_mob_count(command, mob_count)
         actor = MappingProxyType(
             {
                 key: character[key]
@@ -110,6 +150,7 @@ class EcologyAdminJobs:
             generation,
             actor["id"],
             command,
+            mob_count,
             actor["map_id"],
             actor["instance_id"],
             actor["x"],
@@ -143,6 +184,7 @@ class EcologyAdminJobs:
                         generation=generation,
                         character=actor,
                         command=command,
+                        mob_count=mob_count,
                     )
                 )
                 run = dict(job=job, key=key, started=self.clock(), notify=notify)
@@ -228,6 +270,11 @@ class EcologyAdminJobs:
                     prepare_scope=prepare,
                     validate_actor=self._validate,
                     job=job,
+                    **(
+                        {"mob_count": job["mob_count"]}
+                        if job["mob_count"] is not None
+                        else {}
+                    ),
                 )
                 # Retain receipts and summaries only, never packet bodies or terrain.
                 for key in (

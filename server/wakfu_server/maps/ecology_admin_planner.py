@@ -232,11 +232,14 @@ def plan_groups(
     member_budget,
     prepared=None,
     rng=None,
+    member_target=None,
 ):
     """Fill missing native family group quotas using connected nearby cells.
 
     ``group_counts`` is living regional groups by family, including foreign
     groups. ``max_groups`` and ``member_budget`` are remaining map capacities.
+    ``member_target`` adds up to that many new individuals instead of filling
+    group quotas, allowing singleton groups for exact requested counts.
     """
     import random
     from collections import deque
@@ -262,6 +265,12 @@ def plan_groups(
         )
     ):
         raise ValueError("Invalid administrative group population policy")
+    if member_target is not None:
+        if type(member_target) is not int or not 1 <= member_target <= 100000:
+            raise ValueError("Invalid administrative monster count")
+        # Explicit counts add new individuals, independently of existing quotas.
+        min_members = 1
+        target_groups = sum(group_counts.values()) + member_target
     blocked = set()
     for point in occupied:
         if (
@@ -285,6 +294,8 @@ def plan_groups(
     room = min(
         member_budget, max(0, min(capacity, native["capacity"]) - sum(counts.values()))
     )
+    if member_target is not None:
+        room = min(room, member_target)
     families = sorted(candidates)
     quota, extra = divmod(target_groups, len(families))
     deficits = {
@@ -307,7 +318,11 @@ def plan_groups(
             room // min_members,
         )
         upper = min(max_members, room - min_members * (remaining_groups - 1))
-        desired = rng.randint(min_members, upper)
+        desired = (
+            min(max_members, room)
+            if member_target is not None
+            else rng.randint(min_members, upper)
+        )
         if previous:
             anchors.sort(
                 key=lambda point: min(

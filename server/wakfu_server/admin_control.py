@@ -216,9 +216,9 @@ class DockerControl:
                     and "__pycache__" not in path.parts
                     and path.suffix not in {".pyc", ".pyo"}
                 ):
-                    expected[str(path.relative_to(self.root / "server"))] = (
-                        hashlib.sha256(path.read_bytes()).hexdigest()
-                    )
+                    expected[
+                        str(path.relative_to(self.root / "server"))
+                    ] = hashlib.sha256(path.read_bytes()).hexdigest()
         for relative in (
             "local_game_server.py",
             "protocol_codec.py",
