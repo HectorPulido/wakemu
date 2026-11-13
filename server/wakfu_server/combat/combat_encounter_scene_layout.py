@@ -319,6 +319,12 @@ def prepare_encounter_scene(character, members, selected_arena, *, layout=None):
 
 def scene_player_position(character, arena):
     original = (character["x"], character["y"], character["z"])
+    if arena.get("native_rii_lesson_layout") is not None:
+        from wakfu_server.achievements.rii_lesson_layout import (
+            validated_player_position,
+        )
+
+        return validated_player_position(character, arena)
     relocation = arena.get("participant_player_position")
     if relocation is None:
         return original

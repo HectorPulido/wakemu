@@ -537,6 +537,11 @@ class NativeEffectRuntimeFactory:
             if provider.damage_block is not None
             else None,
         )
+        if getattr(preview, "rii_los_lesson_contract", None) is not None:
+            # The training predicate reuses the same native actor authority as
+            # the spell/casting resolver for a server-owned LOS recheck.
+            damage.rii_los_actor_authority = self.summon_authority
+            damage.rii_los_spell_id = plan.get("spell_id")
         damage.retention = retention
         from .combat_random_earth_damage import (
             NativeRandomEarthDamageHandler,

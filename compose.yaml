@@ -41,6 +41,8 @@ services:
       WAKFU_MINING_CATALOG_REVISION: 14b63a5b28014e455fd9910c99fe037e6d957ac9b40508335bfe130c2ee54518
       WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde}
       WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
+      # Opt in only for runtime changes that do not affect compiled combat data.
+      WAKFU_COMPILED_CATALOG_REUSE_EXISTING: ${WAKFU_COMPILED_CATALOG_REUSE_EXISTING:-0}
       # Listen on the container network; published host ports stay localhost.
       WAKFU_BIND_HOST: ${WAKFU_BIND_HOST:-0.0.0.0}
       WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password

@@ -337,7 +337,12 @@ def local_arena(
         )
     if member_point_cells is not None and any(
         radius == 0 and destination not in member_point_cells
-        for (_, destination), radius in zip(selected["participant_positions"], radii)
+        for (_, destination), radius in zip(
+            selected.get(
+                "participant_positions", [(position, position) for position in members]
+            ),
+            radii,
+        )
     ):
         raise ValueError("Ordinary NPC placement has no eligible native surface")
 

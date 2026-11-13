@@ -16,10 +16,11 @@ class ReviewedMorphProfilesTests(unittest.TestCase):
         before = json.dumps(self.base, sort_keys=True)
         profiles = morph.native_morph_profiles()
         self.assertEqual(len(self.base["profiles"]), 8)
-        self.assertEqual(len(profiles), 9)
+        self.assertEqual(len(profiles), 10)
         for key, row in self.base["profiles"].items():
             self.assertEqual(profiles[key], row)
         self.assertEqual(morph.build_morph_book(profiles["2778"], 5), {4019: 5})
+        self.assertEqual(morph.build_morph_book(profiles["5521"], 1), {7968: 1})
         self.assertEqual(json.dumps(self.base, sort_keys=True), before)
 
     def test_unknown_native_revision_keeps_only_its_original_profiles(self):

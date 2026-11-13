@@ -19,6 +19,33 @@ def native_cell_group_metadata():
 
 def native_cell_criterion_presence(effect, invocation):
     row = native_cell_group_metadata().get(str(invocation.reference))
+    if (
+        row is None
+        and invocation.reference == 367418
+        and effect.get("effect_class") == 349
+    ):
+        # The native class-only export omits this Rii tutorial eYk. Its
+        # parameters, selector class and criterion presence were independently
+        # extracted from the installed effect definition. The common checks
+        # below still reject any mismatching effect before selecting cells.
+        row = {
+            "criterion_present": True,
+            "area_class": "anu",
+            "raw_parameters": [
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+            ],
+        }
     raw_parameters = effect.get("parameters")
     metadata_parameters = row.get("raw_parameters") if isinstance(row, dict) else None
     if (

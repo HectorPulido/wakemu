@@ -462,6 +462,15 @@ class Harvests:
                     Jsonb(granted["grants"]),
                 ),
             )
+            from wakfu_server.achievements.counter_missions import settle_wodent_harvest
+
+            mission_packets = settle_wodent_harvest(
+                db,
+                self.store,
+                character,
+                token=ticket["token"],
+                item_reference=reference,
+            )
             from .profession_rewards import base_xp
             from .profession_store import award
 
@@ -494,7 +503,7 @@ class Harvests:
             return dict(
                 applied=True,
                 item=item,
-                packets=[*granted["packets"], *progress["packets"]],
+                packets=[*granted["packets"], *progress["packets"], *mission_packets],
                 availability=(
                     monster["map_id"],
                     monster["instance_id"],
@@ -513,6 +522,11 @@ class Harvests:
         return dict(
             applied=True,
             item=item,
-            packets=[*granted["packets"], *progress["packets"], *feedback],
+            packets=[
+                *granted["packets"],
+                *progress["packets"],
+                *feedback,
+                *mission_packets,
+            ],
             availability=(key[0], key[1], availability_packet(key[2], key[3], False)),
         )

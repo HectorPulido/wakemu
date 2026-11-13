@@ -127,7 +127,7 @@ def snapshots(registry, session, fight_id):
     with shared.lock:
         registry._member(shared, session)
         actor = _actor(shared, session, session.character_id, request=False)
-        return tuple(
+        packets = tuple(
             _marker_packet(
                 shared.fight.id, tuple(row["position"]), row["sender"], int(icon), True
             )
@@ -135,3 +135,23 @@ def snapshots(registry, session, fight_id):
                 _markers(shared.fight).get(str(actor.team), {}).items()
             )
         )
+        contract = getattr(shared.fight, "rii_movement_lesson_contract", None)
+        if (
+            shared.fight.phase == "active"
+            and isinstance(contract, dict)
+            and contract.get("initialized") is True
+            and contract.get("hits", 4) < 4
+        ):
+            owner = shared.fight.actors.get(contract.get("owner"))
+            marker = contract.get("marker")
+            if (
+                owner is not None
+                and owner.team == actor.team
+                and isinstance(marker, list)
+                and len(marker) == 3
+                and all(type(value) is int for value in marker)
+            ):
+                packets += (
+                    _marker_packet(shared.fight.id, tuple(marker), owner.id, 0, True),
+                )
+        return packets

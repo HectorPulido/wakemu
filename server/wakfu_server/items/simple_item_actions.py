@@ -418,9 +418,21 @@ def use(
             result = award_item_xp(
                 store, db, account_id, generation, owner_id, rule["amount"]
             )
+        from wakfu_server.achievements.item_event_missions import activate_for_output
+
+        mission_packets = activate_for_output(
+            db,
+            store,
+            result["character"],
+            native_class=native_class,
+            action_id=action_id,
+            source_reference=item["reference"],
+            output_reference=rule.get("output_ref"),
+            source_uid=source_uid,
+        )
         return dict(
             character=result["character"],
-            packets=packets + result["packets"],
+            packets=packets + result["packets"] + mission_packets,
             applied=True,
             native_class=native_class,
             consumed=consumed,

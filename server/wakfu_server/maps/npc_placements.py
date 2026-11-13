@@ -62,7 +62,15 @@ def load_scene(db, map_id, instance_id):
         "ORDER BY npc.actor_id",
         (map_id, instance_id),
     ).fetchall()
-    return tuple(validate(row) for row in rows)
+    from wakfu_server.weekly_hunter_npc import ACTOR, enabled
+
+    published = enabled(db) if any(row["actor_id"] == ACTOR for row in rows) else False
+    return tuple(
+        validate(
+            dict(row, weekly_hunter_enabled=published and row["actor_id"] == ACTOR)
+        )
+        for row in rows
+    )
 
 
 def spawn(row):
@@ -84,6 +92,10 @@ def spawn(row):
         ">qHhh", -row["actor_id"], 1, row["reference_id"], row["level"]
     )
     actions = row["native_action_ids"]
+    if row.get("weekly_hunter_enabled"):
+        from wakfu_server.weekly_hunter_npc import ACTION
+
+        actions = [action for action in actions if action != ACTION]
     out += struct.pack(">hhH", -1, -1, len(actions)) + b"".join(
         struct.pack(">i", action) for action in actions
     )

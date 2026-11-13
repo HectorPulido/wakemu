@@ -13,9 +13,17 @@ from .inventory_move import STACKS
 from .monsters import owned_instance, statistics, reference as monster_reference
 from .combat_monster_world import spawn_group
 
-HELP = "!help | !position | !astrub | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon | !winfight | !losefight | !nuke | !nuke-all | !genesis [count] | !genesis-all [count] | !eco-status | !nuke-all-flora | !genesis-all-flora"
+HELP = "!help | !position | !astrub | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !quests [text] [--page N] | !quest-assign id [target] | !quest-complete id [target] | !chest depositall | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon | !winfight | !losefight | !nuke | !nuke-all | !genesis [count] | !genesis-all [count] | !eco-status | !nuke-all-flora | !genesis-all-flora"
 
-TARGET_ARITY = {"!nivel": 1, "!tp": 4, "!item": 2, "!mob": 3, "!kamas": 1}
+TARGET_ARITY = {
+    "!nivel": 1,
+    "!tp": 4,
+    "!item": 2,
+    "!mob": 3,
+    "!kamas": 1,
+    "!quest-assign": 1,
+    "!quest-complete": 1,
+}
 
 
 def parse_target(text):
@@ -79,6 +87,24 @@ def execute(
     if not fields:
         raise ValueError("Comando vacío")
     command, args = canonical_command(fields[0]), fields[1:]
+    if command == "!quests":
+        from wakfu_server.achievements.admin_missions import catalog
+
+        page = 1
+        page_flags = [
+            index for index, arg in enumerate(args) if arg in ("--page", "--pagina")
+        ]
+        if page_flags:
+            index = page_flags[0]
+            if len(page_flags) != 1 or index != len(args) - 2:
+                raise ValueError("Usage: !quests [text] [--page N]")
+            page = int(args[index + 1])
+            args = args[:index]
+        with store.connection() as db:
+            _lease(store, db, account, generation, character["id"])
+            current = store.character(account, character["id"], db)
+            message = catalog(db, " ".join(args), page)
+        return dict(character=current, packets=[], action="quests", message=message)
     expected = {
         "!ayuda": 0,
         "!pos": 0,
@@ -87,6 +113,8 @@ def execute(
         "!tp": 4,
         "!astrub": 0,
         "!item": 2,
+        "!quest-assign": 1,
+        "!quest-complete": 1,
         "!mob": 3,
         "!equip": 2,
         "!unequip": 1,
@@ -137,7 +165,18 @@ def execute(
                     "Usa !exitdungeon antes de crear monstruos de prueba."
                 )
     result = dict(character=current, packets=[], action=command[1:])
-    if command in (
+    if command in ("!quest-assign", "!quest-complete"):
+        from wakfu_server.achievements.admin_missions import execute as execute_mission
+
+        result["packets"], result["message"] = execute_mission(
+            store,
+            account,
+            generation,
+            current,
+            values[0],
+            "assign" if command == "!quest-assign" else "complete",
+        )
+    elif command in (
         "!nuke",
         "!nuke-all",
         "!genesis",
@@ -192,6 +231,13 @@ def execute(
             updated = health_store.initialize(
                 store, account, generation, current["id"], exploration=True, db=db
             )
+            mission_packets = []
+            if latest["level"] < 30 <= level:
+                from wakfu_server.achievements.rii_class_mission import reached_level
+
+                mission_packets = reached_level(db, store, updated, level)
+                if mission_packets:
+                    updated = store.character(account, current["id"], db)
             packet = outside_progression(
                 updated,
                 wp=(
@@ -202,7 +248,7 @@ def execute(
             )
         result.update(
             character=updated,
-            packets=[packet],
+            packets=[packet, *mission_packets],
             message=f"Nivel {level} guardado; biblioteca y lista de personajes actualizadas",
         )
     elif command == "!kamas":

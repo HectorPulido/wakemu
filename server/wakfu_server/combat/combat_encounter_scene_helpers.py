@@ -11,6 +11,30 @@ from .combat_quest_scene_authority import canonical_digest
 SCHEMA = "wakemu.initial-scene-npc-helpers.v1"
 SPIRIT_POLICY = "wakemu-spirit-scenario2710-v1"
 SECURITY_POLICY = "wakemu.security.initial-three-globs.v1"
+RUEL_POLICY = "wakemu.ruel.trace1-helper.v1"
+
+
+def _ruel_scene(store, character, members):
+    """Admit only the original actor spawned for this character's trace fight."""
+    if character.get("map_id") != 527 or len(members) != 1:
+        return None
+    actor = members[0]
+    if actor.get("ref") != 4689 or type(actor.get("id")) is not int or actor["id"] >= 0:
+        return None
+    with store.connection() as db:
+        row = db.execute(
+            "SELECT payload FROM character_achievement_events WHERE character_id=%s AND event_key=%s",
+            (character["id"], f"ruel-phorreur:{-actor['id']}"),
+        ).fetchone()
+    expected = {
+        "kind": "reconstructed_ruel_phorreur_spawn_v1",
+        "actor_id": actor["id"],
+        "reference": 4689,
+        "owner": character["id"],
+    }
+    if not row or row["payload"] != expected:
+        return None
+    return RUEL_POLICY, (("ruel", 4690, 15, "player", "self"),)
 
 
 def _scene(character, members):
@@ -101,7 +125,7 @@ def prepare_scene_roster(store, character, members):
     durable ordinary-NPC identity allocator.
     """
     members = tuple(members)
-    if tuple(member["ref"] for member in members) not in ((3518,), (5848,)):
+    if tuple(member["ref"] for member in members) not in ((3518,), (5848,), (4689,)):
         return members, None
     from .combat_encounter_roles import role_assignment, ORDINARY_POLICY
 
@@ -117,7 +141,11 @@ def prepare_scene_roster(store, character, members):
         for member in members
     ):
         return members, None
-    scope = _scene(character, members)
+    scope = (
+        _ruel_scene(store, character, members)
+        if members[0]["ref"] == 4689
+        else _scene(character, members)
+    )
     if scope is None:
         return members, None
     policy, definitions = scope
@@ -188,6 +216,12 @@ def prepare_scene_roster(store, character, members):
             ]
             if policy == SECURITY_POLICY
             else [
+                "scenario2335:event19732:invoke Ruel",
+                "native4690:level15/HP300",
+                "native4689:level15/HP80",
+            ]
+            if policy == RUEL_POLICY
+            else [
                 "native guide175:level96/player-controlled allies",
                 "native5849:9149/9169",
                 "native5850:9169",
@@ -210,20 +244,28 @@ def validated_manifest(manifest):
     if (
         source.get("schema") != SCHEMA
         or source.get("version") != 1
-        or source.get("policy") not in (SPIRIT_POLICY, SECURITY_POLICY)
+        or source.get("policy") not in (SPIRIT_POLICY, SECURITY_POLICY, RUEL_POLICY)
         or source.get("authority") != "explicit_source_backed_wakemu_reconstruction"
     ):
         raise ValueError("Unknown initial scene helper authority")
     expected = (
         ((5849, "player", "principal"), (5850, "player", "principal"))
         if (source["policy"] == SPIRIT_POLICY)
+        else ((4690, "player", "self"),)
+        if source["policy"] == RUEL_POLICY
         else ((3516, "npc", "self"),) * 3
     )
     actual = tuple(
         (row["reference"], row["team_role"], row["controller_role"])
         for row in source["helpers"]
     )
-    expected_original = 5848 if source["policy"] == SPIRIT_POLICY else 3518
+    expected_original = (
+        5848
+        if source["policy"] == SPIRIT_POLICY
+        else 4689
+        if source["policy"] == RUEL_POLICY
+        else 3518
+    )
     if (
         actual != expected
         or len(source["originals"]) != 1

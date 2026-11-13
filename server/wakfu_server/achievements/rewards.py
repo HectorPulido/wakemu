@@ -64,7 +64,10 @@ def grant(db, store, character, reward, *, entitlement=None):
     if kind == 3:
         return _emote(db, character, parameters[0])
     if kind == 6:
-        return _xp(db, store, character, parameters[0])
+        from .flat_xp import amount
+
+        earned = amount(db, character, reward, entitlement)
+        return [] if earned == 0 else _xp(db, store, character, earned)
     if kind == 15:
         return _zaap(db, character, reward, entitlement)
     if kind == 17:
@@ -406,7 +409,7 @@ def _xp(db, store, character, amount):
         _initialize_health_for_durable_member(
             store, db, character["account_id"], character["id"]
         )
-    return [
+    packets = [
         notification(
             character["id"],
             {
@@ -422,6 +425,11 @@ def _xp(db, store, character, amount):
             },
         )
     ]
+    if current["level"] < 30 <= level:
+        from .rii_class_mission import reached_level
+
+        packets.extend(reached_level(db, store, current, level))
+    return packets
 
 
 def _zaap(db, character, reward, entitlement):

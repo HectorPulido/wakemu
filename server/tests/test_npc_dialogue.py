@@ -1,6 +1,10 @@
 import struct
 import unittest
-from wakfu_server.maps.npc_dialogue import DialogueSession, decode_request
+from wakfu_server.npc_dialogue import (
+    DialogueSession,
+    UnavailableDialogueChoice,
+    decode_request,
+)
 
 
 class NpcDialogueTests(unittest.TestCase):
@@ -35,8 +39,9 @@ class NpcDialogueTests(unittest.TestCase):
     def test_never_infers_native_graph_or_ignores_criteria(self):
         session = DialogueSession(self.nodes)
         session.open(1, 100, lambda *_: True)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(UnavailableDialogueChoice):
             session.choose(1, 5)
+        self.assertEqual(session.node_id, 1)
         self.nodes[2]["criteria"] = "SERVER_QUEST_FLAG"
         session.graph[(1, 5)] = 2
         with self.assertRaises(ValueError):
@@ -47,3 +52,17 @@ class NpcDialogueTests(unittest.TestCase):
         for opcode, body in [(12535, b""), (12058, bytes(9)), (0, bytes(8))]:
             with self.assertRaises(ValueError):
                 decode_request(opcode, body)
+
+    def test_duplicate_choice_on_new_node_is_ignored_without_masking_current_choices(
+        self,
+    ):
+        self.nodes[2]["choices"] = [{"id": 6, "criteria": ""}]
+        session = DialogueSession(self.nodes, {(1, 5): 2, (2, 6): 1})
+        session.open(1, 100, lambda *_: True)
+        session.choose(1, 5)
+        self.assertIsNone(session.choose(2, 5))
+        self.assertEqual(session.node_id, 2)
+        with self.assertRaises(ValueError):
+            session.choose(2, 99)
+        self.assertEqual(session.choose(2, 6), (12218, struct.pack(">i", 1)))
+        self.assertEqual(session.choose(1, 5), (12218, struct.pack(">i", 2)))

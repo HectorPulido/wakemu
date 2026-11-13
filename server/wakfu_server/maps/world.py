@@ -591,6 +591,7 @@ class World:
         *,
         exclude_generation=None,
         exclude_sessions=(),
+        only_character_id=None,
     ):
         """Broadcast a location event without requiring a player sender."""
         exclude_sessions = frozenset(exclude_sessions)
@@ -599,6 +600,10 @@ class World:
                 if (
                     generation != exclude_generation
                     and (character["id"], generation) not in exclude_sessions
+                    and (
+                        only_character_id is None
+                        or character["id"] == only_character_id
+                    )
                     and self.location(character) == (map_id, instance_id)
                 ):
                     self._send(peer, opcode, body)

@@ -46,9 +46,18 @@ def award_item_xp(store, db, account_id, generation, character_id, amount):
         updated = store.character(account_id, character_id, db)
     from wakfu_server.combat_lifecycle import outside_progression
 
+    mission_packets = []
+    if character["level"] < 30 <= level:
+        from wakfu_server.achievements.rii_class_mission import reached_level
+
+        mission_packets = reached_level(db, store, updated, level)
+        if mission_packets:
+            # Inventory actions retain this character for future bootstraps.
+            updated = store.character(account_id, character_id, db)
+
     return {
         "character": updated,
-        "packets": [outside_progression(updated)],
+        "packets": [outside_progression(updated), *mission_packets],
         "xp": amount,
         "start_xp": start_xp,
         "end_xp": total,

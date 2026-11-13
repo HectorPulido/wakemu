@@ -9,7 +9,7 @@ def activate(db, store, character, plan, *, source_uid):
     """Caller owns the item/lease transaction and validated native descriptor.
 
     These original missions are nonrecurring. Existing active/completed state
-    is preserved; no implicit reset, tracking change, objective, or XP occurs.
+    is preserved; no implicit reset, objective, or XP occurs.
     """
     _owner(db, character)
     identity = plan["definition_id"]
@@ -34,9 +34,15 @@ def activate(db, store, character, plan, *, source_uid):
         raise ValueError("Unsupported item mission lifecycle")
     before = storage.load_locked(db, character["id"])
     if identity in before["running"] or identity in before["completed"]:
+        message = (
+            "Esta misión ya está completada. Puedes encontrarla en las misiones finalizadas."
+            if identity in before["completed"]
+            else "Esta misión ya está activa. Puedes encontrarla en tu diario de misiones."
+        )
         return dict(
             applied=False,
             packets=[],
+            feedback=message,
             definition_id=identity,
             completed=[],
             new_objectives=[],
@@ -55,6 +61,9 @@ def activate(db, store, character, plan, *, source_uid):
         raise ValueError("Mission activation receipt exists without its retained state")
     after = deepcopy(before)
     after["running"] = sorted(set(after["running"]) | {identity})
+    from .mission_progress import auto_track
+
+    auto_track(after, identity)
     storage.store(db, character["id"], after)
     packets = wire.changes(
         character["id"], before, after, [], [], int(store.now().timestamp() * 1000)

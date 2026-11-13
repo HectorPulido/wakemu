@@ -86,7 +86,13 @@ class AchievementItemPostgresTests(PostgresCase):
             self.assertTrue(result["applied"])
             self.assertEqual(
                 result["packets"],
-                [(13312, struct.pack(">qi", character["id"], plan["definition_id"]))],
+                [
+                    (13312, struct.pack(">qi", character["id"], plan["definition_id"])),
+                    (
+                        13371,
+                        struct.pack(">qiB", character["id"], plan["definition_id"], 1),
+                    ),
+                ],
             )
             self.assertEqual(
                 (
@@ -107,6 +113,7 @@ class AchievementItemPostgresTests(PostgresCase):
             )
             self.assertFalse(repeat["applied"])
             self.assertEqual(repeat["packets"], [])
+            self.assertIn("ya está activa", repeat["feedback"])
         restored = self.reopen().character(account, character["id"])
         self.assertEqual(restored["xp"], before["xp"])
         for key in ("level", "map_id", "instance_id", "x", "y", "z", "builds"):
@@ -221,7 +228,9 @@ class AchievementItemPostgresTests(PostgresCase):
         result = actions.use(
             self.store, account, generation, character["id"], body, in_fight=False
         )
-        self.assertEqual((result["applied"], result["packets"]), (False, []))
+        self.assertFalse(result["applied"])
+        self.assertEqual(result["packets"], [])
+        self.assertIn("ya está completada", result["feedback"])
         with self.store.connection() as db:
             retained = storage.load_locked(db, character["id"])
             self.assertIn(652, retained["completed"])
@@ -299,7 +308,11 @@ class AchievementItemPostgresTests(PostgresCase):
         )
         self.assertEqual(result["actor_id"], hero["id"])
         self.assertEqual(
-            result["packets"], [(13312, struct.pack(">qi", hero["id"], 1197))]
+            result["packets"],
+            [
+                (13312, struct.pack(">qi", hero["id"], 1197)),
+                (13371, struct.pack(">qiB", hero["id"], 1197, 1)),
+            ],
         )
         with self.store.connection() as db:
             self.assertNotIn(1197, storage.load_locked(db, main["id"])["running"])

@@ -1245,7 +1245,11 @@ def join_world(
         generation,
         character["id"],
     )
-    for packet in profession["packets"]:
+    from wakfu_server.achievements.intro_profession_bootstrap import (
+        packets as profession_packets,
+    )
+
+    for packet in profession_packets(character.get("map_id"), profession["packets"]):
         send(connection, "world", *packet)
     for packet in HAVEN_BAG_EXTERIORS.snapshots(character):
         send(connection, "world", *packet)
@@ -1256,6 +1260,15 @@ def join_world(
         ):
             send(connection, "world", *packet)
     from wakfu_server import npc_world, npc_placements
+
+    if character.get("map_id") == 1361:
+        from wakfu_server.achievements import incarnam_encounters
+
+        tutorial_actor = incarnam_encounters.ensure_spawn(
+            STORE, COMBAT_GROUPS, character
+        )
+        if tutorial_actor is not None:
+            send(connection, "world", *tutorial_actor)
 
     with STORE.connection() as db:
         dialogue_npcs = npc_world.load_scene(
@@ -1314,9 +1327,17 @@ def join_world(
         ):
             send(connection, "world", *packet)
         if not defer_scene_snapshot:
-            for group in COMBAT_GROUPS.available(
+            groups = COMBAT_GROUPS.available(
                 character["map_id"], character["instance_id"]
-            ):
+            )
+            if character["map_id"] == 1388:
+                from wakfu_server.achievements.rii_lesson_visibility import (
+                    visible_groups,
+                )
+
+                with STORE.connection() as db:
+                    groups = visible_groups(db, groups, character["id"])
+            for group in groups:
                 send(
                     connection,
                     "world",
@@ -1353,6 +1374,24 @@ def owned_scene_spawn_group(members, *, group_id, direction=3):
     )
 
 
+def publish_available_group(key, members, *, exclude_generation=None):
+    """Publish an available group only to its owner when it is private."""
+    owner = None
+    if key[0] == 1388:
+        from wakfu_server.achievements.rii_lesson_visibility import group_owners
+
+        with STORE.connection() as db:
+            owner = group_owners(db, [{"key": key, "members": members}]).get(key)
+    WORLD.emit_location(
+        key[0],
+        key[1],
+        12608,
+        owned_scene_spawn_group(members, group_id=key[2]),
+        exclude_generation=exclude_generation,
+        only_character_id=owner,
+    )
+
+
 def release_groups(generation):
     if not COMBAT_TEST or generation is None:
         return
@@ -1363,12 +1402,7 @@ def release_groups(generation):
     with COMBAT_GROUPS.lock:
         for group in COMBAT_GROUPS.release_session(generation):
             map_id, instance_id, group_id = group["key"]
-            WORLD.emit_location(
-                map_id,
-                instance_id,
-                12608,
-                owned_scene_spawn_group(group["members"], group_id=group_id),
-            )
+            publish_available_group(group["key"], group["members"])
             for packet in HARVESTS.availability_for(
                 map_id, instance_id, [m["id"] for m in group["members"]]
             ):
@@ -1940,6 +1974,7 @@ def session(raw, peer, service, context):
     from wakfu_server.ecology_feedback import information
 
     selected = loaded = False
+    intro_cinematic_scene = None
     scene_sync = SceneSync()
     static_sync_pending = False
     static_sync_attempts = 0
@@ -1948,6 +1983,7 @@ def session(raw, peer, service, context):
     world_snapshot_due = time.monotonic() + 0.75
     world_snapshot_identity = None
     account_id = generation = character = None
+    training_transit_active = False
     hero_switch_pending = None
     bag_session = None
     ranch_session = None
@@ -1955,6 +1991,7 @@ def session(raw, peer, service, context):
     paid_container_ticket = None
     guild_chest_session = None
     fight = None
+    pending_guardian_attack = None
     combat_session = None
     pending_terminal_world_recovery = None
     pending_combat_return = None
@@ -1992,6 +2029,8 @@ def session(raw, peer, service, context):
     last_consumable_tick = 0
     last_ranch_cycle_tick = 0
     guild_daily_boundary = (None, None)
+    recurring_hunter_boundary = (None, None)
+    recurring_hunter_refresh_pending = False
     pet_hibernation_due = 0.0
     last_shop_refresh = 0
     last_session_renewal = 0
@@ -2730,6 +2769,106 @@ def session(raw, peer, service, context):
         )
         return True
 
+    def training_occupancy_snapshot():
+        """Capture occupancy before SQL locks to avoid world/group lock inversion."""
+        occupied = {
+            tuple(peer[key] for key in ("map_id", "instance_id", "x", "y", "z"))
+            for peer in WORLD.ecology_snapshot()
+            if peer["id"] != character["id"]
+        }
+        for group in COMBAT_GROUPS.available(1388, 0):
+            occupied.update(
+                (1388, 0, *(member[key] for key in ("x", "y", "z")))
+                for member in group["members"]
+            )
+
+        def available(destination):
+            return (
+                tuple(
+                    destination[key] for key in ("map_id", "instance_id", "x", "y", "z")
+                )
+                not in occupied
+            )
+
+        return available
+
+    def publish_training_relocation(saved):
+        """Publish the same complete owned scene used for normal map travel."""
+        nonlocal character, position, movement_state
+        cancel_crafting()
+        WORLD.leave(character["id"], generation)
+        character = saved
+        POSITIONS.attach(account_id, generation, character)
+        position = {key: character[key] for key in ("x", "y", "z")}
+        movement_state = Movement(position)
+        for message_id, payload in owned_native_bootstrap(character):
+            send(connection, service, message_id, payload)
+        join_world(generation, connection, character)
+        mark_static_sync_pending()
+
+    def begin_floor_training(objective_id, producer):
+        """Stage a Rii lesson on the native floor and publish its encounter."""
+        nonlocal training_transit_active
+        from wakfu_server.achievements import rii_training_arena
+
+        if (
+            active_private_session() is not None
+            or fight is not None
+            or combat_session is not None
+        ):
+            raise ValueError("Training requires the public dojo outside combat")
+        with POSITIONS.account_barrier(account_id):
+            flush_positions(account_id=account_id)
+            available = training_occupancy_snapshot()
+            try:
+                return rii_training_arena.stage(
+                    lambda: rii_training_arena.enter(
+                        STORE,
+                        account_id,
+                        generation,
+                        character,
+                        objective_id,
+                        available=available,
+                    ),
+                    lambda moved: producer(
+                        STORE,
+                        COMBAT_GROUPS,
+                        account_id,
+                        generation,
+                        dict(moved, _rii_training_objective=objective_id),
+                    ),
+                    lambda moved: rii_training_arena.return_to_source(
+                        STORE, account_id, generation, moved, available=available
+                    ),
+                    publish_training_relocation,
+                    lambda returned: POSITIONS.attach(account_id, generation, returned),
+                    lambda moved: rii_training_arena.mark_setup_failed(
+                        STORE, account_id, generation, moved
+                    ),
+                    lambda moved: rii_training_arena.setup_is_ready(
+                        STORE, account_id, moved["id"]
+                    ),
+                )
+            finally:
+                training_transit_active = rii_training_arena.pending(
+                    STORE, account_id, character["id"]
+                )
+
+    def queue_rii_lesson_attack(objective_id):
+        """Reuse normal combat admission for an owner-receipted lesson group."""
+        nonlocal pending_guardian_attack
+        from wakfu_server.achievements import rii_lesson_auto_start
+
+        if pending_guardian_attack is not None:
+            raise ValueError("A tutorial combat is already pending")
+        with STORE.connection() as db:
+            target = rii_lesson_auto_start.target(
+                db, COMBAT_GROUPS, character["id"], objective_id
+            )
+        pending_guardian_attack = struct.pack(
+            ">qiihB", target["id"], target["x"], target["y"], target["z"], 0
+        )
+
     def attach_combat_return_position():
         # Private coordinates never replace the durable exterior position.
         saved = (
@@ -2932,6 +3071,22 @@ def session(raw, peer, service, context):
             for packet in ranch_furniture_scene:
                 send(connection, service, *packet)
             publish_environment_scene(force=True)
+            # Ruel's locally reconstructed assignment actor is sent after the
+            # map scene so the client does not discard its native sprite.
+            if character["map_id"] == 527:
+                from wakfu_server import ruel_hunt_npc
+
+                with STORE.connection() as db:
+                    ruel_packet = ruel_hunt_npc.scene_packet(db, character)
+                    from wakfu_server import ruel_investigation_npc
+
+                    suspect_packets = ruel_investigation_npc.scene_packets(
+                        db, character
+                    )
+                if ruel_packet is not None:
+                    send(connection, service, *ruel_packet)
+                for suspect_packet in suspect_packets:
+                    send(connection, service, *suspect_packet)
             # The asset baseline also belongs to private dungeon scenes. Replay
             # its dynamic state first, then restore the run-owned door policy;
             # native default states must never reopen progression exits.
@@ -2945,6 +3100,17 @@ def session(raw, peer, service, context):
             for message_id, message_body in bag_scene_packets(bag_session, character):
                 send(connection, service, message_id, message_body)
             if bag_session.is_owner:
+                # The client has loaded the private map by scene hydration.
+                # An actor sent during the transition can be discarded before
+                # the map exists, so publish it alongside the other bag actors.
+                from wakfu_server import modulox_npc
+
+                with STORE.connection() as npc_db:
+                    modulox_scene = modulox_npc.scene_packet(
+                        npc_db, bag_session, character
+                    )
+                if modulox_scene is not None:
+                    send(connection, service, *modulox_scene)
                 from wakfu_server.haven_chest_wire import (
                     scene_packet as chest_scene_packet,
                 )
@@ -3019,6 +3185,16 @@ def session(raw, peer, service, context):
         ):
             send(connection, service, *packet)
         publish_environment_scene(force=True)
+        if character["map_id"] == 1361:
+            from wakfu_server.achievements import incarnam_resources, storage
+
+            if incarnam_resources.owned_scene(character):
+                with STORE.connection() as tutorial_db:
+                    tutorial_state = storage.load_locked(tutorial_db, character["id"])
+                for tutorial_packet in incarnam_resources.first_barrier_packets(
+                    character, tutorial_state
+                ) + incarnam_resources.gate_state_packets(character, tutorial_state):
+                    send(connection, service, *tutorial_packet)
         if is_dungeon_run(character.get("instance_id", 0)):
             for message_id, payload in owned_native_bootstrap(character):
                 if message_id == 12344:
@@ -3076,6 +3252,13 @@ def session(raw, peer, service, context):
                 groups = COMBAT_GROUPS.available(
                     character["map_id"], character.get("instance_id", 0)
                 )
+                if character["map_id"] == 1388:
+                    from wakfu_server.achievements.rii_lesson_visibility import (
+                        visible_groups,
+                    )
+
+                    with STORE.connection() as db:
+                        groups = visible_groups(db, groups, character["id"])
                 for group in groups:
                     send(
                         connection,
@@ -4424,8 +4607,11 @@ def session(raw, peer, service, context):
             return {"success": False, "error": str(error)}
 
     def publish_heroes(roster):
-        nonlocal pet_hibernation_due
+        nonlocal pet_hibernation_due, recurring_hunter_boundary
         pet_hibernation_due = 0.0
+        # A newly added hero may have expired cycles even if the main owner's
+        # previous session checkpoint was already cached.
+        recurring_hunter_boundary = (None, None)
         from wakfu_server import hero_wire, hero_private_scene
 
         roster = hero_private_scene.project(
@@ -5413,7 +5599,15 @@ def session(raw, peer, service, context):
                     return None
             # Read SQL and native source outside the registry lock. The common
             # combat path revalidates and claims this exact group afterward.
-            result = prepare(STORE, current, body, group)
+            if current.get("map_id") == 1361:
+                from wakfu_server.achievements import incarnam_encounters
+
+                with STORE.connection() as tutorial_db:
+                    result = incarnam_encounters.prepare(
+                        tutorial_db, current, body, group
+                    )
+            else:
+                result = prepare(STORE, current, body, group)
             if result is not None and not STORE.current_character_session(
                 account_id, generation, current["id"]
             ):
@@ -5437,6 +5631,44 @@ def session(raw, peer, service, context):
                 ),
             )
             return False
+
+    def publish_incarnam_combat_guides(actor_id, action):
+        guides = getattr(connection, "incarnam_combat_guides", None)
+        if guides is None and fight is not None and character.get("map_id") == 1361:
+            from wakfu_server.achievements import incarnam_encounters
+
+            with STORE.connection() as tutorial_db:
+                guides = incarnam_encounters.recover_guides(
+                    tutorial_db, character, fight
+                )
+            connection.incarnam_combat_guides = guides
+        if guides is not None and fight is not None:
+            from wakfu_server.achievements import tutorial_presentation_once
+
+            guide_packets = guides.observe(fight, actor_id, action)
+            if guide_packets:
+                with STORE.connection() as tutorial_db:
+                    guide_packets = tutorial_presentation_once.filter_packets(
+                        tutorial_db, character["id"], guide_packets
+                    )
+            for guide_packet in guide_packets:
+                send(connection, service, *guide_packet)
+
+    def publish_rii_lesson_guide(node_id, choice_id):
+        from wakfu_server.achievements import (
+            rii_lesson_presentation,
+            tutorial_presentation_once,
+        )
+
+        packet = rii_lesson_presentation.begin(node_id, choice_id)
+        if packet is None:
+            return
+        with STORE.connection() as tutorial_db:
+            packets = tutorial_presentation_once.filter_packets(
+                tutorial_db, character["id"], [packet]
+            )
+        for guide_packet in packets:
+            send(connection, service, *guide_packet)
 
     def try_native_monster_destroy(body):
         """Handle only durable event-owned targets; leave NPC cnT requests alone."""
@@ -5599,7 +5831,7 @@ def session(raw, peer, service, context):
                     WORLD.update(
                         generation, character, message_id, payload, include_sender=False
                     )
-                send(connection, service, message_id, payload)
+            send_batch(connection, service, result["packets"])
             if result["applied"]:
                 send_native_planting_bonus(connection, character)
             record(
@@ -5844,6 +6076,107 @@ def session(raw, peer, service, context):
             }
             for owner, packets in story_packets.items():
                 packets_by_owner.setdefault(owner, []).extend(packets)
+            if any(monster.get("map_id") == 1361 for monster in TEST_MONSTERS):
+                from wakfu_server.achievements import incarnam_encounters
+
+                for owner, packets in incarnam_encounters.settle(
+                    db, STORE, candidate, members, TEST_MONSTERS
+                ).items():
+                    packets_by_owner.setdefault(owner, []).extend(packets)
+            if getattr(candidate, "rii_orientation_contract", None):
+                from wakfu_server.achievements import rii_orientation
+
+                # Keep the lesson receipt and fight result in one transaction.
+                # A failure must roll back the final result and remain retryable.
+                for owner, packets in rii_orientation.settle_participants(
+                    db, STORE, candidate, members, TEST_MONSTERS
+                ).items():
+                    packets_by_owner.setdefault(owner, []).extend(packets)
+            if getattr(candidate, "rii_element_lesson_contract", None):
+                from wakfu_server.achievements import rii_element_encounter
+
+                for owner, packets in rii_element_encounter.settle_participants(
+                    db, STORE, candidate, members, TEST_MONSTERS
+                ).items():
+                    packets_by_owner.setdefault(owner, []).extend(packets)
+            if getattr(candidate, "rii_distance_lesson_contract", None):
+                from wakfu_server.achievements import rii_owned_lesson
+
+                for owner, packets in rii_owned_lesson.settle_participants(
+                    db,
+                    STORE,
+                    rii_owned_lesson.DISTANCE,
+                    candidate,
+                    members,
+                    TEST_MONSTERS,
+                    contract_name="rii_distance_lesson_contract",
+                ).items():
+                    packets_by_owner.setdefault(owner, []).extend(packets)
+            if getattr(candidate, "rii_area_lesson_contract", None):
+                from wakfu_server.achievements import rii_area_encounter
+
+                for owner, packets in rii_area_encounter.settle_participants(
+                    db, STORE, candidate, members, TEST_MONSTERS
+                ).items():
+                    packets_by_owner.setdefault(owner, []).extend(packets)
+            if getattr(candidate, "rii_los_lesson_contract", None):
+                from wakfu_server.achievements import (
+                    rii_owned_lesson,
+                    rii_los_encounter,
+                )
+
+                for owner, packets in rii_owned_lesson.settle_participants(
+                    db,
+                    STORE,
+                    rii_los_encounter.LOS,
+                    candidate,
+                    members,
+                    TEST_MONSTERS,
+                    contract_name="rii_los_lesson_contract",
+                ).items():
+                    packets_by_owner.setdefault(owner, []).extend(packets)
+            if getattr(candidate, "rii_movement_lesson_contract", None):
+                from wakfu_server.achievements import rii_owned_lesson
+
+                for owner, packets in rii_owned_lesson.settle_participants(
+                    db,
+                    STORE,
+                    rii_owned_lesson.MOVEMENT,
+                    candidate,
+                    members,
+                    TEST_MONSTERS,
+                    contract_name="rii_movement_lesson_contract",
+                ).items():
+                    packets_by_owner.setdefault(owner, []).extend(packets)
+            if getattr(candidate, "rii_states_lesson_contract", None):
+                from wakfu_server.achievements import rii_owned_lesson
+
+                for owner, packets in rii_owned_lesson.settle_participants(
+                    db,
+                    STORE,
+                    rii_owned_lesson.STATES,
+                    candidate,
+                    members,
+                    TEST_MONSTERS,
+                    contract_name="rii_states_lesson_contract",
+                ).items():
+                    packets_by_owner.setdefault(owner, []).extend(packets)
+            from wakfu_server.achievements import rii_lesson_presentation
+
+            for packets in packets_by_owner.values():
+                presentation = rii_lesson_presentation.finish(candidate, packets)
+                if presentation is not None:
+                    packets.append(presentation)
+            if any(monster.get("ref") == 5458 for monster in TEST_MONSTERS):
+                from wakfu_server.achievements import rii_guardian_battle
+
+                # A guardian attempt and its combat result must commit together.
+                # Propagate failures so the existing settlement retry can recover.
+                guardian_packets = rii_guardian_battle.settle(
+                    db, STORE, candidate, members, TEST_MONSTERS
+                )
+                for owner, packets in guardian_packets.items():
+                    packets_by_owner.setdefault(owner, []).extend(packets)
             return packets_by_owner
 
         if combat_session is not None:
@@ -7725,13 +8058,7 @@ def session(raw, peer, service, context):
         key = shared.group_lease[0]
         members = current_available(STORE, key)
         if members:
-            WORLD.emit_location(
-                key[0],
-                key[1],
-                12608,
-                owned_scene_spawn_group(members, group_id=key[2]),
-                exclude_generation=generation,
-            )
+            publish_available_group(key, members, exclude_generation=generation)
 
     def publish_external_marker(shared):
         if shared is None:
@@ -9006,7 +9333,32 @@ def session(raw, peer, service, context):
                 attachment_authority=attachments,
                 fight_start=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
             )
-            return preview, (*encounter_packets, *owned_packets)
+            initial_packets = [*encounter_packets, *owned_packets]
+            if getattr(preview, "rii_element_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_element_contract import initialize
+
+                initialize(preview, initial_packets, action_id=action_id)
+            if getattr(preview, "rii_distance_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_distance_contract import initialize
+
+                initialize(preview, initial_packets, action_id=action_id)
+            if getattr(preview, "rii_area_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_area_contract import initialize
+
+                initialize(preview, initial_packets, action_id=action_id)
+            if getattr(preview, "rii_los_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_los_encounter import initialize
+
+                initialize(preview, initial_packets, action_id=action_id)
+            if getattr(preview, "rii_movement_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_movement_contract import initialize
+
+                initialize(preview, initial_packets, action_id=action_id)
+            if getattr(preview, "rii_states_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_states_contract import initialize
+
+                initialize(preview, initial_packets, action_id=action_id)
+            return preview, tuple(initial_packets)
 
         candidate, candidate_messages, packets = prepare_ready(
             fight,
@@ -9088,14 +9440,54 @@ def session(raw, peer, service, context):
     ):
         """Resume a consumed12925 only after its position fence succeeds."""
         connection.native_fight_id = None
-        nonlocal position, movement_state
+        nonlocal character, position, movement_state, training_transit_active
         nonlocal group_lease, fight, fight_messages, combat_session
 
+        if character["map_id"] == 1388 and character["instance_id"] == 0:
+            from wakfu_server.achievements import rii_training_arena
+
+            try:
+                # A shared-fight withdrawal removes the lesson contract from
+                # the combat preview. The durable transit receipt remains the
+                # authority for returning its owner after any combat exit.
+                if rii_training_arena.pending(STORE, account_id, character["id"]):
+                    with POSITIONS.account_barrier(account_id):
+                        flush_positions(
+                            account_id=account_id,
+                            generation=generation,
+                            character_id=character["id"],
+                        )
+                        available = training_occupancy_snapshot()
+                        returned = rii_training_arena.return_to_source(
+                            STORE,
+                            account_id,
+                            generation,
+                            character,
+                            available=available,
+                        )
+                        if returned is not None:
+                            character = returned
+                            training_transit_active = False
+            except ValueError as error:
+                # Keep the return receipt for a later recovery; never break
+                # the normal combat exit or send a fabricated position.
+                record(
+                    event="rii_training_return_deferred",
+                    actor_id=character["id"],
+                    reason=str(error),
+                )
         attach_combat_return_position()
         position = {key: character[key] for key in ("x", "y", "z")}
         movement_state = Movement(position)
         WORLD.leave(character["id"], generation)
-        for message_id, payload in combat_return_bootstrap():
+        return_packets = combat_return_bootstrap()
+        if character["map_id"] == 1361:
+            from wakfu_server.achievements import incarnam_encounters
+
+            return_packets = incarnam_encounters.return_bootstrap(
+                character, return_packets, abandoned=abandoned
+            )
+        for message_id, payload in return_packets:
             send(connection, service, message_id, payload)
         from wakfu_server.level_publication import (
             combat_return as refresh_return_spells,
@@ -9139,13 +9531,9 @@ def session(raw, peer, service, context):
                     map_id, instance_id, group_id = group_lease[0]
                     restored_members = current_available(STORE, group_lease[0])
                     if restored_members:
-                        WORLD.emit_location(
-                            map_id,
-                            instance_id,
-                            12608,
-                            owned_scene_spawn_group(
-                                restored_members, group_id=group_id
-                            ),
+                        publish_available_group(
+                            group_lease[0],
+                            restored_members,
                             exclude_generation=generation,
                         )
                         for packet in HARVESTS.availability_for(
@@ -9184,6 +9572,41 @@ def session(raw, peer, service, context):
         group_lease = None
         fight = fight_messages = None
         combat_session = None
+        if not abandoned and character["map_id"] == 1361:
+            from wakfu_server.achievements import incarnam_encounters
+            from wakfu_server.intro_cinematic import scenario_event
+
+            from wakfu_server.achievements import storage as tutorial_storage
+            from wakfu_server.achievements import incarnam_tutorial
+
+            with STORE.connection() as tutorial_db:
+                ending_pending = incarnam_encounters.pending_final(
+                    tutorial_db, character
+                )
+                tutorial_state = tutorial_storage.load_locked(
+                    tutorial_db, character["id"]
+                )
+                first_scene = (
+                    not ending_pending
+                    and 5136 in tutorial_state["running"]
+                    and incarnam_tutorial.claim_presentation(
+                        tutorial_db, character["id"], 22354
+                    )
+                )
+            if ending_pending:
+                connection.pending_incarnam_outro = character["id"]
+                send(connection, service, *scenario_event(22359, 2500))
+            elif first_scene:
+                send(connection, service, *scenario_event(22354, 2500))
+        if not abandoned and character["map_id"] == 1387:
+            from wakfu_server.achievements import rii_guardian_battle
+
+            with STORE.connection() as guardian_db:
+                ending_pending = rii_guardian_battle.pending_cinematic(
+                    guardian_db, character
+                )
+            if ending_pending:
+                send(connection, service, *rii_guardian_battle.cinematic_packet())
         deliver_custom_task_rewards()
         custom_task_cards.changed(character["id"], (character["id"],))
         publish_custom_task_cards()
@@ -9268,8 +9691,34 @@ def session(raw, peer, service, context):
         nonlocal last_health_tick, last_consumable_tick, last_session_renewal, console_session
         nonlocal spectator_session, spectator_fight_id
         nonlocal spectator_terminal_pending
-        nonlocal character, last_shop_refresh, pending_combat_return
-        nonlocal guild_daily_boundary
+        nonlocal character, last_shop_refresh, pending_combat_return, training_transit_active
+        nonlocal guild_daily_boundary, recurring_hunter_boundary, recurring_hunter_refresh_pending
+        if (
+            loaded
+            and character is not None
+            and training_transit_active
+            and (character["map_id"], character["instance_id"]) != (1388, 0)
+        ):
+            from wakfu_server.achievements import rii_training_arena
+
+            try:
+                rii_training_arena.return_to_source(
+                    STORE,
+                    account_id,
+                    generation,
+                    character,
+                    available=lambda destination: True,
+                    only_completed=True,
+                )
+                training_transit_active = rii_training_arena.pending(
+                    STORE, account_id, character["id"]
+                )
+            except (ValueError, DatabaseError, PoolTimeout) as error:
+                record(
+                    event="rii_training_departure_cleanup_deferred",
+                    actor_id=character["id"],
+                    reason=str(error),
+                )
         if (
             loaded
             and character is not None
@@ -9331,6 +9780,41 @@ def session(raw, peer, service, context):
             except (ValueError, DatabaseError, PoolTimeout) as error:
                 record(
                     event="guild_daily_refresh_retry",
+                    actor_id=character["id"],
+                    reason=type(error).__name__,
+                )
+            from wakfu_server.objectives.environmental_recurring_storage import (
+                synchronize_owned as synchronize_recurring_hunters,
+            )
+
+            try:
+                boundary, packets = synchronize_recurring_hunters(
+                    STORE,
+                    account_id,
+                    generation,
+                    character["id"],
+                    next_boundary_ms=(
+                        recurring_hunter_boundary[1]
+                        if recurring_hunter_boundary[0] == character["id"]
+                        else None
+                    ),
+                    include_company=True,
+                )
+                for packet in packets:
+                    send(connection, service, *packet)
+                recurring_hunter_boundary = (character["id"], boundary)
+                recurring_hunter_refresh_pending |= bool(packets)
+                if recurring_hunter_refresh_pending:
+                    # Subsequent map bootstraps reuse this cached character.
+                    # Preserve private-scene location while refreshing its
+                    # authoritative achievement section after resets.
+                    character = refresh_owned_character(
+                        STORE.character(account_id, character["id"])
+                    )
+                    recurring_hunter_refresh_pending = False
+            except (ValueError, DatabaseError, PoolTimeout) as error:
+                record(
+                    event="recurring_hunter_refresh_retry",
                     actor_id=character["id"],
                     reason=type(error).__name__,
                 )
@@ -9901,12 +10385,16 @@ def session(raw, peer, service, context):
                 release_completed_combat_action_results()
                 if not idle():
                     raise ValueError("Session expired or replaced")
-                length = struct.unpack(">I", receive(connection, 4, idle))[0]
-                if not 7 <= length <= 327670:
-                    raise ValueError("Invalid frame size")
-                frame = receive(connection, length - 4, idle)
-                route, opcode = struct.unpack(">BH", frame[:3])
-                body = frame[3:]
+                if pending_guardian_attack is not None:
+                    route, opcode, body = 0, 13130, pending_guardian_attack
+                    pending_guardian_attack = None
+                else:
+                    length = struct.unpack(">I", receive(connection, 4, idle))[0]
+                    if not 7 <= length <= 327670:
+                        raise ValueError("Invalid frame size")
+                    frame = receive(connection, length - 4, idle)
+                    route, opcode = struct.unpack(">BH", frame[:3])
+                    body = frame[3:]
                 request_received_at = time.monotonic()
                 from wakfu_server.combat_diagnostics import combat_diagnostic_scope
 
@@ -10408,10 +10896,98 @@ def session(raw, peer, service, context):
                     deliver_rift_transition()
                     resume_settled_shared_combat()
                     publish_custom_task_cards()
+                    if (
+                        character["map_id"] == 1465
+                        and fight is None
+                        and combat_session is None
+                    ):
+                        from wakfu_server import intro_cinematic
+
+                        ogrest_id, actor_packet = intro_cinematic.ogrest_actor(
+                            character["id"]
+                        )
+                        intro_cinematic_scene = intro_cinematic.IntroCinematic(
+                            ogrest_id
+                        )
+                        send(connection, service, *actor_packet)
+                        send(connection, service, *intro_cinematic_scene.start())
+                    if (
+                        character["map_id"] == 1361
+                        and fight is None
+                        and combat_session is None
+                    ):
+                        from wakfu_server.achievements import incarnam_tutorial, storage
+
+                        with STORE.connection() as db:
+                            tutorial_state = storage.load_locked(db, character["id"])
+                            planting_seen = incarnam_tutorial.planting_guide_seen(
+                                db, character["id"]
+                            )
+                        for packet in incarnam_tutorial.initial_packets(
+                            tutorial_state, planting_guide_seen=planting_seen
+                        ):
+                            send(connection, service, *packet)
+                        walk_guide = incarnam_tutorial.resume_walk_guide(
+                            character, tutorial_state
+                        )
+                        if walk_guide is not None:
+                            send(connection, service, *walk_guide)
+                    if (
+                        character["map_id"] == 1385
+                        and fight is None
+                        and combat_session is None
+                    ):
+                        from wakfu_server import rii_scenario
+                        from wakfu_server.achievements import (
+                            storage as achievement_storage,
+                        )
+
+                        with STORE.connection() as rii_db:
+                            rii_state = achievement_storage.load_locked(
+                                rii_db, character["id"]
+                            )
+                        for event_packet in rii_scenario.login_packets(
+                            character, rii_state
+                        ):
+                            if event_packet == rii_scenario.packet(rii_scenario.INTRO):
+                                connection.pending_rii_intro = character["id"]
+                            send(connection, service, *event_packet)
                     # Bootstrap can arrive before the client finishes loading its
                     # scene. Initial login needs the same complete post-load replay
                     # as map transitions, even when no movement request follows.
                     mark_static_sync_pending()
+                    if (
+                        character["map_id"] == 1361
+                        and fight is None
+                        and combat_session is None
+                    ):
+                        from wakfu_server.achievements import incarnam_encounters
+                        from wakfu_server.intro_cinematic import scenario_event
+
+                        with STORE.connection() as tutorial_db:
+                            ending_pending = incarnam_encounters.pending_final(
+                                tutorial_db, character
+                            )
+                        if ending_pending:
+                            connection.pending_incarnam_outro = character["id"]
+                            send(connection, service, *scenario_event(22359, 2500))
+                    if (
+                        character["map_id"] == 1387
+                        and fight is None
+                        and combat_session is None
+                    ):
+                        from wakfu_server.achievements import rii_guardian_battle
+
+                        with STORE.connection() as guardian_db:
+                            ending_pending = rii_guardian_battle.pending_cinematic(
+                                guardian_db, character
+                            )
+                        if ending_pending:
+                            send(
+                                connection,
+                                service,
+                                *rii_guardian_battle.cinematic_packet(),
+                            )
                     send(
                         connection,
                         service,
@@ -11102,6 +11678,76 @@ def session(raw, peer, service, context):
                             reason=str(error),
                         )
                         continue
+                    from wakfu_server.achievements import rii_training_arena
+
+                    training_transit_active = rii_training_arena.pending(
+                        STORE, account_id, character["id"]
+                    )
+                    if training_transit_active:
+                        # Recover a completed training return if the connection
+                        # was lost after settlement but before the world exit.
+                        # An unfinished or active fight stays on the floor.
+                        try:
+                            available = (
+                                training_occupancy_snapshot()
+                                if character["map_id"] == 1388
+                                and character["instance_id"] == 0
+                                else lambda destination: True
+                            )
+                            recovered = rii_training_arena.return_to_source(
+                                STORE,
+                                account_id,
+                                generation,
+                                character,
+                                available=available,
+                                only_completed=True,
+                            )
+                            if recovered is not None:
+                                character = recovered
+                            training_transit_active = rii_training_arena.pending(
+                                STORE, account_id, character["id"]
+                            )
+                        except ValueError as error:
+                            record(
+                                event="rii_training_recovery_deferred",
+                                actor_id=character["id"],
+                                reason=str(error),
+                            )
+                    # The native Otomai dialogue promises that prior boss
+                    # victories are reconciled on reconnect. Keep failures
+                    # isolated from character selection and normal gameplay.
+                    try:
+                        from wakfu_server.achievements.otomai_hunter_retroactive import (
+                            reconcile as reconcile_otomai_hunts,
+                        )
+
+                        with STORE.connection() as quest_db:
+                            quest_db.execute(
+                                "SELECT id FROM accounts WHERE id=%s FOR UPDATE",
+                                (account_id,),
+                            )
+                            STORE.lock_character(
+                                quest_db,
+                                account_id,
+                                generation,
+                                character["id"],
+                                selected=True,
+                            )
+                            with quest_db.transaction():
+                                reconciled = reconcile_otomai_hunts(
+                                    quest_db,
+                                    STORE,
+                                    character,
+                                    now_ms=int(STORE.now().timestamp() * 1000),
+                                )
+                        if reconciled:
+                            character = STORE.character(account_id, character["id"])
+                    except Exception as error:
+                        record(
+                            event="otomai_hunter_reconcile_failed",
+                            actor_id=character["id"],
+                            reason=str(error),
+                        )
                     from wakfu_server import dungeon_recovery
 
                     try:
@@ -12288,6 +12934,16 @@ def session(raw, peer, service, context):
                             saved = publish_nation_character(saved)
                         for message_id, message_body in simple_packets:
                             send(connection, service, message_id, message_body)
+                        if simple_item_result.get("feedback"):
+                            send(
+                                connection,
+                                service,
+                                674,
+                                wire.chat(
+                                    dict(saved, name="Información"),
+                                    simple_item_result["feedback"],
+                                ),
+                            )
                         if saved["id"] == character["id"]:
                             character = saved
                             if simple_class == "bHK" or simple_item_result.get(
@@ -12576,8 +13232,11 @@ def session(raw, peer, service, context):
                                 result = PLANTINGS.complete(
                                     account_id, generation, character, body
                                 )
+                            private_packets = []
                             for message_id, payload in result["packets"]:
                                 if message_id == 13135:
+                                    send_batch(connection, service, private_packets)
+                                    private_packets.clear()
                                     WORLD.emit_location(
                                         character["map_id"],
                                         character["instance_id"],
@@ -12593,7 +13252,8 @@ def session(raw, peer, service, context):
                                             payload,
                                             include_sender=False,
                                         )
-                                    send(connection, service, message_id, payload)
+                                    private_packets.append((message_id, payload))
+                            send_batch(connection, service, private_packets)
                             if result["applied"]:
                                 saved = STORE.character(account_id, character["id"])
                                 character = owned_planting_character(
@@ -12643,8 +13303,7 @@ def session(raw, peer, service, context):
                         if result["applied"] and result.get("availability") is not None:
                             map_id, instance_id, packet = result["availability"]
                             WORLD.emit_location(map_id, instance_id, *packet)
-                        for message_id, payload in result["packets"]:
-                            send(connection, service, message_id, payload)
+                        send_batch(connection, service, result["packets"])
                         if result["applied"]:
                             character = refresh_owned_character(
                                 STORE.character(account_id, character["id"])
@@ -13206,6 +13865,73 @@ def session(raw, peer, service, context):
                             }
                         TEST_GROUP_KEY = selected_group["key"]
                         TEST_MONSTERS = tuple(selected_group["members"])
+                        rii_orientation_owned = False
+                        rii_lesson_objective = None
+                        if character["map_id"] == 1388:
+                            from wakfu_server.achievements import (
+                                rii_orientation,
+                                rii_element_encounter,
+                                rii_owned_lesson,
+                                rii_free_practice,
+                            )
+
+                            with STORE.connection() as lesson_db:
+                                from wakfu_server.achievements import rii_lesson_layout
+
+                                rii_lesson_objective = rii_lesson_layout.identify(
+                                    lesson_db, character, TEST_MONSTERS
+                                )
+                                rii_free_practice.admit(
+                                    lesson_db, character["id"], TEST_MONSTERS
+                                )
+                                rii_orientation.admit(
+                                    lesson_db, character["id"], TEST_MONSTERS
+                                )
+                                rii_orientation_owned = (
+                                    len(TEST_MONSTERS) == 1
+                                    and rii_orientation.owned_target(
+                                        lesson_db, character["id"], TEST_MONSTERS
+                                    )
+                                    is not None
+                                )
+                                rii_element_encounter.admit(
+                                    lesson_db, character["id"], TEST_MONSTERS
+                                )
+                                rii_owned_lesson.admit(
+                                    lesson_db,
+                                    rii_owned_lesson.DISTANCE,
+                                    character["id"],
+                                    TEST_MONSTERS,
+                                )
+                                from wakfu_server.achievements import rii_area_encounter
+
+                                rii_area_encounter.admit(
+                                    lesson_db, character["id"], TEST_MONSTERS
+                                )
+                                from wakfu_server.achievements import rii_los_encounter
+
+                                rii_los_encounter.admit(
+                                    lesson_db, character["id"], TEST_MONSTERS
+                                )
+                                rii_owned_lesson.admit(
+                                    lesson_db,
+                                    rii_owned_lesson.MOVEMENT,
+                                    character["id"],
+                                    TEST_MONSTERS,
+                                )
+                                rii_owned_lesson.admit(
+                                    lesson_db,
+                                    rii_owned_lesson.STATES,
+                                    character["id"],
+                                    TEST_MONSTERS,
+                                )
+                        if character["map_id"] == 1387:
+                            from wakfu_server.achievements import rii_guardian_battle
+
+                            with STORE.connection() as guardian_db:
+                                rii_guardian_battle.admit(
+                                    guardian_db, character["id"], TEST_MONSTERS
+                                )
                         scene_helper_manifest = None
                         if rift_start_run is None:
                             from wakfu_server.combat_encounter_scene_helpers import (
@@ -13305,6 +14031,18 @@ def session(raw, peer, service, context):
                                 room_cells=arena_room_scene["room_cells"],
                             )
                         )
+                        tutorial_arena = None
+                        if character["map_id"] == 1361:
+                            from wakfu_server.achievements import incarnam_encounters
+                            from wakfu_server.combat_terrain import map_geometry
+
+                            with STORE.connection() as tutorial_db:
+                                tutorial_arena = incarnam_encounters.arena_policy(
+                                    tutorial_db,
+                                    character,
+                                    TEST_MONSTERS,
+                                    map_geometry(1361),
+                                )
                         arena = local_arena(
                             character["map_id"],
                             character["id"],
@@ -13312,14 +14050,27 @@ def session(raw, peer, service, context):
                             [(m["x"], m["y"], m["z"]) for m in TEST_MONSTERS],
                             automatic_cell_budget=arena_cell_budget,
                             size_range=arena_size_range,
-                            allowed_cells=arena_room_cells,
+                            allowed_cells=(
+                                tutorial_arena["allowed_cells"]
+                                if tutorial_arena
+                                else arena_room_cells
+                            ),
+                            relocate_monsters=(
+                                tutorial_arena["relocate_monsters"]
+                                if tutorial_arena
+                                else not rii_orientation_owned
+                            ),
                             full_room_scope=(
                                 arena_room_scene is not None
                                 and arena_room_scene["descriptor"]["full_room_scope"]
                             ),
                             initial_obstacle_cells=arena_room_obstacles,
                             fixed_member_positions=fixed_actor_positions,
-                            ordinary_npc_placement=True,
+                            ordinary_npc_placement=(
+                                tutorial_arena["ordinary_npc_placement"]
+                                if tutorial_arena
+                                else True
+                            ),
                             member_radii=tuple(
                                 formation_catalog["npc_profiles"][str(m["ref"])][
                                     "physical_radius"
@@ -13335,6 +14086,14 @@ def session(raw, peer, service, context):
                                 thread_cpu_ms=round(thread_cpu_ms, 3),
                             ),
                         )
+                        if rii_lesson_objective is not None:
+                            arena = rii_lesson_layout.arena(
+                                character,
+                                TEST_MONSTERS,
+                                rii_lesson_objective,
+                                cell_budget=arena_cell_budget,
+                                size_range=arena_size_range,
+                            )
                         from wakfu_server.combat_encounter_scene_layout import (
                             prepare_encounter_scene,
                         )
@@ -13580,6 +14339,64 @@ def session(raw, peer, service, context):
                             terrain_instance_id=terrain_instance_id,
                             duration_ms=placement_duration,
                         )
+                        if character["map_id"] == 1388:
+                            from wakfu_server.achievements import (
+                                rii_orientation,
+                                rii_element_encounter,
+                                rii_owned_lesson,
+                            )
+
+                            with STORE.connection() as lesson_db:
+                                rii_orientation.bind(
+                                    lesson_db, candidate, character["id"], TEST_MONSTERS
+                                )
+                                rii_element_encounter.bind(
+                                    lesson_db, candidate, character["id"], TEST_MONSTERS
+                                )
+                                distance_contract = rii_owned_lesson.bind(
+                                    lesson_db,
+                                    rii_owned_lesson.DISTANCE,
+                                    character["id"],
+                                    TEST_MONSTERS,
+                                )
+                                if distance_contract is not None:
+                                    candidate.rii_distance_lesson_contract = (
+                                        distance_contract
+                                    )
+                                from wakfu_server.achievements import rii_area_encounter
+
+                                area_contract = rii_area_encounter.bind(
+                                    lesson_db, character["id"], TEST_MONSTERS
+                                )
+                                if area_contract is not None:
+                                    candidate.rii_area_lesson_contract = area_contract
+                                from wakfu_server.achievements import rii_los_encounter
+
+                                los_contract = rii_los_encounter.bind(
+                                    lesson_db, character["id"], TEST_MONSTERS
+                                )
+                                if los_contract is not None:
+                                    candidate.rii_los_lesson_contract = los_contract
+                                movement_contract = rii_owned_lesson.bind(
+                                    lesson_db,
+                                    rii_owned_lesson.MOVEMENT,
+                                    character["id"],
+                                    TEST_MONSTERS,
+                                )
+                                if movement_contract is not None:
+                                    candidate.rii_movement_lesson_contract = (
+                                        movement_contract
+                                    )
+                                states_contract = rii_owned_lesson.bind(
+                                    lesson_db,
+                                    rii_owned_lesson.STATES,
+                                    character["id"],
+                                    TEST_MONSTERS,
+                                )
+                                if states_contract is not None:
+                                    candidate.rii_states_lesson_contract = (
+                                        states_contract
+                                    )
                         candidate.native_system_configuration = entry_boundary[
                             "configuration"
                         ]
@@ -14195,6 +15012,26 @@ def session(raw, peer, service, context):
                                 source_sha256=encounter_world_action["source_sha256"],
                                 authority=encounter_world_action["authority"],
                             )
+                        if (
+                            encounter_world_action is not None
+                            and encounter_world_action.get("incarnam_stage")
+                        ):
+                            from wakfu_server.intro_cinematic import scenario_event
+
+                            from wakfu_server.achievements.incarnam_encounters import (
+                                CombatGuides,
+                            )
+
+                            stage = encounter_world_action["incarnam_stage"]
+                            connection.incarnam_combat_guides = CombatGuides(
+                                fight.id, character["id"], stage
+                            )
+                            packets = list(packets)
+                            packets.append(
+                                scenario_event(
+                                    22512 if stage == 1 else 22523, 2500, fight.id
+                                )
+                            )
                         starter_delivery = None
                         if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
                             try:
@@ -14602,6 +15439,9 @@ def session(raw, peer, service, context):
                             drain_shared_combat()
                             transaction = action_results["transaction"]
                             delivery = action_results["delivery"]
+                            publish_incarnam_combat_guides(
+                                cast_request["actor_id"], "cast"
+                            )
                             checkpoint_fight(accepted_publication=True)
                             record(
                                 event="combat_cast",
@@ -14729,6 +15569,7 @@ def session(raw, peer, service, context):
                         fight = transaction.fight
                         for message_id, payload in packets:
                             send(connection, service, message_id, payload)
+                        publish_incarnam_combat_guides(cast_request["actor_id"], "cast")
                         record(
                             event="combat_cast",
                             requested_actor_id=cast_request["actor_id"],
@@ -15455,6 +16296,248 @@ def session(raw, peer, service, context):
                                 safe_rejection_text(error),
                             ),
                         )
+                elif opcode == 12921 and loaded:
+                    from wakfu_server.intro_cinematic import callback_id
+
+                    try:
+                        scenario_callback = callback_id(body)
+                        if (
+                            scenario_callback in (23908, 23909, 23910, 23912)
+                            and intro_cinematic_scene is not None
+                        ):
+                            action = intro_cinematic_scene.receive(
+                                body, map_id=character["map_id"]
+                            )
+                            if action is not None and action[0] == "enter_incarnam":
+                                from wakfu_server import (
+                                    intro_cinematic,
+                                    mission_transport,
+                                )
+
+                                try:
+                                    with POSITIONS.account_barrier(account_id):
+                                        flush_positions(
+                                            account_id=account_id,
+                                            generation=generation,
+                                            character_id=character["id"],
+                                        )
+                                        source = STORE.character(
+                                            account_id, character["id"]
+                                        )
+                                        if source["map_id"] != 1465:
+                                            raise ValueError(
+                                                "Introductory scene is no longer active"
+                                            )
+                                        route = {
+                                            "direction": 0,
+                                            "destination": {
+                                                "map_id": 1361,
+                                                "instance_id": intro_cinematic.private_instance_id(
+                                                    source["id"]
+                                                ),
+                                                "x": 0,
+                                                "y": 0,
+                                                "z": 0,
+                                            },
+                                        }
+                                        saved, packets = mission_transport.transition(
+                                            STORE,
+                                            account_id,
+                                            generation,
+                                            source,
+                                            route,
+                                            native_zaap=False,
+                                        )
+                                        publish_public_transport(
+                                            route, saved, generic_route=True
+                                        )
+                                        for packet in packets:
+                                            send(connection, service, *packet)
+                                        from wakfu_server.achievements import (
+                                            incarnam_tutorial,
+                                            storage,
+                                        )
+
+                                        with STORE.connection() as db:
+                                            tutorial_state = storage.load_locked(
+                                                db, saved["id"]
+                                            )
+                                        connection.pending_incarnam_arrival = (
+                                            saved["id"],
+                                            21800,
+                                        )
+                                        for packet in incarnam_tutorial.initial_packets(
+                                            tutorial_state
+                                        ):
+                                            send(connection, service, *packet)
+                                except Exception:
+                                    intro_cinematic_scene.retry_completion()
+                                    raise
+                                intro_cinematic_scene = None
+                            elif action is not None:
+                                send(connection, service, *action)
+                        elif scenario_callback in (21800, 22519, 22521):
+                            from wakfu_server.achievements import incarnam_tutorial
+
+                            pending = getattr(
+                                connection, "pending_incarnam_arrival", None
+                            )
+                            if character["map_id"] != 1361 or pending != (
+                                character["id"],
+                                scenario_callback,
+                            ):
+                                raise ValueError(
+                                    "Incarnam arrival scene is not pending"
+                                )
+                            next_event = {21800: 22519, 22519: 22521, 22521: 22522}[
+                                scenario_callback
+                            ]
+                            connection.pending_incarnam_arrival = (
+                                (character["id"], next_event)
+                                if next_event != 22522
+                                else None
+                            )
+                            if scenario_callback in (22519, 22521):
+                                # The tree cinematic is far from the real spawn.
+                                # Relocate the client camera and hydrate that
+                                # region before starting the corresponding Lua.
+                                from wakfu_server.treasure_definition_projections import (
+                                    project_snapshot_bodies,
+                                )
+
+                                packets = incarnam_tutorial.cinematic_camera_travel(
+                                    character["id"], scenario_callback
+                                )
+                                for packet in packets:
+                                    send(connection, service, *packet)
+                                x, y = struct.unpack(">ii", packets[-1][1])
+                                scene_position = {**character, "x": x, "y": y}
+                                for payload in project_snapshot_bodies(
+                                    STORE,
+                                    character["map_id"],
+                                    world_static.snapshots(
+                                        character["map_id"], position=scene_position
+                                    ),
+                                ):
+                                    send(connection, service, 13984, payload)
+                            send(
+                                connection,
+                                service,
+                                *incarnam_tutorial.scenario_packet(next_event),
+                            )
+                        elif scenario_callback == 22525:
+                            from wakfu_server.achievements import incarnam_tutorial
+
+                            if (
+                                character["map_id"] != 1361
+                                or getattr(
+                                    connection, "pending_incarnam_seed_guide", None
+                                )
+                                != character["id"]
+                            ):
+                                raise ValueError(
+                                    "Incarnam planting guide is not pending"
+                                )
+                            incarnam_tutorial.finish_planting_guide(
+                                STORE, account_id, generation, character["id"]
+                            )
+                            connection.pending_incarnam_seed_guide = None
+                            send(
+                                connection,
+                                service,
+                                *incarnam_tutorial.scenario_packet(22566),
+                            )
+                        elif scenario_callback == 22359:
+                            from wakfu_server import intro_cinematic, mission_transport
+
+                            if fight is not None or combat_session is not None:
+                                raise ValueError(
+                                    "Incarnam cinematic cannot finish during combat"
+                                )
+                            if (
+                                getattr(connection, "pending_incarnam_outro", None)
+                                != character["id"]
+                            ):
+                                raise ValueError("Incarnam cinematic is not pending")
+                            with POSITIONS.account_barrier(account_id):
+                                flush_positions(
+                                    account_id=account_id,
+                                    generation=generation,
+                                    character_id=character["id"],
+                                )
+                                source = STORE.character(account_id, character["id"])
+                                if source.get("map_id") != 1361 or source.get(
+                                    "instance_id"
+                                ) != intro_cinematic.private_instance_id(source["id"]):
+                                    raise ValueError(
+                                        "Incarnam scene is no longer active"
+                                    )
+                                route = {
+                                    "direction": 0,
+                                    "destination": {
+                                        "map_id": 1385,
+                                        "instance_id": 0,
+                                        "x": 27,
+                                        "y": 1,
+                                        "z": 1,
+                                    },
+                                }
+                                saved, packets = mission_transport.transition(
+                                    STORE,
+                                    account_id,
+                                    generation,
+                                    source,
+                                    route,
+                                    native_zaap=False,
+                                    incarnam_exit=True,
+                                )
+                                connection.pending_incarnam_outro = None
+                                connection.pending_rii_intro = saved["id"]
+                                publish_public_transport(
+                                    route, saved, generic_route=True
+                                )
+                                for packet in packets:
+                                    send(connection, service, *packet)
+                        elif scenario_callback == 22532:
+                            from wakfu_server.achievements import rii_guardian_battle
+
+                            if fight is not None or combat_session is not None:
+                                raise ValueError(
+                                    "Guardian cinematic cannot finish during combat"
+                                )
+                            with POSITIONS.account_barrier(account_id):
+                                flush_positions(
+                                    account_id=account_id,
+                                    generation=generation,
+                                    character_id=character["id"],
+                                )
+                                source = STORE.character(account_id, character["id"])
+                                (
+                                    saved,
+                                    mission_packets,
+                                ) = rii_guardian_battle.finish_cinematic(
+                                    STORE, account_id, generation, source
+                                )
+                                for packet in mission_packets:
+                                    send(connection, service, *packet)
+                                publish_public_transport(
+                                    {"direction": 0}, saved, generic_route=True
+                                )
+                        elif scenario_callback == 22360:
+                            from wakfu_server import rii_scenario
+
+                            for packet in rii_scenario.finish_intro(
+                                connection,
+                                STORE,
+                                account_id,
+                                generation,
+                                character,
+                                in_combat=fight is not None
+                                or combat_session is not None,
+                            ):
+                                send(connection, service, *packet)
+                    except ValueError as error:
+                        record(event="scenario_callback_rejected", reason=str(error))
                 elif opcode == 12925 and aborted_native_return is not None:
                     try:
                         finish_aborted_native_return(body)
@@ -15652,11 +16735,34 @@ def session(raw, peer, service, context):
                         character.update(refresh_owned_character(returned["character"]))
                         for message_id, payload in returned["packets"]:
                             send(connection, service, message_id, payload)
+                        owned_ids = []
+                        if character["map_id"] == 1388 and TEST_MONSTERS:
+                            from wakfu_server.achievements.rii_lesson_visibility import (
+                                owned_actor_ids,
+                            )
+                            from wakfu_server.combat_monster_world import remove_message
+
+                            with STORE.connection() as lesson_db:
+                                owned_ids = owned_actor_ids(
+                                    lesson_db, TEST_MONSTERS, character["id"]
+                                )
+                            if owned_ids:
+                                # A lesson may end successfully with the sack
+                                # still alive; the ordinary dead-actor cleanup
+                                # therefore cannot remove its world sprite.
+                                send(connection, service, *remove_message(owned_ids))
                         if not abandoned and not duel_return:
                             from wakfu_server.combat_death import dead_world_removals
 
-                            for packet in dead_world_removals(
-                                fight, [m["id"] for m in TEST_MONSTERS]
+                            ordinary_ids = [
+                                m["id"]
+                                for m in TEST_MONSTERS
+                                if m["id"] not in owned_ids
+                            ]
+                            for packet in (
+                                dead_world_removals(fight, ordinary_ids)
+                                if ordinary_ids
+                                else []
                             ):
                                 send(connection, service, *packet)
                             record(
@@ -15937,6 +17043,7 @@ def session(raw, peer, service, context):
                             refresh_shared_combat()
                             drain_shared_combat()
                             checkpoint_fight(accepted_publication=True)
+                            publish_incarnam_combat_guides(movement_actor_id, "move")
                             record(
                                 event="combat_movement",
                                 actor_id=movement_actor_id,
@@ -15989,6 +17096,7 @@ def session(raw, peer, service, context):
                             send(connection, service, message_id, payload)
                         if fight.phase == "finished":
                             complete_test_fight()
+                        publish_incarnam_combat_guides(character["id"], "move")
                         record(
                             event="combat_movement",
                             actor_id=character["id"],
@@ -16131,6 +17239,7 @@ def session(raw, peer, service, context):
                                 )
                             drain_shared_combat()
                             checkpoint_fight(accepted_publication=True)
+                            publish_incarnam_combat_guides(actor_id, "end_turn")
                             if fight.phase == "finished":
                                 complete_test_fight()
                         except ValueError as error:
@@ -16146,6 +17255,7 @@ def session(raw, peer, service, context):
                             account_id, actor_id, actor_turn
                         ):
                             send(connection, service, message_id, payload)
+                        publish_incarnam_combat_guides(actor_id, "end_turn")
                         if fight.phase == "finished":
                             complete_test_fight()
                     except ValueError as error:
@@ -16959,7 +18069,11 @@ def session(raw, peer, service, context):
                             connection,
                             service,
                             *information(
-                                str(error)
+                                "Esta respuesta aún no está disponible."
+                                if isinstance(
+                                    error, npc_dialogue.UnavailableDialogueChoice
+                                )
+                                else str(error)
                                 if isinstance(error, ValueError)
                                 else "Exchange purchase is temporarily unavailable."
                             ),
@@ -17079,7 +18193,8 @@ def session(raw, peer, service, context):
                         from wakfu_server import transport_criteria
 
                         with PROFILER.span("transport.native.resolve"):
-                            if native_boats.source(character, body) is not None:
+                            native_zaap = native_boats.source(character, body) is None
+                            if not native_zaap:
                                 from wakfu_server.combat_terrain import map_geometry
 
                                 destination_route = native_boats.resolve(
@@ -17106,12 +18221,15 @@ def session(raw, peer, service, context):
                                     waive_criteria=ALL_ZAAPS,
                                 )
                         with PROFILER.span("transport.native.commit"):
-                            saved = STORE.transition_map(
+                            from wakfu_server import mission_transport
+
+                            saved, mission_packets = mission_transport.transition(
+                                STORE,
                                 account_id,
                                 generation,
-                                character["id"],
                                 character,
-                                destination_route["destination"],
+                                destination_route,
+                                native_zaap=native_zaap,
                             )
                     except (ValueError, DatabaseError, PoolTimeout) as error:
                         record(
@@ -17142,6 +18260,14 @@ def session(raw, peer, service, context):
                                 defer_scene_snapshot=character["map_id"] != 9,
                             )
                             mark_static_sync_pending()
+                            for message_id, message_body in mission_packets:
+                                from wakfu_server import rii_scenario
+
+                                if (message_id, message_body) == rii_scenario.packet(
+                                    rii_scenario.INTRO
+                                ):
+                                    connection.pending_rii_intro = character["id"]
+                                send(connection, service, message_id, message_body)
                         record(
                             event="native_map_transition",
                             actor_id=character["id"],
@@ -17231,6 +18357,7 @@ def session(raw, peer, service, context):
 
                     generic_route = False
                     transport_committed = False
+                    mission_transport_packets = []
                     try:
                         if artifact_action_request:
                             from wakfu_server import exploration_artifact_actions
@@ -17579,6 +18706,23 @@ def session(raw, peer, service, context):
                                 character,
                                 destination_route,
                             )
+                        elif (
+                            destination_route.get("interactive_element_id"),
+                            destination_route.get("destination_id"),
+                        ) == (34619, 4560):
+                            from wakfu_server import mission_transport
+
+                            (
+                                saved,
+                                mission_transport_packets,
+                            ) = mission_transport.transition(
+                                STORE,
+                                account_id,
+                                generation,
+                                character,
+                                destination_route,
+                                native_zaap=False,
+                            )
                         else:
                             saved = STORE.transition_map(
                                 account_id,
@@ -17652,6 +18796,14 @@ def session(raw, peer, service, context):
                         publish_public_transport(
                             destination_route, saved, generic_route=generic_route
                         )
+                        for message_id, message_body in mission_transport_packets:
+                            from wakfu_server import rii_scenario
+
+                            if (message_id, message_body) == rii_scenario.packet(
+                                rii_scenario.INTRO
+                            ):
+                                connection.pending_rii_intro = character["id"]
+                            send(connection, service, message_id, message_body)
                 elif opcode == 12962 and generation:
                     from wakfu_server.tutorials import update as update_tutorials
 
@@ -19402,6 +20554,125 @@ def session(raw, peer, service, context):
                                     "Invalid native environment interaction length"
                                 )
                             environment_id = struct.unpack_from(">q", body)[0]
+                            if character["map_id"] == 1361 and (
+                                environment_id,
+                                body[8:],
+                            ) == (34658, b"\x00\x05\x00\x00"):
+                                from wakfu_server.achievements import incarnam_tutorial
+
+                                if (
+                                    environment_blocked()
+                                    or environment_ticket is not None
+                                ):
+                                    raise ValueError(
+                                        "Incarnam tutorial trigger unavailable"
+                                    )
+                                with POSITIONS.account_barrier(account_id):
+                                    flush_positions(
+                                        account_id=account_id,
+                                        generation=generation,
+                                        character_id=character["id"],
+                                    )
+                                    if getattr(
+                                        connection, "pending_incarnam_seed_guide", None
+                                    ) != character[
+                                        "id"
+                                    ] and incarnam_tutorial.blocked_path(
+                                        STORE, account_id, generation, character, body
+                                    ):
+                                        connection.pending_incarnam_seed_guide = (
+                                            character["id"]
+                                        )
+                                        send(
+                                            connection,
+                                            service,
+                                            *incarnam_tutorial.scenario_packet(22525),
+                                        )
+                                continue
+                            from wakfu_server.achievements import incarnam_resources
+
+                            if incarnam_resources.is_gate_request(character, body):
+                                with POSITIONS.account_barrier(account_id):
+                                    flush_positions(
+                                        account_id=account_id,
+                                        generation=generation,
+                                        character_id=character["id"],
+                                    )
+                                    result = incarnam_resources.interact_gate(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        body,
+                                        loaded=loaded,
+                                        blocked=environment_blocked()
+                                        or environment_ticket is not None,
+                                    )
+                                    character = result["character"]
+                                    for packet in result["packets"]:
+                                        send(connection, service, *packet)
+                                continue
+                            from wakfu_server.achievements import ruel_story
+
+                            if ruel_story.recognizes_trace(character["map_id"], body):
+                                with POSITIONS.account_barrier(account_id):
+                                    flush_positions(
+                                        account_id=account_id,
+                                        generation=generation,
+                                        character_id=character["id"],
+                                    )
+                                    trace_result = ruel_story.interact_trace(
+                                        STORE,
+                                        COMBAT_GROUPS,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        body,
+                                        loaded=loaded,
+                                        blocked=environment_blocked()
+                                        or environment_ticket is not None,
+                                    )
+                                    for trace_update in trace_result["packets"]:
+                                        send(connection, service, *trace_update)
+                                    if trace_result["scene_packet"] is not None:
+                                        WORLD.emit_location(
+                                            character["map_id"],
+                                            0,
+                                            *trace_result["scene_packet"],
+                                        )
+                                continue
+                            from wakfu_server.achievements import interactive_missions
+
+                            if interactive_missions.binding_exists(
+                                STORE, character["map_id"], body
+                            ):
+                                with POSITIONS.account_barrier(account_id):
+                                    flush_positions(
+                                        account_id=account_id,
+                                        generation=generation,
+                                        character_id=character["id"],
+                                    )
+                                    result = interactive_missions.interact(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        body,
+                                        loaded=loaded,
+                                        blocked=environment_blocked()
+                                        or environment_ticket is not None,
+                                    )
+                                    if result["applied"] or result.get("handled"):
+                                        character = result["character"]
+                                        for packet in result["packets"]:
+                                            send(connection, service, *packet)
+                                        record(
+                                            event="configured_quest_interaction",
+                                            actor_id=character["id"],
+                                            object_id=environment_id,
+                                            completed=result["completed"],
+                                        )
+                                        continue
                             from wakfu_server import paid_containers
 
                             if (
@@ -20231,6 +21502,10 @@ def session(raw, peer, service, context):
                             raise ValueError(
                                 "Native hero switching is unavailable during combat"
                             )
+                        if training_transit_active:
+                            raise ValueError(
+                                "Finish or leave the current Rii training before switching the company leader"
+                            )
                         target = switch_target
                         private_session = active_private_session()
                         if private_session is not None and not private_session.owns(
@@ -20677,6 +21952,27 @@ def session(raw, peer, service, context):
                         )
                     movement_state.commit(approved)
                     position = end
+                    if (
+                        character["map_id"] == 1094
+                        and character.get("instance_id", 0) == 0
+                    ):
+                        from wakfu_server.achievements.ruel_story import (
+                            matching_trace,
+                            visit_trace,
+                        )
+
+                        if matching_trace(character) == 8535:
+                            try:
+                                for trace_update in visit_trace(
+                                    STORE, account_id, generation, character
+                                ):
+                                    send(connection, service, *trace_update)
+                            except Exception:
+                                import logging
+
+                                logging.getLogger(__name__).exception(
+                                    "Ruel trace movement settlement failed"
+                                )
                     if physical_choice is not None:
                         for packet in physical_choice["scene_packets"]:
                             WORLD.emit_location(
@@ -20709,6 +22005,24 @@ def session(raw, peer, service, context):
                                 for axis in ("x", "y", "z")
                             }
                         )
+                    if character["map_id"] == 1361 and any(
+                        (cell["x"], cell["y"], cell["z"])
+                        in ((5, 0, -4), (12, 0, -16), (12, -9, -16))
+                        for cell in scene_path[1:]
+                    ):
+                        from wakfu_server.achievements import (
+                            incarnam_tutorial,
+                            storage as tutorial_storage,
+                        )
+
+                        with STORE.connection() as tutorial_db:
+                            tutorial_state = tutorial_storage.load_locked(
+                                tutorial_db, character["id"]
+                            )
+                        for guide_packet in incarnam_tutorial.walking_guide_packets(
+                            character, tutorial_state, scene_path
+                        ):
+                            send(connection, service, *guide_packet)
                     scene_sync.arm(
                         character["map_id"],
                         character.get("instance_id", 0),
@@ -20838,6 +22152,188 @@ def session(raw, peer, service, context):
                     from psycopg_pool import PoolTimeout as QuestPoolTimeout
 
                     try:
+                        from wakfu_server import ruel_investigation_npc
+
+                        if ruel_investigation_npc.recognizes(
+                            opcode, body, npc_dialogue_session
+                        ):
+                            if fight is not None or spectator_session is not None:
+                                raise ValueError(
+                                    "Investigation requires being out of combat"
+                                )
+                            with POSITIONS.account_barrier(account_id):
+                                flush_positions(account_id=account_id)
+                                if opcode == 12058:
+                                    suspect_result = ruel_investigation_npc.choose(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        npc_dialogue_session,
+                                        body,
+                                    )
+                                    suspect_packets = suspect_result["packets"]
+                                else:
+                                    if opcode == 13222:
+                                        actor_id, _ = npc_world.decode_interaction(body)
+                                    else:
+                                        actor_id = npc_dialogue.decode_request(
+                                            opcode, body
+                                        )["speaker_id"]
+                                    (
+                                        npc_dialogue_session,
+                                        suspect_packets,
+                                    ) = ruel_investigation_npc.begin(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        actor_id,
+                                        character_provider=lambda: character,
+                                    )
+                                for suspect_packet in suspect_packets:
+                                    send(connection, service, *suspect_packet)
+                            continue
+                        from wakfu_server import ruel_hunt_npc
+
+                        if ruel_hunt_npc.recognizes(
+                            STORE, opcode, body, npc_dialogue_session
+                        ):
+                            if fight is not None or spectator_session is not None:
+                                raise ValueError("Ruel requiere estar fuera de combate")
+                            with POSITIONS.account_barrier(account_id):
+                                flush_positions(account_id=account_id)
+                                if opcode == 12058:
+                                    result = ruel_hunt_npc.choose(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        npc_dialogue_session,
+                                        body,
+                                    )
+                                    ruel_packets = result["packets"]
+                                else:
+                                    if opcode == 13222:
+                                        (
+                                            actor_id,
+                                            action_id,
+                                        ) = npc_world.decode_interaction(body)
+                                    else:
+                                        request = npc_dialogue.decode_request(
+                                            opcode, body
+                                        )
+                                        actor_id, action_id = (
+                                            request["speaker_id"],
+                                            ruel_hunt_npc.ACTION,
+                                        )
+                                    (
+                                        npc_dialogue_session,
+                                        ruel_packets,
+                                    ) = ruel_hunt_npc.begin(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        actor_id,
+                                        action_id,
+                                        character_provider=lambda: character,
+                                    )
+                                for ruel_packet in ruel_packets:
+                                    send(connection, service, *ruel_packet)
+                            continue
+                        from wakfu_server import modulox_npc
+
+                        if modulox_npc.recognizes(
+                            STORE, opcode, body, npc_dialogue_session
+                        ):
+                            if fight is not None or spectator_session is not None:
+                                raise ValueError(
+                                    "Mod'Ulo requiere estar fuera de combate"
+                                )
+                            with POSITIONS.account_barrier(account_id):
+                                flush_positions(account_id=account_id)
+                                if opcode == 12058:
+                                    outcome = modulox_npc.choose(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        npc_dialogue_session,
+                                        body,
+                                        bag_session=bag_session,
+                                    )
+                                    modulox_packets = outcome["packets"]
+                                else:
+                                    if opcode == 13222:
+                                        (
+                                            actor_id,
+                                            action_id,
+                                        ) = npc_world.decode_interaction(body)
+                                    else:
+                                        request = npc_dialogue.decode_request(
+                                            opcode, body
+                                        )
+                                        actor_id, action_id = (
+                                            request["speaker_id"],
+                                            modulox_npc.ACTION,
+                                        )
+                                    (
+                                        npc_dialogue_session,
+                                        modulox_packets,
+                                    ) = modulox_npc.begin(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        actor_id,
+                                        action_id,
+                                        bag_session=bag_session,
+                                        character_provider=lambda: character,
+                                    )
+                                for modulox_packet in modulox_packets:
+                                    send(connection, service, *modulox_packet)
+                            continue
+                        from wakfu_server import weekly_hunter_npc
+
+                        if weekly_hunter_npc.recognizes(
+                            STORE, opcode, body, npc_dialogue_session
+                        ):
+                            if fight is not None or spectator_session is not None:
+                                raise ValueError(
+                                    "Hunter conversations require a ready scene outside combat"
+                                )
+                            with POSITIONS.account_barrier(account_id):
+                                flush_positions(account_id=account_id)
+                                if opcode == 12058:
+                                    outcome = weekly_hunter_npc.choose(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        npc_dialogue_session,
+                                        body,
+                                    )
+                                    hunter_packets = outcome["packets"]
+                                else:
+                                    actor_id, action_id = npc_world.decode_interaction(
+                                        body
+                                    )
+                                    (
+                                        npc_dialogue_session,
+                                        hunter_packets,
+                                    ) = weekly_hunter_npc.begin(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        actor_id,
+                                        action_id,
+                                        character_provider=lambda: character,
+                                    )
+                                for hunter_packet in hunter_packets:
+                                    send(connection, service, *hunter_packet)
+                            continue
                         qualified_quest = quest_npc.recognizes(
                             STORE, opcode, body, npc_dialogue_session
                         )
@@ -20948,7 +22444,14 @@ def session(raw, peer, service, context):
                         )
                         continue
 
-                    if not npc_dialogue.interactions_enabled():
+                    from wakfu_server import rii_dialogue_gate
+
+                    if (
+                        not npc_dialogue.interactions_enabled()
+                        and not rii_dialogue_gate.allow(
+                            opcode, body, character, npc_dialogue_session
+                        )
+                    ):
                         if npc_dialogue_session is not None or opcode in (12058, 12535):
                             send(
                                 connection,
@@ -20962,6 +22465,47 @@ def session(raw, peer, service, context):
                     from wakfu_server.ecology_feedback import information
                     from psycopg import Error as DatabaseError
                     from psycopg_pool import PoolTimeout
+
+                    from wakfu_server.achievements import rii_free_practice
+
+                    if (
+                        opcode == 13222
+                        and len(body) == 16
+                        and npc_world.decode_interaction(body)
+                        == (rii_free_practice.ACTOR, rii_free_practice.ACTION)
+                    ):
+                        try:
+                            if (
+                                not COMBAT_TEST
+                                or fight is not None
+                                or spectator_session is not None
+                            ):
+                                raise ValueError(
+                                    "Practice is unavailable during combat"
+                                )
+                            if pending_guardian_attack is not None:
+                                raise ValueError("A tutorial combat is already pending")
+
+                            def practice_rows():
+                                with STORE.connection() as db:
+                                    return npc_world.load_scene(
+                                        db,
+                                        character["map_id"],
+                                        character["instance_id"],
+                                    )
+
+                            if npc_dialogue_session is not None:
+                                npc_dialogue_session.close()
+                            npc_dialogue_session, packet = rii_free_practice.begin_menu(
+                                lambda: character,
+                                practice_rows,
+                                rii_free_practice.ACTOR,
+                                rii_free_practice.ACTION,
+                            )
+                            send(connection, service, *packet)
+                        except (ValueError, DatabaseError, PoolTimeout) as error:
+                            send(connection, service, *information(str(error)))
+                        continue
 
                     try:
                         if fight is not None or spectator_session is not None:
@@ -20991,14 +22535,336 @@ def session(raw, peer, service, context):
                             if npc_dialogue_session is None:
                                 raise ValueError("No NPC conversation is active")
                             request = npc_dialogue.decode_request(opcode, body)
-                            packet = npc_dialogue_session.choose(
-                                request["node_id"], request["choice_id"]
-                            )
+                            from wakfu_server import rii_conversation_progress
+                            from wakfu_server import rii_ecosystem_dialogue
+                            from wakfu_server import rii_otomai_fresco
+
+                            if getattr(
+                                npc_dialogue_session, "rii_free_practice_menu", False
+                            ):
+                                packet, start_practice = rii_free_practice.choose_menu(
+                                    npc_dialogue_session, request
+                                )
+                                if start_practice:
+                                    if (
+                                        not COMBAT_TEST
+                                        or pending_guardian_attack is not None
+                                    ):
+                                        raise ValueError(
+                                            "Practice is currently unavailable"
+                                        )
+                                    with POSITIONS.account_barrier(account_id):
+                                        flush_positions(account_id=account_id)
+                                        scene, sack = rii_free_practice.spawn(
+                                            STORE,
+                                            COMBAT_GROUPS,
+                                            account_id,
+                                            generation,
+                                            character,
+                                            **start_practice,
+                                        )
+                                    if packet is not None:
+                                        send(connection, service, *packet)
+                                        packet = None
+                                    send(connection, service, *scene)
+                                    pending_guardian_attack = (
+                                        rii_free_practice.start_request(sack)
+                                    )
+                            elif rii_otomai_fresco.recognizes(
+                                npc_dialogue_session, request
+                            ):
+                                with POSITIONS.account_barrier(account_id):
+                                    flush_positions(account_id=account_id)
+                                    outcome = rii_otomai_fresco.choose(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        npc_dialogue_session,
+                                        request,
+                                    )
+                                    for progress_packet in outcome["packets"]:
+                                        send(connection, service, *progress_packet)
+                                    packet = outcome["packet"]
+                            elif rii_ecosystem_dialogue.recognizes(
+                                npc_dialogue_session, request
+                            ):
+                                with POSITIONS.account_barrier(account_id):
+                                    flush_positions(account_id=account_id)
+                                    outcome = rii_ecosystem_dialogue.choose(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        npc_dialogue_session,
+                                        request,
+                                    )
+                                    for progress_packet in outcome["packets"]:
+                                        send(connection, service, *progress_packet)
+                                    packet = outcome["packet"]
+                            elif rii_conversation_progress.recognizes(
+                                npc_dialogue_session, request
+                            ):
+                                with POSITIONS.account_barrier(account_id):
+                                    flush_positions(account_id=account_id)
+                                    outcome = rii_conversation_progress.choose(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        npc_dialogue_session,
+                                        request,
+                                    )
+                                    from wakfu_server.achievements import (
+                                        rii_starter_seed,
+                                    )
+
+                                    character = rii_starter_seed.refresh_after_delivery(
+                                        STORE, account_id, character, outcome["packets"]
+                                    )
+                                    send_batch(connection, service, outcome["packets"])
+                                    packet = outcome["packet"]
+                                    if (request["node_id"], request["choice_id"]) == (
+                                        5756,
+                                        13260,
+                                    ):
+                                        from wakfu_server.achievements import (
+                                            rii_orientation,
+                                        )
+
+                                        publish_rii_lesson_guide(
+                                            request["node_id"], request["choice_id"]
+                                        )
+
+                                        try:
+                                            lesson_scene = rii_orientation.spawn(
+                                                STORE,
+                                                COMBAT_GROUPS,
+                                                account_id,
+                                                generation,
+                                                character,
+                                            )
+                                            if lesson_scene:
+                                                send(connection, service, *lesson_scene)
+                                            queue_rii_lesson_attack(10574)
+                                        except Exception as error:
+                                            record(
+                                                event="rii_orientation_spawn_error",
+                                                reason=str(error),
+                                            )
+                                    if (request["node_id"], request["choice_id"]) == (
+                                        5791,
+                                        13347,
+                                    ):
+                                        from wakfu_server.achievements import (
+                                            rii_guardian_battle,
+                                        )
+
+                                        try:
+                                            guardian_scene = rii_guardian_battle.spawn(
+                                                STORE,
+                                                COMBAT_GROUPS,
+                                                account_id,
+                                                generation,
+                                                character,
+                                            )
+                                            if guardian_scene:
+                                                scene_packet, guardian = guardian_scene
+                                                if scene_packet:
+                                                    send(
+                                                        connection,
+                                                        service,
+                                                        *scene_packet,
+                                                    )
+                                                pending_guardian_attack = (
+                                                    rii_guardian_battle.start_request(
+                                                        guardian
+                                                    )
+                                                )
+                                        except Exception as error:
+                                            record(
+                                                event="rii_guardian_spawn_error",
+                                                reason=str(error),
+                                            )
+                            else:
+                                packet = npc_dialogue_session.choose(
+                                    request["node_id"], request["choice_id"]
+                                )
+                                if (
+                                    request["node_id"] == 5787
+                                    and 13322 <= request["choice_id"] <= 13328
+                                ):
+                                    publish_rii_lesson_guide(
+                                        request["node_id"], request["choice_id"]
+                                    )
+                                if (request["node_id"], request["choice_id"]) == (
+                                    5787,
+                                    13322,
+                                ):
+                                    from wakfu_server.achievements import (
+                                        rii_orientation,
+                                    )
+
+                                    with POSITIONS.account_barrier(account_id):
+                                        flush_positions(account_id=account_id)
+                                        lesson_scene = rii_orientation.spawn(
+                                            STORE,
+                                            COMBAT_GROUPS,
+                                            account_id,
+                                            generation,
+                                            character,
+                                        )
+                                    if lesson_scene:
+                                        send(connection, service, *lesson_scene)
+                                if (request["node_id"], request["choice_id"]) == (
+                                    5787,
+                                    13323,
+                                ):
+                                    from wakfu_server.achievements import (
+                                        rii_element_encounter,
+                                    )
+
+                                    with POSITIONS.account_barrier(account_id):
+                                        flush_positions(account_id=account_id)
+                                        lesson_scene = rii_element_encounter.spawn(
+                                            STORE,
+                                            COMBAT_GROUPS,
+                                            account_id,
+                                            generation,
+                                            character,
+                                        )
+                                    if lesson_scene:
+                                        send(connection, service, *lesson_scene)
+                                if (request["node_id"], request["choice_id"]) == (
+                                    5787,
+                                    13324,
+                                ):
+                                    from wakfu_server.achievements import (
+                                        rii_owned_lesson,
+                                    )
+
+                                    with POSITIONS.account_barrier(account_id):
+                                        flush_positions(account_id=account_id)
+                                        lesson_scene = rii_owned_lesson.spawn(
+                                            STORE,
+                                            COMBAT_GROUPS,
+                                            account_id,
+                                            generation,
+                                            character,
+                                            rii_owned_lesson.DISTANCE,
+                                        )
+                                    if lesson_scene:
+                                        send(connection, service, *lesson_scene)
+                                if (request["node_id"], request["choice_id"]) in (
+                                    (5787, 13325),
+                                    (5787, 13326),
+                                ):
+                                    # Close the dialogue before replacing the owned map scene.
+                                    if packet is not None:
+                                        send(connection, service, *packet)
+                                        packet = None
+                                    if request["choice_id"] == 13325:
+                                        from wakfu_server.achievements import (
+                                            rii_los_encounter,
+                                        )
+
+                                        lesson_scene = begin_floor_training(
+                                            10608, rii_los_encounter.spawn
+                                        )
+                                    else:
+                                        from wakfu_server.achievements import (
+                                            rii_area_encounter,
+                                        )
+
+                                        lesson_scene = begin_floor_training(
+                                            10609, rii_area_encounter.spawn
+                                        )
+                                    # The fresh owned world bootstrap already
+                                    # includes the registered encounter when
+                                    # native monster snapshots are enabled.
+                                    if not COMBAT_TEST:
+                                        send(connection, service, *lesson_scene)
+                                if (request["node_id"], request["choice_id"]) == (
+                                    5787,
+                                    13327,
+                                ):
+                                    from wakfu_server.achievements import (
+                                        rii_owned_lesson,
+                                    )
+
+                                    if packet is not None:
+                                        send(connection, service, *packet)
+                                        packet = None
+                                    lesson_scene = begin_floor_training(
+                                        10610,
+                                        lambda store, groups, account, gen, actor: rii_owned_lesson.spawn(
+                                            store,
+                                            groups,
+                                            account,
+                                            gen,
+                                            actor,
+                                            rii_owned_lesson.MOVEMENT,
+                                        ),
+                                    )
+                                    if not COMBAT_TEST:
+                                        send(connection, service, *lesson_scene)
+                                if (request["node_id"], request["choice_id"]) == (
+                                    5787,
+                                    13328,
+                                ):
+                                    from wakfu_server.achievements import (
+                                        rii_owned_lesson,
+                                    )
+
+                                    if packet is not None:
+                                        send(connection, service, *packet)
+                                        packet = None
+                                    lesson_scene = begin_floor_training(
+                                        10611,
+                                        lambda store, groups, account, gen, actor: rii_owned_lesson.spawn(
+                                            store,
+                                            groups,
+                                            account,
+                                            gen,
+                                            actor,
+                                            rii_owned_lesson.STATES,
+                                        ),
+                                    )
+                                    if not COMBAT_TEST:
+                                        send(connection, service, *lesson_scene)
+                                if (
+                                    request["node_id"] == 5787
+                                    and 13322 <= request["choice_id"] <= 13328
+                                ):
+                                    objective = (
+                                        10574,
+                                        10575,
+                                        10576,
+                                        10608,
+                                        10609,
+                                        10610,
+                                        10611,
+                                    )[request["choice_id"] - 13322]
+                                    queue_rii_lesson_attack(objective)
                         else:
                             if opcode == 13222:
                                 actor_id, action_id = npc_world.decode_interaction(body)
                             else:
                                 request = npc_dialogue.decode_request(opcode, body)
+                                from wakfu_server import rii_airyna_dialogue
+
+                                if (
+                                    request["speaker_type"] == 2
+                                    and request["speaker_id"]
+                                    == rii_airyna_dialogue.ACTOR
+                                    and request["node_id"] == rii_airyna_dialogue.ROOT
+                                ):
+                                    actor_id, action_id = (
+                                        rii_airyna_dialogue.ACTOR,
+                                        rii_airyna_dialogue.ACTION,
+                                    )
+                                else:
+                                    actor_id, action_id = None, None
                                 row = next(
                                     (
                                         npc
@@ -21007,21 +22873,44 @@ def session(raw, peer, service, context):
                                     ),
                                     None,
                                 )
-                                if row is None:
+                                if row is None and actor_id is None:
                                     raise ValueError("Unavailable NPC dialogue root")
-                                actor_id, action_id = (
-                                    row["actor_id"],
-                                    row["action_ids"][0],
-                                )
+                                if row is not None:
+                                    actor_id, action_id = (
+                                        row["actor_id"],
+                                        row["action_ids"][0],
+                                    )
                             if npc_dialogue_session is not None:
                                 npc_dialogue_session.close()
-                            npc_dialogue_session, packet = npc_world.begin(
+                            from wakfu_server import rii_ecosystem_dialogue
+                            from wakfu_server import rii_airyna_dialogue
+
+                            returning = rii_airyna_dialogue.begin(
                                 lambda: character,
                                 dialogue_rows,
+                                dialogue_facts,
                                 actor_id,
                                 action_id,
-                                facts_provider=dialogue_facts,
                             )
+                            if returning is None:
+                                returning = rii_ecosystem_dialogue.begin(
+                                    STORE,
+                                    lambda: character,
+                                    dialogue_rows,
+                                    account_id,
+                                    actor_id,
+                                    action_id,
+                                )
+                            if returning is None:
+                                npc_dialogue_session, packet = npc_world.begin(
+                                    lambda: character,
+                                    dialogue_rows,
+                                    actor_id,
+                                    action_id,
+                                    facts_provider=dialogue_facts,
+                                )
+                            else:
+                                npc_dialogue_session, packet = returning
                         if packet is not None:
                             send(connection, service, *packet)
                     except (
@@ -21913,12 +23802,7 @@ def session(raw, peer, service, context):
                         if members:
                             from wakfu_server.combat_monster_world import spawn_group
 
-                            WORLD.emit_location(
-                                key[0],
-                                key[1],
-                                12608,
-                                owned_scene_spawn_group(members, group_id=key[2]),
-                            )
+                            publish_available_group(key, members)
                             for packet in HARVESTS.availability_for(
                                 key[0], key[1], [member["id"] for member in members]
                             ):

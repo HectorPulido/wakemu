@@ -548,6 +548,26 @@ def build_npc_snapshot(
     values = native_npc_creation_values(
         monster["ref"], actor.effective_level, catalog=catalog
     )
+    if "rii_practice_resistance" in monster:
+        # This value is established from the owner's authenticated dojo
+        # receipt when combat is admitted; it is never supplied by clients.
+        from wakfu_server.achievements.rii_free_practice import RESISTANCE_POINTS
+
+        percent = monster["rii_practice_resistance"]
+        if (
+            monster.get("ref") != 2335
+            or monster.get("map_id") != 1388
+            or monster.get("instance_id") != 0
+            or type(percent) is not int
+            or percent not in RESISTANCE_POINTS
+        ):
+            raise ValueError("Invalid owned dojo resistance")
+        points = RESISTANCE_POINTS[percent]
+        for characteristic in (28, 29, 30, 31):
+            value = values.get(characteristic)
+            if value is None or not value["minimum"] <= points <= value["maximum"]:
+                raise ValueError("Dojo resistance exceeds native characteristic bounds")
+            value["current"] = points
     return _finish(
         actor,
         rows,

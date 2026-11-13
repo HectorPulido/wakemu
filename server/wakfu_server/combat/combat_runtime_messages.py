@@ -438,6 +438,36 @@ class RuntimeMessages:
             if actor is None:
                 self.turn_deadline = self.deadline_turn = None
                 return packets
+        if getattr(self.fight, "rii_element_lesson_contract", None) is not None:
+            from wakfu_server.achievements.rii_element_contract import begin_turn
+
+            if begin_turn(self.fight):
+                lesson_target = self.fight.actors[
+                    self.fight.rii_element_lesson_contract["target"]
+                ]
+                if self.runtime_stats_serializer is not None:
+                    lesson_stats = self.runtime_stats_serializer(
+                        lesson_target, self.fight
+                    )
+                elif self.stats_serializer is not None:
+                    lesson_stats = self.stats_serializer(lesson_target)
+                else:
+                    raise ValueError(
+                        "Missing elemental lesson characteristic serializer"
+                    )
+                packets.append(
+                    (
+                        12873,
+                        actor_state(
+                            12873, self.fight.id, lesson_target.id, lesson_stats
+                        ),
+                    )
+                )
+        states = getattr(self.fight, "rii_states_lesson_contract", None)
+        if isinstance(states, dict) and states.get("owner") == actor.id:
+            from wakfu_server.achievements.rii_states_contract import announce
+
+            announce(self.fight, packets, action_id=self.action_id + 1)
         from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
 
         if (
@@ -580,6 +610,20 @@ class RuntimeMessages:
             or not set(actor_payloads).issubset(self.fight.actors)
         ):
             raise ValueError("Invalid initial combat state")
+        lesson = getattr(self.fight, "rii_element_lesson_contract", None)
+        if isinstance(lesson, dict) and lesson.get("initialized") is True:
+            target = self.fight.actors.get(lesson.get("target"))
+            if target is None:
+                raise ValueError("Missing initialized elemental lesson target")
+            if self.runtime_stats_serializer is not None:
+                stats = self.runtime_stats_serializer(target, self.fight)
+            elif self.stats_serializer is not None:
+                stats = self.stats_serializer(target)
+            else:
+                raise ValueError("Missing elemental lesson characteristic serializer")
+            initialization_packets = tuple(initialization_packets) + (
+                (12873, actor_state(12873, self.fight.id, target.id, stats)),
+            )
         # Innates execute after baseline capture and may create actual summons.
         # Only their exact registered 307 delivery can account for added PVs;
         # arbitrary missing actor snapshots remain an invalid initial state.
@@ -767,11 +811,31 @@ class RuntimeMessages:
         synchronized = self._synchronize_pre_end_death(actor_id, previous)
         if synchronized is not None:
             return expiry + synchronized
+        states = getattr(self.fight, "rii_states_lesson_contract", None)
+        state_hits = states.get("hits") if isinstance(states, dict) else None
         self.fight.end_turn(owner_id, actor_id, actor.turn_count)
-        packets = expiry + [
-            (12502, self._prefix() + struct.pack(">qii", actor_id, -1, 0)),
-            self._flush(),
-        ]
+        state_packets = []
+        if isinstance(states, dict) and states.get("hits") != state_hits:
+            target = self.fight.actors.get(states.get("target"))
+            if target is None:
+                raise ValueError("Missing state lesson target after turn")
+            if self.runtime_stats_serializer is not None:
+                stats = self.runtime_stats_serializer(target, self.fight)
+            elif self.stats_serializer is not None:
+                stats = self.stats_serializer(target)
+            else:
+                raise ValueError("Missing state lesson characteristic serializer")
+            state_packets.append(
+                (12873, actor_state(12873, self.fight.id, target.id, stats))
+            )
+        packets = (
+            expiry
+            + state_packets
+            + [
+                (12502, self._prefix() + struct.pack(">qii", actor_id, -1, 0)),
+                self._flush(),
+            ]
+        )
         if self._close_terminal_turn():
             return packets
         self.pending = self.turn_started(arm_deadline=False)

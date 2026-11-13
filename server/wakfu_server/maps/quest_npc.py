@@ -19,7 +19,7 @@ from wakfu_server.dungeon_achievement_authority import queries_from_snapshot, qu
 
 PREFIX = "wakemu.qualified-quest-conversation.v1:"
 SETTING = "native_quest_conversation_contracts"
-SOURCE_SHA256 = "3b84c42c0d0d0028b24ec9580b20bb358553ff41b5d6c0582933d9be6a30dce9"
+SOURCE_SHA256 = "b188ec25db8dba1e5d7c6cc8859db455d92b915f3fa6adaa065afed843a8d3b4"
 
 
 @lru_cache(maxsize=1)
@@ -55,11 +55,25 @@ def publication(db):
             identity in identities
             or item["quest_id"] not in definitions
             or not row["provenance"].startswith(PREFIX)
-            or item["activation_policy"] != "qualified_native_availability"
+            or item["activation_policy"]
+            not in (
+                "qualified_native_availability",
+                "already_running",
+                "explicit_choice",
+            )
             or row["reference_id"] not in speakers
         ):
             raise ValueError("Invalid reconstructed quest NPC publication")
         identities.add(identity)
+        anchor = item.get("interaction_anchor")
+        if anchor is not None and (
+            type(anchor) is not dict
+            or set(anchor) != {"x", "y", "z"}
+            or any(type(anchor[key]) is not int for key in ("x", "y", "z"))
+            or abs(anchor["x"] - row["x"]) + abs(anchor["y"] - row["y"])
+            > row["interaction_range"]
+        ):
+            raise ValueError("Invalid quest NPC interaction anchor")
         actions = {a["id"] for a in speakers[row["reference_id"]]["actions"]}
         if not set(row["action_ids"]) <= actions:
             raise ValueError("Quest NPC publication contains a nonnative action")
@@ -74,7 +88,15 @@ def publication(db):
             ):
                 raise ValueError("Invalid reconstructed native conversation edge")
             edges[node, choice] = target
-        reached = {row["dialogue_root"]}
+        running_roots = item.get("running_roots", {})
+        if type(running_roots) is not dict or any(
+            not str(identity).isdigit()
+            or int(identity) not in definitions
+            or root not in nodes
+            for identity, root in running_roots.items()
+        ):
+            raise ValueError("Invalid quest NPC running roots")
+        reached = {row["dialogue_root"]} | set(running_roots.values())
         while True:
             following = {t for (n, _), t in edges.items() if n in reached and t}
             if following <= reached:
@@ -89,13 +111,80 @@ def publication(db):
             for b in bindings.values()
         ):
             raise ValueError("Quest NPC has no qualified native objective edge")
+    # Published periodic delivery edges are explicit local reconstructions.
+    for config in value.get("recurring_deliveries", []):
+        definition = definitions.get(config.get("quest_id"))
+        matches = [
+            p
+            for p in value["placements"]
+            if p["row"]["reference_id"] == config.get("reference_id")
+            and config.get("action_id") in p["row"]["action_ids"]
+        ]
+        if (
+            len(matches) != 1
+            or definition is None
+            or definition.get("cjU", 0) <= 0
+            or config.get("cycle_policy") != "fixed_native_anchor_v1"
+            or config.get("objective_id") not in {o["d"] for o in definition["cjJ"]}
+            or type(config.get("item_reference")) is not int
+            or config["item_reference"] <= 0
+            or type(config.get("item_quantity")) is not int
+            or config["item_quantity"] <= 0
+            or not config.get("evidence")
+        ):
+            raise ValueError("Invalid reconstructed recurring delivery")
+        graph = matches[0]["graph"]
+        for edge in (
+            [config["offer_node"], config["offer_choice"], config["accept_node"]],
+            [config["accept_node"], config["accept_choice"], 0],
+            [config["delivery_node"], config["delivery_choice"], 0],
+        ):
+            if edge not in graph:
+                raise ValueError("Missing recurring dialogue edge")
+        from wakfu_server.achievements.rewards import validate as validate_reward
+
+        for reward in definition["cjK"]:
+            validate_reward(reward)
+    turnin_keys = set()
+    for entry in value.get("turnins", []):
+        fields = {
+            "reference_id",
+            "action_id",
+            "node_id",
+            "choice_id",
+            "item_reference",
+            "quantity",
+        }
+        if (
+            type(entry) is not dict
+            or set(entry) != fields
+            or any(type(entry[key]) is not int or entry[key] <= 0 for key in fields)
+        ):
+            raise ValueError("Malformed reconstructed item turn-in")
+        key = tuple(
+            entry[key] for key in ("reference_id", "action_id", "node_id", "choice_id")
+        )
+        if key not in bindings or key in turnin_keys:
+            raise ValueError("Missing or duplicate item turn-in conversation binding")
+        turnin_keys.add(key)
     for link in value.get("activation_links", []):
         source, target = link["after_quest"], link["start_quest"]
         if (
             source not in definitions
             or target not in definitions
-            or definitions[target]["cjI"].replace(" ", "")
-            != f"IsAchievementComplete({source})"
+            or (
+                link.get("policy") == "reconstructed_narrative"
+                and (
+                    not isinstance(link.get("evidence"), str)
+                    or not link["evidence"].strip()
+                    or target == source
+                )
+            )
+            or (
+                link.get("policy") != "reconstructed_narrative"
+                and definitions[target]["cjI"].replace(" ", "")
+                != f"IsAchievementComplete({source})"
+            )
         ):
             raise ValueError(
                 "Quest activation link differs from its native prerequisite"
@@ -156,13 +245,28 @@ def recognizes(store, opcode, body, session=None):
         return row is not None and qualified_placement(row, db=db)
 
 
-def _criterion(store, character, criterion, authority):
+def _criterion(store, character, criterion, authority, *, reset_allowed=None):
     """Bind original exploration-only queries before the shared safe evaluator."""
     from wakfu_server.combat_local_criteria import parse_local_criterion
 
     class ExplorationQueries(ast.NodeTransformer):
         def visit_Call(self, node):
             node = self.generic_visit(node)
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "CanResetAchievement"
+            ):
+                if (
+                    len(node.args) != 1
+                    or node.keywords
+                    or not isinstance(node.args[0], ast.Constant)
+                    or type(node.args[0].value) is not int
+                    or reset_allowed is None
+                ):
+                    raise ValueError("Missing recurring mission reset authority")
+                return ast.copy_location(
+                    ast.Constant(bool(reset_allowed(node.args[0].value))), node
+                )
             if isinstance(node.func, ast.Name) and node.func.id == "GetInstanceId":
                 if (
                     node.args
@@ -218,10 +322,21 @@ def _activate(db, store, character, row, definition):
         raise ValueError("Quest activation receipt lacks its running state")
     after = deepcopy(before)
     after["running"] = sorted(set(after["running"]) | {identity})
+    from wakfu_server.achievements.mission_progress import auto_track
+
+    auto_track(after, identity)
     storage.store(db, character["id"], after)
     return wire.changes(
         character["id"], before, after, [], [], int(store.now().timestamp() * 1000)
     )
+
+
+def _nearby_placement(character, row, item):
+    """Use the published interaction approach while retaining the actor position."""
+    from wakfu_server.npc_world import nearby
+
+    anchor = item.get("interaction_anchor")
+    return nearby(character, dict(row, **anchor) if anchor is not None else row)
 
 
 def begin(
@@ -235,8 +350,6 @@ def begin(
     character_provider,
     rows_provider,
 ):
-    from wakfu_server.npc_world import nearby
-
     with store.connection() as db:
         db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
         store.lock_character(db, account_id, generation, character["id"], selected=True)
@@ -246,12 +359,42 @@ def begin(
         if published is None:
             raise ValueError("No qualified quest NPC publication")
         row, item = _row(db, actor_id, published)
-        if action_id not in row["action_ids"] or not nearby(current, row):
-            raise ValueError("Quest NPC is outside its authoritative interaction range")
-        packets = _activate(db, store, current, row, published[1][item["quest_id"]])
+        if action_id not in row["action_ids"] or not _nearby_placement(
+            current, row, item
+        ):
+            raise ValueError(
+                "Acércate al personaje y comprueba que estés a su misma altura."
+            )
+        root = row["dialogue_root"]
+        if item["activation_policy"] == "explicit_choice":
+            before = storage.load_locked(db, current["id"])
+            roots = item.get(
+                "running_roots", {str(item["quest_id"]): item["running_root"]}
+            )
+            active_roots = [
+                root_id
+                for identity, root_id in roots.items()
+                if int(identity) in before["running"]
+            ]
+            if len(active_roots) > 1:
+                raise ValueError("Conflicting active quest chain")
+            if active_roots:
+                root = active_roots[0]
+            packets = []
+        elif item["activation_policy"] == "already_running":
+            # This policy controls quest activation, not access to the NPC's
+            # native greeting. Choice criteria and completion authorization
+            # continue to require the player's real mission state.
+            packets = []
+        else:
+            packets = _activate(db, store, current, row, published[1][item["quest_id"]])
     native = npc_dialogue.catalog()
     graph = {(n, c): t for n, c, t in item["graph"]}
-    allowed = {row["dialogue_root"]} | {t for t in graph.values() if t}
+    allowed = (
+        {row["dialogue_root"]}
+        | {t for t in graph.values() if t}
+        | set(item.get("running_roots", {}).values())
+    )
     owner = current["id"], current["account_id"]
     digest = conversation._digest(published[0])
 
@@ -259,7 +402,38 @@ def begin(
         value = character_provider()
         if (value["id"], value["account_id"]) != owner:
             return False
-        return _criterion(store, value, criterion or "", queries(store, value["id"]))
+
+        # Resolve only explicitly published recurring definitions; transform
+        # their reset predicate without bypassing the rest of a compound rule.
+        def reset_allowed(identity):
+            from wakfu_server.achievements import recurring_turnin
+
+            config = next(
+                (
+                    c
+                    for c in published[0].get("recurring_deliveries", [])
+                    if c["quest_id"] == identity
+                ),
+                None,
+            )
+            if config is None:
+                return False
+            with store.connection() as db:
+                return recurring_turnin.can_offer(
+                    db,
+                    value,
+                    published[1][identity],
+                    config,
+                    now_ms=int(store.now().timestamp() * 1000),
+                )
+
+        return _criterion(
+            store,
+            value,
+            criterion or "",
+            queries(store, value["id"]),
+            reset_allowed=reset_allowed,
+        )
 
     def authorize(speaker_id, node_id):
         value = character_provider()
@@ -271,7 +445,7 @@ def begin(
             == conversation.placement_signature(row)
             and speaker_id == actor_id
             and node_id in allowed
-            and nearby(value, actual)
+            and _nearby_placement(value, actual, item)
             and (value["id"], value["account_id"]) == owner
         )
 
@@ -281,7 +455,12 @@ def begin(
         authorize_node=lambda node: available(node.get("criteria")),
         authorize_choice=lambda choice: available(choice.get("criteria")),
     )
-    packet = session.open(row["dialogue_root"], actor_id, authorize)
+    packet = session.open(root, actor_id, authorize)
+    session.quest_nearby = lambda character, actual: (
+        conversation.placement_signature(actual)
+        == conversation.placement_signature(row)
+        and _nearby_placement(character, actual, item)
+    )
     session.quest_conversation_actor_id = actor_id
     session.quest_publication_sha256 = digest
     return session, packets + [packet]
@@ -346,16 +525,102 @@ def choose(store, account_id, generation, character, session, body):
             )
             binding = published[2].get(key)
             outcome = dict(applied=False, packets=[])
-            if binding is not None:
-                outcome = conversation.settle(
-                    db,
-                    store,
-                    current,
-                    session,
-                    binding,
-                    published[1][binding.quest_id],
-                    **request,
+            recurring = next(
+                (
+                    c
+                    for c in published[0].get("recurring_deliveries", [])
+                    if c["reference_id"] == row["reference_id"]
+                    and c["action_id"] in row["action_ids"]
+                    and (request["node_id"], request["choice_id"])
+                    in (
+                        (c["accept_node"], c["accept_choice"]),
+                        (c["delivery_node"], c["delivery_choice"]),
+                    )
+                ),
+                None,
+            )
+            # Validate and advance the native session before any payment/state
+            # changes; exception handling restores it if the transaction fails.
+            if recurring is not None:
+                packet = session.choose(**request)
+                from wakfu_server.achievements import recurring_turnin
+
+                definition = published[1][recurring["quest_id"]]
+                if request["choice_id"] == recurring["accept_choice"]:
+                    outcome["packets"].extend(
+                        recurring_turnin.accept(
+                            db, store, current, definition, recurring
+                        )
+                    )
+                else:
+                    outcome = recurring_turnin.deliver(
+                        db, store, current, definition, recurring
+                    )
+                if packet is not None:
+                    outcome["packets"].append(packet)
+                return outcome
+            if item["activation_policy"] == "explicit_choice" and (
+                request["node_id"],
+                request["choice_id"],
+            ) == tuple(item["start_on_choice"]):
+                # Only an offered native choice may activate this quest.
+                node = session._node(request["node_id"])
+                choice = next(
+                    (c for c in node["choices"] if c["id"] == request["choice_id"]),
+                    None,
                 )
+                if (
+                    choice is None
+                    or not session.authorize_choice(choice)
+                    or not session.authorize_speaker(
+                        row["actor_id"], request["node_id"]
+                    )
+                ):
+                    raise ValueError("Quest start choice was not offered")
+                outcome["packets"].extend(
+                    _activate(db, store, current, row, published[1][item["quest_id"]])
+                )
+            if binding is not None:
+                delivery = next(
+                    (
+                        entry
+                        for entry in published[0].get("turnins", [])
+                        if (
+                            entry["reference_id"],
+                            entry["action_id"],
+                            entry["node_id"],
+                            entry["choice_id"],
+                        )
+                        == key
+                    ),
+                    None,
+                )
+                if delivery is None:
+                    outcome = conversation.settle(
+                        db,
+                        store,
+                        current,
+                        session,
+                        binding,
+                        published[1][binding.quest_id],
+                        **request,
+                    )
+                else:
+                    from wakfu_server.achievements import conversation_turnin
+
+                    requirement = conversation_turnin.TurnInRequirement(
+                        delivery["item_reference"], delivery["quantity"]
+                    )
+                    outcome = conversation_turnin.settle(
+                        db,
+                        store,
+                        current,
+                        session,
+                        binding,
+                        published[1][binding.quest_id],
+                        requirement,
+                        **request,
+                    )
             for link in published[0].get("activation_links", []):
                 if link["after_quest"] in outcome.get("completed", []):
                     outcome["packets"].extend(
@@ -386,7 +651,7 @@ def choose(store, account_id, generation, character, session, body):
         raise
 
 
-def install(db, document):
+def install(db, document, *, actor_ids=None):
     """Publish reviewed data and nonoverlapping reconstructed NPC rows atomically.
 
     This is an operator/fixture installer, never an automatic startup seed.
@@ -411,6 +676,8 @@ def install(db, document):
     )
     for item in document["placements"]:
         row = item["row"]
+        if actor_ids is not None and row["actor_id"] not in actor_ids:
+            continue
         existing = db.execute(
             "SELECT * FROM world_dialogue_npcs WHERE actor_id=%s FOR UPDATE",
             (row["actor_id"],),

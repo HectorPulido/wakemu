@@ -1,4 +1,4 @@
-"""Freeze native reward17 XP at earning, independently of combat XP policy."""
+"""Freeze native reward17 XP and the server XP rate at earning."""
 import math
 
 from psycopg.pq import TransactionStatus
@@ -108,7 +108,7 @@ def reserve(db, character_id, achievement_id, cycle_key, reward_key, payload):
     level = owner["level"]
     base = monster_base_xp(level)
     amount = _rounded(parameter, base)
-    return dict(
+    frozen = dict(
         db.execute(
             "INSERT INTO achievement_scaled_xp_receipts "
             "(character_id,achievement_id,cycle_key,reward_key,policy_version,native_parameter,"
@@ -116,6 +116,38 @@ def reserve(db, character_id, achievement_id, cycle_key, reward_key, payload):
             (*key, POLICY, parameter, level, base, amount, Jsonb(payload)),
         ).fetchone()
     )
+    # Use the same rate as the client's BASE_XP_RATIO preview, frozen with the
+    # entitlement. Existing receipts without this row remain legacy-priced.
+    policy = db.execute(
+        "SELECT v.version,v.xp_rate_bp FROM combat_reward_policy_active a "
+        "JOIN combat_reward_policy_versions v USING(version) WHERE a.singleton FOR SHARE OF a,v"
+    ).fetchone()
+    if policy is None:
+        raise ValueError("Missing achievement XP rate")
+    earned = _scaled_amount(amount, policy["xp_rate_bp"])
+    db.execute(
+        "INSERT INTO achievement_flat_xp_rates "
+        "(character_id,achievement_id,cycle_key,reward_key,policy_version,xp_rate_bp,base_xp,awarded_xp) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+        (*key, policy["version"], policy["xp_rate_bp"], amount, earned),
+    )
+    return frozen
+
+
+def _scaled_amount(base, rate):
+    from wakfu_server.reward_rates import MAX_REWARD_RATE_BP, REWARD_RATE_SCALE
+
+    if (
+        type(base) is not int
+        or not 0 <= base < 2**63
+        or type(rate) is not int
+        or not 0 <= rate <= MAX_REWARD_RATE_BP
+    ):
+        raise ValueError("Invalid scaled achievement XP rate")
+    result = (base * rate + REWARD_RATE_SCALE // 2) // REWARD_RATE_SCALE
+    if result >= 2**63:
+        raise ValueError("Scaled achievement XP exceeds signed64 storage")
+    return result
 
 
 def amount(db, character, reward, entitlement):
@@ -160,4 +192,15 @@ def amount(db, character, reward, entitlement):
         raise ValueError("Missing frozen scaled XP reservation")
     if outbox["delivered_at"] is not None:
         return None
-    return frozen["final_amount"]
+    rate = db.execute(
+        "SELECT base_xp,xp_rate_bp,awarded_xp FROM achievement_flat_xp_rates "
+        "WHERE character_id=%s AND achievement_id=%s AND cycle_key=%s AND reward_key=%s",
+        key,
+    ).fetchone()
+    if rate is None:
+        return frozen["final_amount"]  # Entitlements earned before rate freezing.
+    if rate["base_xp"] != frozen["final_amount"] or rate[
+        "awarded_xp"
+    ] != _scaled_amount(rate["base_xp"], rate["xp_rate_bp"]):
+        raise ValueError("Scaled achievement XP rate receipt mismatch")
+    return rate["awarded_xp"]

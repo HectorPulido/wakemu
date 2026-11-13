@@ -664,6 +664,17 @@ class Fight:
     def _advance(self):
         from .combat_timeline_snapshot import end_current
 
+        if self.current is not None and getattr(
+            self, "rii_states_lesson_contract", None
+        ):
+            from wakfu_server.achievements.rii_states_contract import turn_end
+
+            turn_end(self, self.current.id)
+            # A lesson reaction can defeat the last opponent at turn end.
+            # Its death settlement clears the current actor immediately.
+            if self.phase != "active" or self.current is None:
+                return
+
         # Runtime end reactions and native expiry finish before _advance.
         # Refill the completed actor before another actor can mutate its budget.
         self._refill_turn_resources(self.current)
@@ -745,12 +756,19 @@ class Fight:
             dealt = min(target.hp, amount)
             target.hp -= dealt
         self._sync_resources(target)
+        orientation_fact = {}
+        if getattr(self, "rii_orientation_contract", None) is not None:
+            from wakfu_server.achievements.rii_orientation import damage_is_qualifying
+
+            if damage_is_qualifying(self, source_id, target_id, dealt):
+                orientation_fact["rii_orientation_hit"] = True
         self._event(
             "damage",
             source_id=source_id,
             target_id=target_id,
             amount=dealt,
             hp=target.hp,
+            **orientation_fact,
         )
         if before_hp > 0 and target.hp == 0:
             self._event("death", actor_id=target_id)
@@ -762,6 +780,10 @@ class Fight:
                 native_death_delivery(target_id)
             if not self._resolution_depth:
                 self._settle_deaths()
+        if orientation_fact and not self._resolution_depth:
+            from wakfu_server.achievements.rii_orientation import finish_if_qualified
+
+            finish_if_qualified(self)
         return dealt
 
     @contextmanager
@@ -778,6 +800,33 @@ class Fight:
             self._resolution_depth -= 1
             if self._resolution_depth == 0 and self.phase == "active":
                 self._settle_deaths()
+
+            if self._resolution_depth == 0 and getattr(
+                self, "rii_orientation_contract", None
+            ):
+                from wakfu_server.achievements.rii_orientation import (
+                    finish_if_qualified,
+                )
+
+                finish_if_qualified(self)
+
+            if self._resolution_depth == 0 and getattr(
+                self, "rii_los_lesson_contract", None
+            ):
+                from wakfu_server.achievements.rii_los_encounter import (
+                    finish_if_qualified,
+                )
+
+                finish_if_qualified(self)
+
+            if self._resolution_depth == 0 and getattr(
+                self, "rii_movement_lesson_contract", None
+            ):
+                from wakfu_server.achievements.rii_movement_contract import (
+                    finish_if_qualified,
+                )
+
+                finish_if_qualified(self)
 
             if self._resolution_depth == 0:
                 from .combat_hud_resource import sync_hud_resources

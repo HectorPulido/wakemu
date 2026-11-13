@@ -112,16 +112,26 @@ def load_scene(db, map_id, instance_id):
 
 
 def nearby(character, row):
+    """Check the actor's configured range and its reachable interaction floor."""
+    from .npc_interaction_anchors import interaction_anchor
+
+    anchor = interaction_anchor(row)
     return (
         (character["map_id"], character["instance_id"])
         == (row["map_id"], row["instance_id"])
-        and abs(character["z"] - row["z"]) <= 1
+        and (
+            abs(character["z"] - row["z"]) <= 1
+            or anchor is not None
+            and abs(character["z"] - anchor["z"]) <= 1
+            and abs(character["x"] - anchor["x"]) + abs(character["y"] - anchor["y"])
+            <= row["interaction_range"]
+        )
         and abs(character["x"] - row["x"]) + abs(character["y"] - row["y"])
         <= row["interaction_range"]
     )
 
 
-def spawn(row, native=None, language="es"):
+def spawn(row, native=None, language="es", *, enabled_actions=()):
     """Native eHj format11 carried by ctE12608, no player appearance patches.
 
     Uses the same verified exploration sections as combat_monster_world.world_actor;
@@ -150,10 +160,20 @@ def spawn(row, native=None, language="es"):
     out += b"\x00" + struct.pack(">iBBBBbB", -1, 0, 0, 0, 0, -1, 0)
     out += b"\x00"  # no world property overrides
     out += struct.pack(">qHhh", -row["actor_id"], 1, row["reference_id"], level)
+    if any(action not in row["action_ids"] for action in enabled_actions):
+        raise ValueError("NPC action is not available on this placement")
+    from wakfu_server import rii_dialogue_gate
+
     disabled_actions = (
         ()
-        if interactions_enabled() or _qualified_quest(row)
-        else tuple(action["id"] for action in speaker["actions"])
+        if interactions_enabled()
+        or _qualified_quest(row)
+        or rii_dialogue_gate.qualified_placement(row)
+        else tuple(
+            action["id"]
+            for action in speaker["actions"]
+            if action["id"] not in enabled_actions
+        )
     )
     out += struct.pack(">hhH", -1, -1, len(disabled_actions)) + b"".join(
         struct.pack(">i", action_id) for action_id in disabled_actions
@@ -181,10 +201,17 @@ def begin(
     native = catalog() if native is None else native
     rows = validate_placements(rows_provider(), native)
     row = next((value for value in rows if value["actor_id"] == actor_id), None)
-    if row is None or action_id not in row["action_ids"] or not nearby(initial, row):
+    from wakfu_server.achievements import npc_dialogue_actions
+
+    action_contract = npc_dialogue_actions.resolve(row, action_id)
+    if (
+        row is None
+        or (action_id not in row["action_ids"] and not action_contract)
+        or not nearby(initial, row)
+    ):
         raise ValueError("Unavailable nearby NPC dialogue action")
     nodes = {value["id"]: value for value in native["nodes"]}
-    root = row["dialogue_root"]
+    root = action_contract["root"] if action_contract else row["dialogue_root"]
     speaker = next(
         value for value in native["speakers"] if value["ref"] == row["reference_id"]
     )
@@ -209,7 +236,22 @@ def begin(
         for choice in nodes[root]["choices"]
         if not choice.get("criteria")
     }
-    graph.update(npc_observed_dialogue.graph(row, nodes))
+    if not action_contract:
+        graph.update(npc_observed_dialogue.graph(row, nodes))
+    else:
+        graph.update(action_contract["edges"])
+    # Otomai's lore branch is reconstructed from native dialogue text; unlike
+    # the preceding nodes, these transitions were not captured from a server.
+    if (
+        row["reference_id"] == 5459
+        and row["map_id"] == 1385
+        and root == 5772
+        and npc_protectors.speaker(row)[1] == 424
+        and authorized_identity(row)
+    ):
+        from .rii_otomai_fresco import lore_graph
+
+        graph.update(lore_graph(nodes))
     allowed_nodes = {root} | {
         target for target in graph.values() if target is not None and target != 0
     }
@@ -229,13 +271,24 @@ def begin(
         current = next(
             (value for value in rows_provider() if value["actor_id"] == actor_id), None
         )
+        # Airyna's captured initial choice sets 10606 while opening 5756.
+        # This changes the *entry* action to 1389, but the current 1390
+        # conversation remains valid through its already offered next node.
+        accepted_airyna_intro = (
+            actor_id == -1706442046308339
+            and action_id == 1390
+            and root == 5755
+            and node_id == 5756
+            and facts_provider is not None
+            and facts_provider().get(10606, False)
+        )
         return (
             current is not None
             and current == row
             and speaker_id == speaker_identity
             and node_id in allowed_nodes
             and nearby(character, current)
-            and available(action.get("criteria"))
+            and (available(action.get("criteria")) or accepted_airyna_intro)
             and available(nodes[root].get("criteria"))
         )
 

@@ -61,8 +61,10 @@ class OwnedNativeSpellEntryTests(unittest.TestCase):
             },
         )
 
-    def run_case(self, kind, enabled, *, failure=False, custom=False):
+    def run_case(self, kind, enabled, *, failure=False, custom=False, movement=False):
         char, monster, fight, body, deck, producer = self.fixture(kind)
+        if movement:
+            setattr(fight, f"rii_{movement}_lesson_contract", {"initialized": False})
         runtime = RuntimeMessages(fight)
         if failure:
             runtime.native_action_id = MAX_NATIVE_ACTION_ID
@@ -159,6 +161,11 @@ class OwnedNativeSpellEntryTests(unittest.TestCase):
         fallback, _, aliases = self.run_case("spell", True, custom=True)
         self.assertEqual(baseline, fallback)
         self.assertFalse(aliases["in_place"])
+
+    def test_movement_lesson_keeps_an_isolated_preview(self):
+        for lesson in ("movement", "states"):
+            _, _, aliases = self.run_case("spell", True, movement=lesson)
+            self.assertFalse(aliases["in_place"])
 
     def test_expired_scope_releases_callback_runtime_and_legacy_payment_read_order(
         self,

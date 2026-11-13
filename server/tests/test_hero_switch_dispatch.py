@@ -40,6 +40,7 @@ class HeroSwitchDispatchTests(unittest.TestCase):
         session_valid=True,
         requested_id=42,
         flush_error=None,
+        training_transit_active=False,
     ):
         events = []
         character = {
@@ -98,6 +99,7 @@ class HeroSwitchDispatchTests(unittest.TestCase):
             "loaded": True,
             "body": struct.pack(">q", requested_id),
             "hero_switch_pending": pending,
+            "training_transit_active": training_transit_active,
             "character": character,
             "account_id": 7,
             "generation": "lease",
@@ -279,6 +281,30 @@ class HeroSwitchDispatchTests(unittest.TestCase):
         )
         packets = [event[2] for event in events if event[0] == "send"]
         self.assertEqual(packets, [(13440, struct.pack(">Bq", 6, 84)), (674, b"info")])
+        self.assertTrue(
+            any(
+                event[0] == "record" and event[1]["event"] == "hero_switch_rejected"
+                for event in events
+            )
+        )
+
+    def test_pending_training_transit_rejects_leader_switch_without_mutating_roster(
+        self,
+    ):
+        namespace, events = self.run_branch(
+            12006,
+            requested_id=84,
+            training_transit_active=True,
+        )
+        namespace["_switch_main"].assert_not_called()
+        self.assertEqual(namespace["character"]["id"], 42)
+        self.assertIsNone(namespace["hero_switch_pending"])
+        self.assertFalse(
+            any(
+                event[0] in ("leave", "attach", "release", "join_world")
+                for event in events
+            )
+        )
         self.assertTrue(
             any(
                 event[0] == "record" and event[1]["event"] == "hero_switch_rejected"

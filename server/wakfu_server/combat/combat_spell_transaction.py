@@ -197,6 +197,24 @@ def _prepare_spell_transaction(
         raise ValueError(
             "Runtime factory must return dispatcher and private packet list"
         )
+    if getattr(preview, "rii_los_lesson_contract", None) is not None:
+        from wakfu_server.achievements.rii_los_native import retire_before_cast
+
+        retire_before_cast(
+            preview,
+            dispatcher,
+            effect_packets,
+            actor_id=caster.id,
+            spell_id=plan["spell_id"],
+            target=plan["target"],
+            action_id=action_id,
+        )
+    if getattr(preview, "rii_area_lesson_contract", None) is not None:
+        from wakfu_server.achievements.rii_area_runtime import begin
+
+        begin(
+            preview, source_id=caster.id, action_id=action_id, spell_id=plan["spell_id"]
+        )
     execution_origin = normal_execution_origin(plan)
     outcomes = execute_entry_roots(
         preview,
@@ -212,6 +230,10 @@ def _prepare_spell_transaction(
         roots_source=lambda: plan["effect_ids"],
         pay_resources=pay_resources,
     )
+    if getattr(preview, "_rii_area_pending", None) is not None:
+        from wakfu_server.achievements.rii_area_runtime import finish
+
+        finish(preview, effect_packets)
     finish_mirrored_cast_facing(caster, plan, fight=preview)
     for opcode, payload in effect_packets:
         if (

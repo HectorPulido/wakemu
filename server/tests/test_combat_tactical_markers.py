@@ -12,6 +12,26 @@ from wakfu_server.fight_checkpoint_store import snapshot
 
 
 class TacticalMarkersTests(unittest.TestCase):
+    def test_reconnect_replays_active_owned_lesson_marker_only_to_team(self):
+        self.fight.phase = "active"
+        self.fight.rii_movement_lesson_contract = {
+            "owner": 10,
+            "target": 30,
+            "hits": 2,
+            "initialized": True,
+            "marker": [4, 0, 0],
+        }
+        expected = markers._marker_packet(77, (4, 0, 0), 10, 0, True)
+        self.assertEqual(
+            markers.snapshots(self.registry, self.sessions[1], 77), (expected,)
+        )
+        self.assertEqual(
+            markers.snapshots(self.registry, self.sessions[2], 77), (expected,)
+        )
+        self.assertEqual(markers.snapshots(self.registry, self.sessions[3], 77), ())
+        self.fight.rii_movement_lesson_contract["hits"] = 4
+        self.assertEqual(markers.snapshots(self.registry, self.sessions[1], 77), ())
+
     def setUp(self):
         actors = [
             Actor(i, team, pos, 50, 6, 3, 100 - i, 1, owner, True)

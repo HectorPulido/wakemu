@@ -542,6 +542,11 @@ def prepare_server_initialization(
                     monsters=monsters,
                     layout=layout,
                 )
+            from wakfu_server.achievements.rii_native_initial_states import (
+                install as install_rii_states,
+            )
+
+            install_rii_states(dispatcher)
             deliver_fight_start(dispatcher, initialized_actor_ids=tuple(preview.actors))
             if rift_state is not None:
                 from .rift_artifact_generation import spawn_artifacts

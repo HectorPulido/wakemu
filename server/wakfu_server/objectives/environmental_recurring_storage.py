@@ -35,7 +35,7 @@ def _daily_source(
     final_order,
     *,
     native_property_id=None,
-    target_occurrences=()
+    target_occurrences=(),
 ):
     """Attest immutable published records without loading a monster catalog."""
     from wakfu_server import native_catalog
@@ -255,11 +255,12 @@ def _load(db, definition_id, version=None):
     return row, contract, rewards
 
 
-def _remove_current(state, contract):
-    identity = contract.definition_id
+def _remove_current(state, identity, objective_id):
+    _positive(identity, "definition")
+    _positive(objective_id, "objective")
     for key in ("running", "completed", "tracking"):
         state[key] = [i for i in state[key] if i != identity]
-    state["objectives"] = [i for i in state["objectives"] if i != contract.objective_id]
+    state["objectives"] = [i for i in state["objectives"] if i != objective_id]
     state["completion_dates"].pop(str(identity), None)
 
 
@@ -268,7 +269,7 @@ def synchronize(db, store, character):
     _owner(db, character)
     now_ms = _now(db)
     rows = db.execute(
-        "SELECT a.* FROM recurring_hunter_acceptances a JOIN recurring_hunter_contracts c "
+        "SELECT a.*,c.objective_id AS expired_objective_id FROM recurring_hunter_acceptances a JOIN recurring_hunter_contracts c "
         "USING(definition_id,version) WHERE a.character_id=%s AND a.expired_at_ms IS NULL "
         "AND c.anchor_ms+(a.period_index+1)*c.period_ms<=%s FOR UPDATE OF a",
         (character["id"], now_ms),
@@ -279,10 +280,11 @@ def synchronize(db, store, character):
     after = deepcopy(before)
     resets = []
     for row in rows:
-        _, contract, _ = _load(db, row["definition_id"], row["version"])
-        _remove_current(after, contract)
+        # Expiration relies on the immutable accepted contract's identifiers,
+        # not on the availability of its combat catalog or reward publisher.
+        _remove_current(after, row["definition_id"], row["expired_objective_id"])
         resets.append(
-            (13205, struct.pack(">qi", character["id"], contract.definition_id))
+            (13205, struct.pack(">qi", character["id"], row["definition_id"]))
         )
         db.execute(
             "UPDATE recurring_hunter_acceptances SET expired_at_ms=%s WHERE character_id=%s "
@@ -292,6 +294,70 @@ def synchronize(db, store, character):
     if after != before:
         storage.store(db, character["id"], after)
     return resets + wire.changes(character["id"], before, after, [], [], now_ms)
+
+
+def synchronize_owned(
+    store,
+    account_id,
+    generation,
+    character_id,
+    *,
+    next_boundary_ms=None,
+    now_ms=None,
+    include_company=False,
+):
+    """Reconcile expired cycles on session entry and at native period boundaries.
+
+    The boundary is connection-local; the database remains authoritative for
+    both expiration and the next scheduled checkpoint. Check all published
+    contracts so accepting a new mission does not require changing the cache.
+    """
+    import time
+
+    wall_ms = time.time_ns() // 1_000_000 if now_ms is None else now_ms
+    if type(wall_ms) is not int or wall_ms < 0:
+        raise ValueError("Invalid recurring hunter checkpoint clock")
+    if next_boundary_ms is not None:
+        if type(next_boundary_ms) is not int or next_boundary_ms < 0:
+            raise ValueError("Invalid recurring hunter checkpoint boundary")
+        if wall_ms < next_boundary_ms:
+            return next_boundary_ms, []
+    with store.connection() as db:
+        # Match the account-before-character order used by achievement writes.
+        db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
+        store.lock_character(db, account_id, generation, character_id)
+        db_now = _now(db)
+        character_ids = [character_id]
+        if include_company:
+            rows = db.execute(
+                "SELECT s.character_id FROM account_hero_slots s "
+                "JOIN account_hero_rosters r ON r.account_id=s.account_id "
+                "JOIN characters c ON c.id=s.character_id AND c.account_id=s.account_id "
+                "WHERE r.account_id=%s AND r.leader_id=%s AND c.deleted_at IS NULL "
+                "ORDER BY s.slot",
+                (account_id, character_id),
+            ).fetchall()
+            character_ids.extend(row["character_id"] for row in rows)
+        packets = []
+        for owner_id in character_ids:
+            packets.extend(
+                synchronize(db, store, {"id": owner_id, "account_id": account_id})
+            )
+        rows = db.execute(
+            "SELECT DISTINCT anchor_ms,period_ms FROM recurring_hunter_contracts"
+        ).fetchall()
+        boundaries = [
+            row["anchor_ms"]
+            + ((db_now - row["anchor_ms"]) // row["period_ms"] + 1) * row["period_ms"]
+            for row in rows
+            if type(row["anchor_ms"]) is int
+            and type(row["period_ms"]) is int
+            and row["period_ms"] > 0
+            and row["anchor_ms"] <= db_now
+        ]
+        # Periodically discover newly published contracts without a query on
+        # every idle iteration. Existing cycle boundaries are never deferred.
+        return min([db_now + 3_600_000, *boundaries]), packets
 
 
 def accept_from_receipt(db, store, character, definition_id, *, receipt_key):
@@ -437,6 +503,9 @@ def accept_from_receipt(db, store, character, definition_id, *, receipt_key):
     )
     after = deepcopy(before)
     after["running"] = sorted(set(after["running"]) | {definition_id})
+    from wakfu_server.achievements.mission_progress import auto_track
+
+    auto_track(after, definition_id)
     storage.store(db, character["id"], after)
     packets += wire.changes(character["id"], before, after, [], [], accepted_at)
     return dict(

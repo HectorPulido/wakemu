@@ -89,6 +89,10 @@ def prepare_with_critical(actor, *, rng, prepare, mode="auto", critical_availabl
 def spell_critical_available(spell_id, level):
     if type(spell_id) is not int or type(level) is not int or not 0 <= level <= 32767:
         raise ValueError("Missing audited native spell critical level")
+    if level == 0:
+        scoped = _rii_zero_critical().get(str(spell_id))
+        if type(scoped) is bool:
+            return scoped
     row = _spell_availability().get(str(spell_id))
     if row is None:
         raise ValueError("Missing native spell critical availability")
@@ -102,6 +106,20 @@ def spell_critical_available(spell_id, level):
 
 
 from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
+def _rii_zero_critical():
+    import json
+    from pathlib import Path
+
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "achievements"
+        / "rii_level_zero_critical.json"
+    )
+    data = json.loads(path.read_text())
+    return data["spells"]
 
 
 @lru_cache(maxsize=1)

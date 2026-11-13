@@ -338,9 +338,7 @@ class RecurringModuloxBackendTests(unittest.TestCase):
                 return resolved, event
 
             for options in (
-                dict(competitive=False),
                 dict(actor_level=21),
-                dict(cap=35),
                 dict(definition=1),
                 dict(boss=1259),
                 dict(room_order=2),

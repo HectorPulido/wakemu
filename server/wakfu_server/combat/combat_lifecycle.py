@@ -188,6 +188,70 @@ def prepare_finish(
                 runtime.expiration_runtime_factory,
                 action_id=runtime.action_id + 1,
             )
+            lesson = getattr(terminal, "rii_element_lesson_contract", None)
+            if isinstance(lesson, dict) and lesson.get("initialized") is True:
+                from .rii_lesson_grants import remove as remove_element_grants
+
+                terminal = deepcopy(terminal)
+                lesson_packets = []
+                remove_element_grants(
+                    terminal,
+                    lesson["owner"],
+                    lesson["grant_uids"],
+                    lesson_packets,
+                    action_id=runtime.action_id + 1,
+                )
+                terminal_packets = tuple(terminal_packets) + tuple(lesson_packets)
+            distance = getattr(terminal, "rii_distance_lesson_contract", None)
+            if isinstance(distance, dict) and distance.get("initialized") is True:
+                from .rii_lesson_grants import remove_distance_if_present
+
+                terminal = deepcopy(terminal)
+                distance_packets = []
+                remove_distance_if_present(
+                    terminal, distance_packets, action_id=runtime.action_id + 1
+                )
+                terminal_packets = tuple(terminal_packets) + tuple(distance_packets)
+            area = getattr(terminal, "rii_area_lesson_contract", None)
+            if isinstance(area, dict) and area.get("initialized") is True:
+                from .rii_lesson_grants import remove_area_if_present
+
+                terminal = deepcopy(terminal)
+                area_packets = []
+                remove_area_if_present(
+                    terminal, area_packets, action_id=runtime.action_id + 1
+                )
+                terminal_packets = tuple(terminal_packets) + tuple(area_packets)
+            los = getattr(terminal, "rii_los_lesson_contract", None)
+            if isinstance(los, dict) and los.get("initialized") is True:
+                from .rii_lesson_grants import remove_los_if_present
+
+                terminal = deepcopy(terminal)
+                los_packets = []
+                remove_los_if_present(
+                    terminal, los_packets, action_id=runtime.action_id + 1
+                )
+                terminal_packets = tuple(terminal_packets) + tuple(los_packets)
+            movement = getattr(terminal, "rii_movement_lesson_contract", None)
+            if isinstance(movement, dict) and movement.get("initialized") is True:
+                from .rii_lesson_grants import remove_movement_if_present
+
+                terminal = deepcopy(terminal)
+                movement_packets = []
+                remove_movement_if_present(
+                    terminal, movement_packets, action_id=runtime.action_id + 1
+                )
+                terminal_packets = tuple(terminal_packets) + tuple(movement_packets)
+            states = getattr(terminal, "rii_states_lesson_contract", None)
+            if isinstance(states, dict) and states.get("initialized") is True:
+                from .rii_lesson_grants import remove_states_if_present
+
+                terminal = deepcopy(terminal)
+                states_packets = []
+                remove_states_if_present(
+                    terminal, states_packets, action_id=runtime.action_id + 1
+                )
+                terminal_packets = tuple(terminal_packets) + tuple(states_packets)
             if terminal is not fight:
                 if previous_fight is None:
                     previous_fight = deepcopy(fight.__dict__)
@@ -436,6 +500,70 @@ def prepare_finish_shared(
             runtime.expiration_runtime_factory,
             action_id=runtime.action_id + 1,
         )
+        lesson = getattr(terminal, "rii_element_lesson_contract", None)
+        if isinstance(lesson, dict) and lesson.get("initialized") is True:
+            from .rii_lesson_grants import remove as remove_element_grants
+
+            terminal = deepcopy(terminal)
+            lesson_packets = []
+            remove_element_grants(
+                terminal,
+                lesson["owner"],
+                lesson["grant_uids"],
+                lesson_packets,
+                action_id=runtime.action_id + 1,
+            )
+            terminal_packets = tuple(terminal_packets) + tuple(lesson_packets)
+        distance = getattr(terminal, "rii_distance_lesson_contract", None)
+        if isinstance(distance, dict) and distance.get("initialized") is True:
+            from .rii_lesson_grants import remove_distance_if_present
+
+            terminal = deepcopy(terminal)
+            distance_packets = []
+            remove_distance_if_present(
+                terminal, distance_packets, action_id=runtime.action_id + 1
+            )
+            terminal_packets = tuple(terminal_packets) + tuple(distance_packets)
+        area = getattr(terminal, "rii_area_lesson_contract", None)
+        if isinstance(area, dict) and area.get("initialized") is True:
+            from .rii_lesson_grants import remove_area_if_present
+
+            terminal = deepcopy(terminal)
+            area_packets = []
+            remove_area_if_present(
+                terminal, area_packets, action_id=runtime.action_id + 1
+            )
+            terminal_packets = tuple(terminal_packets) + tuple(area_packets)
+        los = getattr(terminal, "rii_los_lesson_contract", None)
+        if isinstance(los, dict) and los.get("initialized") is True:
+            from .rii_lesson_grants import remove_los_if_present
+
+            terminal = deepcopy(terminal)
+            los_packets = []
+            remove_los_if_present(
+                terminal, los_packets, action_id=runtime.action_id + 1
+            )
+            terminal_packets = tuple(terminal_packets) + tuple(los_packets)
+        movement = getattr(terminal, "rii_movement_lesson_contract", None)
+        if isinstance(movement, dict) and movement.get("initialized") is True:
+            from .rii_lesson_grants import remove_movement_if_present
+
+            terminal = deepcopy(terminal)
+            movement_packets = []
+            remove_movement_if_present(
+                terminal, movement_packets, action_id=runtime.action_id + 1
+            )
+            terminal_packets = tuple(terminal_packets) + tuple(movement_packets)
+        states = getattr(terminal, "rii_states_lesson_contract", None)
+        if isinstance(states, dict) and states.get("initialized") is True:
+            from .rii_lesson_grants import remove_states_if_present
+
+            terminal = deepcopy(terminal)
+            states_packets = []
+            remove_states_if_present(
+                terminal, states_packets, action_id=runtime.action_id + 1
+            )
+            terminal_packets = tuple(terminal_packets) + tuple(states_packets)
         if terminal is not candidate:
             if previous_fight is None:
                 previous_fight = deepcopy(candidate.__dict__)

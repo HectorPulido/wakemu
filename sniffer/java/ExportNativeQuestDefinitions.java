@@ -64,7 +64,7 @@ public class ExportNativeQuestDefinitions {
             }
             Map<String,String> selected = new TreeMap<>();
             for (String key : all.stringPropertyNames()) {
-                if (key.startsWith("content.62.") || key.startsWith("content.63.") || key.startsWith("content.64.") || key.startsWith("content.65.")) selected.put(key, all.getProperty(key));
+                if (key.startsWith("content.60.") || key.startsWith("content.61.") || key.startsWith("content.62.") || key.startsWith("content.63.") || key.startsWith("content.64.") || key.startsWith("content.65.") || key.startsWith("content.80.")) selected.put(key, all.getProperty(key));
             }
             translations.put(language, selected);
         }

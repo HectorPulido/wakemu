@@ -262,6 +262,38 @@ class CompiledCatalogPublicationTests(PostgresCase):
                 side_effect=AssertionError("unexpected compilation"),
             ):
                 self.assertEqual(publisher.ensure_publication(), generation)
+            # A reviewed runtime-only source difference should clone immutable
+            # collection references in SQL without invoking the expensive compiler.
+            from tools import reuse_unchanged_compiled_catalog as reuse
+
+            compatible_identity = dict(identity)
+            compatible_identity["compiler_sources"] = dict(
+                compatible_identity["compiler_sources"]
+            )
+            runtime_module = "wakfu_server/combat/combat_group_store.py"
+            self.assertIn(runtime_module, compatible_identity["compiler_sources"])
+            compatible_identity["compiler_sources"][runtime_module] = "0" * 64
+            compatible_identity["compiler_contract_sha256"] = hashlib.sha256(
+                storage.canonical_bytes(compatible_identity["compiler_sources"])
+            ).hexdigest()
+            with self.store.connection() as db:
+                reused_generation = reuse.try_reuse(
+                    db, compatible_identity, storage.canonical_bytes
+                )
+            self.assertIsNotNone(reused_generation)
+            self.assertNotEqual(reused_generation, generation)
+            with self.store.connection() as db:
+                cloned_collections = db.execute(
+                    "SELECT old.collection,old.content_id AS old_id,new.content_id AS new_id "
+                    "FROM native_compiled_catalog_collections old "
+                    "JOIN native_compiled_catalog_collections new USING(collection) "
+                    "WHERE old.generation=%s AND new.generation=%s ORDER BY old.collection",
+                    (generation, reused_generation),
+                ).fetchall()
+            self.assertEqual(len(cloned_collections), len(spool.collections))
+            self.assertTrue(
+                all(row["old_id"] == row["new_id"] for row in cloned_collections)
+            )
             with patch.object(storage, "_default_store", backend):
                 warmed = storage.warm_publication(
                     generation, max_records=10, max_bytes=65536

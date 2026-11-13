@@ -99,8 +99,27 @@ def world_placement(member):
 
 def native_member_fields(member):
     """Remove only validated source metadata before exact native-stat checks."""
-    if world_placement(member) is None:
-        return member
-    return {
-        key: value for key, value in member.items() if key != "fixed_actor_placement"
-    }
+    placement = world_placement(member)
+    ignored = set()
+    if placement is not None:
+        ignored.add("fixed_actor_placement")
+    if "rii_practice_resistance" in member:
+        from wakfu_server.achievements.rii_free_practice import RESISTANCE_POINTS
+
+        percent = member["rii_practice_resistance"]
+        if (
+            type(percent) is not int
+            or percent not in RESISTANCE_POINTS
+            or member.get("ref") != 2335
+            or member.get("map_id") != 1388
+            or member.get("instance_id") != 0
+            or type(member.get("id")) is not int
+            or member["id"] >= 0
+        ):
+            raise ValueError("Invalid owned dojo resistance")
+        ignored.add("rii_practice_resistance")
+    return (
+        {key: value for key, value in member.items() if key not in ignored}
+        if ignored
+        else member
+    )

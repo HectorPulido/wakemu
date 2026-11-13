@@ -73,7 +73,7 @@ class NpcWorldTests(unittest.TestCase):
             session.choose(6274, 14076)
         with self.assertRaises(ValueError):
             session.choose(6274, 99)
-        self.assertIsNone(session.choose(6274, 14075))
+        self.assertEqual(session.choose(6274, 14075), (12218, struct.pack(">i", 0)))
 
     def test_rejects_wrong_instance_distance_or_action_and_rechecks_on_choice(self):
         for changes, action in [({"instance_id": 1}, 515), ({"x": 50}, 515), ({}, 999)]:
@@ -99,6 +99,19 @@ class NpcWorldTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             session.choose(6274, 14075)
         self.assertIsNone(session.node_id)
+
+    def test_nearby_platform_npc_remains_reachable_and_is_rechecked(self):
+        self.row.update(
+            actor_id=-1706442046308339, reference_id=5460, x=0, y=-19, z=3, map_id=1388
+        )
+        self.character.update(x=0, y=-17, z=0, map_id=1388)
+        self.assertTrue(nearby(self.character, self.row))
+        self.assertFalse(nearby(self.character, dict(self.row, actor_id=-123)))
+        self.assertFalse(nearby(self.character, dict(self.row, z=4)))
+        self.character["z"] = -1
+        self.assertTrue(nearby(self.character, self.row))
+        self.character["z"] = -2
+        self.assertFalse(nearby(self.character, self.row))
 
     def test_dialogue_freezes_owner_identity_across_provider_replacement_and_in_place_mutation(
         self,
@@ -145,7 +158,7 @@ class NpcWorldTests(unittest.TestCase):
         self.assertEqual(packet[0], 12969)
         current["x"] += 1
         self.assertTrue(nearby(current, self.row))
-        self.assertIsNone(session.choose(6274, 14075))
+        self.assertEqual(session.choose(6274, 14075), (12218, struct.pack(">i", 0)))
         self.assertIsNone(session.node_id)
 
     def test_rejects_duplicate_identity_positions_and_foreign_native_roots(self):

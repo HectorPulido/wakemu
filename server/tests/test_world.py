@@ -923,6 +923,19 @@ class WorldTests(unittest.TestCase):
         self.world.emit_location(1134, 0, 12304, b"npc", exclude_generation="a")
         self.assertEqual(self.messages, [("beta", 12304, b"npc")])
 
+    def test_emit_location_can_target_character_without_broadcasting(self):
+        self.world.join("a", "alpha", self.character(1))
+        self.world.join("b", "beta", self.character(2))
+        self.world.join("c", "other", self.character(3, map_id=42))
+        self.messages.clear()
+        self.world.emit_location(1134, 0, 12608, b"owned", only_character_id=1)
+        self.assertEqual(self.messages, [("alpha", 12608, b"owned")])
+        self.messages.clear()
+        self.world.emit_location(
+            1134, 0, 12608, b"owned", only_character_id=1, exclude_generation="a"
+        )
+        self.assertEqual(self.messages, [])
+
     def test_emit_location_excludes_exact_participant_sessions(self):
         self.world.join("same-generation", "participant", self.character(1))
         self.world.join("other-generation", "nearby", self.character(2))

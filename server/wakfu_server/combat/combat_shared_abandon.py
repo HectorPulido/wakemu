@@ -116,7 +116,46 @@ def prepare(store, registry, session, character, body, *, groups=None, shared=No
         runtime.turn_deadline = runtime.deadline_turn = None
         runtime.abandon_owner = (session.account_id, session.character_id)
         runtime.abandon_returned = False
-        packets = runtime.prepare_delivery(_terminal_packets(runtime, root.team))
+        lesson_packets = []
+        lesson = getattr(candidate, "rii_element_lesson_contract", None)
+        if isinstance(lesson, dict) and lesson.get("initialized") is True:
+            from .rii_lesson_grants import remove as remove_element_grants
+
+            remove_element_grants(
+                candidate,
+                lesson["owner"],
+                lesson["grant_uids"],
+                lesson_packets,
+                action_id=runtime.action_id + 1,
+            )
+        from .rii_lesson_grants import remove_distance_if_present
+
+        remove_distance_if_present(
+            candidate, lesson_packets, action_id=runtime.action_id + 1
+        )
+        from .rii_lesson_grants import remove_area_if_present
+
+        remove_area_if_present(
+            candidate, lesson_packets, action_id=runtime.action_id + 1
+        )
+        from .rii_lesson_grants import remove_los_if_present
+
+        remove_los_if_present(
+            candidate, lesson_packets, action_id=runtime.action_id + 1
+        )
+        from .rii_lesson_grants import remove_movement_if_present
+
+        remove_movement_if_present(
+            candidate, lesson_packets, action_id=runtime.action_id + 1
+        )
+        from .rii_lesson_grants import remove_states_if_present
+
+        remove_states_if_present(
+            candidate, lesson_packets, action_id=runtime.action_id + 1
+        )
+        packets = runtime.prepare_delivery(
+            lesson_packets + _terminal_packets(runtime, root.team)
+        )
         # The requester keeps the existing native scalar ACK path. Its durable
         # receipt also permits recovery if that socket disappears before ACK.
         private = _clone_runtime(runtime, deepcopy(candidate))

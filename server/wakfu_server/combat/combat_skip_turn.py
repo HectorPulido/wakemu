@@ -38,6 +38,14 @@ def skip_turn_packets(runtime):
     )
     if effective_server_controlled(fight, actor):
         return runtime.end_server_turn(actor.id, fight.turn_id)
+    # An ordinary NPC root can have no tactical AI and no player owner while
+    # still carrying SKIP_TURN (for example, a training target).  Reuse the
+    # constructor-attested end-only authority; do not assign it AI or let an
+    # unowned, unregistered actor acquire turn control.
+    from .combat_automatic_npc_turn import requires_automatic_npc_turn_end
+
+    if requires_automatic_npc_turn_end(fight, actor):
+        return runtime.end_automatic_npc_turn(actor.id, fight.turn_id)
     owner = effective_input_owner(fight, actor)
     if owner is None:
         raise ValueError("Missing actual skipped-turn owner")

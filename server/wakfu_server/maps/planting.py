@@ -134,6 +134,9 @@ def prepare(
             raise ValueError("Mining resources cannot be planted")
         if is_fish(seed["resource_reference"]):
             raise ValueError("Fishing resources cannot be planted")
+        from wakfu_server.incarnam_planting import authorize_if_tutorial
+
+        authorize_if_tutorial(db, current, seed, resource)
         from .profession_store import stored_level
 
         learned = stored_level(db, account, seed["profession_id"])
@@ -241,6 +244,11 @@ def complete(
             current[k] != character[k] for k in ("map_id", "instance_id", "x", "y", "z")
         ):
             raise ValueError("Planting origin changed")
+        from wakfu_server.incarnam_planting import authorize_if_tutorial
+
+        tutorial_planting = authorize_if_tutorial(
+            db, current, prepared["seed"], definition
+        )
         from .haven_bag_garden import is_private_garden, validate_target
 
         if is_private_garden(current):
@@ -389,7 +397,26 @@ def complete(
         else:
             progress = dict(packets=[])
         environmental_updates = ()
+        mission_packets = []
         if success:
+            if tutorial_planting:
+                from wakfu_server.intro_cinematic import scenario_event
+                from wakfu_server.achievements import incarnam_tutorial
+
+                if incarnam_tutorial.claim_presentation(db, current["id"], 22524):
+                    mission_packets.append(scenario_event(22524, 2500))
+            from wakfu_server.achievements.counter_missions import settle_rii_event
+
+            mission_packets.extend(
+                settle_rii_event(
+                    db,
+                    store,
+                    current,
+                    token=operation_id,
+                    kind="planting",
+                    item_reference=item["reference"],
+                )
+            )
             from wakfu_server.objectives.environmental_gameplay import (
                 committed_planting,
             )
@@ -418,7 +445,8 @@ def complete(
             (12470, struct.pack(">qh", item["uid"], -1)),
         ]
         + progress["packets"]
-        + ecology["packets"],
+        + ecology["packets"]
+        + mission_packets,
         ecology=ecology,
         custom_task_update=custom_task_update,
         character=(

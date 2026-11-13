@@ -17,7 +17,12 @@ from wakfu_server.characters.selection_capacity import configured_capacity
 
 class Store:
     def __init__(
-        self, database_url, clock=time.time, *, max_characters=None, password_file=None
+        self,
+        database_url,
+        clock=time.time,
+        *,
+        max_characters=None,
+        password_file=None,
     ):
         if not isinstance(database_url, str) or not database_url.strip():
             raise ValueError("PostgreSQL connection configuration required")
@@ -258,6 +263,7 @@ class Store:
         colors=None,
         appearance=None,
         selection_generation=None,
+        tutorial=None,
     ):
         if appearance is not None:
             if not isinstance(appearance, dict) or any(
@@ -351,6 +357,9 @@ class Store:
                         hp,
                     ),
                 ).fetchone()["id"]
+                from wakfu_server.intro_cinematic import assign_new_character
+
+                assign_new_character(db, account_id, character_id, tutorial=tutorial)
                 initialize(db, character_id)
                 db.execute(
                     "INSERT INTO character_progression(character_id,xp) VALUES(%s,0)",
@@ -378,7 +387,19 @@ class Store:
                     "INSERT INTO character_build_selection(character_id) VALUES(%s)",
                     (character_id,),
                 )
-                return self.character(account_id, character_id, db)
+                created = self.character(account_id, character_id, db)
+                if tutorial is False:
+                    # A direct island spawn has no preceding transport to start
+                    # its quests. Commit them with the newly created character.
+                    from wakfu_server.achievements import (
+                        zone_missions,
+                        rii_class_mission,
+                    )
+
+                    zone_missions.enter_rii(db, self, created, previous_map=None)
+                    rii_class_mission.start(db, self, created, previous_map=None)
+                    created = self.character(account_id, character_id, db)
+                return created
         except (UniqueViolation, ForeignKeyViolation):
             raise ValueError("Ese nombre ya existe o la cuenta es inválida.") from None
 
@@ -823,6 +844,15 @@ class Store:
             character = self.character(account_id, character_id, db)
             if character.get("recustomization"):
                 raise ValueError("Character requires pending recustomization")
+            # Expired recurring missions must be reconciled before generating
+            # the absolute login snapshot. Otherwise their tracker remains
+            # active while their missing cycle date hides them from the journal.
+            from wakfu_server.objectives.environmental_recurring_storage import (
+                synchronize as synchronize_recurring_missions,
+            )
+
+            if synchronize_recurring_missions(db, self, character):
+                character = self.character(account_id, character_id, db)
             from wakfu_server.achievements.service import drain_rewards
 
             # Selection publishes a fresh absolute bootstrap. Retry earned

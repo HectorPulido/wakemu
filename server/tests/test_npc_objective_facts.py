@@ -37,6 +37,12 @@ class NativeObjectiveFactsTest(unittest.TestCase):
         self.assertTrue(evaluate(criterion, {"map_id": 1385, "instance_id": 0}, {}))
         self.assertFalse(evaluate(criterion, {"map_id": 1388, "instance_id": 1385}, {}))
 
+    def test_real_level_upper_bound_uses_owned_progression_level(self):
+        criterion = "GetRealLevel() <= 30"
+        self.assertTrue(evaluate(criterion, {"level": 30}, {}))
+        self.assertFalse(evaluate(criterion, {"level": 31}, {}))
+        self.assertFalse(evaluate(criterion, {"level": True}, {}))
+
     def test_three_native_initial_bindings_and_completion_revocation(self):
         bindings = (
             (-1706442046308322, 5461, 1385, -17, -4, 17, 3, 5765, 1243, 10595, 13275),

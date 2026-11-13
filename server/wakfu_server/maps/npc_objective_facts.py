@@ -18,7 +18,7 @@ def definitions():
 
 
 def load(db, account_id, character_id):
-    """Check ownership even when this character has no stored completion facts."""
+    """Load owned legacy facts and completed objectives from quest authority."""
     owner = db.execute(
         "SELECT id FROM characters WHERE account_id=%s AND id=%s",
         (account_id, character_id),
@@ -30,7 +30,20 @@ def load(db, account_id, character_id):
         "WHERE account_id=%s AND character_id=%s",
         (account_id, character_id),
     ).fetchall()
-    return {row["objective_id"]: row["completed"] for row in rows}
+    facts = {row["objective_id"]: row["completed"] for row in rows}
+    authority = db.execute(
+        "SELECT snapshot FROM character_achievement_authority WHERE character_id=%s",
+        (character_id,),
+    ).fetchone()
+    if authority is not None:
+        from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+
+        snapshot = authority["snapshot"]
+        # Validate the entire projection before trusting any of its facts.
+        queries_from_snapshot(snapshot)
+        for objective_id in snapshot["objectives"]:
+            facts[objective_id] = True
+    return facts
 
 
 def supported(criteria, known=None):
@@ -43,7 +56,7 @@ def supported(criteria, known=None):
             continue
         if re.fullmatch(r"GetInstanceId\(\)\s*==\s*\d+", term):
             continue
-        if re.fullmatch(r'GetRealLevel\("caster"\)\s*>=\s*\d+', term):
+        if re.fullmatch(r'GetRealLevel\((?:"caster")?\)\s*(?:>=|<=)\s*\d+', term):
             continue
         return False
     return True
@@ -70,14 +83,15 @@ def evaluate(criteria, character, facts, known=None):
             if character.get("map_id") != int(match[1]):
                 return False
             continue
-        match = re.fullmatch(r'GetRealLevel\("caster"\)\s*>=\s*(\d+)', term)
+        match = re.fullmatch(r'GetRealLevel\((?:"caster")?\)\s*(>=|<=)\s*(\d+)', term)
         if match:
             # Owned character.level is progression drm, not selected build cmZ.
             level = character.get("level")
             if (
                 type(level) is not int
                 or not 1 <= level <= MAX_CHARACTER_LEVEL
-                or level < int(match[1])
+                or (match[1] == ">=" and level < int(match[2]))
+                or (match[1] == "<=" and level > int(match[2]))
             ):
                 return False
             continue

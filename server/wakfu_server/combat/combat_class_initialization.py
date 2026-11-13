@@ -75,6 +75,24 @@ def level_zero_catalog():
                 for component in ("spells", "casting", "effects")
             }
         )
+    # The original dojo transformations grant their spells at level zero.
+    # Their fG(0) casting tables and effect parameters are exported separately
+    # from the installed client; positive-level tables cannot substitute them.
+    from pathlib import Path
+
+    rii = json.loads(
+        (
+            Path(__file__).resolve().parents[1]
+            / "achievements"
+            / "rii_spell_level_zero.json"
+        ).read_text()
+    )
+    if rii.get("schema") != 1 or set(rii.get("spells", {})) != {
+        str(n) for n in range(7963, 7976)
+    }:
+        raise ValueError("Invalid native Rii level-zero spell export")
+    for component in ("spells", "casting", "effects"):
+        merged[component] = merge_zero_component(merged[component], rii[component])
     return merged
 
 

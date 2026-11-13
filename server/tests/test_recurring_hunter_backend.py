@@ -244,7 +244,7 @@ class RecurringHunterBackendTests(PostgresCase):
                 db, self.store, self.character, 3766, receipt_key="accept:first"
             )
             self.assertTrue(accepted["applied"])
-            self.assertEqual([p[0] for p in accepted["packets"]], [13312])
+            self.assertEqual([p[0] for p in accepted["packets"]], [13312, 13371])
             self.assertFalse(
                 recurring.accept_from_receipt(
                     db, self.store, self.character, 3766, receipt_key="accept:first"

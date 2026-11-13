@@ -675,6 +675,33 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
                 now,
             ),
         )
+        if product:
+            from wakfu_server.achievements.counter_missions import settle_rii_event
+
+            packets.extend(
+                settle_rii_event(
+                    db,
+                    store,
+                    character,
+                    token=token,
+                    kind="resource_harvest",
+                    item_reference=item_reference,
+                )
+            )
+            if resource["map_id"] == 1361 and resource["resource_reference"] == 824:
+                from wakfu_server.achievements import incarnam_resources
+
+                packets.extend(
+                    incarnam_resources.harvested(
+                        db,
+                        store,
+                        character,
+                        resource,
+                        rule,
+                        token=token,
+                        product_reference=item_reference,
+                    )
+                )
         from wakfu_server.objectives.environmental_gameplay import committed_resource
 
         environmental_updates = committed_resource(

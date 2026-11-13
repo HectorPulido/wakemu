@@ -1,12 +1,58 @@
 """Live native SKIP_TURN uses ordinary runtime expiry and ACK progression."""
 import struct
 import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_runtime_messages import RuntimeMessages
-from wakfu_server.combat_skip_turn import skip_turn_required
+from wakfu_server.combat_skip_turn import skip_turn_packets, skip_turn_required
 
 
 class SkipTurnTests(unittest.TestCase):
+    def test_unowned_attested_root_skips_without_claiming_player_or_ai_control(self):
+        actor = SimpleNamespace(id=-200)
+        fight = SimpleNamespace(phase="active", current=actor, turn_id=1, _event=Mock())
+        runtime = SimpleNamespace(
+            fight=fight,
+            awaiting_ack=None,
+            end_automatic_npc_turn=Mock(return_value=[("ended",)]),
+        )
+        with patch(
+            "wakfu_server.combat_skip_turn.skip_turn_required", return_value=True
+        ), patch(
+            "wakfu_server.combat_effective_control.effective_server_controlled",
+            return_value=False,
+        ), patch(
+            "wakfu_server.combat_automatic_npc_turn.requires_automatic_npc_turn_end",
+            return_value=True,
+        ), patch(
+            "wakfu_server.combat_effective_control.effective_input_owner"
+        ) as owner:
+            self.assertEqual(skip_turn_packets(runtime), [("ended",)])
+        runtime.end_automatic_npc_turn.assert_called_once_with(-200, 1)
+        owner.assert_not_called()
+
+    def test_unattested_unowned_actor_cannot_gain_skip_authority(self):
+        actor = SimpleNamespace(id=-200)
+        fight = SimpleNamespace(phase="active", current=actor, turn_id=1, _event=Mock())
+        runtime = SimpleNamespace(fight=fight, awaiting_ack=None)
+        with patch(
+            "wakfu_server.combat_skip_turn.skip_turn_required", return_value=True
+        ), patch(
+            "wakfu_server.combat_effective_control.effective_server_controlled",
+            return_value=False,
+        ), patch(
+            "wakfu_server.combat_automatic_npc_turn.requires_automatic_npc_turn_end",
+            return_value=False,
+        ), patch(
+            "wakfu_server.combat_effective_control.effective_input_owner",
+            return_value=None,
+        ):
+            with self.assertRaisesRegex(
+                ValueError, "Missing actual skipped-turn owner"
+            ):
+                skip_turn_packets(runtime)
+
     def fixture(self, both=False, controlled=False):
         first = Actor(-200, 1, (0, 0, 0), 100, 6, 3, 20, 1, 3, controlled)
         other = Actor(7, 0, (1, 0, 0), 100, 6, 3, 10, 1, 3, True)

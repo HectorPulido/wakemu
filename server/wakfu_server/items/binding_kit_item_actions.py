@@ -145,7 +145,20 @@ def _settle(db, store, character, document, receipt_id, context):
         raise ValueError("The binding mission reward already exists before completion")
     storage.store(db, character["id"], after)
     packets = wire.changes(character["id"], before, after, [objective], [identity], now)
-    packets.extend(rewards.grant(db, store, character, reward))
+    packets.extend(
+        rewards.grant(
+            db,
+            store,
+            character,
+            reward,
+            entitlement={
+                "achievement_id": identity,
+                "cycle_key": "once",
+                "reward_key": str(reward["d"]),
+                "payload": reward,
+            },
+        )
+    )
     storage.mark_reward_delivered(db, character["id"], identity, "once", reward["d"])
     return dict(
         packets=packets,

@@ -108,14 +108,38 @@ def _compiler_source_bytes():
     inventory = {}
     for path in sorted(package.rglob("*.py")):
         relative = path.relative_to(package)
-        # WakIA's World transport and planning bridge does not compile native
-        # catalog records. Its independent changes must not invalidate them.
-        # Keep every other server module in the compiler contract.
-        if relative.parts[0] != "wakia_bridge" and "__pycache__" not in relative.parts:
+        # Journal transitions and their event producers do not participate in
+        # compiling static combat data. Runtime may import them during combat,
+        # but changing a mission must not invalidate an immutable publication.
+        excluded_domains = {"wakia_bridge", "achievements", "objectives"}
+        excluded_modules = {
+            "characters/guild_daily_quests.py",
+            "items/crafting.py",
+            "maps/mission_transport.py",
+            "maps/monster_collect.py",
+            # Runtime-only NPC UI/interaction handling. Combat protector
+            # records are read through npc_protectors at runtime; the static
+            # combat catalog compiler does not invoke the dialogue scene.
+            "maps/npc_dialogue.py",
+            "maps/npc_objective_facts.py",
+            "maps/npc_world.py",
+            "maps/planting.py",
+            "maps/quest_npc.py",
+            "maps/resource_collect.py",
+            "maps/rii_conversation_progress.py",
+            "maps/rii_ecosystem_dialogue.py",
+            "maps/rii_dialogue_gate.py",
+        }
+        if (
+            relative.parts[0] not in excluded_domains
+            and relative.as_posix() not in excluded_modules
+            and "__pycache__" not in relative.parts
+        ):
             inventory["wakfu_server/" + relative.as_posix()] = _sha(path.read_bytes())
     server = package.parent
     for name in (
         "tools/publish_compiled_combat_catalog.py",
+        "tools/reuse_compiled_variants.py",
         "migrations/320_native_compiled_catalogs.sql",
     ):
         path = server / name
@@ -758,6 +782,12 @@ def resolve_publication(
     generation=None
 ):
     expected = expected_publication_identity(source_revision)
+    # Explicit local operator override: reuse existing compiled data when only
+    # the compiler code pin differs. Source data and configuration remain pinned.
+    reuse_flag = os.environ.get("WAKFU_COMPILED_CATALOG_REUSE_EXISTING", "0")
+    if reuse_flag not in ("0", "1"):
+        raise ValueError("WAKFU_COMPILED_CATALOG_REUSE_EXISTING must be 0 or 1")
+    reuse_existing = reuse_flag == "1"
     for field, supplied in (
         ("compiler_contract_sha256", compiler_contract_sha256),
         ("config_sha256", config_sha256),
@@ -772,19 +802,38 @@ def resolve_publication(
     store = _store()
     if selected is None:
         with store.connection() as db:
-            rows = db.execute(
-                "SELECT generation FROM native_compiled_catalog_releases WHERE complete "
-                "AND policy=%s AND source_revision=%s AND source_inventory_sha256=%s "
-                "AND compiler_contract_sha256=%s AND config_sha256=%s LIMIT 2",
-                tuple(expected[field] for field in _PIN_FIELDS),
-            ).fetchall()
+            if reuse_existing:
+                rows = db.execute(
+                    "SELECT generation FROM native_compiled_catalog_releases WHERE complete "
+                    "AND policy=%s AND source_revision=%s AND source_inventory_sha256=%s "
+                    "AND config_sha256=%s ORDER BY completed_at DESC NULLS LAST, generation DESC LIMIT 1",
+                    tuple(
+                        expected[field]
+                        for field in _PIN_FIELDS
+                        if field != "compiler_contract_sha256"
+                    ),
+                ).fetchall()
+            else:
+                rows = db.execute(
+                    "SELECT generation FROM native_compiled_catalog_releases WHERE complete "
+                    "AND policy=%s AND source_revision=%s AND source_inventory_sha256=%s "
+                    "AND compiler_contract_sha256=%s AND config_sha256=%s LIMIT 2",
+                    tuple(expected[field] for field in _PIN_FIELDS),
+                ).fetchall()
         if len(rows) != 1:
             raise RuntimeError(
-                "No unique complete compiled publication matches current source/compiler/config"
+                "No compatible complete compiled publication found; disable "
+                "WAKFU_COMPILED_CATALOG_REUSE_EXISTING to compile if necessary"
+                if reuse_existing
+                else "No unique complete compiled publication matches current source/compiler/config"
             )
         selected = rows[0]["generation"]
     manifest = store.header(_digest(selected))
-    if any(manifest.get(field) != expected[field] for field in _PIN_FIELDS):
+    if any(
+        manifest.get(field) != expected[field]
+        for field in _PIN_FIELDS
+        if not (reuse_existing and field == "compiler_contract_sha256")
+    ):
         raise ValueError(
             "Pinned compiled publication differs from source/compiler/config"
         )

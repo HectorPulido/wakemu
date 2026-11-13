@@ -57,6 +57,15 @@ def finish(
         != (generation, fight_id, revision)
     ):
         return {"applied": False, "packets": [], "receipts": []}
+    # Private practice dummies are finite encounter resources, not wildlife.
+    from wakfu_server.achievements.rii_free_practice import (
+        retire_used as retire_practice,
+    )
+
+    if retire_practice(
+        db, key, fight_id=fight_id, generation=generation, revision=revision
+    ):
+        return {"applied": True, "packets": [], "receipts": []}
     # Environmental event groups settle their normal combat lease and rewards,
     # but never ecological affinity, citizenship or ordinary population quotas.
     if is_owned_group(db, key):

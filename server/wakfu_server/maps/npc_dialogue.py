@@ -13,6 +13,10 @@ NODE_RESPONSE = 12218
 NPC_SPEAKER = 2
 
 
+class UnavailableDialogueChoice(ValueError):
+    """A native option is visible but its server transition is not available."""
+
+
 def interactions_enabled():
     """Keep NPC appearance while unqualified conversations remain disabled."""
     return False
@@ -68,6 +72,7 @@ class DialogueSession:
         self.node_id = None
         self.speaker_id = None
         self.authorize_speaker = None
+        self.previous_choice_id = None
 
     def _node(self, node_id):
         node = self.nodes.get(node_id)
@@ -84,6 +89,7 @@ class DialogueSession:
         payload = struct.pack(">ibq", node_id, speaker_type, speaker_id)
         self.node_id, self.speaker_id = node_id, speaker_id
         self.authorize_speaker = authorize_speaker
+        self.previous_choice_id = None
         return OPEN_RESPONSE, payload
 
     def choose(self, node_id, choice_id):
@@ -98,21 +104,30 @@ class DialogueSession:
             self.close()
             return None
         choice = next((row for row in node["choices"] if row["id"] == choice_id), None)
+        # A fast double click can carry the previous choice with the new node.
+        # Do not suppress a choice that the current node actually offers.
+        if choice is None and choice_id == self.previous_choice_id:
+            return None
         if choice is None or not self.authorize_choice(choice):
             raise ValueError("Dialogue choice was not offered")
         edge = (node_id, choice_id)
         if edge not in self.graph:
-            raise ValueError("Native server dialogue transition is not accredited")
+            raise UnavailableDialogueChoice(
+                "Native server dialogue transition is not accredited"
+            )
         target = self.graph[edge]
         if target is None:
             self.close()
-            return None
+            # Choices that close the conversation still need the native
+            # terminal node response; otherwise the client keeps a stale UI.
+            return NODE_RESPONSE, struct.pack(">i", 0)
         if target == 0:
             # Native captured terminal responses explicitly carry node zero.
             self.close()
             return NODE_RESPONSE, struct.pack(">i", 0)
         self._node(target)
         payload = struct.pack(">i", target)
+        self.previous_choice_id = choice_id
         self.node_id = target
         return NODE_RESPONSE, payload
 
@@ -120,3 +135,4 @@ class DialogueSession:
         self.node_id = None
         self.speaker_id = None
         self.authorize_speaker = None
+        self.previous_choice_id = None

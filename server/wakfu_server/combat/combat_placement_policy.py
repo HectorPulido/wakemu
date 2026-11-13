@@ -333,6 +333,11 @@ def _arena(map_id, instance_id, layout):
             participant_player_position=layout["participant_player_position"],
         )
         validated_destination(result)
+    if layout.get("native_rii_lesson_layout") is not None:
+        result.update(
+            native_rii_lesson_layout=layout["native_rii_lesson_layout"],
+            participant_player_position=layout["participant_player_position"],
+        )
     return result
 
 
@@ -445,6 +450,24 @@ def freeze(
             destination = validated_destination(
                 selected_arena, original=next(iter(seeds[0]))
             )
+            seeds = {0: [destination], 1: seeds[1]}
+        if selected_arena.get("native_rii_lesson_layout") is not None:
+            from wakfu_server.achievements.rii_lesson_layout import (
+                validated_player_position,
+            )
+
+            if len(seeds[0]) != 1:
+                raise ValueError("Rii lesson requires its selected owner")
+            origin = tuple(seeds[0][0])
+            owner = {
+                "id": character_id,
+                "map_id": map_id,
+                "instance_id": instance_id,
+                "x": origin[0],
+                "y": origin[1],
+                "z": origin[2],
+            }
+            destination = validated_player_position(owner, selected_arena)
             seeds = {0: [destination], 1: seeds[1]}
         seeds, friendly_helpers = partition_scene_helper_seeds(
             selected_arena,
@@ -575,6 +598,11 @@ def freeze(
                 native_initial_player_relocation=selected_arena[
                     "native_initial_player_relocation"
                 ],
+                participant_player_position=player_relocation,
+            )
+        if selected_arena.get("native_rii_lesson_layout") is not None:
+            layout.update(
+                native_rii_lesson_layout=selected_arena["native_rii_lesson_layout"],
                 participant_player_position=player_relocation,
             )
         if scene is not None:

@@ -209,6 +209,70 @@ def prepare(store, account_id, generation, character, runtime, body):
                 factory(action_id=planned.action_id + 1),
                 cleanup_packets,
             )
+    lesson = getattr(runtime.fight, "rii_element_lesson_contract", None)
+    if isinstance(lesson, dict) and lesson.get("initialized") is True:
+        from .rii_lesson_grants import remove as remove_element_grants
+
+        if not earned_cleanup:
+            planned.fight = copy.deepcopy(runtime.fight)
+        remove_element_grants(
+            planned.fight,
+            lesson["owner"],
+            lesson["grant_uids"],
+            cleanup_packets,
+            action_id=planned.action_id + 1,
+        )
+        earned_cleanup = True
+    distance = getattr(runtime.fight, "rii_distance_lesson_contract", None)
+    if isinstance(distance, dict) and distance.get("initialized") is True:
+        from .rii_lesson_grants import remove_distance_if_present
+
+        if not earned_cleanup:
+            planned.fight = copy.deepcopy(runtime.fight)
+        remove_distance_if_present(
+            planned.fight, cleanup_packets, action_id=planned.action_id + 1
+        )
+        earned_cleanup = True
+    area = getattr(runtime.fight, "rii_area_lesson_contract", None)
+    if isinstance(area, dict) and area.get("initialized") is True:
+        from .rii_lesson_grants import remove_area_if_present
+
+        if not earned_cleanup:
+            planned.fight = copy.deepcopy(runtime.fight)
+        remove_area_if_present(
+            planned.fight, cleanup_packets, action_id=planned.action_id + 1
+        )
+        earned_cleanup = True
+    los = getattr(runtime.fight, "rii_los_lesson_contract", None)
+    if isinstance(los, dict) and los.get("initialized") is True:
+        from .rii_lesson_grants import remove_los_if_present
+
+        if not earned_cleanup:
+            planned.fight = copy.deepcopy(runtime.fight)
+        remove_los_if_present(
+            planned.fight, cleanup_packets, action_id=planned.action_id + 1
+        )
+        earned_cleanup = True
+    movement = getattr(runtime.fight, "rii_movement_lesson_contract", None)
+    if isinstance(movement, dict) and movement.get("initialized") is True:
+        from .rii_lesson_grants import remove_movement_if_present
+
+        if not earned_cleanup:
+            planned.fight = copy.deepcopy(runtime.fight)
+        remove_movement_if_present(
+            planned.fight, cleanup_packets, action_id=planned.action_id + 1
+        )
+        earned_cleanup = True
+    states = getattr(runtime.fight, "rii_states_lesson_contract", None)
+    if isinstance(states, dict) and states.get("initialized") is True:
+        from .rii_lesson_grants import remove_states_if_present
+
+        if not earned_cleanup:
+            planned.fight = copy.deepcopy(runtime.fight)
+        remove_states_if_present(
+            planned.fight, cleanup_packets, action_id=planned.action_id + 1
+        )
+        earned_cleanup = True
     packets = cleanup_packets + _terminal_packets(planned, participant.team)
     # The durable outcome must not depend on the subsequent checkpoint or
     # client callback. Commit the abort and its health receipt together.

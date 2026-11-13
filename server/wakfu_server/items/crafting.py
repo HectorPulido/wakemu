@@ -351,6 +351,15 @@ def begin(
         recipe = _recipe(
             catalog, definition, request["recipe_id"], db=db, account_id=account_id
         )
+        if character["map_id"] == 1361 and table_id == 34582:
+            from wakfu_server.achievements import incarnam_resources
+
+            if request[
+                "recipe_id"
+            ] != incarnam_resources.KEY_RECIPE or not incarnam_resources.active(
+                db, character, 5137
+            ):
+                raise ValueError("Incarnam crafting tutorial is not active")
         batch_count, mode = _batch(opcode, request, recipe)
         from wakfu_server.profession_store import stored_level
 
@@ -724,6 +733,29 @@ def complete(
         packets.extend(
             settle_craft(db, store, character, token, profession_level=level)
         )
+        from wakfu_server.achievements.rii_crafting import settle as settle_rii_crafting
+
+        packets.extend(
+            settle_rii_crafting(
+                db,
+                store,
+                character,
+                {**row, "state": "completed", "products": products},
+            )
+        )
+        if row["map_id"] == 1361 and row["recipe_id"] == 9323:
+            from wakfu_server.achievements import incarnam_resources
+
+            packets.extend(
+                incarnam_resources.crafted(
+                    db,
+                    store,
+                    character,
+                    row,
+                    products,
+                    token=token,
+                )
+            )
         return dict(
             token=token,
             version=version + 1,

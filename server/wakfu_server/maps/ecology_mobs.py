@@ -34,6 +34,15 @@ def _sample():
     return secrets.randbelow(1 << 53) / (1 << 53)
 
 
+def _scripted_intro_scope(scope):
+    return (
+        len(scope) == 2
+        and scope[0] == 1361
+        and type(scope[1]) is int
+        and (1 << 62) < scope[1] < (1 << 62) + (1 << 48)
+    )
+
+
 def _scoped_players(players, scope):
     return [
         p
@@ -113,6 +122,8 @@ def prepare(store, snapshot, limit=16):
     excluded = set(snapshot["excluded_ids"])
     locations = {tuple(scope) for scope in snapshot["locations"]}
     locations &= {(p["map_id"], p.get("instance_id", 0)) for p in players}
+    # Incarnam's private scripted Wodents are encounter actors, not ecology.
+    locations = {scope for scope in locations if not _scripted_intro_scope(scope)}
     allow_wander = bool(snapshot.get("allow_wander", True))
     scopes = sorted(locations)
     domain_tick = snapshot.get("domain_planning_tick", 0)
@@ -851,13 +862,16 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
 
 def apply(store, groups, harvests, world, proposal, *, world_epoch):
     """Validate fresh live fences, commit CAS/receipts, then publish locally."""
+    if proposal["world_epoch"] != world_epoch:
+        return {"status": "stale_epoch"}
+    if _scripted_intro_scope(tuple(proposal.get("scope", ()))):
+        return {"status": "stale"}
+
     from . import monster_maturation as maturation
     from . import monster_reproduction as reproduction
     from . import monster_wander as wander
     from .combat_monster_world import remove_message, spawn_group
 
-    if proposal["world_epoch"] != world_epoch:
-        return {"status": "stale_epoch"}
     if proposal["kind"] == "idle_distribution":
         from .monster_idle_distribution_store import commit, validate_chunk
 

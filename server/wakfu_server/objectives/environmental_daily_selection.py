@@ -44,7 +44,7 @@ def _current(live, character):
     )
 
 
-def select_for_character(db, store, character, *, now_ms=None):
+def select_for_character(db, store, character, *, now_ms=None, bag_session=None):
     """Select only today's offers for an owned selected, actually present player.
 
     The caller owns the transaction. Vacant/stale presence returns before SQL.
@@ -59,8 +59,21 @@ def select_for_character(db, store, character, *, now_ms=None):
         raise ValueError("Daily hunter selection cannot backfill another UTC day")
     _lock_owner(store, db, character["account_id"], live[1], character["id"])
     actual = store.character(character["account_id"], character["id"], db)
-    if not _current(live, character) or any(
-        actual.get(key, 0) != character.get(key, 0) for key in ("map_id", "instance_id")
+    # Haven bag interiors are session-owned projections: the durable character
+    # location is deliberately its exterior return point. Only an active,
+    # owned private session can bridge those different locations.
+    private_bag = (
+        bag_session is not None
+        and bag_session.is_owner
+        and bag_session.owns(character)
+        and character.get("map_id") == 9
+    )
+    if not _current(live, character) or (
+        not private_bag
+        and any(
+            actual.get(key, 0) != character.get(key, 0)
+            for key in ("map_id", "instance_id")
+        )
     ):
         return ()
     active = db.execute(

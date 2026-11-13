@@ -184,6 +184,19 @@ def record_event(db, character_id, event_key, payload):
 
 def enqueue_reward(db, character_id, achievement_id, cycle_key, reward_key, payload):
     """Reserve a unique reward for a transaction-scoped delivery hook."""
+    if isinstance(payload, dict) and payload.get("aeV") == 6:
+        from .flat_xp import reserve
+
+        with db.transaction():
+            inserted = _enqueue_reward(
+                db, character_id, achievement_id, cycle_key, reward_key, payload
+            )
+            # Existing historical entitlements must not acquire today's rate.
+            if inserted:
+                reserve(
+                    db, character_id, achievement_id, cycle_key, reward_key, payload
+                )
+        return inserted
     if isinstance(payload, dict) and payload.get("aeV") == 17:
         from .scaled_xp import reserve
 

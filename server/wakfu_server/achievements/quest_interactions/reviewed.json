@@ -1,0 +1,39 @@
+{
+  "schema": "quest-interaction-batch-v1",
+  "bindings": [
+    {
+      "status": "reviewed",
+      "map_id": 507,
+      "object_id": 18153,
+      "action_id": 0,
+      "parameter": 0,
+      "x": -5,
+      "y": -57,
+      "z": -2,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 4,
+      "required_item": 15862,
+      "required_quantity": 1,
+      "quest_id": 1197,
+      "objective_id": 2157,
+      "evidence": "Reconstructed: native template 113, action 66 and item cost; objective association from mission text and active criterion."
+    },
+    {
+      "status": "reviewed",
+      "map_id": 507,
+      "object_id": 18141,
+      "action_id": 0,
+      "parameter": 0,
+      "x": 27,
+      "y": -114,
+      "z": 0,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 4,
+      "required_item": 15986,
+      "required_quantity": 1,
+      "quest_id": 1220,
+      "objective_id": 2181,
+      "evidence": "Reconstructed: native stall template 120 has one action and requires running quest 1220 plus item 15986; mapping to wire ACTIVATE and objective completion inferred, script outcomes unavailable."
+    }
+  ]
+}

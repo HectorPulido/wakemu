@@ -148,6 +148,556 @@
       "getDuration": 0,
       "isVisible": true,
       "native_class": "aJM"
+    },
+    {
+      "aHe": "",
+      "aeV": 4,
+      "aqb": false,
+      "bwX": 1186,
+      "cjG": 136,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 105",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2178,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            445000
+          ],
+          "d": 2069,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 105,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 6,
+      "cka": "",
+      "d": 1217,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "",
+      "aeV": 4,
+      "aqb": false,
+      "bwX": 1186,
+      "cjG": 136,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 105",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2181,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            445000
+          ],
+          "d": 2015,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 105,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 9,
+      "cka": "",
+      "d": 1220,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "",
+      "aeV": 4,
+      "aqb": false,
+      "bwX": 1021,
+      "cjG": 136,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 105",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2176,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            445000
+          ],
+          "d": 2006,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": true,
+      "cjN": true,
+      "cjO": false,
+      "cjP": 105,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 1349827200000,
+      "cjU": 86400,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 7,
+      "cka": "",
+      "d": 1215,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1695)",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 1506,
+      "cjG": 516,
+      "cjH": true,
+      "cjI": "",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 6189,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 6190,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 6187,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 6188,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 3201,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 3202,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 17,
+          "ckk": false,
+          "ckl": [
+            2000
+          ],
+          "d": 2982,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20373,
+            1
+          ],
+          "d": 4455,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 20,
+      "cjQ": 6,
+      "cjR": true,
+      "cjS": 1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 0,
+      "cka": "ach.516",
+      "d": 1695,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "",
+      "aeV": 4,
+      "aqb": false,
+      "bwX": 1021,
+      "cjG": 138,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 100",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2041,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            780000
+          ],
+          "d": 1964,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": true,
+      "cjN": true,
+      "cjO": false,
+      "cjP": 100,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 1346457600000,
+      "cjU": 86400,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 0,
+      "cka": "",
+      "d": 1108,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1708)",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 1506,
+      "cjG": 516,
+      "cjH": true,
+      "cjI": "IsAchievementComplete(1695)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 6191,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 6192,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 6193,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 6194,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5779,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5780,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 17,
+          "ckk": false,
+          "ckl": [
+            3000
+          ],
+          "d": 2996,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20374,
+            1
+          ],
+          "d": 4454,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 40,
+      "cjQ": 6,
+      "cjR": true,
+      "cjS": 1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 1,
+      "cka": "ach.516",
+      "d": 1708,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1715)",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 1506,
+      "cjG": 516,
+      "cjH": true,
+      "cjI": "IsAchievementComplete(1708)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5785,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5786,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 3253,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 3254,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5789,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5790,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5787,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5788,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 17,
+          "ckk": false,
+          "ckl": [
+            4000
+          ],
+          "d": 2998,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20372,
+            1
+          ],
+          "d": 4453,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            27271,
+            1
+          ],
+          "d": 8785,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 60,
+      "cjQ": 6,
+      "cjR": true,
+      "cjS": 1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 2,
+      "cka": "ach.516",
+      "d": 1715,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
     }
   ],
   "bindings": [
@@ -180,6 +730,126 @@
       "choice_id": 10281,
       "placement_sha256": "33dc040b76822e0a3dd8c08e9d919f085c0a5d58d5036f8e3c8abe6c51c4cd85",
       "native_definition_sha256": "6778ae44968e027ac50e3a03efab2a833044868cf471397a4975201f64bdc7bc"
+    },
+    {
+      "quest_id": 1217,
+      "objective_id": 2178,
+      "reference_id": 2421,
+      "action_id": 304,
+      "node_id": 2046,
+      "choice_id": 4713,
+      "placement_sha256": "9363b721fa3a267d70449d9bd411c44705511c0cc2007858a2a451a396a96fdc",
+      "native_definition_sha256": "63b670b83267761fc7d195aaf0e5e26932002a29d745a05794d11d5c607652d0"
+    },
+    {
+      "quest_id": 1695,
+      "objective_id": 6190,
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2408,
+      "choice_id": 9021,
+      "placement_sha256": "23ef6f0d45b57658d1f22fa2b63add965e184f50aeb3daad19e1e7ddf0ddf8d8",
+      "native_definition_sha256": "cb8121e1734f6e1b11f3a4e6cd1250c2f74204c3f96149e21150ca6f91ba947e"
+    },
+    {
+      "quest_id": 1695,
+      "objective_id": 6188,
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2408,
+      "choice_id": 9020,
+      "placement_sha256": "23ef6f0d45b57658d1f22fa2b63add965e184f50aeb3daad19e1e7ddf0ddf8d8",
+      "native_definition_sha256": "cb8121e1734f6e1b11f3a4e6cd1250c2f74204c3f96149e21150ca6f91ba947e"
+    },
+    {
+      "quest_id": 1695,
+      "objective_id": 3202,
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2408,
+      "choice_id": 5838,
+      "placement_sha256": "23ef6f0d45b57658d1f22fa2b63add965e184f50aeb3daad19e1e7ddf0ddf8d8",
+      "native_definition_sha256": "cb8121e1734f6e1b11f3a4e6cd1250c2f74204c3f96149e21150ca6f91ba947e"
+    },
+    {
+      "quest_id": 1108,
+      "objective_id": 2041,
+      "reference_id": 2358,
+      "action_id": 275,
+      "node_id": 1985,
+      "choice_id": 4597,
+      "placement_sha256": "6057a64affc5661f61d74eb831cf327d6ac36bcf6ed9a0e473f89637afaa78cd",
+      "native_definition_sha256": "3f36ac70eb547ed643280b0becfdfc27d725240796fba1c9d8c505a1922527f0"
+    },
+    {
+      "quest_id": 1708,
+      "objective_id": 6192,
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2410,
+      "choice_id": 9022,
+      "placement_sha256": "23ef6f0d45b57658d1f22fa2b63add965e184f50aeb3daad19e1e7ddf0ddf8d8",
+      "native_definition_sha256": "a5b6233b434fd341764f6baf7359c5e7c7da192206b8b317f69b1f4c22d4bd4e"
+    },
+    {
+      "quest_id": 1708,
+      "objective_id": 6194,
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2410,
+      "choice_id": 9023,
+      "placement_sha256": "23ef6f0d45b57658d1f22fa2b63add965e184f50aeb3daad19e1e7ddf0ddf8d8",
+      "native_definition_sha256": "a5b6233b434fd341764f6baf7359c5e7c7da192206b8b317f69b1f4c22d4bd4e"
+    },
+    {
+      "quest_id": 1708,
+      "objective_id": 5780,
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2410,
+      "choice_id": 5842,
+      "placement_sha256": "23ef6f0d45b57658d1f22fa2b63add965e184f50aeb3daad19e1e7ddf0ddf8d8",
+      "native_definition_sha256": "a5b6233b434fd341764f6baf7359c5e7c7da192206b8b317f69b1f4c22d4bd4e"
+    },
+    {
+      "quest_id": 1715,
+      "objective_id": 5786,
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2420,
+      "choice_id": 8608,
+      "placement_sha256": "23ef6f0d45b57658d1f22fa2b63add965e184f50aeb3daad19e1e7ddf0ddf8d8",
+      "native_definition_sha256": "96a5ab62c8d91c706e738e3ec2bda8aae7cdb95c041f4c46fd227e2bbf225c55"
+    },
+    {
+      "quest_id": 1715,
+      "objective_id": 3254,
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2420,
+      "choice_id": 8609,
+      "placement_sha256": "23ef6f0d45b57658d1f22fa2b63add965e184f50aeb3daad19e1e7ddf0ddf8d8",
+      "native_definition_sha256": "96a5ab62c8d91c706e738e3ec2bda8aae7cdb95c041f4c46fd227e2bbf225c55"
+    },
+    {
+      "quest_id": 1715,
+      "objective_id": 5790,
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2420,
+      "choice_id": 8610,
+      "placement_sha256": "23ef6f0d45b57658d1f22fa2b63add965e184f50aeb3daad19e1e7ddf0ddf8d8",
+      "native_definition_sha256": "96a5ab62c8d91c706e738e3ec2bda8aae7cdb95c041f4c46fd227e2bbf225c55"
+    },
+    {
+      "quest_id": 1715,
+      "objective_id": 5788,
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2420,
+      "choice_id": 8611,
+      "placement_sha256": "23ef6f0d45b57658d1f22fa2b63add965e184f50aeb3daad19e1e7ddf0ddf8d8",
+      "native_definition_sha256": "96a5ab62c8d91c706e738e3ec2bda8aae7cdb95c041f4c46fd227e2bbf225c55"
     }
   ],
   "holds": [],
@@ -332,6 +1002,290 @@
           0
         ]
       ]
+    },
+    {
+      "row": {
+        "actor_id": -2251799934991217,
+        "reference_id": 2421,
+        "map_id": 507,
+        "instance_id": 0,
+        "x": 9,
+        "y": -13,
+        "z": 4,
+        "direction": 3,
+        "dialogue_root": 1986,
+        "action_ids": [
+          304
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: reconstructed Father Doby NPC using native protector position, mission text and dialogue; exact original actor and edges not recovered"
+      },
+      "quest_id": 1217,
+      "activation_policy": "already_running",
+      "graph": [
+        [
+          1986,
+          4658,
+          2046
+        ],
+        [
+          1986,
+          4555,
+          0
+        ],
+        [
+          1986,
+          4669,
+          2015
+        ],
+        [
+          2015,
+          4672,
+          2016
+        ],
+        [
+          2016,
+          4673,
+          0
+        ],
+        [
+          2046,
+          4713,
+          0
+        ],
+        [
+          1986,
+          4650,
+          2005
+        ],
+        [
+          2005,
+          4652,
+          0
+        ],
+        [
+          1986,
+          4651,
+          0
+        ]
+      ],
+      "interaction_anchor": {
+        "x": 8,
+        "y": -13,
+        "z": 1
+      }
+    },
+    {
+      "quest_id": 1695,
+      "activation_policy": "explicit_choice",
+      "running_root": 2408,
+      "start_on_choice": [
+        2406,
+        5830
+      ],
+      "row": {
+        "actor_id": -2251799934991695,
+        "reference_id": 2873,
+        "map_id": 527,
+        "instance_id": 0,
+        "x": -95,
+        "y": -48,
+        "z": 2,
+        "direction": 1,
+        "dialogue_root": 2395,
+        "action_ids": [
+          466,
+          467,
+          468,
+          469,
+          470,
+          471
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1:otomai-disciple-placement-reconstructed-from-poi-5487"
+      },
+      "graph": [
+        [
+          2395,
+          5814,
+          2396
+        ],
+        [
+          2395,
+          5815,
+          0
+        ],
+        [
+          2396,
+          5816,
+          2398
+        ],
+        [
+          2396,
+          5817,
+          0
+        ],
+        [
+          2398,
+          5819,
+          2399
+        ],
+        [
+          2398,
+          5820,
+          0
+        ],
+        [
+          2399,
+          5821,
+          2402
+        ],
+        [
+          2399,
+          5822,
+          0
+        ],
+        [
+          2402,
+          5826,
+          2406
+        ],
+        [
+          2406,
+          5830,
+          2408
+        ],
+        [
+          2406,
+          5832,
+          0
+        ],
+        [
+          2408,
+          9021,
+          0
+        ],
+        [
+          2408,
+          9020,
+          0
+        ],
+        [
+          2408,
+          5838,
+          0
+        ],
+        [
+          2408,
+          5835,
+          0
+        ],
+        [
+          2410,
+          9022,
+          0
+        ],
+        [
+          2410,
+          9023,
+          0
+        ],
+        [
+          2410,
+          5842,
+          0
+        ],
+        [
+          2410,
+          5841,
+          0
+        ],
+        [
+          2420,
+          8608,
+          0
+        ],
+        [
+          2420,
+          8609,
+          0
+        ],
+        [
+          2420,
+          8610,
+          0
+        ],
+        [
+          2420,
+          8611,
+          0
+        ],
+        [
+          2420,
+          5863,
+          0
+        ]
+      ],
+      "running_roots": {
+        "1695": 2408,
+        "1708": 2410,
+        "1715": 2420
+      }
+    },
+    {
+      "row": {
+        "actor_id": -2251799934991108,
+        "reference_id": 2358,
+        "map_id": 504,
+        "instance_id": 0,
+        "x": 6,
+        "y": -8,
+        "z": 5,
+        "direction": 1,
+        "dialogue_root": 1985,
+        "action_ids": [
+          275
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: reconstructed Bill C. Berg from native protector 198 and native dialogue; actor join and transitions inferred"
+      },
+      "quest_id": 1108,
+      "activation_policy": "already_running",
+      "graph": [
+        [
+          1985,
+          4595,
+          1996
+        ],
+        [
+          1996,
+          4596,
+          0
+        ],
+        [
+          1985,
+          4597,
+          0
+        ],
+        [
+          1985,
+          4554,
+          0
+        ],
+        [
+          1985,
+          4562,
+          1988
+        ],
+        [
+          1988,
+          4563,
+          0
+        ]
+      ]
     }
   ],
   "reconstruction": "Explicit Wakemu authoring from native quest compass markers, NPC names/actions, localized story and original2313 entry scene. These are reconstructed positions/edges/activation producers, not recovered original server code.",
@@ -350,13 +1304,143 @@
       "teleporter_id": 29074,
       "destination_id": 3114,
       "native_scene": "scenario/2313.lua:event_2313_19265",
-      "incomplete_feedback": "\u00a1Eh, no tan r\u00e1pido! Habla con Arpagona a la entrada de la Torre Mineral y termina su misi\u00f3n antes de entrar."
+      "incomplete_feedback": "¡Eh, no tan rápido! Habla con Arpagona a la entrada de la Torre Mineral y termina su misión antes de entrar."
     }
   ],
   "activation_links": [
     {
       "after_quest": 3907,
       "start_quest": 3908
+    },
+    {
+      "after_quest": 1217,
+      "start_quest": 1220,
+      "policy": "reconstructed_narrative",
+      "evidence": "Doby dialogue 2046 directs player to the missing stall; original start event not recovered."
+    },
+    {
+      "after_quest": 1695,
+      "start_quest": 1708
+    },
+    {
+      "after_quest": 1708,
+      "start_quest": 1715
+    }
+  ],
+  "recurring_deliveries": [
+    {
+      "quest_id": 1215,
+      "objective_id": 2176,
+      "reference_id": 2421,
+      "action_id": 304,
+      "offer_node": 1986,
+      "offer_choice": 4650,
+      "accept_node": 2005,
+      "accept_choice": 4652,
+      "delivery_node": 1986,
+      "delivery_choice": 4651,
+      "item_reference": 15983,
+      "item_quantity": 5,
+      "cycle_policy": "fixed_native_anchor_v1",
+      "evidence": "Reconstructed from native Doby dialogue criteria and mission objective; original cycle boundary and consumption callback not recovered."
+    },
+    {
+      "quest_id": 1108,
+      "objective_id": 2041,
+      "reference_id": 2358,
+      "action_id": 275,
+      "offer_node": 1985,
+      "offer_choice": 4595,
+      "accept_node": 1996,
+      "accept_choice": 4596,
+      "delivery_node": 1985,
+      "delivery_choice": 4597,
+      "item_reference": 15862,
+      "item_quantity": 10,
+      "cycle_policy": "fixed_native_anchor_v1",
+      "evidence": "Reconstructed native Berg dialogue criteria, protector position and quest text; actor association, item debit and reset boundary not recovered."
+    }
+  ],
+  "turnins": [
+    {
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2408,
+      "choice_id": 9021,
+      "item_reference": 9256,
+      "quantity": 1
+    },
+    {
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2408,
+      "choice_id": 9020,
+      "item_reference": 12827,
+      "quantity": 1
+    },
+    {
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2408,
+      "choice_id": 5838,
+      "item_reference": 14828,
+      "quantity": 1
+    },
+    {
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2410,
+      "choice_id": 9022,
+      "item_reference": 9550,
+      "quantity": 1
+    },
+    {
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2410,
+      "choice_id": 9023,
+      "item_reference": 20668,
+      "quantity": 1
+    },
+    {
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2410,
+      "choice_id": 5842,
+      "item_reference": 20675,
+      "quantity": 1
+    },
+    {
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2420,
+      "choice_id": 8608,
+      "item_reference": 15162,
+      "quantity": 4
+    },
+    {
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2420,
+      "choice_id": 8609,
+      "item_reference": 26400,
+      "quantity": 4
+    },
+    {
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2420,
+      "choice_id": 8610,
+      "item_reference": 17785,
+      "quantity": 4
+    },
+    {
+      "reference_id": 2873,
+      "action_id": 466,
+      "node_id": 2420,
+      "choice_id": 8611,
+      "item_reference": 26406,
+      "quantity": 4
     }
   ]
 }

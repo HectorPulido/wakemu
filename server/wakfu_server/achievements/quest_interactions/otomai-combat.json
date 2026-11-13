@@ -1,0 +1,96 @@
+{
+  "schema": "combat_mission_bindings_v1",
+  "revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "bindings": [
+    {
+      "quest_id": 1695,
+      "objective_id": 6189,
+      "kind": "monster",
+      "target_id": 44,
+      "count": 1,
+      "evidence": "Native objective text and unique localized monster reference; accepted mission required.",
+      "acceptance": "explicit"
+    },
+    {
+      "quest_id": 1695,
+      "objective_id": 6187,
+      "kind": "monster",
+      "target_id": 1259,
+      "count": 1,
+      "evidence": "Native objective text and unique localized monster reference; accepted mission required.",
+      "acceptance": "explicit"
+    },
+    {
+      "quest_id": 1695,
+      "objective_id": 3201,
+      "kind": "monster",
+      "target_id": 2157,
+      "count": 1,
+      "evidence": "Native objective text and unique localized monster reference; accepted mission required.",
+      "acceptance": "explicit"
+    },
+    {
+      "quest_id": 1708,
+      "objective_id": 6191,
+      "kind": "monster",
+      "target_id": 1187,
+      "count": 1,
+      "evidence": "Native objective text and unique localized monster reference; accepted mission required.",
+      "acceptance": "explicit"
+    },
+    {
+      "quest_id": 1708,
+      "objective_id": 6193,
+      "kind": "monster",
+      "target_id": 3216,
+      "count": 1,
+      "evidence": "Native objective text and unique localized monster reference; accepted mission required.",
+      "acceptance": "explicit"
+    },
+    {
+      "quest_id": 1708,
+      "objective_id": 5779,
+      "kind": "monster",
+      "target_id": 4107,
+      "count": 1,
+      "evidence": "Native objective text and unique localized monster reference; accepted mission required.",
+      "acceptance": "explicit"
+    },
+    {
+      "quest_id": 1715,
+      "objective_id": 5785,
+      "kind": "monster",
+      "target_id": 4519,
+      "count": 1,
+      "evidence": "Native objective text and unique localized monster reference; accepted mission required.",
+      "acceptance": "explicit"
+    },
+    {
+      "quest_id": 1715,
+      "objective_id": 3253,
+      "kind": "monster",
+      "target_id": 4758,
+      "count": 1,
+      "evidence": "Native objective text and unique localized monster reference; accepted mission required.",
+      "acceptance": "explicit"
+    },
+    {
+      "quest_id": 1715,
+      "objective_id": 5789,
+      "kind": "monster",
+      "target_id": 2774,
+      "count": 1,
+      "evidence": "Native objective text and unique localized monster reference; accepted mission required.",
+      "acceptance": "explicit"
+    },
+    {
+      "quest_id": 1715,
+      "objective_id": 5787,
+      "kind": "monster",
+      "target_id": 4754,
+      "count": 1,
+      "evidence": "Native objective text and unique localized monster reference; accepted mission required.",
+      "acceptance": "explicit"
+    }
+  ]
+}

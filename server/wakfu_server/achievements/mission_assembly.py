@@ -168,7 +168,20 @@ def settle(db, store, character, receipt_id):
         character["id"], before, after, new_objectives, completed, now_ms
     )
     if completed:
-        packets.extend(rewards.grant(db, store, character, REWARD))
+        packets.extend(
+            rewards.grant(
+                db,
+                store,
+                character,
+                REWARD,
+                entitlement={
+                    "achievement_id": DEFINITION,
+                    "cycle_key": "once",
+                    "reward_key": str(REWARD["d"]),
+                    "payload": REWARD,
+                },
+            )
+        )
         storage.mark_reward_delivered(
             db, character["id"], DEFINITION, "once", REWARD["d"]
         )

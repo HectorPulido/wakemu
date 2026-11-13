@@ -1,0 +1,342 @@
+{
+  "schema": "ruel-arch-hunts-v1",
+  "provenance": "Native text/monster name matches, with explicitly reconstructed aliases for four records. Selection is reconstructed.",
+  "hunts": [
+    {
+      "quest_id": 3970,
+      "objective_id": 8461,
+      "minimum_level": 20,
+      "target_id": 4097
+    },
+    {
+      "quest_id": 3977,
+      "objective_id": 8462,
+      "minimum_level": 20,
+      "target_id": 4086
+    },
+    {
+      "quest_id": 3978,
+      "objective_id": 8463,
+      "minimum_level": 20,
+      "target_id": 4101
+    },
+    {
+      "quest_id": 3979,
+      "objective_id": 8464,
+      "minimum_level": 35,
+      "target_id": 4098
+    },
+    {
+      "quest_id": 3980,
+      "objective_id": 8465,
+      "minimum_level": 35,
+      "target_id": 4100
+    },
+    {
+      "quest_id": 3981,
+      "objective_id": 8466,
+      "minimum_level": 50,
+      "target_id": 4368
+    },
+    {
+      "quest_id": 3982,
+      "objective_id": 8467,
+      "minimum_level": 65,
+      "target_id": 4255
+    },
+    {
+      "quest_id": 3983,
+      "objective_id": 8468,
+      "minimum_level": 65,
+      "target_id": 4267
+    },
+    {
+      "quest_id": 3985,
+      "objective_id": 8470,
+      "minimum_level": 65,
+      "target_id": 4371
+    },
+    {
+      "quest_id": 3986,
+      "objective_id": 8471,
+      "minimum_level": 80,
+      "target_id": 4370
+    },
+    {
+      "quest_id": 3987,
+      "objective_id": 8472,
+      "minimum_level": 80,
+      "target_id": 5127
+    },
+    {
+      "quest_id": 3988,
+      "objective_id": 8473,
+      "minimum_level": 80,
+      "target_id": 4481
+    },
+    {
+      "quest_id": 3989,
+      "objective_id": 8474,
+      "minimum_level": 80,
+      "target_id": 3701
+    },
+    {
+      "quest_id": 3990,
+      "objective_id": 8475,
+      "minimum_level": 95,
+      "target_id": 4388
+    },
+    {
+      "quest_id": 3991,
+      "objective_id": 8476,
+      "minimum_level": 95,
+      "target_id": 4393
+    },
+    {
+      "quest_id": 3992,
+      "objective_id": 8477,
+      "minimum_level": 95,
+      "target_id": 4280
+    },
+    {
+      "quest_id": 3993,
+      "objective_id": 8478,
+      "minimum_level": 110,
+      "target_id": 4381
+    },
+    {
+      "quest_id": 3994,
+      "objective_id": 8479,
+      "minimum_level": 110,
+      "target_id": 4390
+    },
+    {
+      "quest_id": 3995,
+      "objective_id": 8480,
+      "minimum_level": 110,
+      "target_id": 2384
+    },
+    {
+      "quest_id": 3996,
+      "objective_id": 8481,
+      "minimum_level": 110,
+      "target_id": 2489
+    },
+    {
+      "quest_id": 3997,
+      "objective_id": 8482,
+      "minimum_level": 125,
+      "target_id": 4391
+    },
+    {
+      "quest_id": 3998,
+      "objective_id": 8483,
+      "minimum_level": 125,
+      "target_id": 2992
+    },
+    {
+      "quest_id": 3999,
+      "objective_id": 8484,
+      "minimum_level": 125,
+      "target_id": 4480
+    },
+    {
+      "quest_id": 4000,
+      "objective_id": 8485,
+      "minimum_level": 125,
+      "target_id": 4235
+    },
+    {
+      "quest_id": 4001,
+      "objective_id": 8486,
+      "minimum_level": 140,
+      "target_id": 2743
+    },
+    {
+      "quest_id": 4002,
+      "objective_id": 8487,
+      "minimum_level": 140,
+      "target_id": 2630
+    },
+    {
+      "quest_id": 4003,
+      "objective_id": 8488,
+      "minimum_level": 140,
+      "target_id": 4372
+    },
+    {
+      "quest_id": 4004,
+      "objective_id": 8489,
+      "minimum_level": 140,
+      "target_id": 4269
+    },
+    {
+      "quest_id": 4005,
+      "objective_id": 8490,
+      "minimum_level": 155,
+      "target_id": 5480
+    },
+    {
+      "quest_id": 4006,
+      "objective_id": 8491,
+      "minimum_level": 155,
+      "target_id": 3098
+    },
+    {
+      "quest_id": 4007,
+      "objective_id": 8492,
+      "minimum_level": 155,
+      "target_id": 3175
+    },
+    {
+      "quest_id": 4008,
+      "objective_id": 8493,
+      "minimum_level": 170,
+      "target_id": 4358
+    },
+    {
+      "quest_id": 4009,
+      "objective_id": 8494,
+      "minimum_level": 170,
+      "target_id": 4357
+    },
+    {
+      "quest_id": 4010,
+      "objective_id": 8495,
+      "minimum_level": 170,
+      "target_id": 4304
+    },
+    {
+      "quest_id": 4011,
+      "objective_id": 8496,
+      "minimum_level": 200,
+      "target_id": 4220
+    },
+    {
+      "quest_id": 4012,
+      "objective_id": 8497,
+      "minimum_level": 200,
+      "target_id": 4330
+    },
+    {
+      "quest_id": 4013,
+      "objective_id": 8498,
+      "minimum_level": 200,
+      "target_id": 4329
+    },
+    {
+      "quest_id": 4014,
+      "objective_id": 8499,
+      "minimum_level": 200,
+      "target_id": 4261
+    },
+    {
+      "quest_id": 4541,
+      "objective_id": 9409,
+      "minimum_level": 50,
+      "target_id": 5005
+    },
+    {
+      "quest_id": 4542,
+      "objective_id": 9410,
+      "minimum_level": 50,
+      "target_id": 1632
+    },
+    {
+      "quest_id": 4543,
+      "objective_id": 9411,
+      "minimum_level": 65,
+      "target_id": 4752
+    },
+    {
+      "quest_id": 4544,
+      "objective_id": 9412,
+      "minimum_level": 65,
+      "target_id": 4737
+    },
+    {
+      "quest_id": 4545,
+      "objective_id": 9413,
+      "minimum_level": 80,
+      "target_id": 4765
+    },
+    {
+      "quest_id": 4546,
+      "objective_id": 9414,
+      "minimum_level": 80,
+      "target_id": 1631
+    },
+    {
+      "quest_id": 4547,
+      "objective_id": 9415,
+      "minimum_level": 80,
+      "target_id": 1639
+    },
+    {
+      "quest_id": 4548,
+      "objective_id": 9416,
+      "minimum_level": 95,
+      "target_id": 5019
+    },
+    {
+      "quest_id": 4549,
+      "objective_id": 9417,
+      "minimum_level": 95,
+      "target_id": 1749
+    },
+    {
+      "quest_id": 4550,
+      "objective_id": 9418,
+      "minimum_level": 95,
+      "target_id": 5010
+    },
+    {
+      "quest_id": 4551,
+      "objective_id": 9419,
+      "minimum_level": 125,
+      "target_id": 1633
+    },
+    {
+      "quest_id": 4552,
+      "objective_id": 9420,
+      "minimum_level": 125,
+      "target_id": 1638
+    },
+    {
+      "quest_id": 4553,
+      "objective_id": 9421,
+      "minimum_level": 140,
+      "target_id": 4998
+    },
+    {
+      "quest_id": 4554,
+      "objective_id": 9422,
+      "minimum_level": 155,
+      "target_id": 4782
+    },
+    {
+      "quest_id": 4555,
+      "objective_id": 9423,
+      "minimum_level": 170,
+      "target_id": 5012
+    },
+    {
+      "quest_id": 4556,
+      "objective_id": 9424,
+      "minimum_level": 170,
+      "target_id": 5017
+    },
+    {
+      "quest_id": 4557,
+      "objective_id": 9425,
+      "minimum_level": 170,
+      "target_id": 5015
+    },
+    {
+      "quest_id": 4558,
+      "objective_id": 9426,
+      "minimum_level": 170,
+      "target_id": 4853
+    }
+  ]
+}

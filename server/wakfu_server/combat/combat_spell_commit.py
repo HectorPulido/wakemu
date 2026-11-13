@@ -10,6 +10,81 @@ from .combat_wire import actor_state
 from .combat_geometry_snapshot import source_snapshot
 
 
+def _movement_lesson_presentation(fight, opcode, payload, *, source_fight=None):
+    """Accept only the movement lesson's server-produced marker and notice."""
+    contract = getattr(fight, "rii_movement_lesson_contract", None)
+    if not isinstance(contract, dict) or not isinstance(payload, bytes):
+        return False
+    previous = getattr(
+        source_fight if source_fight is not None else fight,
+        "rii_movement_lesson_contract",
+        None,
+    )
+    if not isinstance(previous, dict) or previous.get("owner") != contract.get("owner"):
+        return False
+    if opcode == 12226 and len(payload) == struct.calcsize(">iiihqBB"):
+        fight_id, x, y, z, owner, icon, added = struct.unpack(">iiihqBB", payload)
+        marker = contract.get("marker") if added == 1 else previous.get("marker")
+        return (
+            fight_id == fight.id
+            and owner == contract.get("owner")
+            and isinstance(marker, (list, tuple))
+            and tuple(marker) == (x, y, z)
+            and (x, y, z) in fight.walkable
+            and icon == 0
+            and added in (0, 1)
+        )
+    if opcode == 349:
+        from wakfu_server.ecology_feedback import information
+
+        marker = contract.get("marker")
+        if isinstance(marker, list) and len(marker) == 3:
+            return (opcode, payload) == information(
+                f"Movement lesson: move the sack to cell ({marker[0]}, {marker[1]})."
+            )
+    return False
+
+
+def _states_lesson_presentation(fight, opcode, payload, *, source_fight):
+    contract = getattr(fight, "rii_states_lesson_contract", None)
+    previous = getattr(source_fight, "rii_states_lesson_contract", None)
+    if not isinstance(contract, dict) or not isinstance(previous, dict):
+        return False
+    hits = contract.get("hits")
+    if (
+        type(hits) is not int
+        or hits not in (1, 2, 3)
+        or type(previous.get("hits")) is not int
+        or hits != previous["hits"] + 1
+        or contract.get("owner") != previous.get("owner")
+    ):
+        return False
+    if opcode == 12226 and isinstance(payload, bytes) and len(payload) == 24:
+        fight_id, x, y, z, owner, icon, added = struct.unpack(">iiihqBB", payload)
+        if added == 0 and hits in (1, 2):
+            marker = previous.get("green" if hits == 1 else "red")
+            expected_icon = hits - 1
+        elif added == 1 and hits == 1:
+            marker = contract.get("red")
+            expected_icon = hits
+        else:
+            return False
+        return (
+            fight_id == fight.id
+            and owner == contract["owner"]
+            and isinstance(marker, (list, tuple))
+            and tuple(marker) == (x, y, z)
+            and (x, y, z) in fight.walkable
+            and icon == expected_icon
+        )
+    if opcode == 349:
+        from wakfu_server.ecology_feedback import information
+        from wakfu_server.achievements.rii_states_contract import MESSAGES
+
+        return (opcode, payload) == information(MESSAGES[hits])
+    return False
+
+
 def commit_spell_transaction(
     runtime, transaction, *, stats_serializer, diagnostic=None
 ):
@@ -20,7 +95,7 @@ def commit_spell_transaction(
                 elapsed_ms=round((time.monotonic() - started) * 1000, 3),
                 fight_id=runtime.fight.id,
                 action_id=transaction.action_id,
-                **details
+                **details,
             )
 
     if not isinstance(transaction, SpellTransaction) or not callable(stats_serializer):
@@ -44,6 +119,14 @@ def commit_spell_transaction(
             valid = isinstance(payload, bytes) and payload == struct.pack(
                 ">i", runtime.fight.id
             )
+        elif _movement_lesson_presentation(
+            transaction.fight, opcode, payload, source_fight=runtime.fight
+        ):
+            valid = True
+        elif _states_lesson_presentation(
+            transaction.fight, opcode, payload, source_fight=runtime.fight
+        ):
+            valid = True
         else:
             valid = isinstance(payload, bytes) and payload[:12] == expected
         if not valid:

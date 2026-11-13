@@ -155,6 +155,67 @@ def plan(session, fight, runtime):
                 public,
                 actor_ids=removed_set,
             )
+    lesson = getattr(candidate, "rii_element_lesson_contract", None)
+    if (
+        isinstance(lesson, dict)
+        and lesson.get("initialized") is True
+        and lesson.get("owner") in removed_set
+    ):
+        from .rii_lesson_grants import remove as remove_element_grants
+
+        remove_element_grants(
+            candidate,
+            lesson["owner"],
+            lesson["grant_uids"],
+            public,
+            action_id=candidate_runtime.action_id + 1,
+        )
+        del candidate.rii_element_lesson_contract
+    from .rii_lesson_grants import remove_distance_if_present
+
+    if remove_distance_if_present(
+        candidate,
+        public,
+        action_id=candidate_runtime.action_id + 1,
+        owner_ids=removed_set,
+    ):
+        del candidate.rii_distance_lesson_contract
+    from .rii_lesson_grants import remove_area_if_present
+
+    if remove_area_if_present(
+        candidate,
+        public,
+        action_id=candidate_runtime.action_id + 1,
+        owner_ids=removed_set,
+    ):
+        del candidate.rii_area_lesson_contract
+    from .rii_lesson_grants import remove_los_if_present
+
+    if remove_los_if_present(
+        candidate,
+        public,
+        action_id=candidate_runtime.action_id + 1,
+        owner_ids=removed_set,
+    ):
+        del candidate.rii_los_lesson_contract
+    from .rii_lesson_grants import remove_movement_if_present
+
+    if remove_movement_if_present(
+        candidate,
+        public,
+        action_id=candidate_runtime.action_id + 1,
+        owner_ids=removed_set,
+    ):
+        del candidate.rii_movement_lesson_contract
+    from .rii_lesson_grants import remove_states_if_present
+
+    if remove_states_if_present(
+        candidate,
+        public,
+        action_id=candidate_runtime.action_id + 1,
+        owner_ids=removed_set,
+    ):
+        del candidate.rii_states_lesson_contract
     from .combat_encounter_scene_helpers import (
         helper_actor_ids_for_departing,
         retire_departing_scene_helpers,

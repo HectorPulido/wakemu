@@ -979,4 +979,23 @@ class NativeDisplacementHandler:
             actors=tuple((actor.id, position) for actor, position in changed),
             path=path,
         )
+        contract = getattr(self.fight, "rii_movement_lesson_contract", None)
+        if isinstance(contract, dict):
+            before = positions_before.get(contract.get("target"))
+            if before is not None:
+                from wakfu_server.achievements.rii_movement_contract import (
+                    observe,
+                    finish_if_qualified,
+                )
+
+                observe(
+                    self.fight,
+                    caster_id=source.id,
+                    effect_reference=invocation.reference,
+                    before=before,
+                    packets=self.packets,
+                    action_id=self.action_id,
+                )
+                if not self.fight._resolution_depth:
+                    finish_if_qualified(self.fight)
         return True

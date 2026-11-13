@@ -4,7 +4,6 @@ Only a server-installed binding can connect a native quest objective to an
 accredited conversation edge. No binding is synthesized from an objective's
 compass marker, choice ordering, translated text, or proximity to a portal.
 """
-from copy import deepcopy
 from dataclasses import dataclass
 import hashlib
 import json
@@ -92,7 +91,7 @@ def authorize_fact(character, row, session, binding, definition, *, node_id, cho
         or placement_signature(row) != binding.placement_sha256
         or row["reference_id"] != binding.reference_id
         or binding.action_id not in row["action_ids"]
-        or not nearby(character, row)
+        or not getattr(session, "quest_nearby", nearby)(character, row)
         or not row.get("enabled", False)
         or session.speaker_id != row["actor_id"]
         or session.node_id != binding.node_id
@@ -130,9 +129,6 @@ def advance(state, fact, definition, *, character, store, now_ms):
     activation producer. Other quests, objectives and rewards remain untouched.
     Native availability and objective criteria are never bypassed.
     """
-    from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
-    from wakfu_server import dungeon_criteria
-
     if (
         fact.get("kind") != "qualified_native_quest_conversation_v1"
         or fact.get("character_id") != character["id"]
@@ -145,45 +141,16 @@ def advance(state, fact, definition, *, character, store, now_ms):
         or now_ms < 0
     ):
         raise ValueError("Invalid native conversation progress fact")
-    identity = definition["d"]
-    objectives = {r["d"]: r for r in definition["cjJ"]}
-    if (
-        len(objectives) != len(definition["cjJ"])
-        or fact["objective_id"] not in objectives
-    ):
-        raise ValueError("Missing or duplicate native quest objective")
-    candidate = deepcopy(state)
-    if (
-        identity in candidate["completed"]
-        or fact["objective_id"] in candidate["objectives"]
-    ):
-        return candidate, [], [], []
-    if identity not in candidate["running"]:
-        raise ValueError("Native quest conversation prerequisite: quest is not running")
-    queries = queries_from_snapshot(
-        {k: candidate[k] for k in ("running", "completed", "objectives")}
+    from .mission_progress import advance_objective
+
+    return advance_objective(
+        state,
+        definition,
+        fact["objective_id"],
+        character=character,
+        store=store,
+        now_ms=now_ms,
     )
-    objective = objectives[fact["objective_id"]]
-    for criterion in (definition["cjI"], objective["ckc"], objective["cke"]):
-        if not dungeon_criteria.evaluate(
-            store, criterion, character=character, queries=queries
-        ):
-            raise ValueError("Native quest conversation prerequisite is not met")
-    candidate["objectives"] = sorted(
-        set(candidate["objectives"]) | {fact["objective_id"]}
-    )
-    completed, intents = [], []
-    if set(objectives) <= set(candidate["objectives"]):
-        candidate["running"].remove(identity)
-        candidate["completed"] = sorted(set(candidate["completed"]) | {identity})
-        candidate["completion_dates"][str(identity)] = now_ms
-        candidate["recent"] = (
-            candidate["recent"] + [{"id": identity, "date_ms": now_ms}]
-        )[-255:]
-        candidate["tracking"] = [i for i in candidate["tracking"] if i != identity]
-        completed = [identity]
-        intents = [(identity, deepcopy(r)) for r in definition["cjK"]]
-    return candidate, intents, [fact["objective_id"]], completed
 
 
 def settle(db, store, character, session, binding, definition, *, node_id, choice_id):

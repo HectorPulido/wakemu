@@ -4,6 +4,9 @@ PUBLIC_COMMANDS_SETTING = "player_allowed_commands"
 DEFAULT_PLAYER_COMMANDS = ("!ayuda", "!pos", "!astrub")
 ADMIN_ONLY_COMMANDS = frozenset(
     {
+        "!quests",
+        "!quest-assign",
+        "!quest-complete",
         "!foodclear",
         "!nuke",
         "!nuke-all",
@@ -15,6 +18,9 @@ ADMIN_ONLY_COMMANDS = frozenset(
     }
 )
 COMMAND_ALIASES = {
+    "!misiones": "!quests",
+    "!mision-asignar": "!quest-assign",
+    "!mision-completar": "!quest-complete",
     "!help": "!ayuda",
     "!position": "!pos",
     "!level": "!nivel",

@@ -183,6 +183,9 @@ def activate(store, account_id, generation, character_id, body):
         )
         after = deepcopy(before)
         after["running"] = sorted(set(after["running"]) | {identity})
+        from wakfu_server.achievements.mission_progress import auto_track
+
+        auto_track(after, identity)
         if identity in _VARIABLES:
             after["variables"][str(_VARIABLES[identity])] = 0
         storage.store(db, character_id, after)

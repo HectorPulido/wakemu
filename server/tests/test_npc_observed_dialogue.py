@@ -200,7 +200,7 @@ class ObservedDialogueTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             session.choose(5764, 13343)
         self.assertEqual(session.node_id, 5764)
-        self.assertIsNone(session.choose(5764, 13344))
+        self.assertEqual(session.choose(5764, 13344), (12218, struct.pack(">i", 0)))
         self.assertNotIn((5764, 13344), npc_observed_dialogue.graph(row, self.nodes))
         from wakfu_server.maps import npc_objective_facts
 

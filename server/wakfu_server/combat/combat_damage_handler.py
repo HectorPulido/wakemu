@@ -549,6 +549,157 @@ class NativeDamageHandler:
             context,
             interpreted,
         )
+        if getattr(self.fight, "rii_area_lesson_contract", None) is not None:
+            from wakfu_server.achievements.rii_area_runtime import defer
+
+            if defer(
+                self.fight,
+                action_id=self.action_id,
+                source_id=source.id,
+                target_id=invocation.target_id,
+                effect_reference=invocation.reference,
+                damage=result["value"],
+                uid=uid,
+                element=effect["effect_class"],
+                cell=invocation.cell,
+                base_uid=invocation.base_uid,
+            ):
+                # The cast transaction applies damage only after all four
+                # authenticated impacts have been resolved successfully.
+                result = plan_damage_consumption(
+                    0,
+                    source,
+                    source_stats,
+                    target,
+                    target_stats,
+                    wall,
+                    target_hp,
+                    replace(context, blocked=False),
+                    {**interpreted, "bypass_armor_and_barrier": True},
+                )
+                runner.notification_suppressed = True
+        if getattr(self.fight, "rii_element_lesson_contract", None) is not None:
+            from wakfu_server.achievements.rii_element_contract import hit as lesson_hit
+
+            lesson_damage = lesson_hit(
+                self.fight,
+                source_id=source.id,
+                target_id=invocation.target_id,
+                effect_reference=invocation.reference,
+                damage=result["value"],
+            )
+            if lesson_damage is not None:
+                # Only this owner-qualified tutorial target uses fixed damage:
+                # 100 HP represents four verified turns, regardless of level.
+                result = plan_damage_consumption(
+                    lesson_damage,
+                    source,
+                    source_stats,
+                    target,
+                    target_stats,
+                    wall,
+                    target_hp,
+                    replace(context, blocked=False),
+                    {**interpreted, "bypass_armor_and_barrier": True},
+                )
+        if getattr(self.fight, "rii_distance_lesson_contract", None) is not None:
+            from wakfu_server.achievements.rii_distance_contract import (
+                hit as distance_hit,
+            )
+
+            distance_damage = distance_hit(
+                self.fight,
+                source_id=source.id,
+                target_id=invocation.target_id,
+                effect_reference=invocation.reference,
+                damage=result["value"],
+            )
+            if distance_damage is not None:
+                result = plan_damage_consumption(
+                    distance_damage,
+                    source,
+                    source_stats,
+                    target,
+                    target_stats,
+                    wall,
+                    target_hp,
+                    replace(context, blocked=False),
+                    {**interpreted, "bypass_armor_and_barrier": True},
+                )
+                if (
+                    distance_damage
+                    and self.fight.rii_distance_lesson_contract["hits"] < 4
+                ):
+                    from wakfu_server.ecology_feedback import information
+
+                    message = (
+                        "Hit the sack from 3 or more cells away."
+                        if self.fight.rii_distance_lesson_contract["hits"] % 2
+                        else "Hit the sack from 1 or 2 cells away."
+                    )
+                    self.packets.append(information(message))
+        if getattr(self.fight, "rii_states_lesson_contract", None) is not None:
+            from wakfu_server.achievements.rii_states_contract import (
+                announce,
+                hit as states_hit,
+            )
+
+            contract = self.fight.rii_states_lesson_contract
+            previous = contract.get("hits")
+            states_damage = states_hit(
+                self.fight,
+                source_id=source.id,
+                target_id=invocation.target_id,
+                effect_reference=invocation.reference,
+                damage=result["value"],
+            )
+            if states_damage is not None:
+                result = plan_damage_consumption(
+                    states_damage,
+                    source,
+                    source_stats,
+                    target,
+                    target_stats,
+                    wall,
+                    target_hp,
+                    replace(context, blocked=False),
+                    {**interpreted, "bypass_armor_and_barrier": True},
+                )
+                if states_damage and previous in (0, 1):
+                    from .combat_tactical_markers import _marker_packet
+
+                    marker = contract["green" if previous == 0 else "red"]
+                    self.packets.append(
+                        _marker_packet(
+                            self.fight.id, marker, contract["owner"], previous, False
+                        )
+                    )
+                    announce(self.fight, self.packets, action_id=self.action_id)
+        los_damage = None
+        if getattr(self.fight, "rii_los_lesson_contract", None) is not None:
+            from wakfu_server.achievements.rii_los_encounter import hit as los_hit
+
+            los_damage = los_hit(
+                self.fight,
+                source_id=source.id,
+                target_id=invocation.target_id,
+                effect_reference=invocation.reference,
+                damage=result["value"],
+                actor_authority=getattr(self, "rii_los_actor_authority", None),
+                spell_id=getattr(self, "rii_los_spell_id", None),
+            )
+            if los_damage is not None:
+                result = plan_damage_consumption(
+                    los_damage,
+                    source,
+                    source_stats,
+                    target,
+                    target_stats,
+                    wall,
+                    target_hp,
+                    replace(context, blocked=False),
+                    {**interpreted, "bypass_armor_and_barrier": True},
+                )
         pending_retained = None
         from .combat_native_timing_context import native_definition_timing
 
@@ -599,6 +750,15 @@ class NativeDamageHandler:
         runner.set_applied(result["value"])
         if not runner.notification_suppressed:
             self.packets.append((12613, packet))
+        if los_damage:
+            from wakfu_server.achievements.rii_los_encounter import move_one_rock
+
+            move_one_rock(
+                self.fight,
+                self.packets,
+                action_id=self.action_id,
+                actor_authority=self.rii_los_actor_authority,
+            )
         runner.finish_application()
         if (
             wall is not None

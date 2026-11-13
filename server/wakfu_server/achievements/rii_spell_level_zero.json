@@ -1,0 +1,704 @@
+{
+  "casting": {
+    "7963": {
+      "levels": [
+        [
+          1,
+          4,
+          [
+            361189,
+            361195
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": true,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "",
+      "cast_criterion_native_present": false,
+      "conditional": []
+    },
+    "7964": {
+      "levels": [
+        [
+          1,
+          4,
+          [
+            361190,
+            361196
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": true,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "",
+      "cast_criterion_native_present": false,
+      "conditional": []
+    },
+    "7965": {
+      "levels": [
+        [
+          1,
+          4,
+          [
+            361191,
+            361194
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": true,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "",
+      "cast_criterion_native_present": false,
+      "conditional": []
+    },
+    "7966": {
+      "levels": [
+        [
+          1,
+          4,
+          [
+            361192,
+            361197
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": true,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "",
+      "cast_criterion_native_present": false,
+      "conditional": []
+    },
+    "7967": {
+      "levels": [
+        [
+          1,
+          16,
+          [
+            361204
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": true,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "",
+      "cast_criterion_native_present": false,
+      "conditional": []
+    },
+    "7968": {
+      "levels": [
+        [
+          4,
+          16,
+          [
+            361213,
+            361214
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": true,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "",
+      "cast_criterion_native_present": false,
+      "conditional": []
+    },
+    "7969": {
+      "levels": [
+        [
+          2,
+          16,
+          [
+            367103
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": false,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "",
+      "cast_criterion_native_present": false,
+      "conditional": []
+    },
+    "7970": {
+      "levels": [
+        [
+          2,
+          16,
+          [
+            367142
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": false,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "",
+      "cast_criterion_native_present": false,
+      "conditional": []
+    },
+    "7971": {
+      "levels": [
+        [
+          2,
+          16,
+          [
+            367145
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": false,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "",
+      "cast_criterion_native_present": false,
+      "conditional": []
+    },
+    "7972": {
+      "levels": [
+        [
+          1,
+          6,
+          [
+            367262
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": true,
+      "linear": true,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "GetStateCountInRange(-1, \"caster\", 8011, 2) >= 1\r\nor GetStateCountInRange(-1, \"caster\", 8011, 3) >= 1",
+      "cast_criterion_native_present": true,
+      "conditional": []
+    },
+    "7973": {
+      "levels": [
+        [
+          1,
+          6,
+          [
+            367263
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": true,
+      "linear": true,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "GetStateCountInRange(-1, \"caster\", 8011, 1) >= 1\r\nor GetStateCountInRange(-1, \"caster\", 8011, 3) >= 1",
+      "cast_criterion_native_present": true,
+      "conditional": []
+    },
+    "7974": {
+      "levels": [
+        [
+          1,
+          4,
+          [
+            367264,
+            367383
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": true,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "IsTargetCellFree()\r\nand GetStateMaxLevelCountInRange(-1, -1, \"caster\", 8011) >= 3",
+      "cast_criterion_native_present": true,
+      "conditional": []
+    },
+    "7975": {
+      "levels": [
+        [
+          1,
+          6,
+          [
+            367265
+          ]
+        ]
+      ],
+      "costs": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "line_of_sight": true,
+      "linear": false,
+      "free_cell": false,
+      "path_option": false,
+      "diagonal": false,
+      "linear_path": false,
+      "allow_self": false,
+      "range_modifiable": false,
+      "categories": [],
+      "forbid_QI_P": false,
+      "cast_criterion_raw": "not IsTargetCellFree()\r\nand GetStateCountInRange(-1, \"caster\", 8011, 4) >= 1",
+      "cast_criterion_native_present": true,
+      "conditional": []
+    }
+  },
+  "schema": 1,
+  "effects": {
+    "361189": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        25,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 2,
+      "probability": 100.0
+    },
+    "361190": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        25,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 4,
+      "probability": 100.0
+    },
+    "361191": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        25,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 3,
+      "probability": 100.0
+    },
+    "361192": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        25,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 5,
+      "probability": 100.0
+    },
+    "361194": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [],
+      "maximum_level": 32767,
+      "family": 400,
+      "probability": 100.0
+    },
+    "361195": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [],
+      "maximum_level": 32767,
+      "family": 400,
+      "probability": 100.0
+    },
+    "361196": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [],
+      "maximum_level": 32767,
+      "family": 400,
+      "probability": 100.0
+    },
+    "361197": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [],
+      "maximum_level": 32767,
+      "family": 400,
+      "probability": 100.0
+    },
+    "361204": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        25,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 1,
+      "probability": 100.0
+    },
+    "361213": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        25,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 1,
+      "probability": 100.0
+    },
+    "361214": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [],
+      "maximum_level": 32767,
+      "family": 400,
+      "probability": 100.0
+    },
+    "367103": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        25,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 1,
+      "probability": 100.0
+    },
+    "367142": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        25,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 1,
+      "probability": 100.0
+    },
+    "367145": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        25,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 1,
+      "probability": 100.0
+    },
+    "367262": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        1,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 301,
+      "probability": 100.0
+    },
+    "367263": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        1,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 300,
+      "probability": 100.0
+    },
+    "367264": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [
+        1,
+        0
+      ],
+      "maximum_level": 32767,
+      "family": 302,
+      "probability": 100.0
+    },
+    "367265": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [],
+      "maximum_level": 32767,
+      "family": 422,
+      "probability": 100.0
+    },
+    "367383": {
+      "minimum_level": 0,
+      "children": [],
+      "parameters": [],
+      "maximum_level": 32767,
+      "family": 400,
+      "probability": 100.0
+    }
+  },
+  "spells": {
+    "7963": [
+      1,
+      4,
+      [
+        361189,
+        361195
+      ]
+    ],
+    "7964": [
+      1,
+      4,
+      [
+        361190,
+        361196
+      ]
+    ],
+    "7965": [
+      1,
+      4,
+      [
+        361191,
+        361194
+      ]
+    ],
+    "7966": [
+      1,
+      4,
+      [
+        361192,
+        361197
+      ]
+    ],
+    "7967": [
+      1,
+      16,
+      [
+        361204
+      ]
+    ],
+    "7968": [
+      4,
+      16,
+      [
+        361213,
+        361214
+      ]
+    ],
+    "7969": [
+      2,
+      16,
+      [
+        367103
+      ]
+    ],
+    "7970": [
+      2,
+      16,
+      [
+        367142
+      ]
+    ],
+    "7971": [
+      2,
+      16,
+      [
+        367145
+      ]
+    ],
+    "7972": [
+      1,
+      6,
+      [
+        367262
+      ]
+    ],
+    "7973": [
+      1,
+      6,
+      [
+        367263
+      ]
+    ],
+    "7974": [
+      1,
+      4,
+      [
+        367264,
+        367383
+      ]
+    ],
+    "7975": [
+      1,
+      6,
+      [
+        367265
+      ]
+    ]
+  },
+  "source": "Installed bPS/fyF.fG(short0), fyP.Qi0 and eVE parameter/probability0; offline"
+}

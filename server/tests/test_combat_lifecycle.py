@@ -14,6 +14,66 @@ from wakfu_server import health_store, health
 
 
 class LifecycleTests(PostgresCase):
+    def test_progression_failure_rolls_back_finished_fight_and_remains_retryable(self):
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+
+        (
+            store,
+            account,
+            char,
+            generation,
+            fight,
+        ) = test_combat_rewards.setup_reward_state(self.store)
+        with store.connection() as db:
+            db.execute(
+                "UPDATE combat_fights SET status='active' WHERE id=%s", (fight.id,)
+            )
+        before = store.character(account, char["id"])
+        runtime = RuntimeMessages(fight)
+        metadata = {
+            char["id"]: dict(
+                kind="player",
+                account_id=account,
+                name=char["name"],
+                breed=char["breed"],
+                is_male=char["sex"] == 0,
+            ),
+            -200: dict(kind="monster", ref=5525),
+        }
+
+        def fail_progression(db, members, candidate):
+            self.assertEqual(db.info.transaction_status, TransactionStatus.INTRANS)
+            db.execute("UPDATE characters SET hp=hp-1 WHERE id=%s", (char["id"],))
+            raise ValueError("Injected quest settlement failure")
+
+        with self.assertRaisesRegex(ValueError, "quest settlement failure"):
+            prepare_finish(
+                store,
+                account,
+                generation,
+                char,
+                runtime,
+                metadata,
+                duration_ms=1000,
+                fight_instance_id=fight.id,
+                policy=Policy(101, 13),
+                progression_resolver=fail_progression,
+            )
+        self.assertEqual(store.character(account, char["id"])["hp"], before["hp"])
+        with store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (fight.id,)
+                ).fetchone()["status"],
+                "active",
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) FROM fight_rewards WHERE fight_id=%s", (fight.id,)
+                ).fetchone()["count"],
+                0,
+            )
+
     def test_same_account_heroes_each_receive_rewards_with_one_native_result(self):
         from unittest.mock import patch
         from wakfu_server.combat_state import Actor

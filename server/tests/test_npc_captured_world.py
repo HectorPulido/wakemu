@@ -46,7 +46,7 @@ class CapturedNpcWorldTests(unittest.TestCase):
         # No inferred level-dependent quest transition is executed.
         with self.assertRaises(ValueError):
             session.choose(5764, 13343)
-        self.assertIsNone(session.choose(5764, 13344))
+        self.assertEqual(session.choose(5764, 13344), (12218, struct.pack(">i", 0)))
         with self.assertRaises(ValueError):
             session.choose(5764, 13344)
 

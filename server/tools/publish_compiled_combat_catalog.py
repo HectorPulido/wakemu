@@ -206,6 +206,149 @@ def merge_resolution_definitions(variants, *, own=None):
     return merged
 
 
+def reuse_raw_document(spool, identity, name):
+    """Reuse a raw document with identical source and serializer inputs.
+
+    Collections are already content-addressed.  Only their small descriptors
+    and ordered keys are read here; the records stay in shared storage.
+    """
+    from wakfu_server import native_catalog
+    from wakfu_server.native_compiled_catalog import canonical_bytes
+
+    source_sha = identity.get("source_documents", {}).get(name)
+    if not source_sha:
+        return None
+    with native_catalog._database().connection() as db:
+        storage = db.execute(
+            "SELECT relkind FROM pg_class WHERE oid=to_regclass('native_compiled_catalog_records')"
+        ).fetchone()
+        if not storage or storage["relkind"] != "v":
+            return None
+        candidates = db.execute(
+            "SELECT generation FROM native_compiled_catalog_releases "
+            "WHERE complete AND policy=%s AND compiler_contract_sha256=%s AND config_sha256=%s "
+            "AND manifest->'raw_documents'->%s->>'source_sha256'=%s "
+            "ORDER BY completed_at DESC LIMIT 5",
+            (
+                identity["policy"],
+                identity["compiler_contract_sha256"],
+                identity["config_sha256"],
+                name,
+                source_sha,
+            ),
+        ).fetchall()
+        # A release can supply many unchanged documents. Decode its manifest
+        # once per compilation instead of transferring it for every document.
+        manifests = getattr(spool, "_raw_reuse_manifests", None)
+        if manifests is None:
+            manifests = spool._raw_reuse_manifests = {}
+        for candidate in candidates:
+            generation = candidate["generation"]
+            if generation not in manifests:
+                row = db.execute(
+                    "SELECT manifest_raw,manifest FROM native_compiled_catalog_releases "
+                    "WHERE generation=%s AND complete",
+                    (generation,),
+                ).fetchone()
+                if not row:
+                    manifests[generation] = None
+                else:
+                    raw, manifest = bytes(row["manifest_raw"]), row["manifest"]
+                    manifests[generation] = (
+                        manifest
+                        if (
+                            digest(raw) == generation
+                            and canonical_bytes(manifest) == raw
+                        )
+                        else None
+                    )
+            manifest = manifests[generation]
+            if manifest is None:
+                continue
+            if (
+                manifest.get("policy") != identity["policy"]
+                or manifest.get("compiler_contract_sha256")
+                != identity["compiler_contract_sha256"]
+                or manifest.get("config_sha256") != identity["config_sha256"]
+                or manifest.get("source_documents", {}).get(name) != source_sha
+            ):
+                continue
+            entry = manifest.get("raw_documents", {}).get(name)
+            if not isinstance(entry, dict) or entry.get("source_sha256") != source_sha:
+                continue
+            references = entry.get("collections", {})
+            if not isinstance(references, dict):
+                continue
+            names = [
+                row.get("collection")
+                for row in references.values()
+                if isinstance(row, dict)
+            ]
+            if len(names) != len(references) or len(set(names)) != len(names):
+                continue
+            if any(
+                not isinstance(
+                    manifest.get("collections", {}).get(ref["collection"]), dict
+                )
+                or any(
+                    ref.get(key) != manifest["collections"][ref["collection"]].get(key)
+                    for key in ("collection", "kind", "count", "ordered_keys_sha256")
+                )
+                for ref in references.values()
+            ):
+                continue
+            rows = (
+                db.execute(
+                    "SELECT c.collection,c.kind,c.record_count,c.ordered_keys_raw,c.ordered_keys_sha256, "
+                    "s.complete AS content_complete,s.collection AS content_collection,s.kind AS content_kind, "
+                    "s.representation,s.record_count AS content_count,s.ordered_keys_sha256 AS content_keys_sha256, "
+                    "s.records_sha256 FROM native_compiled_catalog_collections c "
+                    "JOIN native_compiled_collection_contents s USING(content_id) "
+                    "WHERE c.generation=%s AND c.collection=ANY(%s)",
+                    (candidate["generation"], names),
+                ).fetchall()
+                if names
+                else []
+            )
+            if len(rows) != len(names):
+                continue
+            resolved = {}
+            valid = True
+            for row in rows:
+                collection = row["collection"]
+                metadata = manifest.get("collections", {}).get(collection)
+                keys = bytes(row["ordered_keys_raw"])
+                if (
+                    not isinstance(metadata, dict)
+                    or not row["content_complete"]
+                    or metadata.get("collection") != collection
+                    or metadata.get("kind") != row["kind"]
+                    or row["content_kind"] != row["kind"]
+                    or row["content_collection"] != collection
+                    or metadata.get("count") != row["record_count"]
+                    or row["content_count"] != row["record_count"]
+                    or metadata.get("representation") != row["representation"]
+                    or metadata.get("ordered_keys_sha256") != row["ordered_keys_sha256"]
+                    or row["content_keys_sha256"] != row["ordered_keys_sha256"]
+                    or metadata.get("records_sha256") != row["records_sha256"]
+                    or digest(keys) != row["ordered_keys_sha256"]
+                    or (
+                        collection in spool.collections
+                        and spool.collections[collection] != metadata
+                    )
+                ):
+                    valid = False
+                    break
+                resolved[collection] = (metadata, keys)
+            if not valid or set(resolved) != set(names):
+                continue
+            for collection, (metadata, keys) in resolved.items():
+                spool.collections[collection] = metadata
+                spool.keys[collection] = keys
+            return dict(entry)
+    return None
+
+
 def compile_manifest(spool, identity):
     from wakfu_server import native_catalog
     from wakfu_server.paths import DATA_ROOT
@@ -216,10 +359,15 @@ def compile_manifest(spool, identity):
     from wakfu_server.spell_audit import catalog, costs_catalog, states_catalog
     from wakfu_server.combat_casting_context import casting_root_catalog
 
-    player = compile_runtime_catalog_eager()
-    state_document = states_catalog()
-    spool.collection("shared.states", raw_value(state_document, "states"))
-    spool.collection("shared.state_effects", raw_value(state_document, "effects"))
+    from tools.reuse_compiled_variants import reuse as reuse_variants
+
+    reused_variants = reuse_variants(spool, identity)
+    state_document = None
+    if reused_variants is None:
+        player = compile_runtime_catalog_eager()
+        state_document = states_catalog()
+        spool.collection("shared.states", raw_value(state_document, "states"))
+        spool.collection("shared.state_effects", raw_value(state_document, "effects"))
     manifest = dict(
         identity,
         variants={},
@@ -235,9 +383,14 @@ def compile_manifest(spool, identity):
         ("npc_baseline", lambda: compile_npc_runtime_catalog_eager(imported=False)),
         ("weapon", compile_weapon_runtime_catalog_eager),
     )
-    compiled_variants = [
-        (variant, constructor()) for variant, constructor in constructors
-    ]
+    compiled_variants = (
+        [(variant, constructor()) for variant, constructor in constructors]
+        if reused_variants is None
+        else []
+    )
+    if reused_variants is not None:
+        manifest.update(reused_variants)
+        log("compiled_variants_reused", variants=sorted(reused_variants["variants"]))
     # A live Qf may contain a runner admitted by another actor's variant.
     # Lookup must resolve that original definition without granting its entry
     # roots to the current actor or changing the NPC activation policy.
@@ -271,6 +424,13 @@ def compile_manifest(spool, identity):
             if reference in index
         ]
     for name in RAW_DOCUMENTS:
+        entry = reuse_raw_document(spool, identity, name)
+        if entry is not None:
+            manifest["raw_documents"][name] = entry
+            log("compiled_raw_document_reused", document=name)
+            continue
+        if name == "combat-state-definitions.json" and state_document is None:
+            state_document = states_catalog()
         value = (
             state_document
             if name == "combat-state-definitions.json"
@@ -460,10 +620,26 @@ def publish(db, spool, manifest, canonical_bytes, *, identity_check=None):
         seconds=time.monotonic() - began,
     )
     expected = sum(row["count"] for row in spool.collections.values())
-    actual = db.execute(
-        "SELECT count(*) AS n FROM native_compiled_catalog_records WHERE generation=%s",
-        (generation,),
-    ).fetchone()["n"]
+    if shared:
+        # Every reference was resolved by publish_shared_collection against a
+        # sealed content identity (and new content was counted when written).
+        # Counting the compatibility view here rescans every immutable record
+        # in every reused collection, even though none of those records changed.
+        verified = db.execute(
+            "SELECT count(*) AS collections, COALESCE(sum(c.record_count),0) AS n "
+            "FROM native_compiled_catalog_collections c "
+            "JOIN native_compiled_collection_contents s USING(content_id) "
+            "WHERE c.generation=%s AND s.complete AND s.record_count=c.record_count",
+            (generation,),
+        ).fetchone()
+        if verified["collections"] != len(spool.collections):
+            raise ValueError("Compiled catalog collection count differs after COPY")
+        actual = verified["n"]
+    else:
+        actual = db.execute(
+            "SELECT count(*) AS n FROM native_compiled_catalog_records WHERE generation=%s",
+            (generation,),
+        ).fetchone()["n"]
     if count != expected or actual != expected:
         raise ValueError("Compiled catalog record count differs after COPY")
     if identity_check is not None:

@@ -340,6 +340,30 @@ class CombatSessionAdapter:
                     fight_start=bool(fight_start and index == len(actor_order) - 1),
                 )
                 packets.extend(owned_packets)
+            if getattr(preview, "rii_element_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_element_contract import initialize
+
+                initialize(preview, packets, action_id=action_id)
+            if getattr(preview, "rii_distance_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_distance_contract import initialize
+
+                initialize(preview, packets, action_id=action_id)
+            if getattr(preview, "rii_area_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_area_contract import initialize
+
+                initialize(preview, packets, action_id=action_id)
+            if getattr(preview, "rii_los_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_los_encounter import initialize
+
+                initialize(preview, packets, action_id=action_id)
+            if getattr(preview, "rii_movement_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_movement_contract import initialize
+
+                initialize(preview, packets, action_id=action_id)
+            if getattr(preview, "rii_states_lesson_contract", None) is not None:
+                from wakfu_server.achievements.rii_states_contract import initialize
+
+                initialize(preview, packets, action_id=action_id)
             return preview, tuple(packets)
 
         def stats_serializer(actor, state=None):

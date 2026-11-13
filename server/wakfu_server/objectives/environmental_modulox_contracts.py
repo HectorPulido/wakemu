@@ -1,9 +1,9 @@
 """Source-bound Modulox contracts over the shared recurring victory backend.
 
-The consumer uses an explicitly reconstructed final-room/competitive-level rule,
+The consumer uses an explicitly reconstructed final-room and effective-level rule,
 not a recovered original server event publisher. Character modulation at victory
-comes from the admitted actor and immutable encounter difficulty, never the
-character's current selected build or later level.
+comes from the admitted actor, never the character's current selected build or
+later level. The immutable difficulty snapshot preserves encounter identity.
 """
 from copy import deepcopy
 from hashlib import sha256
@@ -391,13 +391,9 @@ def victory(db, character, fight, authority):
         or snapshot.get("selection_revision") != row["selection_revision"]
     ):
         raise ValueError("Modulox immutable encounter difficulty identity changed")
-    cap = snapshot.get("competitive_max_level")
-    if (
-        snapshot.get("competitive") is not True
-        or type(cap) is not int
-        or cap != target
-        or level > target
-    ):
+    # The native objective requires the winning character to be at the target
+    # level; the dungeon leaderboard's competitive switch is independent.
+    if level > target:
         return False
     proof = dict(
         definition_id=authority["definition_id"],

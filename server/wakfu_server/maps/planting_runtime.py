@@ -189,6 +189,9 @@ class Plantings:
                 or item["quantity"] < 1
             ):
                 raise ValueError("Seed no longer owned")
+            from wakfu_server.incarnam_planting import authorize_if_tutorial
+
+            authorize_if_tutorial(current_db, character, seed, definition)
             level = stored_level(current_db, account, seed["profession_id"])
             if level is None or (
                 not self.open_test_policy and level < seed["minimum_level"]

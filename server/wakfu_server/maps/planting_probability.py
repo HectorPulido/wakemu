@@ -28,6 +28,14 @@ def resolver(store, *, profession_bonus, open_test_policy=False):
 
     def resolve(prepared):
         character, request = prepared["character"], prepared["request"]
+        if character["map_id"] == 1361:
+            from wakfu_server.incarnam_planting import authorize_if_tutorial
+
+            with store.connection() as db:
+                authorize_if_tutorial(
+                    db, character, prepared["seed"], prepared["definition"]
+                )
+            return 1.0
         if character["map_id"] == 1440:
             from .haven_bag_garden import is_private_garden, validate_target
 

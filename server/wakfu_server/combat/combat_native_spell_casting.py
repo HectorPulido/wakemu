@@ -391,7 +391,9 @@ def merged_spell_effects():
     # actual native grant UID, level and controller on every cast, independent
     # of the retired feature flag. Keep every original granted dependency
     # available to that same already-authorized execution path.
-    return _merge_effects(base, dependencies)
+    from .rii_lesson_spell_catalog import catalog as rii_training_effects
+
+    return _merge_effects(_merge_effects(base, dependencies), rii_training_effects())
 
 
 def class_grant_dependency_effects(dependencies):

@@ -170,7 +170,137 @@ def settle(db, store, character, fight, original_monsters):
         from wakfu_server.guild_daily_quests import settle_combat
 
         packets.extend(settle_combat(db, store, character, fight, event))
+        # Persist the eligibility snapshot with the fight, before processing it
+        # in a separate savepoint. A replay can retry this receipt only.
+        from .combat_missions import stage as stage_combat_missions
+
+        try:
+            with db.transaction():
+                stage_combat_missions(db, store, character, event)
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "Combat mission receipt failed for character %s fight %s",
+                character["id"],
+                fight.id,
+            )
+    if fresh:
+        from .rii_combat_counters import settle as settle_rii_combat
+
+        try:
+            with db.transaction():
+                packets.extend(settle_rii_combat(db, store, character, event))
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "Rii combat counter failed for character %s fight %s",
+                character["id"],
+                fight.id,
+            )
+    if fresh:
+        from .ruel_story import settle_trace_fight
+
+        try:
+            with db.transaction():
+                packets.extend(settle_trace_fight(db, store, character, event))
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "Ruel trace settlement failed for character %s fight %s",
+                character["id"],
+                fight.id,
+            )
+    if fresh:
+        # Only an already assigned Ruel hunt may consume this authenticated
+        # fresh victory. A later assignment cannot backfill an older fight.
+        from .ruel_hunts import settle as settle_ruel_hunt
+
+        try:
+            with db.transaction():
+                ruel_packets = settle_ruel_hunt(db, store, character, event)
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "Ruel hunt settlement failed for character %s fight %s",
+                character["id"],
+                fight.id,
+            )
+        else:
+            packets.extend(ruel_packets)
+    # A replay may process an existing pending receipt, but never creates one.
+    # Isolate failures so the fight and all other rewards remain durable.
+    from .combat_missions import settle as settle_combat_missions
+
+    try:
+        with db.transaction():
+            mission_packets = settle_combat_missions(db, store, character, event)
+    except Exception:
+        import logging
+
+        logging.getLogger(__name__).exception(
+            "Combat mission settlement failed for character %s fight %s",
+            character["id"],
+            fight.id,
+        )
+    else:
+        packets.extend(mission_packets)
+    if event["completed_dungeon_id"] is not None:
+        # The native fight receipt above is the sole source for recurring
+        # victories. Keep this independent of combat settlement: a missing or
+        # stale recurring contract must not roll back a legitimate fight.
+        # Replays may retry this step; its own receipt and rewards are durable
+        # and idempotent.
+        from wakfu_server.objectives.environmental_recurring_storage import (
+            settle_combat as settle_recurring,
+        )
+
+        try:
+            with db.transaction():
+                from wakfu_server.objectives.recurring_combat_auto import (
+                    accept_matching,
+                )
+
+                try:
+                    # A malformed optional auto-accept policy must not prevent
+                    # already accepted recurring missions from settling.
+                    with db.transaction():
+                        accepted_packets = accept_matching(
+                            db, store, character, fight, event
+                        )
+                except Exception:
+                    import logging
+
+                    logging.getLogger(__name__).exception(
+                        "Automatic recurring acceptance failed for character %s fight %s",
+                        character["id"],
+                        fight.id,
+                    )
+                    accepted_packets = []
+                recurring = settle_recurring(db, store, character, fight, event)
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "Recurring hunter settlement failed for character %s fight %s",
+                character["id"],
+                fight.id,
+            )
+        else:
+            packets.extend(accepted_packets)
+            packets.extend(recurring["packets"])
     packets.extend(drain_rewards(db, store, character))
+    if 5144 in before["running"]:
+        # The fight reward or an achievement reward may have raised the real
+        # level. Resolve the reminder only after both have been settled.
+        current = store.character(character["account_id"], character["id"], db)
+        if current["level"] >= 30:
+            from .rii_class_mission import reached_level
+
+            packets.extend(reached_level(db, store, current, current["level"]))
     if packets:
         # Each actual batch has its own durable identity, including reward retries.
         import hashlib
@@ -192,6 +322,21 @@ def snapshot(db, character_id):
     from wakfu_server.guild_daily_quests import synchronize
 
     synchronize(db, character_id)
+    from wakfu_server.objectives import environmental_recurring_storage as recurring
+
+    active_recurring = db.execute(
+        "SELECT 1 FROM recurring_hunter_acceptances WHERE character_id=%s AND expired_at_ms IS NULL LIMIT 1",
+        (character_id,),
+    ).fetchone()
+    if active_recurring:
+        owner = db.execute(
+            "SELECT account_id FROM characters WHERE id=%s", (character_id,)
+        ).fetchone()
+        if owner is None:
+            raise ValueError("Missing recurring hunter owner")
+        recurring.synchronize(
+            db, None, {"id": character_id, "account_id": owner["account_id"]}
+        )
     state = storage.load_locked(db, character_id)
     running = sorted(
         (set(state["running"]) | set(catalog.load(db)["definitions"]))
@@ -202,7 +347,101 @@ def snapshot(db, character_id):
         storage.store(db, character_id, state)
     from wakfu_server.guild_daily_quests import activation_dates
 
-    return wire.section(state, activation_dates=activation_dates(db, character_id))
+    dates = activation_dates(db, character_id)
+    if active_recurring:
+        dates.update(recurring.activation_dates(db, character_id))
+    return _journal_section(db, state, dates, character_id)
+
+
+def _journal_section(db, state, dates, character_id):
+    # Native completion marks the completed bit without clearing the active
+    # bit. Apply this reconstruction only to reviewed, nonperiodic missions;
+    # other completions may have an independent deactivation/reset policy.
+    active_after_completion = {5146}
+    completed_with_dates = sorted(
+        identity
+        for identity in state["completed"]
+        if identity in active_after_completion
+        and str(identity) in state["completion_dates"]
+    )
+    retained_active = set()
+    if character_id is not None and completed_with_dates:
+        definitions = db.execute(
+            "SELECT definition_id,data FROM native_quest_metadata_definitions "
+            "WHERE revision=(SELECT revision FROM native_quest_metadata_releases "
+            "ORDER BY imported_at DESC LIMIT 1) AND definition_id=ANY(%s)",
+            (completed_with_dates,),
+        ).fetchall()
+        for row in definitions:
+            native = row["data"].get("native", {})
+            if (
+                native.get("d") == row["definition_id"]
+                and native.get("native_class") == "aJM"
+                and native.get("aqb") is False
+                and native.get("getDuration") == 0
+                and native.get("cjU") == 0
+            ):
+                retained_active.add(row["definition_id"])
+    # Include actual acceptance timestamps for periodic dialogue turn-ins so
+    # the native client can evaluate their running period after reconnect.
+    if character_id is not None and state["running"]:
+        rows = db.execute(
+            "SELECT DISTINCT ON (definition_id) definition_id,accepted_at_ms "
+            "FROM character_recurring_mission_cycles WHERE character_id=%s "
+            "AND definition_id=ANY(%s) ORDER BY definition_id,cycle_index DESC",
+            (character_id, state["running"]),
+        ).fetchall()
+        dates = dict(dates)
+        dates.update({row["definition_id"]: row["accepted_at_ms"] for row in rows})
+    # Reuse durable Rii acceptance times after reconnect.
+    for identity, event_key in (
+        (5135, "incarnam-start:5135"),
+        (5136, "incarnam-start:5136"),
+        (5137, "incarnam-start:5137"),
+        (5138, "incarnam-start:5138"),
+        (5139, "incarnam-start:5139"),
+        (5160, "zone-entry-mission:5160"),
+        (5146, "zone-entry-mission:5146"),
+        (5144, "rii-class-reminder:start"),
+        (5161, "rii-departure-activation:5161"),
+        (5163, "rii-fresco-activation:5163"),
+    ):
+        if (
+            character_id is None
+            or identity not in state["running"] + state["completed"]
+        ):
+            continue
+        receipt = db.execute(
+            "SELECT payload FROM character_achievement_events "
+            "WHERE character_id=%s AND event_key=%s",
+            (character_id, event_key),
+        ).fetchone()
+        if receipt is not None:
+            accepted_at = receipt["payload"].get("accepted_at_ms")
+            if type(accepted_at) is int and 0 <= accepted_at < 2**63:
+                dates = dict(dates)
+                dates.setdefault(identity, accepted_at)
+    # The optional preview changes only bytes sent to this specific character.
+    preview = db.execute(
+        "SELECT value FROM settings WHERE name=%s", ("mission_journal_preview",)
+    ).fetchone()
+    active, completed = (), ()
+    if preview is not None:
+        value = preview["value"]
+        if (
+            isinstance(value, dict)
+            and value.get("character_id") == character_id
+            and value.get("schema") == "mission_journal_preview_v1"
+        ):
+            active = set(value.get("active", ())) & set(state["completed"])
+            completed = value.get("completed", ())
+    return wire.section(
+        state,
+        activation_dates=dates,
+        retained_active=retained_active,
+        preview_active=active,
+        preview_completed=completed,
+    )
 
 
 def track(db, character, achievement_id, enabled):
@@ -210,13 +449,16 @@ def track(db, character, achievement_id, enabled):
     if (
         type(enabled) is not bool
         or type(achievement_id) is not int
-        or (
-            achievement_id not in catalog.load(db)["definitions"]
-            and not _guild_daily_trackable(db, character["id"], achievement_id)
-        )
+        or achievement_id <= 0
     ):
         raise ValueError("Unknown or unqualified tracked achievement")
     state = storage.load_locked(db, character["id"])
+    if (
+        achievement_id not in state["running"]
+        and achievement_id not in catalog.load(db)["definitions"]
+        and not _guild_daily_trackable(db, character["id"], achievement_id)
+    ):
+        raise ValueError("Unknown or unqualified tracked achievement")
     if enabled and achievement_id in state["completed"]:
         raise ValueError("Completed achievement cannot be tracked")
     tracked = set(state["tracking"])
@@ -330,7 +572,16 @@ def project_section(progress, authority, *, db, character_id=None):
         from wakfu_server.guild_daily_quests import activation_dates
 
         dates = activation_dates(db, character_id)
-    return wire.section(state, activation_dates=dates)
+    if character_id is not None and state["running"]:
+        # Recurring missions need their activation timestamp in every owned
+        # character projection, not only the explicit journal snapshot. The
+        # native client uses it to decide whether a mission is still running.
+        from wakfu_server.objectives.environmental_recurring_storage import (
+            activation_dates as recurring_activation_dates,
+        )
+
+        dates.update(recurring_activation_dates(db, character_id))
+    return _journal_section(db, state, dates, character_id)
 
 
 def _guild_daily_trackable(db, character_id, identity):

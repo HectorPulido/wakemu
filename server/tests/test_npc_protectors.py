@@ -132,7 +132,7 @@ class NpcProtectorTests(unittest.TestCase):
             1244,
             facts_provider=lambda: {},
         )
-        self.assertIsNone(session.choose(5772, 13288))
+        self.assertEqual(session.choose(5772, 13288), (12218, struct.pack(">i", 0)))
         self.assertIsNone(session.node_id)
         character["map_id"] = 1388
         with self.assertRaises(ValueError):

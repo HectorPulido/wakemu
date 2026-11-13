@@ -107,6 +107,12 @@ def owned_entry_preview(fight, *, producer, factory, action_id):
     source, expected = current
     if (
         expected is not producer
+        # The lesson changes its marker while producing presentation packets.
+        # Preserve the previous contract and rollback via the normal preview.
+        or any(
+            getattr(fight, name, None) is not None
+            for name in ("rii_movement_lesson_contract", "rii_states_lesson_contract")
+        )
         or source.pair is not _PAIR.get()
         or source.fight is not fight
         or source.runtime.fight is not fight

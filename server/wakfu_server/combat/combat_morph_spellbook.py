@@ -10,7 +10,7 @@ from .combat_spell_level import NativeSpellBook
 
 
 _REVIEWED_MORPH_SHA256 = (
-    "a946da7bc228938aa016df78a2a207089dcc4f7c8358e5727f4549a073110bf6"
+    "18204e505d80c854441ab5dfaf9056d5e8f758cb1bcda1ff0cd70e4b6229d236"
 )
 
 

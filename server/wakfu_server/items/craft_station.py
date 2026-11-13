@@ -138,6 +138,9 @@ def load_interactions(path=DATA_ROOT / "craft-table-interaction-candidates.json"
 
 
 def resolve(character, table_id, catalog, *, objects, geometry):
+    from wakfu_server.achievements.incarnam_resources import owned_scene
+
+    private_tutorial = table_id == 34582 and owned_scene(character)
     if (
         not isinstance(character, dict)
         or type(table_id) is not int
@@ -145,7 +148,7 @@ def resolve(character, table_id, catalog, *, objects, geometry):
         or type(character.get("map_id")) is not int
         or character["map_id"] <= 0
         or type(character.get("instance_id")) is not int
-        or character["instance_id"] != 0
+        or (character["instance_id"] != 0 and not private_tutorial)
     ):
         raise ValueError("Crafting requires a valid static-world actor")
 
@@ -214,7 +217,7 @@ def resolve(character, table_id, catalog, *, objects, geometry):
     return {
         "table_uid": table_id,
         "map_id": character["map_id"],
-        "instance_id": 0,
+        "instance_id": character["instance_id"],
         "definition_id": table["definition_id"],
         "profession_id": table["profession_id"],
         "in_range": True,

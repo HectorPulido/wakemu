@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 import time
 from copy import deepcopy
 from threading import RLock
-from .combat_groups import Groups
+from wakfu_server.combat_groups import Groups
 
 
 class PersistentGroups:
@@ -23,7 +23,7 @@ class PersistentGroups:
 
     @staticmethod
     def _members(row):
-        from .monster_minigame_policy import ordinary_group_members
+        from wakfu_server.monster_minigame_policy import ordinary_group_members
 
         return ordinary_group_members(
             row["members"], instance_id=row.get("instance_id", 0)
@@ -41,7 +41,10 @@ class PersistentGroups:
         """
         if db.info.transaction_status != TransactionStatus.INTRANS:
             raise ValueError("Group registration requires an active transaction")
-        from .npc_actor_identity_repair import actor_aliases, aliased_members
+        from wakfu_server.npc_actor_identity_repair import (
+            actor_aliases,
+            aliased_members,
+        )
 
         members = aliased_members(
             members, actor_aliases(db, (map_id, instance_id, group_id))
@@ -265,6 +268,14 @@ class PersistentGroups:
                 return self.finish(lease, defeated=defeated, db=connection)
         if db.info.transaction_status != TransactionStatus.INTRANS:
             raise ValueError("Group settlement requires an active transaction")
+        from wakfu_server.achievements.rii_free_practice import (
+            retire_used as retire_practice,
+        )
+
+        if retire_practice(
+            db, key, fight_id=fight_id, generation=generation, revision=revision
+        ):
+            return True
         from wakfu_server.item_test_spawns import retire_used
 
         if retire_used(
@@ -295,8 +306,18 @@ class PersistentGroups:
                 )
             )
             from wakfu_server.item_test_spawns import retire_used
+            from wakfu_server.achievements.rii_free_practice import (
+                retire_used as retire_practice,
+            )
 
             for prior in rows:
+                retire_practice(
+                    db,
+                    (prior["map_id"], prior["instance_id"], prior["group_id"]),
+                    fight_id=prior["fight_id"],
+                    generation=generation,
+                    revision=prior["revision"],
+                )
                 retire_used(
                     db,
                     (prior["map_id"], prior["instance_id"], prior["group_id"]),
@@ -316,6 +337,8 @@ class PersistentGroups:
                     "AND instance_id=%s AND group_id=%s",
                     key,
                 ).fetchone()
+                if current is None:
+                    continue
                 members = self._members(current)
                 if current["status"] == "available" and members:
                     released.append(dict(key=key, members=members))
@@ -360,11 +383,23 @@ class PersistentGroups:
         """Startup-only abort of lost fights. Never call on a live second worker."""
         with self.lock, self.store.connection() as db:
             from wakfu_server.item_test_spawns import retire_used
+            from wakfu_server.achievements.rii_free_practice import (
+                retire_used as retire_practice,
+            )
 
             retired = 0
             for row in db.execute(
                 "SELECT * FROM combat_groups WHERE status='fighting' FOR UPDATE"
             ).fetchall():
+                retired += int(
+                    retire_practice(
+                        db,
+                        (row["map_id"], row["instance_id"], row["group_id"]),
+                        fight_id=row["fight_id"],
+                        generation=row["generation"],
+                        revision=row["revision"],
+                    )
+                )
                 retired += int(
                     retire_used(
                         db,
