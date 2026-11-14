@@ -37,6 +37,18 @@ with psycopg.connect(os.environ['WAKFU_DATABASE_URL'],password=password,autocomm
     db.execute(pathlib.Path(sys.argv[1]).read_text(),prepare=False)
 print(json.dumps({'applied':sys.argv[1]}))
 """
+REVIEWED_DUNGEON_IMPORT = """import os,sys,pathlib,json,psycopg
+from psycopg.rows import dict_row
+from tools.build_clean_database_backup import merge_public_dungeon_pins
+from tools.export_installation_seed import reviewed_dungeon_rows
+password=pathlib.Path(os.environ['WAKFU_DATABASE_PASSWORD_FILE']).read_text().strip()
+with psycopg.connect(os.environ['WAKFU_DATABASE_URL'],password=password,autocommit=True,row_factory=dict_row) as db:
+    reviewed,receipts=merge_public_dungeon_pins(db,pathlib.Path(sys.argv[1]).read_bytes())
+    db.execute(reviewed,prepare=False)
+    reviewed_dungeon_rows(db)
+pathlib.Path('/installation-receipts/reviewed-dungeon-pins.json').write_text(json.dumps(receipts,indent=2)+'\\n')
+print(json.dumps({'applied':sys.argv[1],'selected_pins':receipts}))
+"""
 ZERO_CHECK = """import os,pathlib,json,psycopg
 password=pathlib.Path(os.environ['WAKFU_DATABASE_PASSWORD_FILE']).read_text().strip()
 tables=('accounts','characters','sessions','inventory_items','inventory_containers')
@@ -663,7 +675,7 @@ class Installer:
         )
         self.run(
             "reviewed-dungeons",
-            self.helper("-c", SQL_IMPORT, "/installation/" + reviewed["path"]),
+            self.helper("-c", REVIEWED_DUNGEON_IMPORT, "/installation/" + reviewed["path"]),
         )
         for index, row in enumerate(additional):
             self.run(

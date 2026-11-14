@@ -166,3 +166,93 @@ class InstallWakemuTests(unittest.TestCase):
         postgres = services.split("  postgres:", 1)[1].split("  redis:", 1)[0]
         self.assertNotIn("ports:", postgres)
         self.assertNotRegex(compose, r"(?m)^\s+- .*client(?:/|:)")
+
+    def test_reviewed_dungeon_import_contract_and_failure_propagation(self):
+        import sys
+
+        source = installer.REVIEWED_DUNGEON_IMPORT
+        class FakePath:
+            def __init__(self, value):
+                self.value = str(value)
+
+            def read_text(self):
+                return "password"
+
+            def read_bytes(self):
+                return b"reviewed seed"
+
+            def write_text(self, value):
+                written[self.value] = value
+
+        class FakeDatabase:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def execute(self, statement, **kwargs):
+                executed.append((statement, kwargs))
+                if execute_error:
+                    raise execute_error
+
+        class FakePsycopg:
+            class rows:
+                dict_row = object()
+
+            @staticmethod
+            def connect(*args, **kwargs):
+                connections.append((args, kwargs))
+                return db
+
+        database_module = __import__("tools.build_clean_database_backup", fromlist=["*"])
+        exporter_module = __import__("tools.export_installation_seed", fromlist=["*"])
+        scenarios = (
+            (None, None, None),
+            (ValueError("paired dungeon pins disagree"), None, None),
+            (None, ValueError("immutable dungeon content conflict"), None),
+            (None, None, ValueError("immutable reviewed configuration changed")),
+        )
+        for merge_error, execute_error, verify_error in scenarios:
+            succeeds = not any((merge_error, execute_error, verify_error))
+            with self.subTest(merge_error=merge_error, verify_error=verify_error):
+                connections, executed, written = [], [], {}
+                db = FakeDatabase()
+
+                def merge(connection, data):
+                    self.assertIs(connection, db)
+                    self.assertEqual(data, b"reviewed seed")
+                    if merge_error:
+                        raise merge_error
+                    return "MERGED SQL", [{"route_key": "r", "previous": 1, "public": 2, "selected": 2}]
+
+                def verify(connection):
+                    self.assertIs(connection, db)
+                    if verify_error:
+                        raise verify_error
+
+                fake_psycopg = FakePsycopg
+                with patch.dict(os.environ, {
+                    "WAKFU_DATABASE_PASSWORD_FILE": "/password",
+                    "WAKFU_DATABASE_URL": "dbname=wakemu_test",
+                }), patch.object(sys, "argv", ["installer", "/reviewed.sql"]), patch.dict(
+                    sys.modules,
+                    {"psycopg": fake_psycopg, "psycopg.rows": fake_psycopg.rows},
+                ), patch.object(database_module, "merge_public_dungeon_pins", side_effect=merge), patch.object(
+                    exporter_module, "reviewed_dungeon_rows", side_effect=verify
+                ), patch("pathlib.Path", FakePath):
+                    if succeeds:
+                        exec(source, {"__name__": "__main__"})
+                    else:
+                        with self.assertRaises(ValueError):
+                            exec(source, {"__name__": "__main__"})
+                self.assertEqual(connections[0][1]["autocommit"], True)
+                self.assertIs(connections[0][1]["row_factory"], fake_psycopg.rows.dict_row)
+                if succeeds:
+                    self.assertEqual(executed, [("MERGED SQL", {"prepare": False})])
+                    self.assertEqual(
+                        json.loads(written["/installation-receipts/reviewed-dungeon-pins.json"]),
+                        [{"route_key": "r", "previous": 1, "public": 2, "selected": 2}],
+                    )
+                else:
+                    self.assertNotIn("/installation-receipts/reviewed-dungeon-pins.json", written)
