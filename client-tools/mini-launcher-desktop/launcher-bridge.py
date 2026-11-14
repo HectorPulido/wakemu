@@ -102,7 +102,7 @@ def serve(connection):
                         elif method == "zaapVersion_get":
                             result = "wakfu-local-python"
                         elif method == "userInfo_get":
-                            result = ""
+                            result = AUTH.user_info()
                         else:
                             raise ValueError("Unsupported local RPC")
                     body = (

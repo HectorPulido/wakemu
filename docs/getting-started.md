@@ -123,7 +123,7 @@ The first compiled publication can take several minutes. A later unchanged start
 
 The server does not need Java, Tk or game assets. These are requirements for the desktop that runs the client.
 
-Use macOS or Linux with a graphical desktop, Python 3 with Tk support, and JDK 21 or newer. Supply your own compatible **Wakfu 1.93.1+79** installation; other versions are unsupported.
+Use macOS or Linux with a graphical desktop, Python 3 with Tk support, and JDK 21 or newer. Supply your own **Wakfu 1.93.1+79** installation for full client compatibility with the features implemented by Wakemu. **1.93.1+81** has partial, unverified compatibility and is not the recommended version for this guide. Other versions are unsupported.
 
 Put its files directly inside `client/`:
 

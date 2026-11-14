@@ -6,6 +6,8 @@ Project-owned launchers, diagnostics, Java agents and patches. The official game
 
 Supply Wakfu **1.93.1+79** in the sibling `../client/` directory. Its `config.properties`, `classpath`, `contents/`, `lib/` and `jre/` must be directly inside that directory. The local tools support macOS (`sandbox-exec`) and Linux (X11/XWayland `DISPLAY`), Python 3 with Tk support for account dialogs, a JDK 21 or newer, and the local server services. Linux uses the extracted `client/jre/bin/java` runtime.
 
+**Client compatibility:** **1.93.1+79** is fully compatible with the features implemented by Wakemu. **1.93.1+81** has partial, unverified compatibility. Automated launcher and protocol checks do not establish complete gameplay compatibility; version-specific planting and dungeon agents and changed native content remain unverified with +81. Use +79 for the supported experience.
+
 From the repository root:
 
 ```sh

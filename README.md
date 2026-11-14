@@ -37,7 +37,7 @@ A personal experiment in understanding game protocols and building a Python serv
 - **Social features:** finish validation of duels, private messaging, and specialized chat channels.
 - **Performance and reliability:** reduce combat latency and resolve remaining synchronization and client presentation issues.
 - **Fresh-clone setup:** replace private capture dependencies and automate the remaining runtime preparation.
-- **Broader compatibility:** extend supported content; only client version 1.93.1+79 is currently targeted.
+- **Broader compatibility:** Wakfu **1.93.1+79** has full client compatibility with the features implemented by Wakemu. **1.93.1+81** has partial, unverified compatibility; complete gameplay compatibility is not established.
 
 Developers and testers are welcome—report reproducible bugs, contribute fixes, or help make a fresh clone easier to run.
 
@@ -47,7 +47,7 @@ For more information, explore the [documentation](docs/README.md): follow the [s
 
 Requires Docker Compose, Git LFS, Python 3 with Tk, JDK 21+, and macOS or Linux with a graphical session.
 
-1. Supply your own lawfully obtained **Wakfu 1.93.1+79** client in `client/`, with `config.properties`, `classpath`, `contents/`, `lib/`, and `jre/` directly inside it. Other versions are unsupported.
+1. Supply your own lawfully obtained **Wakfu 1.93.1+79** client in `client/`, with `config.properties`, `classpath`, `contents/`, `lib/`, and `jre/` directly inside it. **1.93.1+79** is the fully supported client version. **1.93.1+81** has partial, unverified compatibility; use +79 for the supported experience. Other versions are unsupported.
 2. **Setup is not yet self-contained:** world requires catalogs and verified bootstrap records in PostgreSQL, plus matching private credentials at the configured service mounts. Follow the [setup prerequisites](docs/getting-started.md#current-setup-requirements) and [database guide](database/README.md) before starting. Runtime preparation alone does not supply all inputs.
 3. From the repository root:
 

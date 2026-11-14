@@ -30,7 +30,7 @@ The dispatcher then follows this main exchange:
 | `402`: realm-list request | `453`: local realm information with the configured name, host, and port. |
 | `575`: select realm | Validate realm `10`; issue a session-bound ticket in `466`. |
 
-This is a local compatibility implementation. For example, its version handler acknowledges the submitted bytes; that is not proof of negotiation with arbitrary client versions. The supported installation remains 1.93.1+79. Challenge and seed values are currently fixed in this implementation rather than being a description of an official production handshake.
+This is a local compatibility implementation. For example, its version handler acknowledges the submitted bytes; that is not proof of negotiation with arbitrary client versions. The fully supported client installation is **1.93.1+79**, within the features implemented by Wakemu. **1.93.1+81** has partial, unverified compatibility; successful authentication alone does not establish complete gameplay compatibility. Challenge and seed values are currently fixed in this implementation rather than being a description of an official production handshake.
 
 Authentication inside the TLS session also uses RSA PKCS#1 v1.5 decryption. The decrypted payload contains a challenge and a length-prefixed token. Encryption is only one check: the token must have the right purpose and be consumable by the local account store.
 
