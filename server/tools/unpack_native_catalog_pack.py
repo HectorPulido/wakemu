@@ -61,8 +61,12 @@ def unpack(manifest_path, output_directory):
             previous = required.setdefault(row["sha256"], row["source_bytes"])
             if previous != row["source_bytes"]:
                 raise ValueError("Conflicting document sizes")
-    if active not in revisions or set(pack["blobs"]) != set(required):
-        raise ValueError("Catalog pack contains missing or unreferenced content")
+    if active not in revisions:
+        raise ValueError("Catalog pack is missing its active release")
+    # Older document blobs may remain after replacing a release's inventory.
+    # Materialize only required content, but reject any missing document.
+    if not set(required).issubset(pack["blobs"]):
+        raise ValueError("Catalog pack contains missing required content")
     retired = validated_retired_inventories(
         pack.get("retired_inventories", []),
         payload_revisions=revisions,

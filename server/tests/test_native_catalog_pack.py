@@ -80,6 +80,40 @@ class CatalogSource:
 
 
 class NativeCatalogPackTests(unittest.TestCase):
+    def test_unused_blobs_are_ignored_but_required_content_and_active_release_must_exist(self):
+        db = CatalogSource()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pack = writer.export(db, root / "pack", list(db.releases))
+            manifest = root / "pack/manifest.json"
+            # An obsolete blob must never be opened or materialized.
+            unused = hashlib.sha256(b"obsolete").hexdigest()
+            pack["blobs"][unused] = {
+                "source_bytes": 8,
+                "parts": [{"path": "parts/not-present.json.gz"}],
+            }
+            manifest.write_text(json.dumps(pack))
+            result = reader.unpack(manifest, root / "out")
+            self.assertEqual(result["releases"], pack["releases"])
+            for revision, (sources, _) in db.releases.items():
+                for name, raw in sources.items():
+                    self.assertEqual(
+                        (root / "out/catalogs" / revision / name).read_bytes(), raw
+                    )
+            required = pack["releases"][0]["documents"][0]["sha256"]
+            removed = pack["blobs"].pop(required)
+            # The total blob count still matches; identity, not count, matters.
+            manifest.write_text(json.dumps(pack))
+            with self.assertRaisesRegex(ValueError, "missing required content"):
+                reader.unpack(manifest, root / "missing")
+            self.assertFalse((root / "missing").exists())
+            pack["blobs"][required] = removed
+            pack["active_revision"] = "f" * 64
+            manifest.write_text(json.dumps(pack))
+            with self.assertRaisesRegex(ValueError, "missing its active release"):
+                reader.unpack(manifest, root / "inactive")
+            self.assertFalse((root / "inactive").exists())
+
     def test_exact_two_release_roundtrip_dedup_and_tamper_rejection(self):
         db = CatalogSource()
         with tempfile.TemporaryDirectory() as directory:
