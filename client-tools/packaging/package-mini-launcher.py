@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a deterministic drop-in ZIP: only explicitly selected own files."""
+"""Build internal launcher-agent assets, without a launcher frontend or client data."""
 import argparse, hashlib, io, json, os, shutil, subprocess, sys, tempfile, zipfile
 from pathlib import Path
 
@@ -33,9 +33,9 @@ def zip_bytes(entries):
     return output.getvalue()
 
 
-def build(output):
+def build(output, *, include_dungeon_policy=True):
     jdk = os.environ.get("JAVA_HOME")
-    if not jdk and sys.platform == "linux":
+    if not jdk and sys.platform != "darwin":
         javac = shutil.which("javac")
         if not javac:
             raise ValueError("Install a JDK 21 or newer, or set JAVA_HOME")
@@ -50,22 +50,6 @@ def build(output):
     def add(name, content, mode=0o644):
         entries["mini-launcher/" + name] = (content, mode)
 
-    for name in (
-        "portable_config.py",
-        "remote-login.py",
-        "run-client.py",
-        "launcher-bridge.py",
-        "run-client.sh",
-        "Launch.command",
-        "README.txt",
-    ):
-        add(
-            name,
-            (DROPIN / name).read_bytes(),
-            0o755 if name.endswith((".sh", ".command")) else 0o644,
-        )
-    add("local-launcher.py", (ROOT / "client-tools/local-launcher.py").read_bytes())
-    add("config.json", (json.dumps(CONFIG, indent=2) + "\n").encode())
     sources = {
         name: (DROPIN / name)
         for name in ("DropinNetworkGuard.java", "DropinNetworkGuardTest.java")
@@ -112,7 +96,7 @@ def build(output):
             for item in sorted(classes.glob("*.class")):
                 if any(item.stem.startswith(p) for p in prefixes):
                     items[item.name] = (item.read_bytes(), 0o644)
-            if premain == "OpenPlantingAgent":
+            if premain == "OpenPlantingAgent" and include_dungeon_policy:
                 # Bind the scoped native entry projections to this client release.
                 environment = dict(os.environ, PYTHONPATH=str(ROOT / "server"))
                 policy_file = Path(temp) / "dungeon-entry-overrides.properties"
@@ -144,11 +128,11 @@ def build(output):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--output",
         type=Path,
-        default=ROOT / ".runtime/distribution/wakfu-mini-launcher.zip",
+        default=ROOT / ".runtime/distribution/launcher-agents.zip",
     )
     args = parser.parse_args()
     build(args.output.resolve())

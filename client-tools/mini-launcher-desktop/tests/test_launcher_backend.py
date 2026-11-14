@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import tempfile
 import subprocess
+import types
 import urllib.error
 import unittest
 from unittest.mock import Mock, patch
@@ -48,7 +49,7 @@ class BackendTests(unittest.TestCase):
         for item in self.patches:
             item.start()
         self.data = dict(
-            server=backend.default_state()["servers"][0],
+            server=next(s for s in backend.default_state()["servers"] if s["id"] == "internet"),
             username="fixture_user",
             password="fixture-password",
             password_edited=True,
@@ -59,6 +60,187 @@ class BackendTests(unittest.TestCase):
         for item in reversed(self.patches):
             item.stop()
         self.temp.cleanup()
+
+    def linux_keyring_modules(self, priority=5):
+        secrets = self.secrets
+
+        class PasswordDeleteError(Exception):
+            pass
+
+        class SecretServiceKeyring:
+            def set_password(self, service, username, password):
+                secrets[(service, username)] = password
+
+            def get_password(self, service, username):
+                return secrets.get((service, username))
+
+            def delete_password(self, service, username):
+                try:
+                    del secrets[(service, username)]
+                except KeyError:
+                    raise PasswordDeleteError() from None
+
+        SecretServiceKeyring.priority = priority
+        keyring = types.ModuleType("keyring")
+        keyring.get_keyring = Mock(side_effect=AssertionError("No fallback allowed"))
+        service = types.ModuleType("keyring.backends.SecretService")
+        service.Keyring = SecretServiceKeyring
+        errors = types.ModuleType("keyring.errors")
+        errors.PasswordDeleteError = PasswordDeleteError
+        return {
+            "keyring": keyring,
+            "keyring.backends": types.ModuleType("keyring.backends"),
+            "keyring.backends.SecretService": service,
+            "keyring.errors": errors,
+        }
+
+    def test_linux_secret_service_save_restore_forget_and_renewal_never_store_plaintext(self):
+        modules = self.linux_keyring_modules()
+        with patch.object(backend.sys, "platform", "linux"), patch.dict(
+            backend.sys.modules, modules
+        ):
+            backend.dispatch("save", self.data)
+            backend.dispatch("save", self.data)
+            state = backend.dispatch("state", {})["state"]
+            self.assertEqual(state["password"], "fixture-password")
+            self.assertTrue(state["credential_storage_available"])
+            self.assertTrue(state["remember"])
+            self.assertEqual(len(self.secrets), 1)
+            serialized = backend.STATE_PATH.read_text()
+            self.assertIn("secretservice:", serialized)
+            self.assertNotIn("fixture-password", serialized)
+            self.assertEqual(backend.STATE_PATH.stat().st_mode & 0o777, 0o600)
+            folder = self.root / "renewal"
+            folder.mkdir()
+            token = backend.protect("private-renewal-fixture")
+            backend.private_write(folder / "remember.json", {"protected_token": token})
+            self.assertNotIn("private-renewal-fixture", (folder / "remember.json").read_text())
+            backend.forget_renewal(folder)
+            self.assertFalse((folder / "remember.json").exists())
+            self.assertEqual(len(self.secrets), 1)
+            result = backend.dispatch("forget", {"username": "fixture_user"})
+            self.assertFalse(result["state"]["remember"])
+            self.assertEqual(result["state"]["password"], "")
+            self.assertEqual(self.secrets, {})
+            backend.remove_protected(token)  # Already deleted references are safe.
+        modules["keyring"].get_keyring.assert_not_called()
+
+    def test_linux_unavailable_secure_storage_defaults_off_and_never_falls_back(self):
+        for priority in (0, -1):
+            modules = self.linux_keyring_modules(priority=priority)
+            with self.subTest(priority=priority), patch.object(
+                backend.sys, "platform", "linux"
+            ), patch.dict(backend.sys.modules, modules):
+                state = backend.dispatch("state", {})["state"]
+                self.assertFalse(state["credential_storage_available"])
+                self.assertFalse(state["remember"])
+                with self.assertRaisesRegex(backend.LauncherError, "turn off Save account and password"):
+                    backend.dispatch("save", self.data)
+                self.assertFalse(backend.STATE_PATH.exists())
+                self.assertEqual(self.secrets, {})
+                modules["keyring"].get_keyring.assert_not_called()
+        with patch.object(backend.sys, "platform", "linux"), patch.dict(
+            backend.sys.modules, {"keyring.backends.SecretService": None}
+        ):
+            self.assertFalse(backend.credential_storage_available())
+            result = backend.dispatch("save", dict(self.data, remember=False))
+            self.assertFalse(result["state"]["remember"])
+            self.assertNotIn("fixture-password", backend.STATE_PATH.read_text())
+
+    def test_linux_secret_service_errors_are_safe_and_other_os_references_are_rejected(self):
+        modules = self.linux_keyring_modules()
+        with patch.object(backend.sys, "platform", "linux"), patch.dict(
+            backend.sys.modules, modules
+        ):
+            for opaque in ("keychain:" + "a" * 64, "d2luZG93cy1maXh0dXJl", None):
+                with self.subTest(opaque=opaque), self.assertRaisesRegex(
+                    backend.LauncherError, "another operating system"
+                ):
+                    backend.unprotect(opaque)
+            with patch.object(
+                modules["keyring.backends.SecretService"].Keyring,
+                "set_password",
+                side_effect=RuntimeError("sensitive-keyring-fixture"),
+            ), self.assertRaises(backend.LauncherError) as failure:
+                backend.protect("private-password-fixture")
+            self.assertNotIn("sensitive", str(failure.exception))
+            self.assertNotIn("private-password", str(failure.exception))
+            with self.assertRaisesRegex(backend.LauncherError, "reference is invalid"):
+                backend.unprotect("secretservice:invalid")
+        with self.assertRaisesRegex(backend.LauncherError, "another operating system"):
+            backend.unprotect("secretservice:" + "a" * 64)
+
+    def test_configured_launcher_root_controls_state_path_without_copying_state(self):
+        configured = self.root / "configured-root"
+        with patch.dict(os.environ, {"WAKFU_LAUNCHER_ROOT": str(configured)}):
+            spec = importlib.util.spec_from_file_location("configured_launcher_backend", SOURCE)
+            configured_backend = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(configured_backend)
+        self.assertEqual(configured_backend.ROOT, configured.resolve())
+        self.assertEqual(configured_backend.STATE_PATH, configured.resolve() / "profile/launcher-state.json")
+        self.assertFalse(configured.exists())
+
+    def test_protected_auth_renewal_rotates_secure_reference_without_persisting_token_in_session(self):
+        auth_spec = importlib.util.spec_from_file_location(
+            "integrated_launcher_auth", SOURCE.parent / "local_launcher_auth.py"
+        )
+        authentication = importlib.util.module_from_spec(auth_spec)
+        auth_spec.loader.exec_module(authentication)
+        login = self.root / "login-session.json"
+        previous = {"api_token": "previous-api", "account": {"id": 9}}
+        login.write_text(json.dumps(previous))
+        old_reference = backend.protect("previous-renewal")
+        remembered = {"account_id": 9, "protected_token": old_reference}
+        backend.private_write(self.root / "remember.json", remembered)
+        auth = authentication.LauncherAuthentication(login, opener=Mock())
+        renewed = {
+            "api_token": "renewed-api",
+            "account": {"id": 9},
+            "remember_token": "rotated-renewal",
+        }
+        with patch.dict(backend.sys.modules, {"launcher_backend": backend}), patch.object(
+            auth, "_request", return_value=renewed
+        ):
+            auth._renew(previous)
+        session = json.loads(login.read_text())
+        self.assertEqual(session["api_token"], "renewed-api")
+        self.assertNotIn("remember_token", session)
+        replacement = json.loads((self.root / "remember.json").read_text())["protected_token"]
+        self.assertNotEqual(replacement, old_reference)
+        self.assertEqual(backend.unprotect(replacement), "rotated-renewal")
+        self.assertNotIn(old_reference[9:], self.secrets)
+        self.assertNotIn("rotated-renewal", (self.root / "remember.json").read_text())
+        before_login, before_remember = login.read_bytes(), (self.root / "remember.json").read_bytes()
+        with patch.dict(backend.sys.modules, {"launcher_backend": backend}), patch.object(
+            auth, "_request", return_value=dict(renewed, account={"id": 10})
+        ), self.assertRaises(authentication.LauncherAuthenticationError):
+            auth._renew(previous)
+        self.assertEqual(login.read_bytes(), before_login)
+        self.assertEqual((self.root / "remember.json").read_bytes(), before_remember)
+
+    def test_protected_auth_rotation_preserves_previous_reference_when_atomic_save_fails(self):
+        auth_spec = importlib.util.spec_from_file_location(
+            "integrated_launcher_auth", SOURCE.parent / "local_launcher_auth.py"
+        )
+        authentication = importlib.util.module_from_spec(auth_spec)
+        auth_spec.loader.exec_module(authentication)
+        previous = {"api_token": "previous-api", "account": {"id": 9}}
+        login = self.root / "login-session.json"
+        login.write_text(json.dumps(previous))
+        old_reference = backend.protect("previous-renewal")
+        backend.private_write(self.root / "remember.json", {"protected_token": old_reference})
+        auth = authentication.LauncherAuthentication(login, opener=Mock())
+        before = (self.root / "remember.json").read_bytes()
+        with patch.dict(backend.sys.modules, {"launcher_backend": backend}), patch.object(
+            auth, "_request", return_value=dict(previous, remember_token="rotated-renewal")
+        ), patch.object(backend, "private_write", side_effect=OSError("fixture write failure")), self.assertRaises(
+            authentication.LauncherAuthenticationError
+        ):
+            auth._renew(previous)
+        self.assertEqual((self.root / "remember.json").read_bytes(), before)
+        self.assertEqual(backend.unprotect(old_reference), "previous-renewal")
+        self.assertEqual(len(self.secrets), 1)
+        self.assertEqual(json.loads(login.read_text()), previous)
 
     def discovery_manifest(self):
         server = self.data["server"]
@@ -84,6 +266,34 @@ class BackendTests(unittest.TestCase):
         )
         opener.open.return_value = io.BytesIO(payload)
         return opener
+
+    def test_discovery_keeps_loopback_http_overrides_without_network_requests(self):
+        for hostname in ("127.0.0.1", "127.0.0.2", "localhost"):
+            server = dict(
+                self.data["server"],
+                server_host=hostname,
+                chat_host=hostname,
+                dispatch_port=25558,
+                game_ports=[25556],
+                chat_port=26337,
+                api_url=f"http://{hostname}:28081",
+                http_url=f"http://{hostname}:28082",
+                shop_url=f"http://{hostname}:28083",
+                achievements_url=f"http://{hostname}:28084",
+            )
+            with self.subTest(hostname=hostname), patch.object(
+                backend.urllib.request, "build_opener"
+            ) as build, patch.object(backend.ssl, "create_default_context") as context:
+                result = backend.dispatch("discover", {"server": server})
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["server"], backend.normalize_server(server))
+            self.assertEqual(
+                result["message"],
+                "Local server settings loaded. Use Advanced settings to change ports and services.",
+            )
+            build.assert_not_called()
+            context.assert_not_called()
+            self.assertFalse(backend.STATE_PATH.exists())
 
     def test_discovery_reads_same_origin_manifest_without_credentials_or_local_mutation(
         self,
@@ -269,7 +479,7 @@ class BackendTests(unittest.TestCase):
             process = Mock()
             process.poll.return_value = 2
             with self.subTest(marker=marker), self.assertRaisesRegex(
-                backend.LauncherError, "terminó durante el arranque"
+                backend.LauncherError, "closed during startup"
             ):
                 backend.await_startup(process, status, log, timeout=1)
             self.assertFalse(status.exists())
@@ -278,7 +488,7 @@ class BackendTests(unittest.TestCase):
         with patch.object(
             backend.time, "monotonic", side_effect=[0, 0, 2]
         ), patch.object(backend.time, "sleep") as sleep, self.assertRaisesRegex(
-            backend.LauncherError, "no confirmó"
+            backend.LauncherError, "has not confirmed startup"
         ):
             backend.await_startup(process, status, log, timeout=1)
         self.assertEqual(sleep.call_count, 1)
@@ -425,8 +635,8 @@ class BackendTests(unittest.TestCase):
         with patch.object(
             backend,
             "api_request",
-            side_effect=backend.LauncherError("Ese usuario ya existe."),
-        ), self.assertRaisesRegex(backend.LauncherError, "ya existe"):
+            side_effect=backend.LauncherError("That username already exists."),
+        ), self.assertRaisesRegex(backend.LauncherError, "already exists"):
             backend.dispatch("register", self.registration_data())
         self.assertEqual(backend.STATE_PATH.read_bytes(), before)
         self.assertEqual(self.secrets, secrets)
@@ -462,7 +672,7 @@ class BackendTests(unittest.TestCase):
             self.assertEqual(result["state"]["selected_username"], "new_fixture")
             self.assertEqual(result["state"]["password"], "new-fixture-password")
             self.assertFalse(result["state"]["remember"])
-            self.assertIn("Cuenta creada", result["message"])
+            self.assertIn("Account created", result["message"])
             self.assertEqual(request.call_count, 1)
             self.assertEqual(backend.STATE_PATH.read_bytes(), before)
 
@@ -471,8 +681,8 @@ class BackendTests(unittest.TestCase):
     ):
         server = self.data["server"]
         fixtures = [
-            ("Ese usuario ya existe.", "Ese usuario ya existe."),
-            ("Contraseña: 8–256 caracteres.", "Contraseña: 8–256 caracteres."),
+            ("Ese usuario ya existe.", "That username already exists."),
+            ("Contraseña: 8–256 caracteres.", "Password: 8–256 characters."),
             ("sensitive-private-upstream-body", None),
             (["sensitive-private-upstream-body"], None),
         ]

@@ -19,7 +19,9 @@ import urllib.parse
 import urllib.request
 import uuid
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(
+    os.environ.get("WAKFU_LAUNCHER_ROOT", Path(__file__).resolve().parent.parent)
+).expanduser().resolve()
 STATE_PATH = ROOT / "profile/launcher-state.json"
 BUNDLED_CA = Path(__file__).resolve().parent / "cacert.pem"
 if sys.platform == "darwin" and BUNDLED_CA.is_file():
@@ -30,9 +32,69 @@ class LauncherError(ValueError):
     """A message safe to display without exposing credentials or server bodies."""
 
 
+LINUX_STORAGE_ERROR = (
+    "Secure password storage is unavailable. Start a Secret Service keyring "
+    "or turn off Save account and password."
+)
+SECRET_SERVICE_NAME = "net.hectorpulido.wakfu.minilauncher"
+
+
+def secret_service_backend():
+    """Use only the secure Secret Service backend, never keyring fallback storage."""
+    try:
+        from keyring.backends.SecretService import Keyring
+
+        backend = Keyring()
+        if backend.priority <= 0:
+            raise ValueError()
+        return backend
+    except Exception:
+        # Missing dependencies, an unavailable D-Bus session, or disabled secure
+        # storage must not fall back to plaintext or expose system diagnostics.
+        raise LauncherError(LINUX_STORAGE_ERROR) from None
+
+
+def credential_storage_available():
+    if sys.platform.startswith("linux"):
+        try:
+            secret_service_backend()
+            return True
+        except LauncherError:
+            return False
+    return sys.platform in ("darwin", "win32")
+
+
+def secret_service(action, identifier, value=""):
+    if not isinstance(identifier, str) or not re.fullmatch(
+        r"[a-f0-9]{32,64}", identifier
+    ):
+        raise LauncherError("The saved credential reference is invalid.")
+    backend = secret_service_backend()
+    try:
+        if action == "set":
+            backend.set_password(SECRET_SERVICE_NAME, identifier, value)
+            return ""
+        if action == "get":
+            result = backend.get_password(SECRET_SERVICE_NAME, identifier)
+            if not isinstance(result, str):
+                raise ValueError()
+            return result
+        if action == "delete":
+            from keyring.errors import PasswordDeleteError
+
+            try:
+                backend.delete_password(SECRET_SERVICE_NAME, identifier)
+            except PasswordDeleteError:
+                pass  # Forgetting an already removed secret is idempotent.
+            return ""
+        raise ValueError()
+    except Exception:
+        raise LauncherError(LINUX_STORAGE_ERROR) from None
+
+
 def _crypt(value, decrypt=False):
     if os.name != "nt":
-        raise LauncherError("El guardado cifrado de contraseñas requiere Windows.")
+        raise LauncherError("Encrypted password storage requires Windows.")
     from ctypes import wintypes
 
     class Blob(ctypes.Structure):
@@ -80,7 +142,7 @@ def _crypt(value, decrypt=False):
     method.restype = wintypes.BOOL
     if not method(*args):
         raise LauncherError(
-            "Windows no pudo abrir el acceso guardado. Escribe la contraseña de nuevo."
+            "Windows could not unlock the saved credentials. Enter your password again."
         )
     try:
         return ctypes.string_at(target.data, target.size)
@@ -91,7 +153,7 @@ def _crypt(value, decrypt=False):
 def keychain(action, identifier, value=""):
     helper = Path(__file__).resolve().parent / "keychain-helper"
     if not helper.is_file():
-        raise LauncherError("No se encuentra el componente del Llavero de macOS.")
+        raise LauncherError("The macOS Keychain component is missing.")
     result = subprocess.run(
         [str(helper)],
         input=json.dumps({"action": action, "id": identifier, "value": value}),
@@ -107,7 +169,7 @@ def keychain(action, identifier, value=""):
         return payload.get("value", "")
     except (ValueError, TypeError):
         raise LauncherError(
-            "No se pudo acceder al Llavero. Permite el acceso de Wakfu o desactiva guardar contraseña."
+            "Could not access Keychain. Allow Wakfu access or turn off password saving."
         ) from None
 
 
@@ -118,11 +180,17 @@ def remove_protected(encoded):
         and encoded.startswith("keychain:")
     ):
         keychain("delete", encoded[9:])
+    elif (
+        sys.platform.startswith("linux")
+        and isinstance(encoded, str)
+        and encoded.startswith("secretservice:")
+    ):
+        secret_service("delete", encoded[len("secretservice:"):])
 
 
 def forget_renewal(folder):
     path = Path(folder) / "remember.json"
-    if sys.platform == "darwin" and path.is_file():
+    if (sys.platform == "darwin" or sys.platform.startswith("linux")) and path.is_file():
         try:
             encoded = json.loads(path.read_text(encoding="utf-8")).get(
                 "protected_token"
@@ -134,7 +202,7 @@ def forget_renewal(folder):
 
 
 def protect(text):
-    if sys.platform == "darwin":
+    if sys.platform == "darwin" or sys.platform.startswith("linux"):
         identifier = uuid.uuid4().hex
         try:
             secret = json.loads(text)
@@ -150,8 +218,11 @@ def protect(text):
                 ).hexdigest()
         except (ValueError, AttributeError, TypeError):
             pass
-        keychain("set", identifier, text)
-        return "keychain:" + identifier
+        if sys.platform == "darwin":
+            keychain("set", identifier, text)
+            return "keychain:" + identifier
+        secret_service("set", identifier, text)
+        return "secretservice:" + identifier
     return base64.b64encode(_crypt(text.encode("utf-8"))).decode("ascii")
 
 
@@ -159,15 +230,21 @@ def unprotect(encoded):
     if sys.platform == "darwin":
         if not isinstance(encoded, str) or not encoded.startswith("keychain:"):
             raise LauncherError(
-                "Este acceso guardado pertenece a otro sistema. Escribe la contraseña."
+                "These saved credentials belong to another operating system. Enter your password."
             )
         return keychain("get", encoded[9:])
+    if sys.platform.startswith("linux"):
+        if not isinstance(encoded, str) or not encoded.startswith("secretservice:"):
+            raise LauncherError(
+                "These saved credentials belong to another operating system. Enter your password."
+            )
+        return secret_service("get", encoded[len("secretservice:"):])
     try:
         data = base64.b64decode(encoded, validate=True)
         return _crypt(data, decrypt=True).decode("utf-8")
     except (ValueError, UnicodeError, TypeError):
         raise LauncherError(
-            "No se pudo abrir el acceso guardado. Escribe la contraseña de nuevo."
+            "Could not unlock the saved credentials. Enter your password again."
         ) from None
 
 
@@ -206,19 +283,19 @@ def host(value):
             for label in value.split(".")
         )
     ):
-        raise LauncherError("Escribe una IP IPv4 o un nombre de servidor válido.")
+        raise LauncherError("Enter a valid IPv4 address or server hostname.")
     return value
 
 
 def port(value):
     if isinstance(value, bool):
-        raise LauncherError("Los puertos deben estar entre 1 y 65535.")
+        raise LauncherError("Ports must be between 1 and 65535.")
     try:
         result = int(value)
     except (ValueError, TypeError):
-        raise LauncherError("Los puertos deben estar entre 1 y 65535.") from None
+        raise LauncherError("Ports must be between 1 and 65535.") from None
     if str(result) != str(value).strip() or not 1 <= result <= 65535:
-        raise LauncherError("Los puertos deben estar entre 1 y 65535.")
+        raise LauncherError("Ports must be between 1 and 65535.")
     return result
 
 
@@ -241,27 +318,27 @@ def url(value):
             port(parsed.port)
     except (ValueError, TypeError):
         raise LauncherError(
-            "Usa una dirección http://IP:puerto o https://IP:puerto, sin rutas ni credenciales."
+            "Use an http://host:port or https://host:port address without a path or credentials."
         ) from None
     return value
 
 
 def normalize_server(raw):
     if not isinstance(raw, dict):
-        raise LauncherError("La configuración del servidor no es válida.")
+        raise LauncherError("The server configuration is invalid.")
     identifier = raw.get("id") or uuid.uuid4().hex
     if not isinstance(identifier, str) or not re.fullmatch(
         r"[A-Za-z0-9_-]{1,64}", identifier
     ):
-        raise LauncherError("El identificador del servidor no es válido.")
+        raise LauncherError("The server identifier is invalid.")
     game_ports = raw.get("game_ports", [15556])
     if isinstance(game_ports, str):
         game_ports = [p.strip() for p in game_ports.split(",") if p.strip()]
     if not isinstance(game_ports, list) or not 1 <= len(game_ports) <= 16:
-        raise LauncherError("Indica uno o varios puertos de juego separados por comas.")
-    name = str(raw.get("name", "Servidor")).strip()
+        raise LauncherError("Enter one or more game ports, separated by commas.")
+    name = str(raw.get("name", "Server")).strip()
     if not name or len(name) > 80 or any(ord(c) < 32 for c in name):
-        raise LauncherError("Escribe un nombre de servidor de hasta 80 caracteres.")
+        raise LauncherError("Enter a server name of up to 80 characters.")
     result = dict(
         id=identifier,
         name=name,
@@ -281,14 +358,14 @@ def normalize_server(raw):
             path = ROOT / path
         if not path.is_file():
             raise LauncherError(
-                "No se encuentra el certificado indicado. Selecciona el archivo o deja el campo vacío para usar la confianza de Windows."
+                "The selected certificate was not found. Select the file or leave this field empty to use system trust."
             )
     result["achievements_url"] = url(
         raw.get("achievements_url") or "https://wakemu-adventures.p.hectorpulido.net"
     )
     result["install_root"] = str(raw.get("install_root", "")).strip()
     if "\x00" in result["install_root"]:
-        raise LauncherError("La carpeta del cliente no es válida.")
+        raise LauncherError("The client folder is invalid.")
     return internet_server_names(result)
 
 
@@ -364,6 +441,21 @@ def internet_server_names(server):
 
 
 def default_state():
+    local = dict(
+        id="local",
+        name="Wakemu Local",
+        server_host="127.0.0.1",
+        dispatch_port=15558,
+        game_ports=[15556],
+        chat_host="127.0.0.1",
+        chat_port=16337,
+        http_url="http://127.0.0.1:18081",
+        shop_url="http://127.0.0.1:18083",
+        api_url="http://127.0.0.1:18081",
+        certificate="",
+        achievements_url="http://127.0.0.1:18081",
+        install_root="",
+    )
     internet = dict(
         id="internet",
         name="Wakemu Internet",
@@ -381,8 +473,8 @@ def default_state():
     )
     return {
         "version": 1,
-        "servers": [internet],
-        "selected_id": "internet",
+        "servers": [local, internet],
+        "selected_id": "local",
         "selected_username": "",
         "accounts": {},
     }
@@ -405,7 +497,7 @@ def load_state():
         return value
     except (OSError, ValueError, TypeError, AttributeError):
         raise LauncherError(
-            "No se pudo leer la configuración del launcher. Conserva el archivo y revisa profile/launcher-state.json."
+            "Could not read the launcher settings. Keep the file and check profile/launcher-state.json."
         ) from None
 
 
@@ -443,6 +535,7 @@ def public_state(state, data=None):
                 password = secret.get("password", "")
         except (ValueError, KeyError, TypeError):
             pass
+    storage_available = credential_storage_available()
     return {
         "servers": state["servers"],
         "selected_id": server["id"],
@@ -450,7 +543,9 @@ def public_state(state, data=None):
         "selected_username": username,
         "username": username,
         "password": password,
-        "remember": bool(saved.get("protected", False)) if username else True,
+        "remember": (bool(saved.get("protected", False)) if username else True)
+        and storage_available,
+        "credential_storage_available": storage_available,
     }
 
 
@@ -465,10 +560,12 @@ def save(data):
         or not isinstance(password, str)
         or len(password) > 256
     ):
-        raise LauncherError("Revisa la cuenta y la contraseña.")
-    remember = data.get("remember", True)
+        raise LauncherError("Check your username and password.")
+    remember = data.get(
+        "remember", credential_storage_available() if sys.platform.startswith("linux") else True
+    )
     if not isinstance(remember, bool):
-        raise LauncherError("La opción de recordar acceso no es válida.")
+        raise LauncherError("The remember credentials option is invalid.")
     previous = next((s for s in state["servers"] if s["id"] == server["id"]), None)
     changed = previous is not None and fingerprint(previous) != fingerprint(server)
     if changed and password and not data.get("password_edited", False):
@@ -523,7 +620,7 @@ def save(data):
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         raise LauncherError(
-            "El servidor intentó redirigir el acceso a otra dirección. Revisa la URL de autenticación."
+            "The server tried to redirect sign-in to another address. Check the authentication URL."
         )
 
 
@@ -553,33 +650,36 @@ def api_request(server, route, body):
                 detail = json.loads(error.read(4096)).get("error")
             except (ValueError, AttributeError, OSError):
                 detail = None
+            # Match the native server's approved messages without exposing raw
+            # upstream text or leaking its language into the English launcher.
             approved = {
-                "Ese usuario ya existe.",
-                "Usuario: 3–32 letras, números, guion o guion bajo.",
-                "Contraseña: 8–256 caracteres.",
+                "Ese usuario ya existe.": "That username already exists.",
+                "Usuario: 3–32 letras, números, guion o guion bajo.":
+                    "Username: 3–32 letters, numbers, hyphens, or underscores.",
+                "Contraseña: 8–256 caracteres.": "Password: 8–256 characters.",
             }
             if isinstance(detail, str) and detail in approved:
-                raise LauncherError(detail) from None
+                raise LauncherError(approved[detail]) from None
             raise LauncherError(
-                "El servidor rechazó el registro. Revisa el usuario o elige otro nombre."
+                "The server rejected registration. Check the username or choose another name."
             ) from None
         if error.code == 429:
             raise LauncherError(
-                "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
+                "Too many attempts. Wait a minute and try again."
             ) from None
         if error.code == 401:
             raise LauncherError(
-                "Cuenta o contraseña incorrectas, o acceso guardado caducado."
+                "The username or password is incorrect, or the saved credentials have expired."
             ) from None
         raise LauncherError(
-            "El servidor rechazó el acceso (HTTP %s)." % error.code
+            "The server rejected sign-in (HTTP %s)." % error.code
         ) from None
     except (urllib.error.URLError, ssl.SSLError):
         raise LauncherError(
-            "No se pudo conectar con autenticación. Revisa su dirección y el certificado."
+            "Could not connect to authentication. Check its address and certificate."
         ) from None
     except (ValueError, KeyError):
-        raise LauncherError("La respuesta de autenticación no es válida.") from None
+        raise LauncherError("The authentication response is invalid.") from None
 
 
 def game_install(server):
@@ -610,6 +710,21 @@ def game_install(server):
 def discover(data):
     current = normalize_server(data.get("server"))
     domain = current["server_host"]
+    authentication = urllib.parse.urlsplit(current["api_url"])
+    try:
+        loopback = ipaddress.IPv4Address(domain).is_loopback
+    except ipaddress.AddressValueError:
+        loopback = domain == "localhost"
+    if (
+        loopback
+        and authentication.scheme == "http"
+        and authentication.hostname == domain
+    ):
+        return {
+            "ok": True,
+            "server": current,
+            "message": "Local server settings loaded. Use Advanced settings to change ports and services.",
+        }
     origin = "https://" + domain
     cert = (
         certificate_path(current)
@@ -664,16 +779,16 @@ def discover(data):
         discovered = normalize_server(discovered)
     except (urllib.error.URLError, ssl.SSLError, OSError):
         raise LauncherError(
-            "No se pudo detectar el servidor. Revisa el dominio o abre Configuración avanzada."
+            "Could not detect the server. Check the domain or open Advanced settings."
         ) from None
     except (ValueError, TypeError, KeyError):
         raise LauncherError(
-            "El servidor devolvió una configuración automática inválida."
+            "The server returned invalid automatic settings."
         ) from None
     return {
         "ok": True,
         "server": discovered,
-        "message": "Servidor detectado. Puertos y servicios configurados automáticamente.",
+        "message": "Server detected. Ports and services were configured automatically.",
     }
 
 
@@ -681,17 +796,17 @@ def register(data):
     server = normalize_server(data.get("server"))
     raw_username = data.get("username", "")
     if not isinstance(raw_username, str):
-        raise LauncherError("Usuario: 3–32 letras, números, guion o guion bajo.")
+        raise LauncherError("Username: 3–32 letters, numbers, hyphens, or underscores.")
     username = raw_username.strip()
     password = data.get("password", "")
     if not re.fullmatch(r"[A-Za-z0-9_-]{3,32}", username):
-        raise LauncherError("Usuario: 3–32 letras, números, guion o guion bajo.")
+        raise LauncherError("Username: 3–32 letters, numbers, hyphens, or underscores.")
     if not isinstance(password, str) or not 8 <= len(password) <= 256:
-        raise LauncherError("Contraseña: 8–256 caracteres.")
+        raise LauncherError("Password: 8–256 characters.")
     if password != data.get("password_confirm"):
-        raise LauncherError("Las contraseñas no coinciden.")
+        raise LauncherError("The passwords do not match.")
     if type(data.get("remember", True)) is not bool:
-        raise LauncherError("La opción de recordar acceso no es válida.")
+        raise LauncherError("The remember credentials option is invalid.")
     existing_state = load_state()
     result = api_request(
         server, "/register", {"username": username, "password": password}
@@ -705,7 +820,7 @@ def register(data):
         or account["username"].casefold() != username.casefold()
     ):
         raise LauncherError(
-            "El servidor no confirmó la identidad de la cuenta. Revisa el usuario antes de repetir el registro."
+            "The server did not confirm the account identity. Check the username before registering again."
         )
     selected = dict(
         data, server=server, username=account["username"], password_edited=True
@@ -715,7 +830,7 @@ def register(data):
         visible = public_state(
             state, {"selected_id": server["id"], "username": username}
         )
-        message = "Cuenta creada. Ya puedes pulsar Jugar y crear tu personaje."
+        message = "Account created. You can now click Play and create your character."
     except (LauncherError, OSError, subprocess.SubprocessError):
         # Account creation already committed on the server. Do not disguise a
         # local Keychain/filesystem failure as a failed remote registration.
@@ -728,7 +843,7 @@ def register(data):
             state, {"selected_id": server["id"], "username": account["username"]}
         )
         visible["remember"] = False
-        message = "Cuenta creada. No se pudo guardar el acceso en este equipo; conserva tu contraseña y pulsa Jugar."
+        message = "Account created. Could not save credentials on this computer; keep your password and click Play."
     visible["password"] = password
     return {"ok": True, "state": visible, "message": message}
 
@@ -736,7 +851,7 @@ def register(data):
 def web_login(data):
     _, server, username, password, _ = save(data)
     if not username or not password:
-        raise LauncherError("Escribe tu cuenta y contraseña para abrir los logros.")
+        raise LauncherError("Enter your username and password to open achievements.")
     origin = server["achievements_url"]
     parsed_origin = urllib.parse.urlsplit(origin)
     if parsed_origin.scheme != "https":
@@ -745,7 +860,7 @@ def web_login(data):
         except ValueError:
             local = parsed_origin.hostname == "localhost"
         if not local:
-            raise LauncherError("Usa HTTPS para los logros a través de Internet.")
+            raise LauncherError("Use HTTPS to access achievements over the Internet.")
     destination = dict(server, api_url=origin)
     if parsed_origin.hostname != urllib.parse.urlsplit(server["api_url"]).hostname:
         destination["certificate"] = ""
@@ -761,12 +876,12 @@ def web_login(data):
         "",
     ) or not re.fullmatch(r"token=[A-Za-z0-9_-]{40,128}", parsed.fragment):
         raise LauncherError(
-            "La dirección de logros devuelta por el servidor no es válida."
+            "The achievements address returned by the server is invalid."
         )
     return {
         "ok": True,
         "url": result["url"],
-        "message": "Logros conectados. Las acciones se aplican al personaje conectado de esta cuenta.",
+        "message": "Achievements connected. Actions apply to the character currently online on this account.",
     }
 
 
@@ -783,11 +898,11 @@ def await_startup(process, status_path, log, timeout=30):
                     pass
             if process.poll() is not None:
                 raise LauncherError(
-                    "Wakfu terminó durante el arranque. Revisa el registro: " + str(log)
+                    "Wakfu closed during startup. Check the log: " + str(log)
                 )
             if time.monotonic() >= deadline:
                 raise LauncherError(
-                    "El cliente todavía no confirmó el arranque. Revisa el registro: "
+                    "The client has not confirmed startup yet. Check the log: "
                     + str(log)
                 )
             time.sleep(0.1)
@@ -798,13 +913,13 @@ def await_startup(process, status_path, log, timeout=30):
 def launch(data):
     state, server, username, password, remember = save(data)
     if not username or not password:
-        raise LauncherError("Escribe la cuenta y la contraseña para entrar.")
+        raise LauncherError("Enter your username and password to sign in.")
     if (
         sys.platform == "darwin"
         and not (Path(game_install(server)) / "lib/wakfu-client.jar").is_file()
     ):
         raise LauncherError(
-            "Elige la carpeta de tu cliente Wakfu 1.93.1+79 en Carpeta del cliente antes de jugar."
+            "Select your Wakfu 1.93.1+79 installation under Client folder before playing."
         )
     result = api_request(
         server,
@@ -819,12 +934,12 @@ def launch(data):
         or not result["api_token"]
     ):
         raise LauncherError(
-            "La respuesta de autenticación no contiene una cuenta válida."
+            "The authentication response does not contain a valid account."
         )
     # The server may canonicalize account names, but must not switch identities.
     if account["username"].casefold() != username.casefold():
         raise LauncherError(
-            "La cuenta devuelta por el servidor no coincide con la solicitada."
+            "The account returned by the server does not match the requested account."
         )
     key = account_key(server, username)
     folder = ROOT / "profile/accounts" / key
@@ -853,7 +968,7 @@ def launch(data):
         )
     else:
         forget_renewal(folder)
-    # Remember tokens are persistent only inside DPAPI-protected storage.
+    # Persist remember tokens only in the operating system's secure storage.
     session = dict(result)
     session.pop("remember_token", None)
     token_file = folder / "login-session.json"
@@ -918,21 +1033,21 @@ def launch(data):
         "ok": True,
         "pid": process.pid,
         "log": str(log),
-        "message": "Wakfu iniciado. El cliente confirmó la conexión con el launcher.",
+        "message": "Wakfu started. The client confirmed its connection to the launcher.",
     }
 
 
 def check(data):
     server = normalize_server(data["server"])
     endpoints = [
-        ("Despachador", server["server_host"], server["dispatch_port"]),
+        ("Dispatcher", server["server_host"], server["dispatch_port"]),
         ("Chat", server["chat_host"], server["chat_port"]),
     ]
-    endpoints += [("Juego", server["server_host"], p) for p in server["game_ports"]]
+    endpoints += [("Game", server["server_host"], p) for p in server["game_ports"]]
     for name, field in (
-        ("Autenticación", "api_url"),
-        ("Recursos", "http_url"),
-        ("Tienda", "shop_url"),
+        ("Authentication", "api_url"),
+        ("Resources", "http_url"),
+        ("Shop", "shop_url"),
     ):
         parsed = urllib.parse.urlsplit(server[field])
         endpoints.append(
@@ -958,15 +1073,15 @@ def check(data):
         "ok": True,
         "available": good,
         "checks": checks,
-        "message": "Todos los puertos configurados responden."
+        "message": "All configured ports are responding."
         if good
-        else "Algunos puertos no responden. Revisa las direcciones o los servicios.",
+        else "Some ports are not responding. Check the addresses and services.",
     }
 
 
 def dispatch(action, data):
     if not isinstance(data, dict):
-        raise LauncherError("Los datos del launcher no son válidos.")
+        raise LauncherError("The launcher data is invalid.")
     if action == "state":
         return {"ok": True, "state": public_state(load_state(), data)}
     if action == "save":
@@ -1003,7 +1118,7 @@ def dispatch(action, data):
         result["password"] = ""
         result["remember"] = False
         return {"ok": True, "state": result}
-    raise LauncherError("Acción del launcher desconocida.")
+    raise LauncherError("Unknown launcher action.")
 
 
 def main():
@@ -1032,7 +1147,7 @@ def main():
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         result = {
             "ok": False,
-            "error": "No se pudo completar la operación. Revisa los campos y los permisos de la carpeta.",
+            "error": "Could not complete the operation. Check the fields and folder permissions.",
         }
     print(json.dumps(result, ensure_ascii=True))
     return 0 if result["ok"] else 1

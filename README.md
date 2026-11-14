@@ -45,7 +45,7 @@ For more information, explore the [documentation](docs/README.md): follow the [s
 
 ## Run locally
 
-Requires Docker Compose, Git LFS, Python 3 with Tk, JDK 21+, and macOS or Linux with a graphical session.
+Requires Docker Compose, Git LFS, Python 3.10–3.14, JDK 21+, and macOS, Windows, or Linux with a graphical session for the integrated launcher. See [Getting started](docs/getting-started.md#5-optional-install-and-launch-the-client) for platform requirements.
 
 1. Supply your own lawfully obtained **Wakfu 1.93.1+79** client in `client/`, with `config.properties`, `classpath`, `contents/`, `lib/`, and `jre/` directly inside it. **1.93.1+79** is the fully supported client version. **1.93.1+81** has partial, unverified compatibility; use +79 for the supported experience. Other versions are unsupported.
 2. **Setup is not yet self-contained:** world requires catalogs and verified bootstrap records in PostgreSQL, plus matching private credentials at the configured service mounts. Follow the [setup prerequisites](docs/getting-started.md#current-setup-requirements) and [database guide](database/README.md) before starting. Runtime preparation alone does not supply all inputs.

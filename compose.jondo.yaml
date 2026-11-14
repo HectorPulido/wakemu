@@ -1,2 +1,0 @@
-# Legacy Compose override: WakIA is now defined in the base Compose file.
-services: {}

@@ -94,6 +94,26 @@ class LauncherAuthentication:
                 and renewed.get("account", {}).get("id") != previous_id
             ):
                 raise ValueError()
+            rotated = renewed.get("remember_token")
+            if (
+                "protected_token" in remembered
+                and isinstance(rotated, str)
+                and rotated
+                and rotated != token
+            ):
+                from launcher_backend import protect, private_write, remove_protected
+
+                previous_reference = remembered["protected_token"]
+                replacement = protect(rotated)
+                try:
+                    private_write(
+                        self.login_file.with_name("remember.json"),
+                        dict(remembered, protected_token=replacement),
+                    )
+                except (OSError, ValueError, TypeError):
+                    remove_protected(replacement)
+                    raise
+                remove_protected(previous_reference)
             self._write(renewed)
             return renewed
         except (urllib.error.URLError, OSError, ValueError, KeyError, TypeError):
@@ -102,6 +122,8 @@ class LauncherAuthentication:
             ) from None
 
     def _write(self, login):
+        session = dict(login)
+        session.pop("remember_token", None)
         staged = None
         try:
             with tempfile.NamedTemporaryFile(
@@ -110,7 +132,7 @@ class LauncherAuthentication:
                 staged = Path(output.name)
                 if hasattr(os, "fchmod"):
                     os.fchmod(output.fileno(), 0o600)
-                json.dump(login, output)
+                json.dump(session, output)
                 output.flush()
                 os.fsync(output.fileno())
             staged.replace(self.login_file)

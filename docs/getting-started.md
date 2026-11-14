@@ -121,11 +121,17 @@ The first compiled publication can take several minutes. A later unchanged start
 
 ## 5. Optional: install and launch the client
 
-The server does not need Java, Tk or game assets. These are requirements for the desktop that runs the client.
+The game server does not need Java, Qt, or game assets. Install these desktop requirements only on the machine that runs the client.
 
-Use macOS or Linux with a graphical desktop, Python 3 with Tk support, and JDK 21 or newer. Supply your own **Wakfu 1.93.1+79** installation for full client compatibility with the features implemented by Wakemu. **1.93.1+81** has partial, unverified compatibility and is not the recommended version for this guide. Other versions are unsupported.
+The integrated launcher uses the same Python/Qt application on **macOS, Windows, and Linux**. The previous Tk launcher and separate Mac/Windows interfaces have been removed. Requirements:
 
-Put its files directly inside `client/`:
+- Python **3.10–3.14**, with `venv` and `pip`, and Internet access for the first launcher dependency installation.
+- **macOS 13+**, **Windows 10/11 x64**, or a graphical **Linux** desktop. Linux needs the Qt WebEngine system libraries; Debian/Ubuntu may require `libegl1`, `libopengl0`, `libnss3`, `libxkbcommon0`, `libxcb-cursor0`, `libopus0`, GLib, and their platform dependencies. Qt WebEngine may also require the distribution's WebP, Snappy, Minizip, LCMS, and audio libraries. Package names vary between distributions. See the [Qt for Python requirements](https://doc.qt.io/qtforpython-6/gettingstarted.html).
+- A **JDK 21+** to build the repository's launcher agents. Set `JAVA_HOME` on Windows, or make `javac` available on `PATH`.
+- On macOS, **Xcode Command Line Tools** to build the small Keychain helper. The interface itself is shared Python code.
+- Your own legally obtained **Wakfu 1.93.1+79** installation for full client compatibility with the features implemented by Wakemu. **1.93.1+81** has partial, unverified compatibility; use +79 for the supported experience. Other versions are unsupported.
+
+Put the client files directly inside `client/`, or select an existing installation under **Advanced settings → Client folder**:
 
 ```text
 client/
@@ -136,27 +142,48 @@ client/
   jre/
 ```
 
-For a server running on the same desktop, launch from the repository root:
+From the repository root, run the same entry point on every platform:
 
 ```sh
-bash client-tools/client.sh play
+python3 client-tools/desktop-launcher.py
 ```
 
-Sign in as `admin` / `admin` and create your first character, or register a separate player account in the login dialog. Use credentials for this server rather than your official game account.
+On Windows, use `py -3 client-tools/desktop-launcher.py`. On macOS and Linux, `bash launcher.sh` and `bash client-tools/client.sh launch` are equivalent shortcuts. The `play` command opens this same launcher.
 
-For a second player:
+The first launch prepares the agents and installs the pinned Qt/PySide dependencies into `.local-state/wakemu/launcher-venv/`; it does not install Python packages globally. Later launches reuse unchanged dependencies and agents. Use `python3 client-tools/desktop-launcher.py --prepare-only` to prepare everything without opening a window.
+
+Repository launches initially select **Wakemu Local**, with the repository client folder already configured. Choose another saved server, or use **Advanced settings** for its addresses and ports. **Check connection** reports configured service reachability. **Detect configuration** uses the existing public server's configuration endpoint; local HTTP presets retain their configured addresses and ports. A remote server must already be reachable: changing the launcher does not expose localhost-only services.
+
+Enter your native account on the selected private server and press **Play**, or use **Register** to create a separate player account. Use this server's credentials rather than your official game account. Registration is submitted only by **Create account**; canceling leaves the previous account unchanged.
+
+**Save account and password** uses macOS Keychain, Windows DPAPI, or Linux Secret Service. Linux requires an unlocked compatible keyring, such as GNOME Keyring or KWallet. When secure storage is unavailable, leave password saving disabled; passwords are never saved in plaintext. Existing player data is unchanged, and credentials from other launcher folders are not imported. **Forget saved sign-in** removes the selected account's saved credentials.
+
+The **Achievements and dungeons** tab opens the selected server's existing authenticated portal. This requires that server's `/launcher/login` gateway; local World alone does not provide it. The web page uses the language provided by that server and has no access to the launcher's native account controls. Switching accounts or servers clears the embedded web session. Closing the launcher leaves the game running.
+
+For a second isolated launcher profile:
 
 ```sh
-bash client-tools/client.sh play --profile second-player
+python3 client-tools/desktop-launcher.py --profile second-player
 ```
 
-To compile the launcher agents and check isolation without opening the game:
+Launcher state and account-specific runtime files live under `.local-state/wakemu/desktop-launcher/`; additional profiles live under its `instances/` directory. Keep these private files when updating the launcher.
+
+For explicit server configuration, the shell shortcut accepts `--server` or `--config`:
 
 ```sh
-bash client-tools/client.sh check
+bash client-tools/client.sh launch --server 192.0.2.20
+bash client-tools/client.sh launch --config /path/to/server.json
 ```
 
-For a server on another machine, read [Choose a private server](../client-tools/README.md#choose-a-private-server). That setup also needs a reachable server address and ports; changing a client setting alone does not expose a localhost-only server.
+On Windows, select the server in the launcher, or set `WAKFU_LAUNCHER_CONFIG` to the configuration file before running the Python entry point. Read [Choose a private server](../client-tools/README.md#choose-a-private-server) for service ports and configuration files.
+
+To export the same launcher source for all three systems:
+
+```sh
+python3 client-tools/desktop-launcher.py --package
+```
+
+This creates `.runtime/distribution/Wakemu-Launcher.zip`. Extract it and use `Launch.command` on macOS, `Launch.bat` on Windows, or `bash Launch.sh` on Linux. Python is required; the first run installs the platform's GUI dependencies in a private environment. macOS builds the Keychain helper locally. The package includes the compiled agents but excludes saved profiles, accounts, and official client assets. It is a shared source package, not a prebuilt executable for every operating system.
 
 ## Existing installations
 

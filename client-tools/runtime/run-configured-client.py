@@ -18,6 +18,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
+    token = os.environ.get("WAKFU_GAME_LOGIN_FILE")
+    if not args.check and not token:
+        return subprocess.call([
+            sys.executable, str(ROOT / "client-tools/desktop-launcher.py"),
+            "--profile", os.environ.get("WAKFU_LOCAL_PROFILE", "main"),
+        ])
     cfg = settings()
     os.environ["WAKFU_SERVER_NAME"] = cfg["server_name"]
     os.environ["WAKFU_SERVER_IPV4"] = cfg["server_host"]
@@ -51,13 +57,6 @@ def main():
         ["bash", str(ROOT / "sniffer/build-capture-agent.sh")], cwd=ROOT, check=True
     )
     os.environ["WAKFU_CAPTURE_AGENT"] = str(ROOT / ".runtime/capture-agent.jar")
-    token = os.environ.get("WAKFU_GAME_LOGIN_FILE")
-    if not token:
-        subprocess.run(
-            [sys.executable, str(ROOT / "client-tools/runtime/local-login.py")],
-            check=True,
-        )
-        token = str(profile_root(profile) / "login-session.json")
     return subprocess.call(command + ["--token-file", token])
 
 

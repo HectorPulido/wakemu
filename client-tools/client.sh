@@ -29,11 +29,11 @@ if [[ ${#server_options[@]} -gt 0 ]]; then
 fi
 set -- ${forwarded[@]+"${forwarded[@]}"}
 case "$command" in
-  launch) exec python3 "$tools_dir/local-launcher.py" "$@" ;;
-  play) exec bash "$tools_dir/local-client.sh" "$@" ;;
+  launch) exec python3 "$tools_dir/desktop-launcher.py" "$@" ;;
+  play) exec python3 "$tools_dir/desktop-launcher.py" "$@" ;;
   check) exec bash "$tools_dir/local-client.sh" --check "$@" ;;
   inspect) exec python3 "$tools_dir/diagnostics/inspect-client.py" "$@" ;;
-  package) exec python3 "$tools_dir/packaging/package-mini-launcher.py" "$@" ;;
+  package) exec python3 "$tools_dir/desktop-launcher.py" --package "$@" ;;
   patch-particles)
     if [[ $# -eq 0 ]]; then set -- "$tools_dir/../client/contents/scripts/scripts.jar"; fi
     exec python3 "$tools_dir/patches/patch-empty-particle-ids.py" "$@"
@@ -42,11 +42,11 @@ case "$command" in
     cat <<'HELP'
 Usage: bash client-tools/client.sh COMMAND [OPTIONS]
 
-  launch           Open the graphical account launcher.
-  play             Start the local client (--profile NAME).
+  launch           Open the integrated launcher (Mac/Windows/Linux).
+  play             Open the same integrated launcher (--profile NAME).
   check            Compile agents and verify network isolation without opening the game.
   inspect          Inspect a running client (--profile NAME state).
-  package          Build the portable launcher (--output PATH).
+  package          Export the shared Mac/Windows/Linux source ZIP (--output PATH).
   patch-particles  Apply the optional particle patch to your own client archive.
 
 Place your own compatible game installation in the sibling client/ directory.

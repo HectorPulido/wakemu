@@ -1,4 +1,4 @@
-import importlib.util, io, json, os, shutil, subprocess, sys, tempfile, unittest, zipfile
+import hashlib, importlib.util, io, json, os, shutil, subprocess, sys, tempfile, unittest, zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -101,7 +101,7 @@ class MiniLauncherTests(unittest.TestCase):
                 (z.getinfo("Launch.command").external_attr >> 16) & 0o777, 0o755
             )
 
-    def test_distributed_payload_has_no_client_or_runtime_dependencies(self):
+    def test_agent_payload_contains_only_sources_agents_and_verified_manifest(self):
         javac = shutil.which("javac")
         java_home = os.environ.get("JAVA_HOME")
         if not java_home and Path("/usr/libexec/java_home").is_file():
@@ -115,13 +115,40 @@ class MiniLauncherTests(unittest.TestCase):
             java_home = str(Path(javac).resolve().parent.parent)
         if not java_home or not (Path(java_home) / "bin/javac").is_file():
             self.skipTest("JDK 21+ is required to build launcher agent fixtures")
-        output = self.base / "wakfu-mini-launcher.zip"
+        output = self.base / "launcher-agents.zip"
         with patch.dict(os.environ, {"JAVA_HOME": java_home}):
             package.build(output)
         p = output
         with zipfile.ZipFile(p) as z:
             names = z.namelist()
-            self.assertEqual(len(names), 17)
+            source_names = {
+                "mini-launcher/sources/" + name
+                for name in (
+                    "DropinNetworkGuard.java",
+                    "DropinNetworkGuardTest.java",
+                    "LocalDesktopFix.java",
+                    "OpenPlantingAgent.java",
+                    "OpenPlantingAgentRecovery.java",
+                )
+            }
+            agent_names = {
+                "mini-launcher/agents/" + name
+                for name in (
+                    "network-guard.jar", "desktop-fix.jar", "open-planting.jar"
+                )
+            }
+            self.assertEqual(
+                set(names), source_names | agent_names | {"mini-launcher/manifest.json"}
+            )
+            manifest = json.loads(z.read("mini-launcher/manifest.json"))
+            self.assertEqual(manifest["format"], 1)
+            self.assertEqual(
+                manifest["files"],
+                {
+                    name.removeprefix("mini-launcher/"): hashlib.sha256(z.read(name)).hexdigest()
+                    for name in source_names | agent_names
+                },
+            )
             self.assertFalse(
                 any(
                     part in n.lower()
