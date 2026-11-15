@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Reproduce companion-pet migration206 from original aMw/fwr model descriptors."""
+
 import argparse
 import hashlib
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DOCUMENT = ROOT / "protocol/pet-models.json"
+DATABASE_ROOT = (ROOT.parent if ROOT.name == "server" else ROOT) / "database"
+DOCUMENT = DATABASE_ROOT / "protocol/pet-models.json"
 MIGRATION = ROOT / "migrations/206_native_pet_authority.sql"
 
 

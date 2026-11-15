@@ -4,6 +4,7 @@ States 8013--8016 and their conditions are native. The reaction order and
 selected cells are observed in one official run; other variants are unknown.
 All state and actor positions belong to the fight preview.
 """
+
 from .lesson_states import REQUIRED, STATES, observe
 
 SPELL_EFFECT = 361204  # Native damage effect of 7967.
@@ -111,6 +112,8 @@ def initialize(fight, packets, *, action_id):
     contract = _contract(fight)
     if contract is None:
         return False
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return True
     owner, target = fight.actors.get(contract.get("owner")), fight.actors.get(
         contract.get("target")
     )
@@ -170,6 +173,8 @@ def _sync_state(fight, packets, *, action_id, wanted):
 
 def announce(fight, packets, *, action_id):
     contract = _contract(fight)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if contract is None or contract.get("initialized") is not True:
         return
     hits = contract.get("hits")
@@ -217,6 +222,8 @@ def _observe(fight, actor_id, target_id, event, *, spell_id=None):
 def turn_end(fight, actor_id):
     """Apply authentic turn-end reactions without altering unrelated fights."""
     contract = _contract(fight)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if contract is None or actor_id != contract.get("owner"):
         return False
     if not _observe(fight, actor_id, contract["target"], "turn_end"):
@@ -229,6 +236,8 @@ def turn_end(fight, actor_id):
 
 def hit(fight, *, source_id, target_id, effect_reference, damage):
     contract = _contract(fight)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return None
     if contract is None or target_id != contract.get("target"):
         return None
     if (

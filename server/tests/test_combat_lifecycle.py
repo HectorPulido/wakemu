@@ -988,6 +988,20 @@ class LifecycleTests(PostgresCase):
             self.assertEqual(
                 store.character(account, char["id"])["haven_bag"], char["haven_bag"]
             )
+            # A retransmitted authenticated return acknowledges the durable
+            # health receipt without replaying progression or world packets.
+            duplicate = return_to_world(
+                store,
+                account,
+                generation,
+                result["character"],
+                runtime,
+                struct.pack(">iB", fight.id, 0),
+                wp=6,
+            )
+            self.assertFalse(duplicate["applied"])
+            self.assertEqual(duplicate["packets"], [])
+            self.assertEqual(duplicate["character"]["hp"], own["hp"])
 
     def test_losing_controlled_participant_gets_no_xp_or_kamas(self):
         from wakfu_server.combat_runtime_messages import RuntimeMessages

@@ -1,7 +1,8 @@
 """World objective projections stay current-period and nonblocking."""
+
 from datetime import datetime, timezone
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from unittest.mock import patch
 
@@ -23,9 +24,7 @@ class ObjectivesWorldTests(unittest.TestCase):
             is_challenge_instance,
         )
         from wakfu_server.maps import (
-            monster_active_clocks,
             monster_reproduction,
-            monster_wander,
         )
 
         class NoDatabase:
@@ -38,38 +37,9 @@ class ObjectivesWorldTests(unittest.TestCase):
         self.assertFalse(is_challenge_instance(INSTANCE_MINIMUM - 1))
         self.assertFalse(is_challenge_instance(True))
         store = NoDatabase()
-        self.assertEqual(
-            monster_active_clocks.observe(
-                store,
-                1086,
-                challenge_id,
-                present=True,
-                generation="g",
-                now_ms=10,
-                table="monster_maturation_timers",
-                eligible_refs=set(),
-                policy_provider=lambda _store: (_ for _ in ()).throw(
-                    AssertionError("policy read")
-                ),
-            ),
-            [],
-        )
-
-        class NoGroups:
-            def __getattr__(self, name):
-                raise AssertionError(f"challenge wander touched group registry: {name}")
-
-        self.assertEqual(
-            monster_wander.wander_location(
-                NoGroups(),
-                1086,
-                challenge_id,
-                [],
-                [],
-                lambda *_args: None,
-            ),
-            [],
-        )
+        # Native Rust clock/wandering challenge exclusions execute in
+        # lifecycle_contract.rs. World still refuses authored challenge births
+        # without loading a database or an ordinary population policy.
         self.assertTrue(monster_reproduction.dungeon_population(store, challenge_id))
         self.assertFalse(monster_reproduction.dungeon_population(store, 0))
 
@@ -219,16 +189,21 @@ class ObjectivesWorldTests(unittest.TestCase):
                 "completed_at": datetime(2026, 10, 14, tzinfo=timezone.utc),
             },
         ]
-        with patch.object(
-            repository, "list_definitions", return_value=definitions
-        ), patch.object(repository, "list_progress", return_value=progress), patch(
-            "wakfu_server.objectives.assignments.ensure_for_character", return_value=0
-        ), patch(
-            "wakfu_server.objectives.assignments.visible_keys",
-            return_value={"daily", "once"},
-        ), patch(
-            "wakfu_server.objectives.points.weights",
-            return_value=points.DEFAULT_WEIGHTS,
+        with (
+            patch.object(repository, "list_definitions", return_value=definitions),
+            patch.object(repository, "list_progress", return_value=progress),
+            patch(
+                "wakfu_server.objectives.assignments.ensure_for_character",
+                return_value=0,
+            ),
+            patch(
+                "wakfu_server.objectives.assignments.visible_keys",
+                return_value={"daily", "once"},
+            ),
+            patch(
+                "wakfu_server.objectives.points.weights",
+                return_value=points.DEFAULT_WEIGHTS,
+            ),
         ):
 
             class SnapshotDb:
@@ -257,23 +232,26 @@ class ObjectivesWorldTests(unittest.TestCase):
     def test_local_mode_is_noop_and_external_mode_persists_server_fact_without_http(
         self,
     ):
-        with patch.dict(
-            os.environ, {"WAKFU_OBJECTIVES_MODE": "local"}, clear=False
-        ), patch.object(
-            repository,
-            "enqueue",
-            side_effect=AssertionError("local mode must not publish"),
+        with (
+            patch.dict(os.environ, {"WAKFU_OBJECTIVES_MODE": "local"}, clear=False),
+            patch.object(
+                repository,
+                "enqueue",
+                side_effect=AssertionError("local mode must not publish"),
+            ),
         ):
             self.assertEqual(
                 external.enqueue_fact(object(), 1, 2, "fight:8", {"kind": "test"}),
                 {"replayed": False, "updated": [], "completed": []},
             )
         payload = {"kind": "test", "value": 5}
-        with patch.dict(
-            os.environ, {"WAKFU_OBJECTIVES_MODE": "external"}, clear=False
-        ), patch("wakfu_server.custom_tasks.service._owner") as owner, patch.object(
-            repository, "enqueue", return_value={"id": 17, "replayed": True}
-        ) as enqueue:
+        with (
+            patch.dict(os.environ, {"WAKFU_OBJECTIVES_MODE": "external"}, clear=False),
+            patch("wakfu_server.custom_tasks.service._owner") as owner,
+            patch.object(
+                repository, "enqueue", return_value={"id": 17, "replayed": True}
+            ) as enqueue,
+        ):
             result = external.enqueue_fact(object(), 1, 2, "test:5", payload)
         owner.assert_called_once_with(unittest.mock.ANY, 1, 2, True)
         enqueue.assert_called_once_with(unittest.mock.ANY, 1, 2, "test:5", payload)

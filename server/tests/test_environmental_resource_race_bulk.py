@@ -1,4 +1,5 @@
 """One bulk import qualifies declared character slots over original resource stock."""
+
 import hashlib
 import struct
 import unittest
@@ -42,7 +43,7 @@ class EnvironmentalResourceRaceBulkTests(unittest.TestCase):
                 hero["id"],
             )
         members = [fixture.character["id"], *[r["id"] for r in additions]]
-        seeds = Path(__file__).resolve().parents[1] / "seeds"
+        seeds = Path(__file__).resolve().parents[2] / "database" / "seeds"
         race = (seeds / "environmental_resource_races.sql").read_bytes()
         self.assertEqual(
             hashlib.sha256(race).hexdigest(),

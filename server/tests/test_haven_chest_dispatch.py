@@ -1,11 +1,12 @@
 """Execute chest transfer branches from the production local dispatcher AST."""
+
 import ast
 from copy import deepcopy
 import importlib
 import struct
 import uuid
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -73,9 +74,9 @@ class HavenChestDispatcherTests(unittest.TestCase):
                 character=actor,
                 chest=chest,
                 applied=True,
-                inventory_characters=(actor,)
-                if inventory_characters is None
-                else inventory_characters,
+                inventory_characters=(
+                    (actor,) if inventory_characters is None else inventory_characters
+                ),
             )
         )
         if transfer_error:

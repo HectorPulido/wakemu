@@ -1,4 +1,5 @@
 """Four original criterion-bearing resources use persisted effective levels."""
+
 import struct
 import unittest
 import hashlib
@@ -193,9 +194,11 @@ class EnvironmentalResourceActionCriteriaTests(unittest.TestCase):
                         int(fixture.clock[0] * 1000) - 1000,
                         minimum,
                         personal,
-                        "test-declared level1 isolates action criterion"
-                        if minimum == 1
-                        else "original scenario level bounds; controlled component fixture",
+                        (
+                            "test-declared level1 isolates action criterion"
+                            if minimum == 1
+                            else "original scenario level bounds; controlled component fixture"
+                        ),
                         "0" * 64,
                         catalog,
                     ),
@@ -215,9 +218,11 @@ class EnvironmentalResourceActionCriteriaTests(unittest.TestCase):
                         "INSERT INTO environmental_profile_evaluation VALUES(%s,1,%s,1,%s,%s)",
                         (
                             key,
-                            "score_at_deadline"
-                            if mode == "competitive"
-                            else "first_completion",
+                            (
+                                "score_at_deadline"
+                                if mode == "competitive"
+                                else "first_completion"
+                            ),
                             "character_id" if mode == "competitive" else "commit_order",
                             "test-declared evaluator; not original winner policy",
                         ),
@@ -393,7 +398,7 @@ class EnvironmentalResourceActionCriteriaTests(unittest.TestCase):
         # isolated schema after the focused occupations. Keeping generated
         # schedules uninstalled until here avoids substituting a fake scheduler
         # bypass for the deliberately declared criterion-isolation profiles.
-        seeds = Path(__file__).resolve().parents[1] / "seeds"
+        seeds = Path(__file__).resolve().parents[2] / "database" / "seeds"
         names = (
             "environmental_resource_profiles.sql",
             "environmental_resource_races.sql",

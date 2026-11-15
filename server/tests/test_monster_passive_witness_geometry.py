@@ -1,4 +1,5 @@
 """Passive fixtures use native directed reachability and preserve participants."""
+
 import json
 from pathlib import Path
 import sys
@@ -50,7 +51,7 @@ class PassiveWitnessGeometryTests(unittest.TestCase):
     def test_actual_compact_failure_recovers_through_native_geometry(self):
         path = (
             Path(__file__).resolve().parents[1]
-            / "test-fixtures/combat"
+            / "tests/fixtures/combat"
             / "map1134-passive-witness.json"
         )
         document = json.loads(path.read_text())
@@ -90,7 +91,7 @@ class PassiveWitnessGeometryTests(unittest.TestCase):
     def test_actual_map1134_skips_disconnected_first_cell_and_preserves_positions(self):
         path = (
             Path(__file__).resolve().parents[1]
-            / "test-fixtures/combat"
+            / "tests/fixtures/combat"
             / "map1134-passive-witness.json"
         )
         document = json.loads(path.read_text())

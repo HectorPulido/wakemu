@@ -1,4 +1,5 @@
 """Reviewed source dependency does not rewrite immutable native morphology."""
+
 import copy, json, unittest
 from unittest.mock import patch
 from wakfu_server import combat_morph_spellbook as morph
@@ -16,11 +17,24 @@ class ReviewedMorphProfilesTests(unittest.TestCase):
         before = json.dumps(self.base, sort_keys=True)
         profiles = morph.native_morph_profiles()
         self.assertEqual(len(self.base["profiles"]), 8)
-        self.assertEqual(len(profiles), 10)
+        self.assertEqual(len(profiles), 14)
         for key, row in self.base["profiles"].items():
             self.assertEqual(profiles[key], row)
         self.assertEqual(morph.build_morph_book(profiles["2778"], 5), {4019: 5})
         self.assertEqual(morph.build_morph_book(profiles["5521"], 1), {7968: 1})
+        expected_tutorial_profiles = {
+            "5519": {7963, 7964, 7965, 7966},
+            "5520": {7967},
+            "5521": {7968},
+            "5522": {7969, 7970, 7971},
+            "5524": {7972, 7973, 7974, 7975},
+        }
+        for profile_id, expected_spells in expected_tutorial_profiles.items():
+            with self.subTest(profile=profile_id):
+                self.assertEqual(
+                    set(morph.build_morph_book(profiles[profile_id], 1)),
+                    expected_spells,
+                )
         self.assertEqual(json.dumps(self.base, sort_keys=True), before)
 
     def test_unknown_native_revision_keeps_only_its_original_profiles(self):

@@ -4,6 +4,7 @@
 Output is private audit evidence, not installed gameplay configuration. A literal
 False criterion is preserved as a blocked predicate, not relabelled retirement.
 """
+
 import argparse
 from collections import Counter
 import csv
@@ -103,12 +104,16 @@ def compile_inventory(definitions, classifications, nodes):
                 period_seconds=86400,
                 native_rewards=rewards,
                 original_delivery=delivery,
-                status="DEFERRED_LITERAL_FALSE_PREDICATE"
-                if blocked
-                else "ORIGINAL_TARGET_AND_SELECTION_UNRECOVERED",
-                importance="UNIMPORTANT_DEFERRED_BY_SCOPE"
-                if blocked
-                else "ACTIVE_WORK_SOURCE_AUTHORITY_PENDING",
+                status=(
+                    "DEFERRED_LITERAL_FALSE_PREDICATE"
+                    if blocked
+                    else "ORIGINAL_TARGET_AND_SELECTION_UNRECOVERED"
+                ),
+                importance=(
+                    "UNIMPORTANT_DEFERRED_BY_SCOPE"
+                    if blocked
+                    else "ACTIVE_WORK_SOURCE_AUTHORITY_PENDING"
+                ),
                 obsolete_proven=False,
             )
         )
@@ -134,7 +139,7 @@ def main():
         definitions = list(csv.DictReader(stream))
     with (base / "recurring-source-family-classification.csv").open() as stream:
         classifications = list(csv.DictReader(stream))
-    with gzip.open(ROOT / "server/protocol/npc-dialogues.json.gz", "rt") as stream:
+    with gzip.open(ROOT / "database/protocol/npc-dialogues.json.gz", "rt") as stream:
         nodes = json.load(stream)["nodes"]
     result = compile_inventory(definitions, classifications, nodes)
     args.report.parent.mkdir(parents=True, exist_ok=True)

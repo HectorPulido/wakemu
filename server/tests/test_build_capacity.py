@@ -1,5 +1,5 @@
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from wakfu_server import health_policy
 from wakfu_server.builds import capacity_message, valid_index, validate

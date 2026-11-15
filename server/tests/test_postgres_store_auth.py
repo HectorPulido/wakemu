@@ -1339,7 +1339,9 @@ class StoreAuthTests(PostgresCase):
         body = struct.pack(
             ">iqii", planting.SEEDS[4275]["action_id"], item["uid"], 10, 11
         )
-        prepared = planting.prepare(
+        from planting_fixture import prepare, mature
+
+        prepared = prepare(
             self.store,
             self.account,
             generation,
@@ -1390,10 +1392,10 @@ class StoreAuthTests(PostgresCase):
         self.assertEqual(len(runtime.snapshots(character["map_id"], instance)), 1)
         self.clock[0] += 31
         deliveries = []
-        self.assertEqual(len(runtime.mature(Groups(), publish=deliveries.append)), 1)
+        self.assertEqual(len(mature(runtime, Groups(), publish=deliveries.append)), 1)
         self.assertEqual(len(deliveries), 1)
         self.assertEqual(deliveries[0]["packets"][0][0], 12782)
-        self.assertEqual(runtime.mature(Groups(), publish=deliveries.append), [])
+        self.assertEqual(mature(runtime, Groups(), publish=deliveries.append), [])
         self.assertEqual(len(deliveries), 1)
         with self.store.connection() as db:
             self.assertEqual(

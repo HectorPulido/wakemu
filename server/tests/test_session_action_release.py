@@ -1,10 +1,11 @@
 """Compile actual socket completion statements without starting World."""
+
 import ast
 from copy import deepcopy
 from dataclasses import dataclass
 import gc
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 import weakref
 
@@ -79,8 +80,7 @@ class SessionActionReleaseTests(unittest.TestCase):
             fight, {}, 0, (), (), (), snapshot, 1
         )
         refs = tuple(weakref.ref(value) for value in (transaction, fight, snapshot))
-        factory = ast.parse(
-            """
+        factory = ast.parse("""
 def connection_scope(value, request, preserve_return):
     transaction = value
     action_results = {'transaction': value}
@@ -93,8 +93,7 @@ def connection_scope(value, request, preserve_return):
     def finish_return():
         nonlocal return_owner
         return_owner = None
-"""
-        ).body[0]
+""").body[0]
         if cleanup is not None:
             factory.body.append(deepcopy(cleanup))
         completion = ast.parse(

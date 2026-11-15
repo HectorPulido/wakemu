@@ -1,4 +1,5 @@
 """Publish original PT collision getters additively; never stage or activate DB data."""
+
 import argparse
 from copy import deepcopy
 import json
@@ -151,11 +152,11 @@ def select_public(pack_root, receipt):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pack", type=Path, default=Path("server/data/installation"))
+    parser.add_argument("--pack", type=Path, default=Path("database/data/installation"))
     parser.add_argument(
         "--proof",
         type=Path,
-        default=Path("server/data/native-rift-pt-casting-additions-v1.json"),
+        default=Path("database/data/native-rift-pt-casting-additions-v1.json"),
     )
     parser.add_argument(
         "--select-public",

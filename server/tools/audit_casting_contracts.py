@@ -1,9 +1,9 @@
 """Offline, catalog-wide casting contract inventory; never executes a fight."""
+
 import argparse
 import hashlib
 import json
 from pathlib import Path
-
 
 CAST_FLAGS = ("line_of_sight", "linear", "free_cell", "range_modifiable")
 
@@ -107,8 +107,8 @@ def main():
     )
     args = parser.parse_args()
     sources = {
-        "native": root / "server/protocol/native-spell-casting.json",
-        "class": root / "server/protocol/spell-effect-trees.json",
+        "native": root / "database/protocol/native-spell-casting.json",
+        "class": root / "database/protocol/spell-effect-trees.json",
         "inventory": root / "docs/reports/combat-inventory/inventory.json",
     }
     with open(sources["native"], "rt") as stream:

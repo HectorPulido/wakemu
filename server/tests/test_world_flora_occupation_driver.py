@@ -1,8 +1,9 @@
 """Run actual World flora closures without importing its network/bootstrap loop."""
+
 import ast
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from threading import RLock
 from types import SimpleNamespace
 import unittest
@@ -41,14 +42,12 @@ class WorldFloraOccupationDriverTests(unittest.TestCase):
             )
         ]
         self.assertEqual(len(polling), 1)
-        wrapper = ast.parse(
-            """
+        wrapper = ast.parse("""
 def make(state):
     character = state['character']
     flora_ticket = state['ticket']
     flora_retry_body = None
-"""
-        ).body[0]
+""").body[0]
         wrapper.body.extend(
             deepcopy(definitions[name])
             for name in ("cancel_flora", "complete_flora_occupation")
@@ -62,15 +61,11 @@ def make(state):
             decorator_list=[],
         )
         wrapper.body.append(poll)
-        wrapper.body.extend(
-            ast.parse(
-                """
+        wrapper.body.extend(ast.parse("""
 def snapshot():
     return dict(character=character, ticket=flora_ticket, retry=flora_retry_body)
 return complete_flora_occupation, cancel_flora, poll, snapshot
-"""
-            ).body
-        )
+""").body)
         module = ast.fix_missing_locations(ast.Module(body=[wrapper], type_ignores=[]))
         exec(compile(module, str(self.path), "exec"), namespace)
         return namespace["make"](state)

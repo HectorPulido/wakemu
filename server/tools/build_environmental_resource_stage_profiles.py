@@ -4,6 +4,7 @@
 Original scenario stage2 remains source metadata. Only the exact source303
 mapping may authorize physical stage1 and its original cvF deletion action.
 """
+
 from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
@@ -39,7 +40,7 @@ from build_environmental_group_profiles import (
 IDS = frozenset((*range(-1880, -1876), *range(-1637, -1633)))
 ACTIONS = {744: 2102, 730: 2091}
 POLICY = "wakemu.original-resource-bomb-stage2-to-native-stage1.v1"
-SEED = ROOT / "server/seeds/environmental_resource_stage_profiles.sql"
+SEED = ROOT / "database/seeds/environmental_resource_stage_profiles.sql"
 MANIFEST = (
     ROOT
     / "agents_docs/reports/parallel-readiness-20261021/environmental-resource-stage-profile-manifest.json"
@@ -313,20 +314,26 @@ def compile_pipeline(
                         (
                             key,
                             1,
-                            "first_completion"
-                            if mode == "race"
-                            else "score_at_deadline",
-                            spawn
-                            if mode == "race"
-                            else max(
-                                band["rank_max"]
-                                for band in bands
-                                if band["rank_max"] is not None
+                            (
+                                "first_completion"
+                                if mode == "race"
+                                else "score_at_deadline"
+                            ),
+                            (
+                                spawn
+                                if mode == "race"
+                                else max(
+                                    band["rank_max"]
+                                    for band in bands
+                                    if band["rank_max"] is not None
+                                )
                             ),
                             "commit_order" if mode == "race" else "character_id",
-                            "wakemu.character-race-capacity-from-original-physical-population.v1;each-hero-occupies-one-place;not-original-character-limit"
-                            if mode == "race"
-                            else "wakemu.resource-competition-top-two-ranks.v1;original-rank-conditions;all-eligible-fallback;character-id-ties",
+                            (
+                                "wakemu.character-race-capacity-from-original-physical-population.v1;each-hero-occupies-one-place;not-original-character-limit"
+                                if mode == "race"
+                                else "wakemu.resource-competition-top-two-ranks.v1;original-rank-conditions;all-eligible-fallback;character-id-ties"
+                            ),
                         )
                     ],
                 )
@@ -670,7 +677,7 @@ def main():
     prior.extend(
         prior_resource_profiles(
             [
-                ROOT / "server/seeds" / name
+                ROOT / "database/seeds" / name
                 for name in (
                     "environmental_resource_profiles.sql",
                     "environmental_resource_races.sql",

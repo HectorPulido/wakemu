@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Export installed native dialogues and scenario evidence without client changes."""
+
 import argparse
 import gzip
 import hashlib
@@ -69,7 +70,7 @@ def extract_catalog(nodes, scripts_archive, languages):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--output", type=Path, default=ROOT / "server/protocol/npc-dialogues.json.gz"
+        "--output", type=Path, default=ROOT / "database/protocol/npc-dialogues.json.gz"
     )
     args = parser.parse_args()
     java_source = ROOT / "sniffer/java/ExportNpcDialogues.java"

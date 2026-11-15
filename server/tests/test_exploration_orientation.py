@@ -1,7 +1,8 @@
 """Native cnk12593 owns selected world facing, never a combat action."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from unittest.mock import Mock
 

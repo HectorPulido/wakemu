@@ -1,4 +1,5 @@
 """Native Ranch bridge activators with durable owner-scoped state and item cost."""
+
 import struct
 
 POLICY = "haven_ranch_bridge_policy"
@@ -184,3 +185,16 @@ def blocked_cells(db, owner_character_id):
         if states[slot["id"]] == 0:
             result.update(tuple(cell) for cell in footprint)
     return result
+
+
+def validate_movement(db, owner_character_id, movement):
+    """Apply committed bridge construction policy to the native route kernel."""
+    from wakfu_server.spatial_native import get_spatial
+
+    get_spatial().call(
+        "navigation.blocked_columns",
+        request=movement,
+        blocked=sorted(blocked_cells(db, owner_character_id)),
+        exclude_start_point=True,
+        error="Build the Ranch bridge before crossing",
+    )

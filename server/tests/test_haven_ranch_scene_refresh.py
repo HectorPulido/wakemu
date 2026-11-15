@@ -1,6 +1,7 @@
 """Actual per-recipient Ranch idle refresh, without a native catalog load."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import sys
 import threading
 from types import SimpleNamespace

@@ -1,5 +1,5 @@
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 

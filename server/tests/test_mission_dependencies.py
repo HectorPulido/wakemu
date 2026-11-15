@@ -1,7 +1,12 @@
 import unittest
+import struct
 from unittest.mock import patch
 
-from wakfu_server.achievements.mission_dependencies import reconcile, settle
+from wakfu_server.achievements.mission_dependencies import (
+    reconcile,
+    settle,
+    _dependency_packet_order,
+)
 
 
 def quest(identity, objectives):
@@ -38,6 +43,17 @@ class MissionDependenciesTest(unittest.TestCase):
         }
         self.links = ((10, 100, 20), (30, 300, 10))
         self.character = {"id": 1, "account_id": 2}
+
+    def test_ordinary_packets_and_already_known_child_keep_their_order(self):
+        packets = [
+            (13295, b"counter"),
+            (13832, struct.pack(">qi", 1, 100)),
+            (13371, b"tracking"),
+        ]
+        self.assertIs(_dependency_packet_order(packets, self.definitions, ()), packets)
+        self.assertIs(
+            _dependency_packet_order(packets, self.definitions, self.links), packets
+        )
 
     def apply(self, state, links=None):
         return reconcile(
@@ -104,6 +120,22 @@ class MissionDependenciesTest(unittest.TestCase):
         self.assertEqual(outcome["completed"], [20, 10, 30])
         self.assertEqual([opcode for opcode, _ in outcome["packets"]].count(13832), 3)
         self.assertEqual([opcode for opcode, _ in outcome["packets"]].count(13422), 3)
+        facts = [
+            (opcode, struct.unpack_from(">i", body, 8)[0])
+            for opcode, body in outcome["packets"]
+            if opcode in (13832, 13422)
+        ]
+        self.assertEqual(
+            facts,
+            [
+                (13832, 200),
+                (13422, 20),
+                (13832, 100),
+                (13422, 10),
+                (13832, 300),
+                (13422, 30),
+            ],
+        )
 
     def test_final_combat_lesson_claims_child_and_parent_rewards(self):
         child = quest(5143, [(10611, "")])
@@ -136,6 +168,14 @@ class MissionDependenciesTest(unittest.TestCase):
             )
         self.assertEqual(outcome["completed"], [5143, 5160])
         self.assertEqual(outcome["new_objectives"], [10611, 10616])
+        facts = [
+            (opcode, struct.unpack_from(">i", body, 8)[0])
+            for opcode, body in outcome["packets"]
+            if opcode in (13832, 13422)
+        ]
+        self.assertEqual(
+            facts, [(13832, 10611), (13422, 5143), (13832, 10616), (13422, 5160)]
+        )
         self.assertEqual([call.args[2] for call in claim.call_args_list], [5143, 5160])
         persist.assert_called_once()
         drain.assert_called_once()

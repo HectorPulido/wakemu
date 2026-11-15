@@ -9,6 +9,11 @@ import sys
 from pathlib import Path, PurePosixPath
 import re
 
+SERVER_ROOT = Path(__file__).resolve().parents[1]
+DATABASE_ROOT = (
+    SERVER_ROOT.parent if SERVER_ROOT.name == "server" else SERVER_ROOT
+) / "database"
+
 # Spatial grids are retained verbatim without duplicating millions of grid cells.
 SPATIAL_DIRECTORIES = frozenset(
     {
@@ -558,7 +563,7 @@ def main():
     parser.add_argument(
         "--directory",
         type=Path,
-        default=Path(__file__).resolve().parents[1] / "protocol",
+        default=DATABASE_ROOT / "protocol",
     )
     parser.add_argument("--stage-only", action="store_true")
     parser.add_argument("--profile-memory", action="store_true")

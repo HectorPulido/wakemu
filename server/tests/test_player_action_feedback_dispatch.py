@@ -1,7 +1,8 @@
 """Real rejection handlers explain failures while preserving native recovery."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest
@@ -114,13 +115,15 @@ class PlayerActionFeedbackDispatchTests(unittest.TestCase):
                         self.assertEqual(records[0]["event"], event)
                         self.assertEqual(
                             records[0]["reason"],
-                            type(error).__name__
-                            if event
-                            in (
-                                "inventory_recycling_rejected",
-                                "exchange_request_rejected",
-                            )
-                            else str(error),
+                            (
+                                type(error).__name__
+                                if event
+                                in (
+                                    "inventory_recycling_rejected",
+                                    "exchange_request_rejected",
+                                )
+                                else str(error)
+                            ),
                         )
                         self.assertEqual(sent[0][0], 349)
                         subtype, size = struct.unpack(">hh", sent[0][1][:4])

@@ -13,6 +13,10 @@ class LocationBatchTests(unittest.TestCase):
             account_id=identity,
             map_id=map_id,
             instance_id=instance_id,
+            x=0,
+            y=0,
+            z=0,
+            direction=0,
         )
 
     def world(self, writer, *, failure=None):

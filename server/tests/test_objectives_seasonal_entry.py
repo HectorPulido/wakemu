@@ -1,9 +1,11 @@
 """Seasonal intents preserve exact native route and source authorization."""
+
 import copy
 import struct
 import unittest
 from unittest.mock import patch
 
+from source_view import WorldSourcePath as Path
 from wakfu_server.objectives import seasonal_entry
 
 
@@ -181,11 +183,12 @@ class SeasonalEntryTests(unittest.TestCase):
         # Exercise the actual dispatcher's import statements. The legacy root
         # compatibility alias is needed for relative imports in this module.
         import ast
-        import pathlib
         import subprocess
         import sys
 
-        filename = pathlib.Path(__file__).resolve().parents[1] / "local_game_server.py"
+        filename = (
+            WorldSourcePath(__file__).resolve().parents[1] / "local_game_server.py"
+        )
         tree = ast.parse(filename.read_text())
         executor = next(
             node

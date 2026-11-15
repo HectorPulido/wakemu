@@ -3,8 +3,9 @@
 This bounded Registry case covers admission and Ready, not SQL transport or GUI
 combat. The live four-client failure is recorded separately in the QA receipts.
 """
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 

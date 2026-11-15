@@ -1,17 +1,11 @@
-"""Bounded ecology preparation and session-owned regional stat publication."""
-from __future__ import annotations
+"""Session-owned regional stat and health publication from prepared snapshots."""
 
 import threading
 import time
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from wakfu_server import (
-    ecology_context,
-    ecology_population,
-    territory_bonuses,
-    territory_cells,
-)
+from wakfu_server import territory_cells
 
 
 def _revision(db, scope):
@@ -32,81 +26,6 @@ def _scope(value):
     ):
         raise ValueError("Invalid regional bonus scope")
     return result
-
-
-def prepare(store, world_snapshot, limit=16):
-    """Read each bounded online scope once, outside all world ownership locks."""
-    if type(limit) is not int or not 1 <= limit <= 64:
-        raise ValueError("Invalid regional bonus preparation limit")
-    epoch = world_snapshot.get("world_epoch", world_snapshot.get("epoch"))
-    if not isinstance(epoch, str) or not epoch:
-        raise ValueError("Missing regional bonus world epoch")
-    scopes = sorted({_scope(player) for player in world_snapshot.get("players", ())})
-    if not scopes:
-        return []
-    offset = int(
-        world_snapshot.get(
-            "domain_planning_tick", world_snapshot.get("planning_tick", 0)
-        )
-    ) % len(scopes)
-    scopes = (scopes[offset:] + scopes[:offset])[:limit]
-    catalog = territory_bonuses._catalog()["territories"]
-    with store.connection() as db:
-        health_policy = territory_bonuses.control_health_policy(db)
-    proposals = []
-    for scope in scopes:
-        observed_at = time.time()
-
-        with store.connection() as db:
-            before = _revision(db, scope)
-            population = ecology_population.snapshot(
-                db,
-                *scope,
-                locate=ecology_context.population_region,
-                exclude_unassigned=True,
-            )
-            after = _revision(db, scope)
-        if before != after:
-            continue  # A concurrent ecology commit needs a fresh population read.
-        regions, region_states = {}, {}
-        for region_id, territory in catalog.items():
-            if territory["map_id"] != scope[0]:
-                continue
-            counts = population["regions"].get(int(region_id), {})
-            region = (
-                territory_bonuses.evaluate_population(
-                    int(region_id),
-                    dict(counts.get("monster", {})),
-                    dict(counts.get("plant", {})),
-                )
-                if population["complete"]
-                else None
-            )
-            region_states[region_id] = (
-                None if region is None else region.get("state_id")
-            )
-            regions[region_id] = {
-                str(key): value
-                for key, value in territory_bonuses.stat_bonuses(
-                    region, health_policy=health_policy
-                ).items()
-            }
-        proposals.append(
-            dict(
-                domain="bonuses",
-                operation="regional_snapshot",
-                world_epoch=epoch,
-                map_id=scope[0],
-                instance_id=scope[1],
-                revision=after,
-                regions=regions,
-                region_states=region_states,
-                observed_at=observed_at,
-                # Exhausted proposals must receive new IDs on later planning passes.
-                observation_bucket=int(observed_at // 2),
-            )
-        )
-    return proposals
 
 
 @dataclass(frozen=True)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Validate archived dungeon evidence without treating it as runtime spawn data."""
+
 import argparse
 import hashlib
 import json
@@ -150,7 +151,7 @@ def main():
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     schema = json.loads(
-        (ROOT / "server/protocol/dungeon-room-composition.schema.json").read_text()
+        (ROOT / "database/protocol/dungeon-room-composition.schema.json").read_text()
     )
     Draft202012Validator.check_schema(schema)
     result = validate_archive(

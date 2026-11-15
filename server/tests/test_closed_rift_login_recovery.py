@@ -1,7 +1,8 @@
 """Aborted Rift login uses canonical company departure and delivery custody."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -127,11 +128,11 @@ class ClosedRiftLoginRecoveryTests(PostgresCase):
                 db.execute(
                     "UPDATE combat_fights SET status=%s WHERE id=%s",
                     (
-                        "placement"
-                        if state == "entered"
-                        else "active"
-                        if state == "running"
-                        else "finished",
+                        (
+                            "placement"
+                            if state == "entered"
+                            else "active" if state == "running" else "finished"
+                        ),
                         fight_id,
                     ),
                 )

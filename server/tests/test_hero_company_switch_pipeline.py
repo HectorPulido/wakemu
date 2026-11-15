@@ -3,9 +3,10 @@
 Packet encoders are bounded spies: this qualifies server ordering and authority,
 not the native client's visual completion.
 """
+
 import ast
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 from unittest.mock import patch

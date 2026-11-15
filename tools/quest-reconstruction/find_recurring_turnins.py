@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Index native recurring-dialogue item turn-in candidates, without activating them."""
+
 import argparse
 from collections import defaultdict
 import gzip
@@ -69,7 +70,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    with gzip.open(ROOT / "server/protocol/npc-dialogues.json.gz", "rt") as f:
+    with gzip.open(ROOT / "database/protocol/npc-dialogues.json.gz", "rt") as f:
         dialogues = json.load(f)
     with (ROOT / ".runtime/quest-extraction/native-quest-definitions.json").open() as f:
         definitions = json.load(f)

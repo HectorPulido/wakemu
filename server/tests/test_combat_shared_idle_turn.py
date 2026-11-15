@@ -1,6 +1,7 @@
 """Exercise the production idle retry gate without starting a socket server."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from wakfu_server.combat_effective_control import effective_server_controlled

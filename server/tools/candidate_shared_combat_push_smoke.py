@@ -4,6 +4,7 @@ Run inside a disposable candidate world container. Both accounts and the
 candidate PostgreSQL database are created by this script; it never contacts
 the live world.
 """
+
 import os
 import queue
 import secrets
@@ -20,6 +21,7 @@ from pathlib import Path
 from psycopg.conninfo import conninfo_to_dict
 from wakfu_server.command_permissions import set_admin
 from wakfu_server.store import Store
+from wakfu_server.paths import DATA_ROOT
 from tls_smoke_io import recv_exact, send_all
 from candidate_session_lease import start as start_test_session_heartbeat
 from candidate_session_lease import stop_all as stop_test_session_heartbeats
@@ -199,7 +201,7 @@ def placement(body):
 @lru_cache(maxsize=8)
 def _walk_edges(map_id):
     graph = {}
-    data_root = Path(__file__).resolve().parents[1] / "protocol"
+    data_root = DATA_ROOT
     path = data_root / "combat-maps" / f"{map_id}.json"
     if not path.is_file():
         raise AssertionError(f"candidate lacks geometry for map {map_id}")

@@ -1,8 +1,9 @@
 """Execute the real Ranch dispatch and native bootstrap publication order."""
+
 import ast
 from copy import deepcopy
 from datetime import datetime, timezone
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest

@@ -1,10 +1,11 @@
 """Transactional harvesting of native dead monster actors."""
+
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from types import SimpleNamespace
 import ast
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from unittest.mock import Mock, patch
@@ -15,7 +16,6 @@ from wakfu_server.monster_collect import Harvests, action
 from wakfu_server.monsters import REFERENCES, owned_instance
 from wakfu_server.profession_store import ensure_learned
 from wakfu_server.wire import proto_field
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 
@@ -531,9 +531,7 @@ class MonsterCorpseHarvestTests(PostgresCase):
                 "SELECT actor_id FROM monster_corpses WHERE fight_id=%s", (fight_id,)
             ).fetchone()["actor_id"]
         corpse = dict(member, id=corpse_id, hp=0, corpse=True)
-        request = proto_field(8, self.action_id) + proto_field(
-            16, corpse_id % (2**64)
-        )
+        request = proto_field(8, self.action_id) + proto_field(16, corpse_id % (2**64))
         projected = []
 
         def project(fresh):

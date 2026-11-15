@@ -3,7 +3,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from wakfu_server import rii_scenario
+from wakfu_server.achievements import incarnam_tutorial
+from wakfu_server.maps import rii_scenario
 
 
 class RiiScenarioTests(unittest.TestCase):
@@ -25,8 +26,11 @@ class RiiScenarioTests(unittest.TestCase):
     ):
         connection = SimpleNamespace(pending_rii_intro=7)
         character = {"id": 7, "map_id": 1385, "instance_id": 0}
-        with patch(
-            "wakfu_server.incarnam_completion.complete_after_rii_intro",
+        from wakfu_server.characters import incarnam_completion
+
+        with patch.object(
+            incarnam_completion,
+            "complete_after_rii_intro",
             return_value=[(1, b"mission")],
         ) as complete:
             for bad_character, in_combat in (
@@ -65,11 +69,30 @@ class RiiScenarioTests(unittest.TestCase):
         state["objectives"] = [10568]
         self.assertEqual(
             rii_scenario.login_packets(character, state),
-            [rii_scenario.packet(rii_scenario.ENTRY)],
+            [
+                rii_scenario.packet(rii_scenario.ENTRY),
+                incarnam_tutorial.interface_recovery_packet(),
+            ],
         )
         self.assertEqual(
             rii_scenario.login_packets(dict(character, map_id=1387), state), []
         )
+
+    def test_skipped_intro_restores_interface_only_on_public_rii_login(self):
+        state = {"running": [], "objectives": []}
+        character = {"id": 7, "map_id": 1385, "instance_id": 0}
+        self.assertEqual(
+            rii_scenario.login_packets(character, state),
+            [
+                rii_scenario.packet(rii_scenario.ENTRY),
+                incarnam_tutorial.interface_recovery_packet(),
+            ],
+        )
+        for other in (
+            dict(character, map_id=1361),
+            dict(character, instance_id=7),
+        ):
+            self.assertEqual(rii_scenario.login_packets(other, state), [])
 
 
 if __name__ == "__main__":

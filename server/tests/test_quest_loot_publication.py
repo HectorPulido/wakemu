@@ -1,7 +1,8 @@
 """Settlement publishes native quest changes and flat physical registry packets."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import struct
 import unittest
@@ -47,7 +48,9 @@ class QuestLootPublicationTests(unittest.TestCase):
             generation=4,
             character=before,
             fight=SimpleNamespace(id=3, actors={7: object()}),
+            is_developer_test_fight=lambda *_: False,
             TEST_MONSTERS=[],
+            reward_monsters=[],
             frozen_contexts={7: (None, {})},
             combat_reward_context=SimpleNamespace(build_drop_context=lambda *a: {}),
             combat_drops=combat_drops,
@@ -61,10 +64,16 @@ class QuestLootPublicationTests(unittest.TestCase):
         )
         with patch.object(combat_drops, "resolve", return_value=object()), patch.object(
             combat_drops, "native_prospection_bonus", return_value=0
-        ), patch.object(combat_drops, "report_loots", return_value=[]), patch.object(
+        ), patch.object(
+            combat_drops, "native_shop_drop_factor", return_value=0
+        ), patch.object(
+            combat_drops, "report_loots", return_value=[]
+        ), patch.object(
             combat_drop_delivery, "apply"
         ), patch.object(
             combat_drop_delivery, "temporary_update", return_value=(13728, b"temporary")
+        ), patch.object(
+            combat_drop_delivery, "temporary_updates", return_value=[]
         ), patch.object(
             inventory_move, "synchronization", synchronization
         ):
@@ -85,9 +94,11 @@ class QuestLootPublicationTests(unittest.TestCase):
         quest = [body for opcode, body in packets if opcode == 13879]
         self.assertEqual(
             quest,
-            [struct.pack(">qBih", 7, 2, reference, existing + awarded)]
-            if awarded
-            else [],
+            (
+                [struct.pack(">qBih", 7, 2, reference, existing + awarded)]
+                if awarded
+                else []
+            ),
         )
 
 

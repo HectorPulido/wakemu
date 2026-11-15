@@ -1,4 +1,5 @@
 """The Rii guardian requires an owned, resolved fight, including a defeat."""
+
 import unittest
 import struct
 from datetime import datetime, timezone
@@ -6,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from wakfu_server.achievements import mission_dependencies, rii_guardian_battle
+from wakfu_server.achievements import rii_guardian_contract
 
 
 class GuardianBattleTests(unittest.TestCase):
@@ -18,10 +20,20 @@ class GuardianBattleTests(unittest.TestCase):
             id=9,
             phase="finished",
             winner=1,
-            actors={7: SimpleNamespace(team=0), -8: SimpleNamespace(team=1)},
+            native_fight_model=rii_guardian_contract.MODEL,
+            actors={
+                7: SimpleNamespace(
+                    team=1, controlled=True, position=rii_guardian_contract.PLAYER
+                ),
+                -8: SimpleNamespace(
+                    team=0,
+                    effective_level=rii_guardian_contract.LEVEL,
+                    position=rii_guardian_contract.TARGET,
+                ),
+            },
         )
         self.members = [{"character_id": 7, "account_id": 2, "session_generation": 3}]
-        self.monsters = [{"id": -8, "ref": 5458}]
+        self.monsters = [{"id": -8, "ref": 5458, "level": rii_guardian_contract.LEVEL}]
         self.before = {
             "running": [5146, 5160],
             "completed": [],
@@ -34,6 +46,10 @@ class GuardianBattleTests(unittest.TestCase):
             "actor_id": -8,
             "ref": 5458,
         }
+        rii_guardian_contract.bind(
+            self.fight,
+            {"schema": rii_guardian_contract.SCHEMA, "owner": 7, "target": -8},
+        )
 
     def query(self, sql, params):
         result = MagicMock()
@@ -41,7 +57,7 @@ class GuardianBattleTests(unittest.TestCase):
             result.fetchone.return_value = {"payload": self.receipt}
         elif "combat_fight_participants" in sql:
             result.fetchone.return_value = {
-                "team": 0,
+                "team": 1,
                 "status": "finished",
                 "fight_kind": "pve",
             }
@@ -70,7 +86,7 @@ class GuardianBattleTests(unittest.TestCase):
                     ),
                     {},
                 )
-                self.assertEqual(receipt.call_args.args[-1]["won"], winner == 0)
+                self.assertEqual(receipt.call_args.args[-1]["won"], winner == 1)
             settle.assert_not_called()
             retire.assert_called_once_with(self.db, -8)
 
@@ -105,18 +121,50 @@ class GuardianBattleTests(unittest.TestCase):
         self.db.execute.return_value.fetchall.return_value = []
         self.assertTrue(rii_guardian_battle.admit(self.db, 8, self.monsters))
 
+    def test_missing_owner_receipt_does_not_settle_or_consume_guardian(self):
+        query = MagicMock()
+        query.fetchone.return_value = None
+        self.db.execute.return_value = query
+        with patch(
+            "wakfu_server.achievements.storage.record_event"
+        ) as record, patch.object(
+            rii_guardian_battle, "_retire_lost_encounter"
+        ) as retire:
+            self.assertEqual(
+                {},
+                rii_guardian_battle.settle(
+                    self.db, self.store, self.fight, self.members, self.monsters
+                ),
+            )
+        record.assert_not_called()
+        retire.assert_not_called()
+        self.store.lock_character.assert_not_called()
+
+    def test_ordinary_model_with_matching_actor_receipt_does_not_settle(self):
+        self.db.execute.side_effect = self.query
+        self.fight.native_fight_model = 2
+        with patch("wakfu_server.achievements.storage.record_event") as record:
+            self.assertEqual(
+                {},
+                rii_guardian_battle.settle(
+                    self.db, self.store, self.fight, self.members, self.monsters
+                ),
+            )
+        record.assert_not_called()
+        self.store.lock_character.assert_not_called()
+
     def test_automatic_start_targets_the_owned_guardian_on_its_actual_cell(self):
         guardian = {
             "id": -8,
             "ref": 5458,
             "map_id": 1387,
             "instance_id": 0,
-            "x": -11,
+            "x": -12,
             "y": 0,
             "z": 2,
         }
         body = rii_guardian_battle.start_request(guardian)
-        self.assertEqual(struct.unpack(">qiihB", body), (-8, -11, 0, 2, 0))
+        self.assertEqual(struct.unpack(">qiihB", body), (-8, -12, 0, 2, 0))
         for bad in (
             {**guardian, "ref": 1},
             {**guardian, "map_id": 1385},

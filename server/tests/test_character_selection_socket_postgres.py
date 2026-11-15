@@ -4,11 +4,12 @@ This is a bounded dispatcher regression, not a full World/TLS/native UI test.
 Absolute bootstrap/inventory publication boundaries are spies; Store selection,
 lease fencing, achievement reward drain and native UID reservations are real.
 """
+
 import ast
 import copy
 import hashlib
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import queue
 import socket
 import struct
@@ -55,8 +56,7 @@ def compile_dispatcher(source, namespace):
         for node in tree.body
         if isinstance(node, ast.FunctionDef) and node.name == "receive"
     )
-    worker = ast.parse(
-        """def dispatch(connection):
+    worker = ast.parse("""def dispatch(connection):
     selected = False
     character = None
     while True:
@@ -68,8 +68,7 @@ def compile_dispatcher(source, namespace):
             raise ValueError("Invalid native route")
         body = receive(connection, length - 7)
         active_request = request_trace
-"""
-    ).body[0]
+""").body[0]
     branch = copy.deepcopy(selection)
     branch.orelse = [
         ast.If(

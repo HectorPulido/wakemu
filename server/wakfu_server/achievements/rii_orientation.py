@@ -57,11 +57,16 @@ def damage_is_qualifying(fight, source_id, target_id, amount):
         return False
 
 
-def spawn(store, groups, account_id, generation, character):
+def spawn(store, groups, account_id, generation, character, *, repeat=False):
     """Place one owner-qualified sack near Airyna after accepting her lesson.
 
     Ref 5466 and the placement are a documented local reconstruction; the
     original encounter descriptor was not recovered.
+
+    `repeat` reruns a finished exercise through Airyna's native "already done"
+    entry (node 5787 options 13330..13336): the native client offers that entry
+    precisely because the lesson is complete, so a completed objective must not
+    block respawning the owner's own training sack.
     """
     import secrets
     from wakfu_server.monsters import owned_instance
@@ -85,7 +90,9 @@ def spawn(store, groups, account_id, generation, character):
         ):
             raise ValueError("Orientation lesson position changed")
         state = storage.load_locked(db, current["id"])
-        if 5143 not in state["running"] or 10574 in state["objectives"]:
+        if 5143 not in state["running"] or (
+            10574 in state["objectives"] and not repeat
+        ):
             return None
         # Sample only after acquiring both the group and owner locks; an
         # earlier snapshot permits concurrent accepts to create two sacks.
@@ -113,8 +120,17 @@ def spawn(store, groups, account_id, generation, character):
             for m in group["members"]
             if m.get("ref") == 5466 and m["id"] < 0
         ]
+        owned_receipts = {
+            -identity
+            for identity in active
+            if db.execute(
+                "SELECT 1 FROM character_achievement_events WHERE character_id=%s AND event_key=%s",
+                (current["id"], f"rii-orientation-sack:{identity}"),
+            ).fetchone()
+        }
         if (
             active
+            and not repeat
             and db.execute(
                 "SELECT 1 FROM character_achievement_events WHERE character_id=%s AND event_key=ANY(%s) LIMIT 1",
                 (
@@ -124,6 +140,14 @@ def spawn(store, groups, account_id, generation, character):
             ).fetchone()
         ):
             return None
+        if repeat and owned_receipts:
+            # Rerun the exercise on this owner's live sack. Other players'
+            # sacks on the same floor are never candidates, and with no owned
+            # live sack the lesson simply creates a fresh one below.
+            for group in groups_here:
+                members = group["members"]
+                if len(members) == 1 and members[0].get("id") in owned_receipts:
+                    return 12608, spawn_group(members, group_id=group["key"][2])
         actor_id = -allocate_block(db, 1)
         # Adjacent tiles can visually overlap NPC sprites, even if their
         # coordinates differ. Prefer the nearest available tile to the player

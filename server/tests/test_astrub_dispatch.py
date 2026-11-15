@@ -1,8 +1,9 @@
 """Exercise the actual console dispatcher with real SQL ownership transitions."""
+
 import ast
 from copy import deepcopy
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 import time
@@ -91,6 +92,7 @@ class AstrubDispatcherTests(PostgresCase):
             ranch_session=ranch,
             account_id=self.account,
             generation=self.generation,
+            aborted_native_return=None,
             STORE=self.store,
             COMBAT_TEST=False,
             COMBAT_SESSIONS=SimpleNamespace(

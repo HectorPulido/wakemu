@@ -3,7 +3,7 @@ import unittest
 import ast
 from contextlib import nullcontext
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import threading
 from types import SimpleNamespace
 
@@ -59,7 +59,8 @@ class InteractivePublicationTests(unittest.TestCase):
         self.assertEqual(self.publish(overlap + resource), overlap)
         changed = frame(13135, self.resource_body.replace(b"\x28\x01", b"\x28\x02"))
         altitude = frame(13135, self.resource_body.replace(b"\x20\x00", b"\x20\x01"))
-        self.assertEqual(self.publish(changed + altitude), changed + altitude)
+        stage_two = frame(12782, struct.pack(">iihhqi", -186, -32, 0, 2, 0, 0))
+        self.assertEqual(self.publish(changed + altitude), stage_two + altitude)
         for update in (
             frame(12782, struct.pack(">iihhqi", -186, -32, 0, 0, 0, 0)),
             frame(12782, b"unknown-layout"),
@@ -98,7 +99,12 @@ class InteractivePublicationTests(unittest.TestCase):
 
     def test_actual_connection_write_failure_clears_resource_memo_before_retry(self):
         tree = ast.parse(
-            (Path(__file__).resolve().parents[1] / "local_game_server.py").read_text()
+            (
+                Path(__file__).resolve().parents[1]
+                / "wakfu_server"
+                / "application"
+                / "transport.py"
+            ).read_text()
         )
         connection = next(
             node
@@ -120,8 +126,12 @@ class InteractivePublicationTests(unittest.TestCase):
             decorator_list=[],
         )
         namespace = dict(
-            PROFILER=SimpleNamespace(span=lambda _: nullcontext()),
+            runtime=SimpleNamespace(
+                PROFILER=SimpleNamespace(span=lambda _: nullcontext()),
+                record=lambda **event: None,
+            ),
             record=lambda **event: None,
+            written_fight_id=lambda data, previous: previous,
         )
         exec(
             compile(
@@ -132,6 +142,8 @@ class InteractivePublicationTests(unittest.TestCase):
             namespace,
         )
         peer = namespace["ResourceConnection"]()
+        peer.runtime = namespace["runtime"]
+        peer.native_fight_id = None
         peer.write_lock = threading.RLock()
         peer.native_instance_scope = lambda: None
         peer.interactive_scope = lambda: self.scope
@@ -335,6 +347,45 @@ class InteractivePublicationTests(unittest.TestCase):
         self.assertEqual(
             self.publish(near + changed + near + far), near + changed + near
         )
+
+    def test_resource_stage_deltas_preserve_presence_and_snapshots_deduplicate(self):
+        resource = frame(13135, self.resource_body)
+        stage_two = frame(13135, self.resource_body.replace(b"\x28\x01", b"\x28\x02"))
+        delta = frame(12782, struct.pack(">iihhqi", -186, -32, 0, 2, 0, 0))
+        loader = frame(12318, struct.pack(">ii", -195, -33))
+        self.publisher.clear()
+        self.assertEqual(self.publish(resource), b"")
+        self.assertEqual(self.publish(loader + resource), loader + resource)
+        self.assertEqual(self.publish(stage_two), delta)
+        # A later snapshot of the already-mutated appearance is redundant.
+        self.assertEqual(self.publish(stage_two), b"")
+        self.assertEqual(self.publish(delta), delta)
+        # Nonzero native growth stages leave the planted appearance present.
+        self.assertEqual(self.publish(stage_two), b"")
+
+    def test_resource_retirement_allows_a_later_replant(self):
+        resource = frame(13135, self.resource_body)
+        retirement = frame(12782, struct.pack(">iihhqi", -186, -32, 0, 0, 0, 0))
+        loader = frame(12318, struct.pack(">ii", -195, -33))
+        self.publisher.clear()
+        self.assertEqual(self.publish(loader + resource), loader + resource)
+        self.assertEqual(self.publish(retirement), retirement)
+        self.assertEqual(self.publish(resource), resource)
+
+    def test_resource_replacement_identity_reference_and_altitude_are_published(self):
+        resource = frame(13135, self.resource_body)
+        replacements = (
+            self.resource_body.replace(b"\x08\xf6\x04", b"\x08\xf7\x04"),
+            self.resource_body.replace(b"\x10\xc6\xfe", b"\x10\xc8\xfe"),
+            self.resource_body.replace(b"\x20\x00", b"\x20\x01"),
+        )
+        for body in replacements:
+            with self.subTest(body=body):
+                self.publisher.clear()
+                loader = frame(12318, struct.pack(">ii", -195, -33))
+                self.assertEqual(self.publish(loader + resource), loader + resource)
+                replacement = frame(13135, body)
+                self.assertEqual(self.publish(replacement), replacement)
 
     def test_resource_initial_defer_and_partition_reentry(self):
         resource = frame(13135, b"\x08\x01\x10\x01\x18\x02\x28\x01")

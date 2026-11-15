@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Index literal achievement/objective references in native dialogue criteria."""
+
 import argparse
 import gzip
 import json
@@ -22,9 +23,11 @@ def build(catalog):
                 predicate, identifier = match.groups()
                 rows.append(
                     {
-                        "kind": "objective"
-                        if predicate == "IsAchievementObjectiveComplete"
-                        else "achievement",
+                        "kind": (
+                            "objective"
+                            if predicate == "IsAchievementObjectiveComplete"
+                            else "achievement"
+                        ),
                         "id": int(identifier),
                         "predicate": predicate,
                         "node_id": node["id"],
@@ -34,9 +37,11 @@ def build(catalog):
                             lang: {
                                 "node": texts.get(f"content.75.{node['id']}"),
                                 "speaker": texts.get(f"content.159.{node['id']}"),
-                                "choice": None
-                                if choice is None
-                                else texts.get(f"content.76.{choice['id']}"),
+                                "choice": (
+                                    None
+                                    if choice is None
+                                    else texts.get(f"content.76.{choice['id']}")
+                                ),
                             }
                             for lang, texts in catalog["translations"].items()
                         },
@@ -48,7 +53,7 @@ def build(catalog):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--catalog", type=Path, default=ROOT / "server/protocol/npc-dialogues.json.gz"
+        "--catalog", type=Path, default=ROOT / "database/protocol/npc-dialogues.json.gz"
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()

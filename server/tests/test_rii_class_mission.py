@@ -78,8 +78,13 @@ class RiiClassReminderTests(unittest.TestCase):
         packets = rii_class_mission.reached_level(
             self.db, self.store, self.character, 30
         )
-        self.assertEqual([p[0] for p in packets], [13371, 13832, 13422])
-        self.assertEqual(struct.unpack(">qi", packets[1][1]), (7, 10577))
+        # Journal order: the completed facts of already active missions are
+        # announced before a newly activated mission's packets.
+        self.assertEqual([p[0] for p in packets], [13832, 13422, 13371])
+        self.assertEqual(
+            struct.unpack(">qi", next(p[1] for p in packets if p[0] == 13832)),
+            (7, 10577),
+        )
         self.assertEqual(self.current["completed"], [5144])
         self.assertEqual(self.current["objectives"], [10577])
         self.assertEqual(self.current["tracking"], [])

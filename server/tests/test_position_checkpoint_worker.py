@@ -1,4 +1,5 @@
 """Bounded checkpoint scheduling, fairness and SQL-only policy regressions."""
+
 from types import SimpleNamespace
 import threading
 import unittest
@@ -7,7 +8,7 @@ from unittest.mock import Mock
 from wakfu_server.position_buffer import Positions
 from wakfu_server.position_checkpoint_policy import validate_policy
 from wakfu_server.position_checkpoint_worker import PositionCheckpointWorker
-
+from spatial_fixture import commit_checkpoint, seed_position
 
 POLICY = dict(interval_seconds=2, max_accounts=2, max_seconds=0.1)
 
@@ -18,15 +19,20 @@ class PositionCheckpointTests(unittest.TestCase):
             connection=Mock(side_effect=AssertionError("Unexpected SQL"))
         )
         positions = Positions(store, lease_active=lambda *args: True)
-        positions.entries = {
-            (i, "generation", i): {"dirty": True} for i in range(1, count + 1)
-        }
+        for account in range(1, count + 1):
+            baseline = dict(map_id=527, instance_id=0, x=0, y=0, z=0, direction=0)
+            seed_position(
+                positions,
+                (account, "generation", account),
+                dict(baseline, x=1),
+                persisted=baseline,
+            )
         return positions
 
     def test_clean_accounts_and_clean_scoped_flush_do_not_borrow_connection(self):
         positions = self.buffer()
-        for entry in positions.entries.values():
-            entry["dirty"] = False
+        for key in tuple(positions.entries):
+            commit_checkpoint(positions, [key])
         self.assertEqual(positions.flush(account_id=1), 0)
         self.assertEqual(
             positions.flush_background(max_accounts=2, max_seconds=0.1)["attempted"], 0
@@ -162,11 +168,10 @@ class RedisBackgroundCheckpointTests(unittest.TestCase):
         )
         key = (1, "generation", 101)
         old = dict(map_id=527, instance_id=0, x=1, y=2, z=0, direction=0)
-        positions.entries[key] = dict(current=dict(old, x=2), persisted=old, dirty=True)
-        positions.mirrors[key] = journal.put(key, positions.entries[key])
+        seed_position(positions, key, dict(old, x=2), persisted=old, mirror=True)
 
         def commit_then_redis_failure(*args, **kwargs):
-            positions.entries[key]["dirty"] = False
+            commit_checkpoint(positions, [key])
             client.fail = True
             return 1
 
@@ -184,7 +189,7 @@ class RedisBackgroundCheckpointTests(unittest.TestCase):
         self.assertFalse(positions.mirrors)
         self.assertFalse(list(journal.records()))
 
-    def test_clean_orphan_mirror_is_recovered_without_sql(self):
+    def test_evicted_stale_owner_mirror_is_acknowledged_without_new_sql(self):
         from wakfu_server.position_redis import Journal, RedisPositions
 
         store = SimpleNamespace(
@@ -196,9 +201,13 @@ class RedisBackgroundCheckpointTests(unittest.TestCase):
         )
         key = (7, "generation", 101)
         old = dict(map_id=527, instance_id=0, x=1, y=2, z=0, direction=0)
-        encoded = journal.put(key, dict(current=old, persisted=old, dirty=False))
-        positions.mirrors[key] = encoded
-        positions.pending_acks[key] = encoded
+        seed_position(positions, key, dict(old, x=2), persisted=old, mirror=True)
+        commit_checkpoint(positions, [key], selected=False)
+        positions.native.call(
+            "positions.pending_acks", accounts=[key[0]], mark_clean_mirrors=True
+        )
+        self.assertNotIn(key, positions.entries)
+        self.assertIn(key, positions.pending_acks)
         result = positions.flush_background(max_accounts=2, max_seconds=0.1)
         self.assertEqual(result["attempted"], 1)
         self.assertEqual(result["failures"], 0)
@@ -217,12 +226,9 @@ class RedisBackgroundCheckpointTests(unittest.TestCase):
         )
         clean_key, dirty_key = (7, "generation", 101), (7, "generation", 102)
         old = dict(map_id=527, instance_id=0, x=1, y=2, z=0, direction=0)
-        positions.entries[clean_key] = dict(current=old, persisted=old, dirty=False)
-        positions.entries[dirty_key] = dict(
-            current=dict(old, x=2), persisted=old, dirty=True
-        )
-        encoded = journal.put(dirty_key, positions.entries[dirty_key])
-        positions.mirrors[dirty_key] = encoded
+        seed_position(positions, clean_key, old)
+        seed_position(positions, dirty_key, dict(old, x=2), persisted=old, mirror=True)
+        encoded = positions.mirrors[dirty_key]
         self.assertEqual(
             positions.flush(account_id=7, generation="generation", character_id=101), 0
         )

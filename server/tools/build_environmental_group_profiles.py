@@ -4,6 +4,7 @@
 Uses source275/278, random population298 and native UI299. It never supplies a
 roster, activates a profile, invents a species, or evaluates unsupported criteria.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,7 +38,7 @@ NATIVE_CELLS = (
     ROOT
     / ".runtime/parallel-readiness-20261021/environmental-original-native-cells.csv"
 )
-SEED = ROOT / "server/seeds/environmental_group_profiles.sql"
+SEED = ROOT / "database/seeds/environmental_group_profiles.sql"
 ROSTER_POLICY = "wakemu.environmental-exact-species-genesis-v1"
 POLICY = "wakemu.original-species-group-profiles.v1;native-levels-not-player-bands;random298;ui299"
 RANKED = "wakemu.original-group-rank-bands-base-rewards.v1"
@@ -46,7 +47,7 @@ DEFAULT_MANIFEST = (
     ROOT
     / "agents_docs/reports/parallel-readiness-20261021/environmental-group-profile-manifest.json"
 )
-CRITERIA_SEED = ROOT / "server/seeds/environmental_group_criteria_profiles.sql"
+CRITERIA_SEED = ROOT / "database/seeds/environmental_group_criteria_profiles.sql"
 CRITERIA_MANIFEST = (
     ROOT
     / "agents_docs/reports/parallel-readiness-20261021/environmental-group-criteria-profile-manifest.json"
@@ -436,9 +437,11 @@ def compile_pipeline(
                     1,
                     objective,
                     family,
-                    source["template_reference_metadata_only"]
-                    if family == "group_defeat"
-                    else None,
+                    (
+                        source["template_reference_metadata_only"]
+                        if family == "group_defeat"
+                        else None
+                    ),
                     None,
                     None,
                     "interaction",
@@ -588,9 +591,11 @@ def compile_pipeline(
                         "first_completion" if mode == "race" else "score_at_deadline",
                         winners,
                         "commit_order" if mode == "race" else "character_id",
-                        "wakemu.character-race-original-group-capacity.v1;one-character-one-place;not-original-winner-limit"
-                        if mode == "race"
-                        else "wakemu.original-group-rank-conditions.v1;all-eligible-fallback;character-id-ties",
+                        (
+                            "wakemu.character-race-original-group-capacity.v1;one-character-one-place;not-original-winner-limit"
+                            if mode == "race"
+                            else "wakemu.original-group-rank-conditions.v1;all-eligible-fallback;character-id-ties"
+                        ),
                     )
                 ],
             )
@@ -739,11 +744,15 @@ def compile_pipeline(
                 original_group_count=source["native_user_group_quantity_to_spawn"],
                 minimum_contribution=threshold,
                 static_objective_quantity=required,
-                global_goal="persisted298monster_births"
-                if mode == "collaborative" and family == "monster_defeat"
-                else "persisted298group_births"
-                if mode == "collaborative"
-                else "original_personal_threshold",
+                global_goal=(
+                    "persisted298monster_births"
+                    if mode == "collaborative" and family == "monster_defeat"
+                    else (
+                        "persisted298group_births"
+                        if mode == "collaborative"
+                        else "original_personal_threshold"
+                    )
+                ),
                 native_region_floor_points=len(surfaces[(map_id, region_id)]),
             )
         )
@@ -888,7 +897,7 @@ def main():
     )
     args = parser.parse_args()
     seeds = [
-        ROOT / "server/seeds" / name
+        ROOT / "database/seeds" / name
         for name in (
             "environmental_resource_profiles.sql",
             "environmental_resource_races.sql",

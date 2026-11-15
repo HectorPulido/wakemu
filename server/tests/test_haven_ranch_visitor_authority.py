@@ -1,8 +1,9 @@
 """Native Ranch portal permissions for Haven Bag visitors and owners."""
+
 import ast
 import struct
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import Mock, patch
 
 from wakfu_server.haven_bag import HavenBagSession

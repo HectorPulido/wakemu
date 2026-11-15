@@ -1,7 +1,8 @@
 """Completion-frozen native XP ratio precedes the selected owned result."""
+
 import ast
 from dataclasses import replace
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import struct
 import unittest

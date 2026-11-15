@@ -16,7 +16,6 @@ import re
 import statistics
 from pathlib import Path
 
-
 MAX_LEVEL = 200
 SEED_PATH = Path("db-init/04-game.sql")
 UPDATE_GLOB = "db-init/*update_game*.sql"
@@ -205,9 +204,11 @@ def build_reference(rows: dict[int, dict]) -> dict:
                 "base_xp": source["base_xp_median"],
                 "min_kamas": source["min_kamas_median"],
                 "max_kamas": source["max_kamas_median"],
-                "fallback": "observed_level_median"
-                if level == source_level
-                else "nearest_lower_observed_level",
+                "fallback": (
+                    "observed_level_median"
+                    if level == source_level
+                    else "nearest_lower_observed_level"
+                ),
             }
         )
     return {
@@ -274,7 +275,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("server/protocol/dofus-reward-level-reference.json"),
+        default=Path("database/protocol/dofus-reward-level-reference.json"),
     )
     args = parser.parse_args()
     result = export(args.dofus_root, args.output)

@@ -1,6 +1,7 @@
 """Preserve native world contexts across spectator leave and reentry."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from types import SimpleNamespace

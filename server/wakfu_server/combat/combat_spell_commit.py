@@ -3,6 +3,7 @@
 Call on the owning session thread. No network sends occur here; caller sends
 returned packets and handles death/results after accepting the new fight.
 """
+
 import struct
 import time
 from .combat_spell_transaction import SpellTransaction
@@ -85,6 +86,34 @@ def _states_lesson_presentation(fight, opcode, payload, *, source_fight):
     return False
 
 
+def _distance_lesson_presentation(fight, opcode, payload, *, source_fight):
+    """Accept only the distance lesson's own guide notice inside a cast."""
+    contract = getattr(fight, "rii_distance_lesson_contract", None)
+    previous = getattr(source_fight, "rii_distance_lesson_contract", None)
+    if (
+        opcode != 349
+        or not isinstance(contract, dict)
+        or not isinstance(previous, dict)
+    ):
+        return False
+    hits = contract.get("hits")
+    # The distance lesson qualifies inside the live fight, so preview and live
+    # contracts are the same object here; the count has already advanced.
+    if (
+        type(hits) is not int
+        or type(previous.get("hits")) is not int
+        or hits not in (previous["hits"], previous["hits"] + 1)
+        or contract.get("owner") != previous.get("owner")
+        or contract.get("target") != previous.get("target")
+    ):
+        return False
+    from wakfu_server.ecology_feedback import information
+    from wakfu_server.achievements.rii_distance_contract import hint
+
+    message = hint(hits)
+    return message is not None and (opcode, payload) == information(message)
+
+
 def commit_spell_transaction(
     runtime, transaction, *, stats_serializer, diagnostic=None
 ):
@@ -124,6 +153,10 @@ def commit_spell_transaction(
         ):
             valid = True
         elif _states_lesson_presentation(
+            transaction.fight, opcode, payload, source_fight=runtime.fight
+        ):
+            valid = True
+        elif _distance_lesson_presentation(
             transaction.fight, opcode, payload, source_fight=runtime.fight
         ):
             valid = True

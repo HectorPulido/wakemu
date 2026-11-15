@@ -4,6 +4,7 @@ Native eZR.l(null) keeps the listener target. The server owns turn publication
 and supplies its actual participant separately; this is a reconstruction policy,
 not a fabricated source runner or a change to native null-source rebinding.
 """
+
 from contextlib import contextmanager
 
 _SCOPE = "_wakemu_owned_turn_recipient_scope"
@@ -44,6 +45,27 @@ def external_turn_recipient(fight, source, *, target_code, original_target):
     if actor is None or actor is not fight.current:
         raise ValueError("Owned turn recipient actor mismatch")
     return actor.id
+
+
+def external_turn_caster(fight, source, *, caster_code, original_caster):
+    """Bind a turn listener's source-caster selector to the owned turn actor.
+
+    The server supplies the participant as boundary facts, without inventing a
+    triggering effect runner. Native selector 4 is source caster; the Rii state
+    lesson's global end-turn listener uses it to measure hero/sack distance.
+    """
+    from .combat_event_replay import NativeExternalEvent
+
+    if (
+        not isinstance(source, NativeExternalEvent)
+        or caster_code != 4
+        or source.turn_boundary_context is None
+    ):
+        return original_caster
+    context = source.turn_boundary_context
+    if source.event_ids != (context["event_id"],):
+        raise ValueError("Owned turn caster event mismatch")
+    return qualified_boundary_actor(fight, turn_context=context).id
 
 
 def qualified_boundary_actor(fight, *, turn_context=None, movement_context=None):

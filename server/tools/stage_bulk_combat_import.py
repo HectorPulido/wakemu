@@ -1,4 +1,5 @@
 """Inspect combat imports and prepare an offline export plan; never publish catalogs."""
+
 import argparse
 import hashlib
 import json
@@ -28,7 +29,7 @@ EXPORTERS = [
 def inspect():
     records, tables = {}, {}
     for name, keys in SOURCES.items():
-        path = ROOT / "server/protocol" / name
+        path = ROOT / "database/protocol" / name
         raw = path.read_bytes()
         data = json.loads(raw)
         for key in keys:

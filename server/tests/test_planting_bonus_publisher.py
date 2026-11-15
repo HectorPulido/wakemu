@@ -1,4 +1,5 @@
 """Captured native publication lifecycle: increments, removals and actor fences."""
+
 from contextlib import nullcontext
 import struct
 import unittest
@@ -117,7 +118,7 @@ class NativePlantingDispatcherTests(unittest.TestCase):
         self,
     ):
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
 
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"
         tree = ast.parse(source.read_text())
@@ -281,7 +282,7 @@ class NativePlantingCombatFenceTests(unittest.TestCase):
 class NativePlantingWorldRefreshTests(unittest.TestCase):
     def test_level_and_mount_owned_refreshes_republish_after_snapshot_delivery(self):
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
 
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"
         tree = ast.parse(source.read_text())

@@ -1,4 +1,5 @@
 """Generate221 for the four native one-level Man Co removers."""
+
 import hashlib
 import json
 from pathlib import Path
@@ -46,7 +47,7 @@ def main():
     )
     assert model["effect_ids_by_level"]["9"] == [254573, 254574, 254576]
     assert model["effect_ids_by_level"]["10"] == [282494, 254574, 254576]
-    catalog = ROOT / "server/protocol/native-consumable-actions.json"
+    catalog = ROOT / "database/protocol/native-consumable-actions.json"
     payload = json.loads(catalog.read_text())
     sql = [
         ORIGIN_SQL,

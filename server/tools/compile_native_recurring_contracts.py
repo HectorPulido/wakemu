@@ -4,6 +4,7 @@
 The JSON output is a private evidence artifact, never a gameplay configuration.
 No database, catalog loader, server, reward grant or quest activation is opened.
 """
+
 import argparse
 import csv
 import gzip
@@ -145,7 +146,7 @@ def main():
             for f in families
         )
     }
-    with gzip.open(ROOT / "server/protocol/npc-dialogues.json.gz", "rt") as stream:
+    with gzip.open(ROOT / "database/protocol/npc-dialogues.json.gz", "rt") as stream:
         offers = compile_hunter_offers(json.load(stream)["nodes"], weekly_ids)
     result = compile_inventory(definitions, families, offers)
     args.report.parent.mkdir(parents=True, exist_ok=True)

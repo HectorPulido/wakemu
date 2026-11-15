@@ -3,8 +3,8 @@
 Admission merely selects the existing NPC dispatcher. Scene ownership, range,
 native choices and the observed graph are still validated by that dispatcher.
 """
-import struct
 
+import struct
 
 _ACTORS = {
     1385: frozenset((-1706442046308322, -1706442046308330, -1706442046308328)),
@@ -37,6 +37,10 @@ def qualified_placement(row):
 
 def allow(opcode, body, character, session):
     """Return whether the native Rii dispatcher may authenticate this request."""
+    from wakfu_server.achievements import npc_dialogue_actions
+
+    if npc_dialogue_actions.allow(opcode, body, character, session):
+        return True
     if character.get("instance_id") != 0:
         return False
     map_id = character.get("map_id")

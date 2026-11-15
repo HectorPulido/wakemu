@@ -1,7 +1,8 @@
 """Regression gates for diagnostic publication and gameplay isolation."""
+
 import ast
 import json
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from urllib.error import URLError
 import tempfile
 import threading

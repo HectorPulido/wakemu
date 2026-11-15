@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Minimal local TBinaryProtocol launcher bridge; never reads real credentials."""
+
 import os
 from pathlib import Path
 import secrets
@@ -98,7 +99,7 @@ def serve(connection):
                         elif method == "zaapVersion_get":
                             result = "wakfu-local-python"
                         elif method == "userInfo_get":
-                            result = ""
+                            result = AUTH.user_info()
                         else:
                             raise ValueError("Unsupported local RPC")
                     body = (

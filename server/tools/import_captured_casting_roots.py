@@ -1,4 +1,5 @@
 """Publish original casting roots for the actual class2 captured ability books."""
+
 import argparse
 import hashlib
 import json
@@ -6,7 +7,7 @@ from pathlib import Path
 
 
 def run(source_path):
-    root = Path("server/protocol")
+    root = Path("database/protocol")
     profiles_path = root / "native-class-captured-profiles.json"
     casting_path = root / "native-spell-casting.json"
     zero_path = root / "native-class-captured-level-zero.json"

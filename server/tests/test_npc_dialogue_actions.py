@@ -1,4 +1,5 @@
 """Action contracts extend NPC dialogue without bypassing native criteria."""
+
 import unittest
 from unittest.mock import patch
 
@@ -8,6 +9,14 @@ from test_npc_observed_dialogue import captured_row
 
 
 class NativeActionContractTests(unittest.TestCase):
+    def test_otomai_lore_return_contract_is_scoped_to_exact_action_and_actor(self):
+        row = captured_row(-1706442046308330, 5459, 1385, -17, -4, 17, 3, 5772, 1239)
+        contract = npc_dialogue_actions.resolve(row, 1239)
+        self.assertEqual(contract["root"], 5763)
+        self.assertEqual(contract["edges"], {(5763, 13287): 5775})
+        self.assertIsNone(npc_dialogue_actions.resolve(dict(row, actor_id=-42), 1239))
+        self.assertIsNone(npc_dialogue_actions.resolve(row, 1244))
+
     def test_multiple_actions_preserve_native_conditions_and_placement(self):
         row = captured_row(-1706442046308322, 5461, 1385, -17, -4, 17, 3, 5765, 1243)
         actor = {k: row[k] for k in ("map_id", "instance_id", "x", "y", "z")}

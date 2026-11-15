@@ -4,10 +4,11 @@ The native client does not encode these edges in the objective prerequisites;
 the links must therefore be published from independent evidence.  Call this
 inside the transaction that records a qualified objective or quest completion.
 """
+
 from copy import deepcopy
+import struct
 
 from .mission_progress import advance_objective
-
 
 # Rii's localized objective names match the respective native quest names.
 # These are reconstructed links, not recovered original server scripts.
@@ -18,6 +19,56 @@ RII_LINKS = (
     (5160, 10619, 5156),
     (5160, 10622, 5146),
 )
+
+
+def _dependency_packet_order(packets, definitions, links):
+    """Publish a completed child before its dependent parent's objective.
+
+    Native Rii final settlement publishes 10611, completion 5143, then 10616.
+    Flattening every objective ahead of every completion makes the parent HUD
+    evaluate its child prerequisite before the client knows that child finished.
+    Preserve non-fact packets and use a stable causal order for fact packets.
+    """
+    facts = {}
+    slots = []
+    for index, (opcode, body) in enumerate(packets):
+        if (opcode, len(body)) not in ((13832, 12), (13422, 20)):
+            continue
+        identity = struct.unpack_from(">i", body, 8)[0]
+        facts[(opcode, identity)] = index
+        slots.append(index)
+    dependencies = {index: set() for index in slots}
+    linked = False
+    for _parent, objective, child in links:
+        target = facts.get((13832, objective))
+        source = facts.get((13422, child))
+        if target is not None and source is not None:
+            dependencies[target].add(source)
+            linked = True
+    if not linked:
+        return packets
+    for mission, definition in definitions.items():
+        completion = facts.get((13422, mission))
+        if completion is None or not isinstance(definition, dict):
+            continue
+        for objective in definition.get("cjJ") or ():
+            source = facts.get((13832, objective.get("d")))
+            if source is not None:
+                dependencies[completion].add(source)
+    remaining, ordered, done = list(slots), [], set()
+    while remaining:
+        ready = next(
+            (index for index in remaining if dependencies[index] <= done), None
+        )
+        if ready is None:
+            raise ValueError("Cyclic mission dependency publication")
+        remaining.remove(ready)
+        ordered.append(packets[ready])
+        done.add(ready)
+    result = list(packets)
+    for index, packet in zip(slots, ordered):
+        result[index] = packet
+    return result
 
 
 def reconcile(state, definitions, links, *, character, store, now_ms):
@@ -129,6 +180,7 @@ def settle(db, store, character, before, planned, definitions, links, *, now_ms)
     _owner(db, character)
     if not isinstance(planned, tuple) or len(planned) != 4:
         raise ValueError("Invalid mission settlement plan")
+    links = tuple(links)
     after, intents, objectives, completed = planned
     after, extra_intents, extra_objectives, extra_completed = reconcile(
         after, definitions, links, character=character, store=store, now_ms=now_ms
@@ -152,6 +204,7 @@ def settle(db, store, character, before, planned, definitions, links, *, now_ms)
         now_ms,
         definitions=definitions,
     )
+    packets = _dependency_packet_order(packets, definitions, links)
     packets.extend(drain_rewards(db, store, character))
     return {
         "state": after,

@@ -1,6 +1,7 @@
 """Execute the actual private-return dispatcher branch with domain stubs."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -440,9 +441,9 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                     actual_publish(candidate)
                     publication_order.append("marker-published")
 
-                context[
-                    "COMBAT_SESSIONS"
-                ].withdraw_pve.side_effect = committed_withdrawal
+                context["COMBAT_SESSIONS"].withdraw_pve.side_effect = (
+                    committed_withdrawal
+                )
                 context["publish_external_marker"] = Mock(side_effect=observe_publish)
 
                 def prepare(*args):

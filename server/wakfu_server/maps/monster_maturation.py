@@ -3,11 +3,9 @@
 A restart, absent player, combat or harvest never charges offline time.
 Spell definitions and combat execution are outside this module's scope.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
-import json
 import math
-import secrets
-from contextlib import nullcontext
 from .paths import DATA_ROOT
 
 CATALOG = protocol_catalog.load(DATA_ROOT / "monster-growth-catalog.json")
@@ -21,13 +19,6 @@ from .monster_family_stages import normalize_catalog
 
 CATALOG = normalize_catalog(CATALOG)
 
-GROWABLE = {
-    candidate["reference"]
-    for family in CATALOG["families"]
-    for tier in family["tiers"]
-    for candidate in tier["candidates"]
-    if candidate["boss_classification"] == "regular"
-}
 STAGES = {
     candidate["reference"]: (family, tier["rank"])
     for family in CATALOG["families"]
@@ -67,66 +58,6 @@ def validate_policy(value):
     return value
 
 
-def choose_next(
-    reference,
-    configuration,
-    *,
-    draw,
-    choose=secrets.choice,
-    members=None,
-    source_level=None,
-):
-    """One monotone roster-aware draw; omitted rosters represent one member.
-
-    Special bosses retain their independent rare probability. Previously
-    committed reversible outcomes survive exclusively in receipt reconciliation.
-    """
-    if type(draw) not in (int, float) or not 0 <= draw < 1 or not math.isfinite(draw):
-        raise ValueError("Invalid monster maturation draw")
-    if reference not in STAGES:
-        return None
-    from .monster_group_balance import choose_transition
-
-    return choose_transition(
-        reference,
-        STAGES,
-        configuration,
-        [{"ref": reference}] if members is None else members,
-        draw,
-        choose,
-        source_level=source_level,
-    )
-
-
-def observe(
-    store,
-    map_id,
-    instance_id,
-    *,
-    present,
-    generation,
-    now_ms,
-    excluded_ids=(),
-    configuration=None,
-):
-    from .monster_active_clocks import observe as observe_clocks
-
-    return observe_clocks(
-        store,
-        map_id,
-        instance_id,
-        present=present,
-        generation=generation,
-        now_ms=now_ms,
-        excluded_ids=excluded_ids,
-        table="monster_maturation_timers",
-        eligible_refs=GROWABLE,
-        policy_provider=policy
-        if configuration is None
-        else lambda _: validate_policy(configuration),
-    )
-
-
 def attempt(
     store,
     ticket,
@@ -134,14 +65,14 @@ def attempt(
     present,
     excluded_ids=(),
     draw=None,
-    choose=secrets.choice,
     configuration=None,
     prepared=None,
 ):
     """Commit one pending cycle under the same group lock used by fight claims.
 
     Caller holds its live harvest/group locks. Invalid/stale/occupied members
-    never draw. Replaying a committed cycle returns its stored outcome.
+    never commit. Rust supplies the proposal and seeded draw; replaying a
+    committed cycle returns its stored outcome.
     """
     from psycopg.types.json import Jsonb
     from .monsters import owned_instance
@@ -151,6 +82,8 @@ def attempt(
         raise ValueError("Invalid monster maturation presence")
     if not present:
         return None
+    if prepared is None:
+        raise ValueError("Monster maturation requires a Rust-prepared proposal")
     configuration = (
         policy(store) if configuration is None else validate_policy(configuration)
     )
@@ -193,10 +126,7 @@ def attempt(
             or ticket["monster_id"] in excluded_ids
         ):
             return None
-        if (
-            prepared is not None
-            and list(group["members"]) != prepared["expected_members"]
-        ):
+        if list(group["members"]) != prepared["expected_members"]:
             return None
         timer = db.execute(
             "SELECT * FROM monster_maturation_timers WHERE map_id=%s "
@@ -221,38 +151,14 @@ def attempt(
             or members[index]["ref"] != ticket["reference"]
         ):
             return None
-        sample = secrets.randbelow(1 << 53) / (1 << 53) if draw is None else draw
+        sample = draw
         if (
             type(sample) not in (int, float)
             or not math.isfinite(sample)
             or not 0 <= sample < 1
         ):
             raise ValueError("Invalid monster maturation draw")
-        if prepared is None:
-            candidate = choose_next(
-                ticket["reference"],
-                configuration,
-                draw=sample,
-                choose=choose,
-                members=members,
-                source_level=members[index]["level"],
-            )
-            grown = None
-            if candidate is not None:
-                member = members[index]
-                grown = owned_instance(
-                    candidate["reference"],
-                    candidate["min_level"],
-                    member["id"],
-                    map_id=member["map_id"],
-                    x=member["x"],
-                    y=member["y"],
-                    z=member["z"],
-                    team=member["team"],
-                    instance_id=ticket["instance_id"],
-                )
-        else:
-            grown = prepared["grown"]
+        grown = prepared["grown"]
         to_reference = None
         if grown is not None:
             source_stage = STAGES.get(ticket["reference"])
@@ -366,22 +272,6 @@ def attempt(
         return dict(receipt, duplicate=False)
 
 
-def pending(store, map_id, instance_id):
-    """Recover pending cycles after restart without replaying wall-clock time."""
-    with store.connection() as db:
-        return [
-            dict(row)
-            for row in db.execute(
-                "SELECT t.map_id,t.instance_id,t.monster_id,t.reference,t.cycle,m.group_id "
-                "FROM monster_maturation_timers t JOIN combat_group_members m "
-                "USING(map_id,instance_id,monster_id) JOIN combat_groups g "
-                "USING(map_id,instance_id,group_id) "
-                "WHERE t.map_id=%s AND t.instance_id=%s AND t.due AND g.status!='defeated' ORDER BY t.monster_id",
-                (map_id, instance_id),
-            )
-        ]
-
-
 def unpublished(store, map_id, instance_id, *, group_id=None):
     """Read committed publications with the latest durable group snapshot.
 
@@ -399,9 +289,11 @@ def unpublished(store, map_id, instance_id, *, group_id=None):
                 "WHERE o.map_id=%s AND o.instance_id=%s AND NOT o.published "
                 + ("AND o.group_id=%s " if group_id is not None else "")
                 + "ORDER BY o.group_id,o.revision,o.monster_id,o.cycle",
-                (map_id, instance_id)
-                if group_id is None
-                else (map_id, instance_id, group_id),
+                (
+                    (map_id, instance_id)
+                    if group_id is None
+                    else (map_id, instance_id, group_id)
+                ),
             )
         ]
 
@@ -510,89 +402,3 @@ def reconcile_seed(store, key, seeds, persisted):
         if identity(expected) != identity(current):
             raise ValueError("Conflicting existing group seed identity or stats")
     return key
-
-
-def tick(
-    store,
-    locations,
-    previous_locations,
-    *,
-    generation,
-    now_ms,
-    excluded_ids,
-    emit,
-    coordination=None,
-):
-    """Refresh authority per operation instead of fencing a complete zone cycle.
-
-    The optional coordinator yields current players and harvest exclusions while
-    holding group/harvest fences. Legacy callers retain their outer fence.
-    """
-    from .combat_monster_world import remove_message, spawn_group
-
-    def guarded(stage, map_id, instance_id):
-        if coordination is None:
-            return nullcontext(((), excluded_ids))
-        return coordination(stage, map_id, instance_id)
-
-    def present(players, map_id, instance_id):
-        return coordination is None or any(
-            (player["map_id"], player["instance_id"]) == (map_id, instance_id)
-            for player in players
-        )
-
-    locations = set(locations)
-    configuration = policy(store) if locations else None
-    for map_id, instance_id in set(previous_locations) - locations:
-        with guarded("absent", map_id, instance_id):
-            observe(
-                store,
-                map_id,
-                instance_id,
-                present=False,
-                generation=generation,
-                now_ms=now_ms,
-            )
-    for map_id, instance_id in sorted(locations):
-        with guarded("observe", map_id, instance_id) as (players, current_excluded):
-            observe(
-                store,
-                map_id,
-                instance_id,
-                present=present(players, map_id, instance_id),
-                generation=generation,
-                now_ms=now_ms,
-                excluded_ids=current_excluded,
-                configuration=configuration,
-            )
-        for ticket in pending(store, map_id, instance_id):
-            with guarded("attempt", map_id, instance_id) as (players, current_excluded):
-                attempt(
-                    store,
-                    ticket,
-                    present=present(players, map_id, instance_id),
-                    excluded_ids=current_excluded,
-                    configuration=configuration,
-                )
-        group_ids = dict.fromkeys(
-            event["group_id"] for event in unpublished(store, map_id, instance_id)
-        )
-        for group_id in group_ids:
-            with guarded("publish", map_id, instance_id) as (_, current_excluded):
-                # Enumeration is advisory: a claim or harvest can start before
-                # this fence. Reload the authoritative roster before delivery.
-                batch = unpublished(store, map_id, instance_id, group_id=group_id)
-                if not batch:
-                    continue
-                current = batch[-1]
-                if current["status"] != "available" or any(
-                    member["id"] in current_excluded for member in current["members"]
-                ):
-                    continue
-                remove = remove_message([member["id"] for member in current["members"]])
-                spawn = spawn_group(current["members"], group_id=group_id)
-                emit(map_id, instance_id, *remove)
-                emit(map_id, instance_id, 12608, spawn)
-                for event in batch:
-                    acknowledge(store, event)
-    return locations

@@ -1,5 +1,5 @@
-"""Read-only growth proposals and authoritative single-row application."""
-import json
+"""World growth admission/CAS; autonomous planner contracts are Rust tests."""
+
 import unittest
 from unittest.mock import Mock
 
@@ -9,23 +9,13 @@ from wakfu_server.planting_runtime import Plantings
 from wakfu_server.combat_groups import Groups
 
 
-class EcologyPlantPlanTests(PostgresCase):
+class EcologyPlantApplyTests(PostgresCase):
     def setUp(self):
         super().setUp()
         self.store.clock = lambda: 1000.0
         self.runtime = Plantings(self.store)
         self.runtime.ecology_world_epoch = "boot-a"
         self.groups = Groups()
-        ecology_plants._CURSORS.clear()
-        self.snapshot = dict(
-            world_epoch="boot-a",
-            started_at_ms=1000000,
-            now_ms=1000000,
-            players=[],
-            excluded_ids=[],
-            locations=[],
-            planning_tick=1,
-        )
         with self.store.connection() as db:
             self.policy = db.execute(
                 "SELECT * FROM resource_growth_transitions WHERE resource_reference=60 "
@@ -63,22 +53,20 @@ class EcologyPlantPlanTests(PostgresCase):
                 "SELECT * FROM planted_resources WHERE resource_uid=%s", (uid,)
             ).fetchone()
 
-    def test_prepare_is_read_only_bounded_and_json_safe(self):
-        resource = self.add(9001)
-        self.add(9002)
-        plans = ecology_plants.prepare(self.store, self.snapshot, limit=1)
-        self.assertEqual(len(plans), 1)
-        json.dumps(plans)
-        self.assertEqual(dict(self.row(9001)), resource)
-        with self.store.connection() as db:
-            self.assertIsNone(
-                db.execute("SELECT 1 FROM planting_growth_outbox").fetchone()
-            )
+    def proposal(self, resource):
+        # Explicit external-planner fixture. This helper makes no planning query.
+        return dict(
+            kind="resource_growth",
+            world_epoch="boot-a",
+            expected=dict(resource),
+            transition=[self.policy["to_stage"], self.policy["delay_ms"], 1.0],
+            member=None,
+        )
 
     def test_apply_advances_once_and_publishes_only_proposed_resource(self):
-        self.add(9011)
+        resource = self.add(9011)
         self.add(9012)
-        plan = ecology_plants.prepare(self.store, self.snapshot, limit=1)[0]
+        plan = self.proposal(resource)
         emitted = []
         result = ecology_plants.apply(
             self.runtime,
@@ -101,8 +89,8 @@ class EcologyPlantPlanTests(PostgresCase):
         self.assertEqual(len(emitted), 1)
 
     def test_changed_resource_and_changed_policy_reject_stale_plan(self):
-        self.add(9021)
-        plan = ecology_plants.prepare(self.store, self.snapshot, limit=1)[0]
+        resource = self.add(9021)
+        plan = self.proposal(resource)
         with self.store.connection() as db:
             db.execute(
                 "UPDATE resource_growth_transitions SET probability=0.5 "
@@ -133,8 +121,8 @@ class EcologyPlantPlanTests(PostgresCase):
         self.assertEqual(emitted, [])
 
     def test_committed_outbox_recovers_after_failed_delivery(self):
-        self.add(9025)
-        plan = ecology_plants.prepare(self.store, self.snapshot, limit=1)[0]
+        resource = self.add(9025)
+        plan = self.proposal(resource)
 
         def failed(_):
             raise RuntimeError("lost delivery")
@@ -147,8 +135,12 @@ class EcologyPlantPlanTests(PostgresCase):
                 authorize_spawn=lambda _: True,
                 publish=failed,
             )
-        pending = ecology_plants.prepare(self.store, self.snapshot)
-        recovery = next(p for p in pending if p["kind"] == "growth_publish")
+        with self.store.connection() as db:
+            pending = db.execute(
+                "SELECT resource_uid FROM planting_growth_outbox WHERE NOT published"
+            ).fetchall()
+        self.assertEqual([row["resource_uid"] for row in pending], [9025])
+        recovery = dict(kind="growth_publish", world_epoch="boot-a", resource_uid=9025)
         emitted = []
         result = ecology_plants.apply(
             self.runtime,
@@ -161,8 +153,8 @@ class EcologyPlantPlanTests(PostgresCase):
         self.assertEqual(len(emitted), 1)
 
     def test_world_epoch_rejects_without_database_mutation(self):
-        self.add(9031)
-        plan = ecology_plants.prepare(self.store, self.snapshot, limit=1)[0]
+        resource = self.add(9031)
+        plan = self.proposal(resource)
         self.runtime.ecology_world_epoch = "boot-b"
         result = ecology_plants.apply(
             self.runtime,
@@ -174,36 +166,7 @@ class EcologyPlantPlanTests(PostgresCase):
         self.assertEqual(result["reason"], "stale_world_epoch")
         self.assertEqual(self.row(9031)["stage"], 1)
 
-    def test_keyset_cursor_reaches_later_due_resources_and_wraps(self):
-        self.add(9041)
-        self.add(9042)
-        plans = [
-            ecology_plants.prepare(self.store, self.snapshot, limit=1)[0]
-            for _ in range(3)
-        ]
-        self.assertEqual(
-            [p["expected"]["resource_uid"] for p in plans], [9041, 9042, 9041]
-        )
-
-    def test_publication_receives_its_own_quota_with_flora_backlog(self):
-        from psycopg.types.json import Jsonb
-
-        resource = self.add(9051)
-        for uid in range(9052, 9058):
-            self.add(uid)
-        with self.store.connection() as db:
-            db.execute(
-                "INSERT INTO planting_growth_outbox(resource_uid,resource,group_payload) "
-                "VALUES(%s,%s,NULL)",
-                (9051, Jsonb(resource)),
-            )
-        plans = ecology_plants.prepare(self.store, self.snapshot, limit=4)
-        self.assertIn("growth_publish", [p["kind"] for p in plans])
-        self.assertLessEqual(len(plans), 4)
-
-    def test_invalid_batch_and_malformed_resource_rejected(self):
-        with self.assertRaises(ValueError):
-            ecology_plants.prepare(self.store, self.snapshot, limit=0)
+    def test_malformed_resource_rejected_before_world_mutation(self):
         with self.assertRaises(ValueError):
             ecology_plants.apply(
                 self.runtime,

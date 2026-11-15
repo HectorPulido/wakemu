@@ -1,9 +1,12 @@
 """Native eYk/349 cell population, criterion, shuffle and ordered fanout."""
+
 from wakfu_server import native_catalog as protocol_catalog
 from dataclasses import dataclass
 from functools import lru_cache
 import json
 import math
+import hashlib
+from pathlib import Path
 
 from .combat_group_cells import ordered_offsets
 from wakfu_server.paths import DATA_ROOT
@@ -17,35 +20,24 @@ def native_cell_group_metadata():
     return data["effects"]
 
 
+@lru_cache(maxsize=1)
+def rii_cell_group_metadata():
+    raw = Path(__file__).with_name("rii_cell_group_metadata.json").read_bytes()
+    if (
+        hashlib.sha256(raw).hexdigest()
+        != "60dd255b49c82ed7e92c6879dac775d9b702c203e974d6885e81511f61f26fef"
+    ):
+        raise ValueError("Reviewed Rii cell-group metadata changed")
+    return json.loads(raw)
+
+
 def native_cell_criterion_presence(effect, invocation):
     row = native_cell_group_metadata().get(str(invocation.reference))
-    if (
-        row is None
-        and invocation.reference == 367418
-        and effect.get("effect_class") == 349
-    ):
-        # The native class-only export omits this Rii tutorial eYk. Its
-        # parameters, selector class and criterion presence were independently
-        # extracted from the installed effect definition. The common checks
-        # below still reject any mismatching effect before selecting cells.
-        row = {
-            "criterion_present": True,
-            "area_class": "anu",
-            "raw_parameters": [
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                0.0,
-            ],
-        }
+    if row is None and effect.get("effect_class") == 349:
+        # The native class-only export omits the dojo lesson dependency tree.
+        # This supplement was extracted using eVn.fKT/aZP/fKI from the same
+        # installed client, including every reachable lesson eYk definition.
+        row = rii_cell_group_metadata().get(str(invocation.reference))
     raw_parameters = effect.get("parameters")
     metadata_parameters = row.get("raw_parameters") if isinstance(row, dict) else None
     if (
@@ -194,9 +186,9 @@ def select_cell_group(
 
         # The optional owned working input exists only during filtering. It
         # must be gone before shuffle RNG, level selection or child effects.
-        with condition_actor_selection_scope(
-            enabled=reuse_condition_actors
-        ), condition_batch if cells and condition_batch is not None else nullcontext():
+        with condition_actor_selection_scope(enabled=reuse_condition_actors), (
+            condition_batch if cells and condition_batch is not None else nullcontext()
+        ):
             cells = [cell for cell in cells if condition(cell)]
     if not cells:
         return CellGroupSelection((), 0)

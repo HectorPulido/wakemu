@@ -1,9 +1,10 @@
 """Run actual socket helpers without starting the world service."""
+
 import ast
 import copy
 import threading
 from contextlib import nullcontext
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Compare scoped summon creation values against original native ffx samples."""
+
 import argparse
 import hashlib
 import json
@@ -19,7 +20,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
-    catalog_path = root / "server/protocol/native-actor-characteristics.json"
+    catalog_path = root / "database/protocol/native-actor-characteristics.json"
     implementation = root / "server/wakfu_server/combat/combat_actor_snapshot.py"
     sources = {
         str(path): digest(path) for path in (args.native, catalog_path, implementation)

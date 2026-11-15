@@ -1,6 +1,8 @@
 """eZJ1093 and faq.SX over an execution-local source runner, never actor stats."""
+
 from .combat_source_parent_index import OwnedStateSourceRow
 from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 import json
 from pathlib import Path
 from contextlib import contextmanager
@@ -12,11 +14,7 @@ from .combat_stat_handler import StatExecutionContext
 
 # Exported from every eVi prototype implementing faq, including inherited
 # interfaces. Membership describes source identity, not handler availability.
-_catalog = protocol_catalog.load(
-    Path(__file__).resolve().parents[2]
-    / "protocol"
-    / "native-final-modifier-families.json"
-)
+_catalog = protocol_catalog.load(DATA_ROOT / "native-final-modifier-families.json")
 FAQ_FAMILIES = frozenset(int(key) for key in _catalog["families"])
 del _catalog
 _source = ContextVar("native_final_modifier_source", default=None)

@@ -1,6 +1,7 @@
 """Asynchronous persistence keeps gameplay detached, ordered and bounded."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from threading import Event, RLock
 from types import SimpleNamespace
 import unittest

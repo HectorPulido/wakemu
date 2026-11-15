@@ -3,6 +3,7 @@
 World coordinates remain unchanged. These positions are private to combat.
 Line-of-sight uses one sack; its native area effects create the obstacles.
 """
+
 from .rii_lesson_auto_start import KEYS
 
 PLAYER = (0, -10, 0)
@@ -10,6 +11,30 @@ SACK = (0, -13, 0)
 AREA = ((1, -13, 0), (0, -14, 0), (0, -12, 0), (-1, -13, 0))
 SUPPORTED = frozenset((10574, 10575, 10576, 10608, 10609, 10610, 10611))
 SCHEMA = "rii-observed-lesson-placement-v1"
+
+
+def native_cells(objective):
+    """Exact sack cells the official dojo bootstraps use for this lesson.
+
+    2026-11-12 capture, seven of seven: every lesson places its bound sacks at
+    (0,-13,0) and the area lesson at the four adjacent cells, all facing
+    SOUTH_WEST with the hero relocated to (0,-10,0).
+    """
+    if objective not in SUPPORTED:
+        raise ValueError("Unsupported Rii lesson objective")
+    return AREA if objective == 10609 else (SACK,)
+
+
+def native_actor_cell(db, character, lesson):
+    """First free native lesson cell for an owned lesson actor."""
+    occupied = {
+        (monster["x"], monster["y"], monster["z"])
+        for monster in getattr(character, "_rii_lesson_occupied", ()) or ()
+    }
+    for cell in native_cells(lesson.objective):
+        if cell not in occupied:
+            return cell
+    return None
 
 
 def identify(db, character, monsters):

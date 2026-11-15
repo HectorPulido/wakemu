@@ -12,7 +12,7 @@ Wakemu is an experiment, not a complete replacement for the official game. Sourc
 - **Dungeons and rewards:** supported encounter and reward paths do not establish complete dungeon, boss, difficulty, or loot coverage.
 - **NPCs and quests:** many definitions lack the placement, dialogue transitions, objectives, or reward integration needed for a complete playable story.
 - **Social and item systems:** specialized channels, duels, personal spaces, and advanced item behavior have uneven coverage and remaining acceptance work.
-- **Client compatibility:** only Wakfu 1.93.1+79 is targeted; another installation version may have incompatible protocol or resource layouts.
+- **Client compatibility:** Wakfu **1.93.1+79** has full client compatibility with the features implemented by Wakemu; this does not imply that every feature of the official game is implemented. **1.93.1+81** has partial, unverified compatibility. Launcher and protocol checks passed, but complete gameplay, all classes, victory rewards, version-specific planting/dungeon agents, and changed spell, effect, recipe, and loot data have not been fully validated with +81. Other client versions are unsupported.
 - **Portable testing:** some historical integration and research checks still require private inputs or an explicitly configured test database.
 
 ## High-value contributions

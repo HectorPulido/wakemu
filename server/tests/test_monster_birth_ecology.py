@@ -442,6 +442,18 @@ class MonsterBirthEcologyTests(PostgresCase):
         )
         moved = dict(current[0], x=moved_point[0], y=moved_point[1], z=moved_point[2])
         self.assertTrue(self.groups.move_members(key, current, [moved]))
+        # Explicit native transition fixture; Rust owns choosing the target.
+        matured = owned_instance(
+            2114,
+            123,
+            moved["id"],
+            map_id=key[0],
+            instance_id=key[1],
+            x=moved["x"],
+            y=moved["y"],
+            z=moved["z"],
+            team=moved["team"],
+        )
         with self.store.connection() as db:
             db.execute(
                 "INSERT INTO monster_maturation_timers(map_id,instance_id,monster_id,reference,remaining_ms,due,cycle) "
@@ -459,7 +471,8 @@ class MonsterBirthEcologyTests(PostgresCase):
                 reference=moved["ref"],
             ),
             present=True,
-            draw=0,
+            draw=0.1,
+            prepared=dict(expected_members=[moved], grown=matured),
         )
         self.assertIsNotNone(grown["to_reference"])
         after_growth = self.groups.snapshot(*key[:2])[0]["members"]

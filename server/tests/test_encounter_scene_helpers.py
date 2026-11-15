@@ -1,6 +1,8 @@
 """Ordinary helper assembly, source scope and real native controller codec."""
+
 from contextlib import nullcontext
 from copy import deepcopy
+import sys
 from types import SimpleNamespace
 from unittest.mock import patch
 import struct
@@ -12,6 +14,7 @@ from wakfu_server.combat_encounter_scene_helpers import (
     bind_scene_helper_controls,
     scene_helper_controller_records,
     reward_eligible_members,
+    validated_manifest,
 )
 from wakfu_server.combat_scene_controller_snapshot import (
     NativeControllerRecord,
@@ -160,6 +163,239 @@ class EncounterSceneHelperTests(unittest.TestCase):
             )
         )
         self.assertFalse(any("summon" in key for member in members for key in member))
+
+    def test_astrub_mission_ally_uses_native_tristepin_and_is_not_reward_eligible(self):
+        from wakfu_server.combat_mission_allies import admit
+        from wakfu_server.combat_encounter_scene_helpers import reward_eligible_members
+
+        from wakfu_server import monsters
+
+        char = self.character()
+        char.update(map_id=312, instance_id=99, level=6, x=0, y=0, z=0)
+        originals = tuple(
+            dict(id=-201 - index, ref=2616, level=1, x=5 + index, y=2, z=0)
+            for index in range(3)
+        )
+        admission = admit(char, originals, room=1)
+        store = SimpleNamespace(connection=lambda: nullcontext(None))
+        resources = {
+            1: {"current": 200, "maximum": 200},
+            2: {"current": 8, "maximum": 8},
+            3: {"current": 4, "maximum": 4},
+            4: {"current": 4, "maximum": 4},
+        }
+        with patch(MODULE + "._cells", return_value=[(2, 0, 0)]), patch(
+            "wakfu_server.npc_actor_identity.allocate_block", return_value=900
+        ), patch(
+            "wakfu_server.combat_encounter_roles.role_assignment",
+            return_value=SimpleNamespace(policy="wakemu-ordinary-player0-npc1-v1"),
+        ), patch(
+            "wakfu_server.combat_supreme_scene_policies.policy_for_reference",
+            return_value=None,
+        ), patch(
+            "wakfu_server.native_catalog.release", return_value="fixture-revision"
+        ), patch.dict(
+            sys.modules,
+            {
+                "wakfu_server.combat_actor_snapshot": SimpleNamespace(
+                    native_npc_creation_values=lambda *_args, **_kwargs: resources
+                )
+            },
+        ), patch(
+            "wakfu_server.combat_native_spell_casting.catalog", return_value={}
+        ), patch(
+            "wakfu_server.combat_published_catalogs.static_row_scalar",
+            return_value=32767,
+        ):
+            members, manifest = prepare_scene_roster(
+                store, char, originals, mission_allies=admission
+            )
+            helper = members[-1]
+            abilities = monsters.native_abilities(4691, 6)
+
+        self.assertEqual(
+            (helper["ref"], helper["level"], helper["sprite_id"]), (4691, 6, 192404687)
+        )
+        self.assertEqual(
+            (
+                helper["hp"],
+                helper["ap"],
+                helper["mp"],
+                helper["wp"],
+                helper["initiative"],
+            ),
+            (200, 8, 4, 4, 6),
+        )
+        self.assertEqual([row["spell_id"] for row in abilities], [6402, 6403, 6404])
+        source = validated_manifest(manifest)
+        self.assertEqual(source["policy"], "wakemu.astrub.cat-story.native-ally.v1")
+        self.assertEqual(source["mission_admission"], admission.record())
+        self.assertEqual([row["team_role"] for row in source["helpers"]], ["player"])
+        self.assertIs(source["helpers"][0]["reward_eligible"], False)
+        clone = deepcopy(manifest)
+        self.assertEqual(validated_manifest(clone), source)
+        fight = SimpleNamespace(native_scene_helper_manifest=manifest)
+        self.assertEqual(reward_eligible_members(fight, members), originals)
+
+        from wakfu_server.combat_bootstrap import (
+            create_placement,
+            placement_messages,
+            player_payload,
+        )
+        from wakfu_server.combat_actor import actual_monster_actor_stats, actor_effects
+        from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
+        from wakfu_server.combat_encounter_scene_helpers import (
+            initial_helper_appearances,
+        )
+        from wakfu_server.combat_wire import arena as build_arena, decode_bootstrap
+
+        native_members = [
+            monsters.owned_instance(
+                member["ref"],
+                member["level"],
+                member["id"],
+                map_id=312,
+                instance_id=99,
+                x=member["x"],
+                y=member["y"],
+                z=member["z"],
+                team=1,
+            )
+            for member in originals
+        ]
+        native_members.append(
+            monsters.owned_instance(
+                4691,
+                6,
+                helper["id"],
+                map_id=312,
+                instance_id=99,
+                x=helper["x"],
+                y=helper["y"],
+                z=helper["z"],
+                team=0,
+            )
+        )
+        fight_cells = {(x, y, 0) for x in range(8) for y in range(3)}
+        placements = {
+            0: {(0, 0, 0), (1, 0, 0), (2, 0, 0)},
+            1: {(5, 2, 0), (6, 2, 0), (7, 2, 0)},
+        }
+        fight_arena = build_arena(312, 99, sorted(fight_cells), placements)
+        fight_arena.update(
+            map_id=312,
+            validated_cells=fight_cells,
+            valid_edges=set(),
+            placement_cells=placements,
+            native_encounter_scene_helpers=manifest,
+        )
+        from wakfu_server.combat_encounter_roles import role_assignment
+
+        fight_arena["native_encounter_roles"] = role_assignment(
+            312, [member["ref"] for member in native_members]
+        ).record()
+        char["level"] = 200
+        from wakfu_server.health import maximum
+
+        char["max_hp"] = maximum(char["breed"], char["level"])
+        char["hp"] = char["max_hp"]
+        fight, provisional = create_placement(
+            char,
+            native_members,
+            fight_arena,
+            fight_id=42,
+            player_ap=6,
+            player_mp=3,
+            player_wp=6,
+            player_initiative=10,
+            terrain_effect_id=378,
+            terrain_instance_id=-300,
+        )
+        helper_actor = fight.actors[helper["id"]]
+        self.assertIsNone(helper_actor.native_controlled_by_ai)
+        self.assertEqual([row[0] for row in provisional[:3]], [12608, 13652, 12847])
+        self.assertEqual(
+            struct.unpack_from(">q", provisional[0][1], 3)[0], helper["id"]
+        )
+
+        helper_stats = monsters.native_abilities(4691, 6)
+        self.assertEqual([row["spell_id"] for row in helper_stats], [6402, 6403, 6404])
+
+        initialize_fight_snapshots(
+            fight,
+            characters={char["id"]: char},
+            monsters={member["id"]: member for member in native_members},
+            wp_resources={
+                char["id"]: (6, 6),
+                **{
+                    member["id"]: (member["wp"], member.get("max_wp", member["wp"]))
+                    for member in native_members
+                },
+            },
+            running_effects={identity: () for identity in fight.actors},
+            initial_effect_uid=1,
+        )
+        self.assertIn(helper["id"], fight.native_npc_ai_actors)
+        self.assertIs(helper_actor.native_controlled_by_ai, True)
+        actors = list(fight.actors.values())
+        payloads = {
+            char["id"]: player_payload(char, fight.actors[char["id"]], 42, wp=6)
+        }
+        for member in native_members:
+            actor = fight.actors[member["id"]]
+            payloads[actor.id] = (
+                actual_monster_actor_stats(
+                    member,
+                    actor,
+                    42,
+                    wp_current=member["wp"],
+                    wp_maximum=member.get("max_wp", member["wp"]),
+                    fight=fight,
+                ),
+                actor_effects(),
+            )
+        self.assertEqual(payloads[helper["id"]][0][-25], 1)
+        messages = placement_messages(
+            fight,
+            fight_arena,
+            payloads,
+            terrain_effect_id=378,
+            terrain_instance_id=-300,
+            leaders={0: char["id"], 1: native_members[0]["id"]},
+        )
+        self.assertEqual(
+            [message[0] for message in messages[:3]], [12608, 13652, 12847]
+        )
+        self.assertEqual(
+            {
+                row["actor_id"]
+                for row in decode_bootstrap(messages[2][1])["participants"]
+            },
+            set(fight.actors),
+        )
+
+        fight.native_scene_helper_manifest = None
+        without_manifest = placement_messages(
+            fight,
+            fight_arena,
+            payloads,
+            terrain_effect_id=378,
+            terrain_instance_id=-300,
+            leaders={0: char["id"], 1: native_members[0]["id"]},
+        )
+        self.assertEqual(
+            [message[0] for message in without_manifest[:2]], [13652, 12847]
+        )
+        fight.native_scene_helper_manifest = manifest
+        helper_actor.effective_level = 7
+        with self.assertRaisesRegex(ValueError, "native constructor"):
+            initial_helper_appearances(fight)
+        helper_actor.effective_level = 6
+        drifted = deepcopy(manifest)
+        drifted["source"]["helpers"][0]["reference"] = 4690
+        fight.native_scene_helper_manifest = drifted
+        with self.assertRaisesRegex(ValueError, "manifest changed"):
+            initial_helper_appearances(fight)
 
     def test_friendly_npc_constructor_control_and_12514_preserve_original_identity(
         self,

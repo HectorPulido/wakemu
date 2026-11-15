@@ -26,7 +26,11 @@ class EmptyEquipmentEffectsTests(unittest.TestCase):
             empty_equipment_effects.SOURCE_SHA256, hashlib.sha256(raw).hexdigest()
         )
         manifests = (
-            Path(__file__).resolve().parents[1] / "data" / "installation" / "catalogs"
+            Path(__file__).resolve().parents[2]
+            / "database"
+            / "data"
+            / "installation"
+            / "catalogs"
         )
         old = json.loads((manifests / "manifest.json").read_bytes())
         new = json.loads((manifests / "manifest-rift-cell-groups-v1.json").read_bytes())

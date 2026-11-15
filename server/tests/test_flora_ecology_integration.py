@@ -1,3 +1,4 @@
+from planting_fixture import prepare as prepare_planting
 import struct
 import threading
 import unittest
@@ -131,14 +132,13 @@ class FloraEcologyIntegrationTests(PostgresCase):
         body = struct.pack(
             ">iqii", SEEDS[4275]["action_id"], self.seed_item["uid"], x, y
         )
-        return planting.prepare(
+        return prepare_planting(
             self.store,
             self.account,
             self.generation,
             self.character,
             body,
             authorize_cell=authorize,
-            open_test_policy=True,
         )
 
     def _plant(self, prepared, operation_id, *, success=True):
@@ -602,7 +602,7 @@ class FloraEcologyIntegrationTests(PostgresCase):
 
         first = self._prepare_plant(self.region_cells[300])
         x, y, _z = point
-        second = planting.prepare(
+        second = prepare_planting(
             self.store,
             second_account,
             second_generation,
@@ -613,7 +613,6 @@ class FloraEcologyIntegrationTests(PostgresCase):
                 for row in cells(self.map_id)[(request["x"], request["y"])]
                 if row["region_id"] == self.region_id
             ),
-            open_test_policy=True,
         )
         barrier = threading.Barrier(2)
 

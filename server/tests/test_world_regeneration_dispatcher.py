@@ -1,6 +1,7 @@
 """Execute the production idle regeneration gate across combat cleanup."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock

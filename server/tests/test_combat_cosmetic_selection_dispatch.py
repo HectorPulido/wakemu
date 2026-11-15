@@ -1,6 +1,7 @@
 """Execute the actual dispatcher cosmetic branch without importing the server loop."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import struct
 import unittest

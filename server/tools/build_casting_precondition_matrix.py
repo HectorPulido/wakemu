@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Inventory conditional preparation dependencies without injecting native facts."""
+
 import argparse
 import ast
 from collections import Counter, defaultdict, deque
@@ -70,7 +71,7 @@ def domain(name):
 
 def main(output):
     paths = [
-        ROOT / "server/protocol/native-spell-casting.json",
+        ROOT / "database/protocol/native-spell-casting.json",
         REPORTS / "class-native-mechanic-components-20261007.json",
         REPORTS / "class-native-mechanic-graph-20261007.json",
         ROOT / "server/wakfu_server/combat/combat_local_criteria.py",
@@ -224,9 +225,11 @@ def main(output):
                         item["selector_source"] = (
                             "explicit_literal"
                             if explicit_selector
-                            else "native_eII.a_default"
-                            if default_known
-                            else "unresolved_native_default"
+                            else (
+                                "native_eII.a_default"
+                                if default_known
+                                else "unresolved_native_default"
+                            )
                         )
                     if family == "owned_book_or_deck" and args and type(args[0]) is int:
                         item["required_spell_reference"] = args[0]
@@ -320,9 +323,9 @@ def main(output):
         for row in rows:
             writer.writerow(
                 {
-                    key: json.dumps(row[key])
-                    if isinstance(row[key], list)
-                    else row[key]
+                    key: (
+                        json.dumps(row[key]) if isinstance(row[key], list) else row[key]
+                    )
                     for key in writer.fieldnames
                 }
             )

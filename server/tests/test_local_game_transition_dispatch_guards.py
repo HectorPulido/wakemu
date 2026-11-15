@@ -2,11 +2,10 @@
 
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 
 from wakfu_server.position_buffer import PositionOwnerBusy
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

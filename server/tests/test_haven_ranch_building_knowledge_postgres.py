@@ -1,7 +1,8 @@
 """Transactional tests for native bIA Ranch building learning."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import sys
 from types import ModuleType

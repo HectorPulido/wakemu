@@ -1,4 +1,5 @@
 """Freeze one locally configured native-terrain layout per durable encounter."""
+
 from psycopg.types.json import Jsonb
 from contextlib import nullcontext
 from psycopg.pq import TransactionStatus
@@ -334,9 +335,31 @@ def _arena(map_id, instance_id, layout):
         )
         validated_destination(result)
     if layout.get("native_rii_lesson_layout") is not None:
+        from wakfu_server.achievements.rii_dojo_arrival import (
+            LESSON_FIGHT_MODEL as RII_DOJO_FIGHT_MODEL,
+            TERRAIN_EFFECT as RII_DOJO_TERRAIN_EFFECT,
+        )
+
+        if map_id != 1388:
+            raise ValueError("Rii lesson placement belongs to the native dojo")
         result.update(
             native_rii_lesson_layout=layout["native_rii_lesson_layout"],
             participant_player_position=layout["participant_player_position"],
+            # Official dojo lesson bootstraps (2026-11-12 capture, seven of
+            # seven) publish terrain template 378 and fight model 14.
+            terrain_effect_id=RII_DOJO_TERRAIN_EFFECT,
+            native_fight_model=RII_DOJO_FIGHT_MODEL,
+        )
+    if layout.get("native_rii_guardian_layout") is not None:
+        from wakfu_server.achievements.rii_guardian_contract import MODEL, TERRAIN
+
+        if map_id != 1387:
+            raise ValueError("Native Rii guardian placement belongs to its sanctuary")
+        result.update(
+            native_rii_guardian_layout=layout["native_rii_guardian_layout"],
+            participant_player_position=layout["participant_player_position"],
+            native_fight_model=MODEL,
+            terrain_effect_id=TERRAIN,
         )
     return result
 
@@ -469,6 +492,25 @@ def freeze(
             }
             destination = validated_player_position(owner, selected_arena)
             seeds = {0: [destination], 1: seeds[1]}
+        if selected_arena.get("native_rii_guardian_layout") is not None:
+            from wakfu_server.achievements.rii_guardian_contract import (
+                validated_player_position,
+            )
+
+            if len(seeds[0]) != 1:
+                raise ValueError(
+                    "Native guardian placement requires its selected owner"
+                )
+            origin = tuple(seeds[0][0])
+            owner = dict(
+                id=character_id,
+                map_id=map_id,
+                instance_id=instance_id,
+                x=origin[0],
+                y=origin[1],
+                z=origin[2],
+            )
+            seeds = {0: [validated_player_position(owner, selected_arena)], 1: seeds[1]}
         seeds, friendly_helpers = partition_scene_helper_seeds(
             selected_arena,
             seeds,
@@ -542,9 +584,11 @@ def freeze(
                 edges,
                 seeds,
                 slots_per_team=policy["slots_per_team"],
-                variation_seed=(fight_id << 31) | policy["version"]
-                if policy["variation_enabled"]
-                else None,
+                variation_seed=(
+                    (fight_id << 31) | policy["version"]
+                    if policy["variation_enabled"]
+                    else None
+                ),
                 spread_teams=selected_arena.get("native_border_policy")
                 == "wakemu.compact-cardinal-perimeter-v1",
                 avoid_cells=selected_arena.get("native_border_cells", ()),
@@ -571,15 +615,17 @@ def freeze(
                 cells=selected_arena.get("native_border_cells", ()),
             )
         layout = dict(
-            border=None
-            if emiw_border is not None
-            or selected_arena.get("native_encounter_scene", {})
-            .get("descriptor", {})
-            .get("native_border_reference")
-            is not None
-            or scene is not None
-            and "terrain_effect_id" in scene
-            else choose_border(db),
+            border=(
+                None
+                if emiw_border is not None
+                or selected_arena.get("native_encounter_scene", {})
+                .get("descriptor", {})
+                .get("native_border_reference")
+                is not None
+                or scene is not None
+                and "terrain_effect_id" in scene
+                else choose_border(db)
+            ),
             native_border_cells=sorted(selected_arena.get("native_border_cells", [])),
             native_border_policy=selected_arena.get("native_border_policy"),
             participant_positions=relocations,
@@ -603,6 +649,11 @@ def freeze(
         if selected_arena.get("native_rii_lesson_layout") is not None:
             layout.update(
                 native_rii_lesson_layout=selected_arena["native_rii_lesson_layout"],
+                participant_player_position=player_relocation,
+            )
+        if selected_arena.get("native_rii_guardian_layout") is not None:
+            layout.update(
+                native_rii_guardian_layout=selected_arena["native_rii_guardian_layout"],
                 participant_player_position=player_relocation,
             )
         if scene is not None:

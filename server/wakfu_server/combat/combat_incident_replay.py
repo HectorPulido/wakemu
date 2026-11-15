@@ -4,7 +4,7 @@ This qualifies only a particular operation outcome. Shared routing, bootstrap,
 collective ACK and arbitrary live provider equivalence remain separate claims.
 The incident is evidence, not executable code or an instruction to change rules.
 """
-import hashlib
+
 import json
 import os
 from pathlib import Path
@@ -12,6 +12,7 @@ import random
 from copy import deepcopy
 
 from .combat_incident_capture import SCHEMA
+from wakfu_server.application.source_identity import dispatcher_source_sha256
 from .combat_reproduction import (
     SCHEMA as CASE_SCHEMA,
     execute_case,
@@ -145,11 +146,7 @@ def replay_runtime_incident(
         "dispatcher_sha256",
     }:
         raise IncidentReplayError("Missing incident source/catalog identity")
-    server = Path(__file__).resolve().parents[2]
-    dispatcher_matches = (
-        hashlib.sha256((server / "local_game_server.py").read_bytes()).hexdigest()
-        == identity["dispatcher_sha256"]
-    )
+    dispatcher_matches = dispatcher_source_sha256() == identity["dispatcher_sha256"]
     if not dispatcher_matches and not allow_source_drift:
         raise IncidentReplayError("Incident dispatcher source differs")
     before, after = decode_state(receipt["before"]), decode_state(receipt["after"])
@@ -241,10 +238,7 @@ def replay_npc_incident(receipt, *, provider_recipe, allow_source_drift=False):
         raise IncidentReplayError(
             "NPC reproduction requires identical engine and SDK sources"
         )
-    server = Path(__file__).resolve().parents[2]
-    dispatcher_hash = hashlib.sha256(
-        (server / "local_game_server.py").read_bytes()
-    ).hexdigest()
+    dispatcher_hash = dispatcher_source_sha256()
     if receipt.get("identity", {}).get("dispatcher_sha256") != dispatcher_hash:
         raise IncidentReplayError("Incident dispatcher source differs")
     from .combat_npc_reproduction import after_state_projection, replay_npc_receipt
@@ -288,10 +282,7 @@ def replay_npc_publication_incident(
         raise IncidentReplayError(
             "NPC publication requires its explicit recipe and identical sources"
         )
-    server = Path(__file__).resolve().parents[2]
-    dispatcher = hashlib.sha256(
-        (server / "local_game_server.py").read_bytes()
-    ).hexdigest()
+    dispatcher = dispatcher_source_sha256()
     if receipt.get("identity", {}).get("dispatcher_sha256") != dispatcher:
         raise IncidentReplayError("Incident dispatcher source differs")
     from .combat_npc_publication import replay_npc_publication
@@ -371,11 +362,7 @@ def replay_shared_incident(
         raise IncidentReplayError("Missing shared source/catalog identity")
     current_source = source_identity()
     source_matches = current_source == identity["source"]
-    server = Path(__file__).resolve().parents[2]
-    dispatcher_matches = (
-        hashlib.sha256((server / "local_game_server.py").read_bytes()).hexdigest()
-        == identity["dispatcher_sha256"]
-    )
+    dispatcher_matches = dispatcher_source_sha256() == identity["dispatcher_sha256"]
     if not allow_source_drift and not (source_matches and dispatcher_matches):
         raise IncidentReplayError("Shared incident sources differ")
     if catalog_identity() != identity["catalog"]:

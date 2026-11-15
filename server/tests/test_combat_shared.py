@@ -2,7 +2,7 @@ import ast
 import concurrent.futures
 import struct, threading, unittest
 import inspect
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 from protocol_codec import decode_body
@@ -71,6 +71,13 @@ class SharedCombatTests(unittest.TestCase):
             expected_positions,
         )
         self.assertEqual(set(shared.participants), {1, 2})
+
+    def test_owner_scoped_world_scene_rejects_foreign_joiner(self):
+        self.shared.join_context["world_scene_owner"] = self.one.character_id
+        with self.assertRaisesRegex(ValueError, "Owned scenario"):
+            self.join()
+        self.assertNotIn(self.two.character_id, self.registry.by_character)
+        self.assertEqual(set(self.shared.fight.actors), {10, -200})
 
     def test_same_account_heroes_have_one_session_and_all_character_aliases(self):
         registry = Registry(lambda session: session == self.one)

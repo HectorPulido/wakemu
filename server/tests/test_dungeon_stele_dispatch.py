@@ -1,7 +1,8 @@
 """Regression coverage for the live native stele selection/readiness boundary."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -10,7 +11,6 @@ from wakfu_server.combat.combat_session_adapter import CombatSessionAdapter
 from wakfu_server.combat_shared import Session
 from wakfu_server.combat_state import Fight
 import test_combat_spell_transaction as fixture_module
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

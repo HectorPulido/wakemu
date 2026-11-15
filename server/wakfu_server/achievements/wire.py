@@ -1,4 +1,5 @@
 """Native version5 state section and absolute achievement notifications."""
+
 import struct
 import zlib
 from .storage import _state
@@ -111,7 +112,64 @@ def changes(
     recent_ids = {row["id"] for row in before.get("recent", ())}
     definitions = {} if definitions is None else dict(definitions)
     already_reset = set(already_reset)
+    # Official journal batches are ordered per producer mission: counter facts
+    # of an already active mission, then its objective and completion marks,
+    # then a newly activated mission together with the zero initialisation of
+    # its own counters (2026-11-12 capture: ctv 10615/10607, three ctA zeros,
+    # then ctx/ctq/ctu 5145; and ctA=3 immediately before ctv 10597).
+    activation_variables = set()
+    for identity in sorted(
+        set(after["running"]) - set(before["running"]) - set(before["completed"])
+    ):
+        for objective in (definitions.get(identity) or {}).get("cjJ", ()) or ():
+            for condition in objective.get("ckf") or ():
+                activation_variables.update(
+                    str(value)
+                    for value in (condition.get("ckn") or [])
+                    if type(value) is int
+                )
+    activation_variables = {}
     for identity in newly_active:
+        for objective in (definitions.get(identity) or {}).get("cjJ") or ():
+            for condition in objective.get("ckf") or ():
+                for source in condition.get("ckn") or ():
+                    if type(source) is int:
+                        activation_variables.setdefault(str(source), identity)
+    changed_variables = set()
+    counters = []
+    for key, value in sorted(after["variables"].items(), key=lambda row: int(row[0])):
+        if before["variables"].get(key) == value:
+            continue
+        changed_variables.add(int(key))
+        if key not in activation_variables:
+            counters.append((13295, struct.pack(">qiq", character_id, int(key), value)))
+    packets.extend(counters)
+    packets.extend(
+        (13832, struct.pack(">qi", character_id, identity))
+        for identity in new_objectives
+    )
+    packets.extend(
+        (13422, struct.pack(">qiq", character_id, identity, now_ms))
+        for identity in new_completed
+    )
+    for identity in sorted(set(before["tracking"]) - set(after["tracking"])):
+        packets.append((13371, struct.pack(">qiB", character_id, identity, 0)))
+    for identity in newly_active:
+        for key, owner in sorted(
+            activation_variables.items(), key=lambda row: int(row[0])
+        ):
+            if owner != identity or before["variables"].get(key) == after[
+                "variables"
+            ].get(key):
+                continue
+            packets.append(
+                (
+                    13295,
+                    struct.pack(
+                        ">qiq", character_id, int(key), after["variables"][key]
+                    ),
+                )
+            )
         if (
             identity not in recent_ids
             and identity not in already_reset
@@ -125,21 +183,6 @@ def changes(
             packets.append((13371, struct.pack(">qiB", character_id, identity, 1)))
     for identity in sorted(newly_tracked - set(newly_active)):
         packets.append((13371, struct.pack(">qiB", character_id, identity, 1)))
-    for identity in sorted(set(before["tracking"]) - set(after["tracking"])):
-        packets.append((13371, struct.pack(">qiB", character_id, identity, 0)))
-    changed_variables = set()
-    for key, value in sorted(after["variables"].items(), key=lambda row: int(row[0])):
-        if before["variables"].get(key) != value:
-            changed_variables.add(int(key))
-            packets.append((13295, struct.pack(">qiq", character_id, int(key), value)))
-    packets.extend(
-        (13832, struct.pack(">qi", character_id, identity))
-        for identity in new_objectives
-    )
-    packets.extend(
-        (13422, struct.pack(">qiq", character_id, identity, now_ms))
-        for identity in new_completed
-    )
     # The native client can retain a stale tracker row after processing an
     # objective even though its underlying mission state is correct. Rebinding
     # the affected, already-followed mission refreshes its HUD row. Restrict

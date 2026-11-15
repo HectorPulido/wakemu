@@ -1,7 +1,8 @@
 """Positive native-equilibrium corrections preserve immutable ledger history."""
+
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 from postgres_case import PostgresCase
 from wakfu_server import ecology_affinity_reconciliation as reconciliation
 from wakfu_server import personal_ecology
@@ -48,26 +49,22 @@ class AffinityReconciliationUnitTests(unittest.TestCase):
         self.assertFalse(result["applied"])
         apply.assert_not_called()
 
-    def test_reserved_birth_planner_does_not_spend_slots_on_affinity_reconciliation(
-        self,
-    ):
-        from wakfu_server import ecology_plants
-
-        store = MagicMock()
-        store.connection.return_value.__enter__.return_value.execute.return_value.fetchall.return_value = (
-            []
+    def test_world_reconciliation_accepts_only_explicit_selected_operations(self):
+        world = SimpleNamespace(
+            live_identity=lambda **_: ("current", {"account_id": 2})
         )
-        snapshot = dict(
-            world_epoch="reserved",
-            now_ms=100000,
-            planning_tick=0,
-            reserve_monster_births=True,
-            skip_interactive=True,
-            players=[],
-        )
-        with patch.object(reconciliation, "prepare") as prepare:
-            self.assertEqual(ecology_plants.prepare(store, snapshot, limit=4), [])
-        prepare.assert_not_called()
+        for selected in (None, [], [{"operation": "receipt"}] * 17):
+            with self.subTest(selected=selected), self.assertRaises(ValueError):
+                reconciliation.apply(
+                    Mock(),
+                    world,
+                    dict(
+                        kind="affinity_reconcile",
+                        character_id=1,
+                        account_id=2,
+                        original_operations=selected,
+                    ),
+                )
 
     def test_wrong_stasis_and_omitted_wakfu_only_generate_positive_restitution(self):
         receipt = dict(
@@ -135,15 +132,34 @@ class AffinityReconciliationPostgresTests(PostgresCase):
                 minimum=150, maximum=200, source="native_chief_wish", revision=None
             ),
         ):
-            self.assertEqual(
-                reconciliation.prepare(
-                    self.store, dict(world_epoch="boot", players=[])
-                ),
-                [],
+            # Explicit Rust JSON contract: World recomputes the selected
+            # immutable receipt fingerprint before committing restitution.
+            with self.store.connection() as db:
+                receipt = db.execute(
+                    "SELECT * FROM personal_ecology_receipts WHERE character_id=%s "
+                    "AND operation='old-wrong-stasis'",
+                    (character["id"],),
+                ).fetchone()
+            plan = dict(
+                kind="affinity_reconcile",
+                world_epoch="boot",
+                character_id=character["id"],
+                account_id=account,
+                original_operations=[
+                    dict(
+                        operation="old-wrong-stasis",
+                        receipt_sha256=reconciliation.evaluate(receipt)[
+                            "original_receipt_sha256"
+                        ],
+                    )
+                ],
             )
-            plan = reconciliation.prepare(
-                self.store, dict(world_epoch="boot", players=[character])
-            )[0]
+            with patch.object(world, "live_identity", return_value=None):
+                offline = reconciliation.apply(self.store, world, plan)
+            self.assertEqual(offline, dict(applied=False, reason="inactive_character"))
+            self.assertEqual(
+                self.store.character(account, character["id"])["ecology_value"], -25
+            )
             first = reconciliation.apply(self.store, world, plan)
             second = reconciliation.apply(self.store, world, plan)
             self.assertTrue(first["applied"])

@@ -5,6 +5,199 @@ from wakfu_server import wire
 
 
 class WireTests(unittest.TestCase):
+    def test_production_entity_fusion_matches_public_phases_in_one_call(self):
+        from unittest.mock import patch
+        from wakfu_server.spatial_native import get_spatial
+
+        name = wire.TEMPLATE_NAME.encode("utf-8")
+        template = (
+            struct.pack(
+                ">BqBqH",
+                11,
+                wire.TEMPLATE_CHARACTER,
+                1,
+                wire.TEMPLATE_ACCOUNT,
+                len(name),
+            )
+            + name
+            + struct.pack(">iihqBB", -12, -8, -1, 1134, 3, 1)
+            + b"\x00\xffnative-tail\x80" * 128
+        )
+        native = get_spatial()
+        for owned_name in ("A", "Héctor the explorer"):
+            character = dict(
+                id=42,
+                account_id=501,
+                name=owned_name,
+                level=None,
+                x=-17,
+                y=12,
+                z=3,
+                map_id=1134,
+                direction=7,
+            )
+            blob = wire.header(
+                wire.position(wire.minimal_entity(template, character), character),
+                character["account_id"],
+                character,
+            )
+            with patch.object(
+                native, "call_binary", wraps=native.call_binary
+            ) as encode:
+                spawned = wire.spawn_player(template, character)
+            encode.assert_called_once()
+            self.assertEqual(encode.call_args.args[0], 4)
+            self.assertEqual(
+                spawned, b"\x00\x01" + struct.pack(">BqH", 0, 42, len(blob)) + blob
+            )
+            with patch.object(
+                native, "call_binary", wraps=native.call_binary
+            ) as encode:
+                refreshed = wire.refresh_player(template, character)
+            encode.assert_called_once()
+            self.assertEqual(
+                refreshed, (15548, struct.pack(">qh", 42, len(blob)) + blob)
+            )
+            with self.assertRaisesRegex(ValueError, "Invalid native mount integer"):
+                wire.refresh_player(template, dict(character, id=True))
+            roster = bytes([1]) + struct.pack(">I", len(template)) + template
+            selection_blob = wire.header(template, character["account_id"], character)
+            with patch.object(
+                native, "call_binary", wraps=native.call_binary
+            ) as encode:
+                selected = wire.character_list(
+                    roster, character["account_id"], [character]
+                )
+            encode.assert_called_once()
+            self.assertEqual(
+                selected,
+                bytes([1])
+                + struct.pack(">I", len(selection_blob))
+                + selection_blob
+                + b"\x00",
+            )
+
+    def test_character_roster_batches_all_owned_rows_in_one_native_call(self):
+        from unittest.mock import patch
+        from wakfu_server.spatial_native import get_spatial
+
+        name = wire.TEMPLATE_NAME.encode("utf-8")
+        template_blob = (
+            struct.pack(
+                ">BqBqH",
+                5,
+                wire.TEMPLATE_CHARACTER,
+                1,
+                wire.TEMPLATE_ACCOUNT,
+                len(name),
+            )
+            + name
+            + b"\x00\xffselection-tail\x80"
+        )
+        template = bytes([1]) + struct.pack(">I", len(template_blob)) + template_blob
+        characters = [dict(id=42 + i, name=f"Héctor-{i}", level=None) for i in range(8)]
+        expected = bytearray([len(characters)])
+        for character in characters:
+            row = wire.header(template_blob, 501, character)
+            expected.extend(struct.pack(">I", len(row)))
+            expected.extend(row)
+        expected.extend(b"\x00")
+        native = get_spatial()
+        with patch.object(native, "call_binary", wraps=native.call_binary) as encode:
+            actual = wire.character_list(template, 501, characters)
+        self.assertEqual(actual, bytes(expected))
+        encode.assert_called_once()
+        self.assertEqual(encode.call_args.args[0], 5)
+        with patch.object(native, "call_binary", wraps=native.call_binary) as encode:
+            self.assertEqual(wire.character_list(template, 501, []), b"\x00\x00")
+        encode.assert_called_once()
+
+    def test_fused_entity_preserves_post_replacement_position_ambiguity_guard(self):
+        import hashlib
+        from unittest.mock import patch
+
+        name = wire.TEMPLATE_NAME.encode("utf-8")
+        prefix = (
+            struct.pack(
+                ">BqBqH",
+                11,
+                wire.TEMPLATE_CHARACTER,
+                1,
+                wire.TEMPLATE_ACCOUNT,
+                len(name),
+            )
+            + name
+            + struct.pack(">iihqBB", -12, -8, -1, 1134, 3, 1)
+        )
+        template = prefix + b"captured-achievements" + b"\xfftail"
+        layout = {
+            "template_sha256": hashlib.sha256(template).hexdigest(),
+            "sections": [
+                {
+                    "name": "ACHIEVEMENTS",
+                    "start": len(prefix),
+                    "end": len(template) - len(b"\xfftail"),
+                }
+            ],
+        }
+        character = dict(
+            id=42,
+            account_id=501,
+            name="Héctor",
+            level=1,
+            x=3,
+            y=-5,
+            z=0,
+            direction=6,
+            map_id=1134,
+            achievement_section=b"\x00\xffowned",
+        )
+        with patch.dict(wire.ENTITY_LAYOUTS, {11: layout}):
+            blob = wire.header(
+                wire.position(wire.minimal_entity(template, character), character),
+                character["account_id"],
+                character,
+            )
+            self.assertEqual(
+                wire.spawn_player(template, character),
+                b"\x00\x01" + struct.pack(">BqH", 0, 42, len(blob)) + blob,
+            )
+            character["achievement_section"] = wire.INITIAL_POSITION
+            with self.assertRaisesRegex(ValueError, "Ambiguous captured position"):
+                wire.spawn_player(template, character)
+
+    def test_entity_sections_are_assembled_once_with_exact_binary_payloads(self):
+        import hashlib
+        from unittest.mock import patch
+
+        captured_effects = b"captured-running-state" * 4096
+        opaque = b"\x00\xffunchanged-native-tail\x80"
+        body = bytes([11]) + b"old" + captured_effects + opaque
+        boundary = 4 + len(captured_effects)
+        layout = {
+            "template_sha256": hashlib.sha256(body).hexdigest(),
+            "sections": [
+                {"name": "ACHIEVEMENTS", "start": 1, "end": 4},
+                {"name": "RUNNING_EFFECTS", "start": 4, "end": boundary},
+                {"name": "OPAQUE", "start": boundary, "end": len(body)},
+            ],
+        }
+        achievements = b"\xff\x00\x80owned-achievement" * 2048
+        with patch.dict(wire.ENTITY_LAYOUTS, {11: layout}), patch.object(
+            wire, "_patch_entity", wraps=wire._patch_entity
+        ) as assemble:
+            actual = wire.minimal_entity(
+                body, dict(level=1, achievement_section=achievements)
+            )
+        self.assertEqual(actual, bytes([11]) + achievements + bytes(2) + opaque)
+        assemble.assert_called_once()
+        with patch.dict(wire.ENTITY_LAYOUTS, {11: layout}), self.assertRaises(
+            ValueError
+        ):
+            wire.minimal_entity(
+                body + b"x", dict(level=1, achievement_section=achievements)
+            )
+
     def test_owned_account_information_projects_only_authoritative_admin_rights(self):
         import hashlib
         from unittest.mock import patch

@@ -3,11 +3,13 @@
 Run from any directory. Source declarations are copied verbatim from each
 catalog, not inferred from a filename or treated as independent verification.
 """
+
 import hashlib
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+ROOT = ROOT.parent if ROOT.name == "server" else ROOT
 CATALOGS = {
     "monsters.json": "monsters",
     "monster-encyclopedia.json": "monsters",
@@ -43,10 +45,10 @@ CATALOGS = {
 def manifest():
     entries = []
     for filename, collection in sorted(CATALOGS.items()):
-        raw = (ROOT / "protocol" / filename).read_bytes()
+        raw = (ROOT / "database/protocol" / filename).read_bytes()
         data = json.loads(raw)
         entry = dict(
-            path="protocol/" + filename,
+            path="database/protocol/" + filename,
             sha256=hashlib.sha256(raw).hexdigest(),
             bytes=len(raw),
         )
@@ -72,6 +74,6 @@ def manifest():
 
 
 if __name__ == "__main__":
-    destination = ROOT / "protocol" / "content-manifest.json"
+    destination = ROOT / "database/protocol" / "content-manifest.json"
     destination.write_text(json.dumps(manifest(), ensure_ascii=False, indent=2) + "\n")
     print("Wrote", destination.relative_to(ROOT))

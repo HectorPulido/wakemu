@@ -1,8 +1,9 @@
 """Real PostgreSQL company clocks exercised through the actual idle World gate."""
+
 import ast
 from contextlib import contextmanager
 from psycopg import Cursor
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 import struct

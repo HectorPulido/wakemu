@@ -3,9 +3,10 @@
 Unknown positions fail closed. Known territories use a durable local baseline
 when no native snapshot or per-instance state exists.
 """
+
 import math
 import struct
-from datetime import datetime, timezone
+from datetime import datetime
 from functools import lru_cache
 from .territory_cells import region_at
 
@@ -117,15 +118,9 @@ def context(store, character, *, x, y, z):
             instance_id=character["instance_id"],
             region_id=region_id,
         )
-    from .territory_weather_simulation import (
-        advance as advance_simulation,
-        _TransactionStore,
-    )
+    from .territory_weather_simulation import _TransactionStore
     from .territory_weather_forecast import packet_for_territory
 
-    advance_simulation(
-        store, scope=(character["map_id"], character["instance_id"], region_id), limit=1
-    )
     with store.connection() as db:
         row = db.execute(
             "SELECT weather,native_payload,revision FROM territory_weather "
@@ -365,90 +360,6 @@ def schedule_transition(
         raise ValueError("Conflicting weather transition at the same time")
 
 
-def advance_due(store, *, now=None, limit=100):
-    """Apply the latest due transition per configured territory atomically.
-
-    Only the weather enum in the current native 13948 payload is changed; the
-    identity and six uninterpreted floats are preserved byte-for-byte. If the
-    scheduler was offline, intermediate due states are coalesced to the latest
-    configured state instead of flashing old weather on clients.
-    """
-    if type(limit) is not int or not 1 <= limit <= 1000:
-        raise ValueError("Invalid weather transition batch size")
-    if now is not None and (not isinstance(now, datetime) or now.tzinfo is None):
-        raise ValueError("Weather clock must be an aware timestamp")
-    when = now.astimezone(timezone.utc) if now is not None else None
-    pred = (
-        "transition_at <= clock_timestamp()" if when is None else "transition_at <= %s"
-    )
-    params = () if when is None else (when,)
-    from .territory_weather_simulation import advance as advance_simulation
-
-    changed = advance_simulation(store, now=now, limit=limit)
-    with store.connection() as db:
-        rows = db.execute(
-            "SELECT t.map_id,t.instance_id,t.region_id,t.transition_at,t.target_weather "
-            "FROM territory_weather_transitions t WHERE t." + pred + " AND "
-            "t.transition_at=(SELECT max(t2.transition_at) "
-            "FROM territory_weather_transitions t2 WHERE t2.map_id=t.map_id "
-            "AND t2.instance_id=t.instance_id AND t2.region_id=t.region_id AND t2."
-            + pred
-            + ") "
-            "ORDER BY t.map_id,t.instance_id,t.region_id "
-            "LIMIT %s FOR UPDATE OF t SKIP LOCKED",
-            (*params, *params, limit),
-        ).fetchall()
-        for scheduled in rows:
-            key = (
-                scheduled["map_id"],
-                scheduled["instance_id"],
-                scheduled["region_id"],
-            )
-            current = db.execute(
-                "SELECT weather,native_payload,revision FROM territory_weather "
-                "WHERE map_id=%s AND instance_id=%s AND region_id=%s FOR UPDATE",
-                key,
-            ).fetchone()
-            if current is None:
-                raise ValueError("Authoritative territory weather unavailable")
-            decoded = decode(current["native_payload"])
-            if decoded["weather"] != current["weather"]:
-                raise ValueError("Inconsistent authoritative territory weather")
-            db.execute(
-                "DELETE FROM territory_weather_transitions WHERE map_id=%s "
-                "AND instance_id=%s AND region_id=%s AND transition_at <= %s",
-                (*key, scheduled["transition_at"]),
-            )
-            if current["weather"] == scheduled["target_weather"]:
-                continue
-            target_id = WEATHER.index(scheduled["target_weather"])
-            payload = current["native_payload"][:-4] + struct.pack(">i", target_id)
-            revision = db.execute(
-                "UPDATE territory_weather SET weather=%s,native_payload=%s, "
-                "revision=revision+1,updated_at=clock_timestamp() "
-                "WHERE map_id=%s AND instance_id=%s AND region_id=%s "
-                "RETURNING revision",
-                (scheduled["target_weather"], payload, *key),
-            ).fetchone()["revision"]
-            db.execute(
-                "INSERT INTO territory_weather_outbox "
-                "(map_id,instance_id,region_id,revision,weather,native_payload) "
-                "VALUES(%s,%s,%s,%s,%s,%s)",
-                (*key, revision, scheduled["target_weather"], payload),
-            )
-            changed.append(
-                dict(
-                    map_id=key[0],
-                    instance_id=key[1],
-                    region_id=key[2],
-                    revision=revision,
-                    weather=scheduled["target_weather"],
-                    native_payload=payload,
-                )
-            )
-    return changed
-
-
 def pending_publications(store, *, limit=100):
     if type(limit) is not int or not 1 <= limit <= 1000:
         raise ValueError("Invalid weather publication batch size")
@@ -609,35 +520,6 @@ def publish_to_world(world, event):
     return delivered
 
 
-def tick_weather(store, world, *, limit=100):
-    """Advance configured transitions and retry durable updates to sessions.
-
-    A scheduler may call this under its distributed occurrence lease. State
-    changes commit before socket publication; a publication failure leaves its
-    outbox row pending for the next occurrence. Sending current state is safe
-    to repeat, while client receipt is not claimed by the outbox marker.
-    """
-    changed = advance_due(store, limit=limit)
-    published = publish_pending(
-        store, lambda event: publish_to_world(world, event), limit=limit
-    )
-    from .territory_weather_forecast import (
-        publish_pending as publish_forecast_pending,
-        publish_to_world as publish_forecast_to_world,
-    )
-
-    forecast_published = publish_forecast_pending(
-        store,
-        lambda event: publish_forecast_to_world(store, world, event),
-        limit=limit,
-    )
-    return {
-        "advanced": len(changed),
-        "published": published,
-        "forecast_published": forecast_published,
-    }
-
-
 def _validate_scope(map_id, instance_id, region_id):
     if any(type(value) is not int for value in (map_id, instance_id, region_id)):
         raise ValueError("Invalid territory weather scope")
@@ -697,12 +579,12 @@ def _policy_config(
     selected = dict(
         weather=value["weather"] if weather is _UNSET else weather,
         native_byte=value["native_byte"] if native_byte is _UNSET else native_byte,
-        native_values=value["native_values"]
-        if native_values is _UNSET
-        else native_values,
-        policy_version=value["policy_version"]
-        if policy_version is _UNSET
-        else policy_version,
+        native_values=(
+            value["native_values"] if native_values is _UNSET else native_values
+        ),
+        policy_version=(
+            value["policy_version"] if policy_version is _UNSET else policy_version
+        ),
     )
     baseline = _validated_baseline(
         selected["weather"], selected["native_byte"], selected["native_values"]

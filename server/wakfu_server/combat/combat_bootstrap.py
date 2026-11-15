@@ -3,6 +3,7 @@
 World actor appearances must already have been registered for every participant.
 Terrain effect template is an explicit current-client reference supplied by caller.
 """
+
 import struct
 from .combat_wire import bootstrap, topology, initial_timeline
 from .combat_turns import initial_order
@@ -62,7 +63,7 @@ def placement_messages(
     """
     if fight.phase != "placement" or set(actor_payloads) != set(fight.actors):
         raise ValueError("Bootstrap requires exact own placement actors")
-    if kind not in (2, 14) or not 0 < duration_ms < 2**31:
+    if kind not in (2, 14, 71) or not 0 < duration_ms < 2**31:
         raise ValueError("Unsupported fight mode or placement duration")
     if set(leaders) != {0, 1} or any(
         leaders[t] not in fight.actors or fight.actors[leaders[t]].team != t
@@ -140,7 +141,10 @@ def placement_messages(
         myN=[],
         myK=environment_sections(fight, viewer_id=viewer_id),
     )
+    from .combat_encounter_scene_helpers import initial_helper_appearances
+
     messages = [
+        *initial_helper_appearances(fight),
         (13652, placement_positions(fight)),
         (12847, bootstrap(value)),
         (13684, struct.pack(">ii", fight.id, duration_ms)),
@@ -369,9 +373,9 @@ def create_placement(
         context = getattr(fight, "native_haven_world_combat_context", None)
         if context is not None:
             for row in helper_manifest["source"]["helpers"]:
-                fight.actors[
-                    row["actor_id"]
-                ].native_haven_world_combat_context = context
+                fight.actors[row["actor_id"]].native_haven_world_combat_context = (
+                    context
+                )
     from .combat_cosmetic_conditions import initialize_fresh_player_cosmetics
 
     initialize_fresh_player_cosmetics(pc, character)
@@ -440,6 +444,9 @@ def create_placement(
         frozenset() if arena.get("team_values") == [] else None
     )
     payloads = {pc.id: player_payload(character, pc, fight_id, wp=player_wp)}
+    # Constructor-only packets precede native snapshot initialization. Actors'
+    # po.SX flags are still unset here. Activated NPCs force the later
+    # should_rebuild_placement path, which serializes their initialized flags.
     payloads.update(
         {
             member["id"]: (
@@ -471,6 +478,9 @@ def create_placement(
         payloads,
         terrain_effect_id=terrain_effect_id,
         terrain_instance_id=terrain_instance_id,
+        # A reviewed scene policy may pin the native fight model (dojo
+        # lessons use 14). Ordinary fights keep the historical mode 2.
+        kind=arena.get("native_fight_model", 2),
         leaders={roles.player_team: pc.id, roles.npc_team: npcs[0].id},
         duration_ms=duration_ms,
         viewer_id=pc.id,

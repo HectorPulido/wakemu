@@ -1,4 +1,5 @@
 """Build a state denominator inventory without importing combat runtime."""
+
 import ast
 from collections import Counter, defaultdict
 import csv
@@ -13,7 +14,7 @@ from build_spell_inventory import literal_handler_families
 
 ROOT = Path(__file__).resolve().parents[2]
 REPORT = ROOT / "docs/reports/combat-inventory"
-DATA = ROOT / "server/protocol"
+DATA = ROOT / "database/protocol"
 COMBAT = ROOT / "server/wakfu_server/combat"
 
 
@@ -217,11 +218,11 @@ def main():
         status = (
             "absent"
             if native.get("native_missing") or definition is None
-            else "broken"
-            if violations
-            else "partial"
-            if gaps
-            else "pending_verification"
+            else (
+                "broken"
+                if violations
+                else "partial" if gaps else "pending_verification"
+            )
         )
         row = dict(
             state_id=reference,
@@ -403,9 +404,11 @@ def main():
         for row in rows:
             writer.writerow(
                 {
-                    column: json.dumps(row[column])
-                    if isinstance(row[column], list)
-                    else row[column]
+                    column: (
+                        json.dumps(row[column])
+                        if isinstance(row[column], list)
+                        else row[column]
+                    )
                     for column in columns
                 }
             )

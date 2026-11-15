@@ -31,9 +31,9 @@ class WorldStaticTests(unittest.TestCase):
                     if row["id"] not in entrances:
                         self.assertEqual(
                             payloads[row["id"]],
-                            world_static._DYNAMIC_STATES[
-                                (configured.entry_map_id, row["id"])
-                            ],
+                            world_static.dynamic_state(
+                                configured.entry_map_id, row["id"]
+                            ),
                         )
 
     def test_every_native_object_hydrates_in_first_attachment_on_every_replay(self):
@@ -43,9 +43,24 @@ class WorldStaticTests(unittest.TestCase):
                 with self.subTest(map_id=map_id):
                     bodies = world_static.snapshots(map_id)
                     self.assertEqual(bodies, world_static.snapshots(map_id))
+                    # Independent pre-native encoder oracle: count, record
+                    # ordering, payload length and exact published state bytes.
+                    reference = []
+                    for offset in range(0, len(rows), 32767):
+                        batch = rows[offset : offset + 32767]
+                        records = []
+                        for row in batch:
+                            payload = world_static.dynamic_state(map_id, row["id"])
+                            records.append(
+                                struct.pack(">qh", row["id"], len(payload)) + payload
+                            )
+                        reference.append(
+                            struct.pack(">h", len(batch)) + b"".join(records)
+                        )
+                    self.assertEqual(bodies, tuple(reference))
                     payloads = self.snapshot_payloads(map_id)
                     for row in rows:
-                        expected = world_static._DYNAMIC_STATES[(map_id, row["id"])]
+                        expected = world_static.dynamic_state(map_id, row["id"])
                         self.assertEqual(payloads[row["id"]], expected)
                     # Never attach an unhydrated baseline before dynamic state.
                     self.assertEqual(len(bodies), (len(rows) + 32766) // 32767)

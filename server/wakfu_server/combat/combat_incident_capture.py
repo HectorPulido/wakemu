@@ -4,8 +4,8 @@ Receipts preserve evidence; an unqualified provider or missing input is never
 promoted to a successful deterministic reproduction. Only immutable encoded
 data crosses the bounded writer queue. Diagnostics cannot replace game errors.
 """
+
 from contextlib import contextmanager
-import hashlib
 import json
 import logging
 import os
@@ -15,6 +15,7 @@ import threading
 import uuid
 
 from .combat_reproduction_state import encode_state, MAX_BYTES
+from wakfu_server.application.source_identity import dispatcher_source_sha256
 
 LOGGER = logging.getLogger(__name__)
 SCHEMA = "wakemu-combat-incident-v1"
@@ -37,13 +38,10 @@ def _identity():
         if _IDENTITY is None:
             from .combat_reproduction import source_identity, catalog_identity
 
-            dispatcher = Path(__file__).resolve().parents[2] / "local_game_server.py"
             _IDENTITY = {
                 "source": source_identity(),
                 "catalog": catalog_identity(),
-                "dispatcher_sha256": hashlib.sha256(
-                    dispatcher.read_bytes()
-                ).hexdigest(),
+                "dispatcher_sha256": dispatcher_source_sha256(),
             }
         return _IDENTITY
 
@@ -188,12 +186,14 @@ class IncidentCapture:
             "before": self.before,
             "after": after,
             "observations": encode_state(observations),
-            "error": None
-            if error is None
-            else {
-                "type": type(error).__module__ + "." + type(error).__name__,
-                "message": str(error),
-            },
+            "error": (
+                None
+                if error is None
+                else {
+                    "type": type(error).__module__ + "." + type(error).__name__,
+                    "message": str(error),
+                }
+            ),
             "status": "accepted" if error is None else "raised",
             "replay_qualified": False,
             "incomplete": self.incomplete + list(observations.get("incomplete", ())),

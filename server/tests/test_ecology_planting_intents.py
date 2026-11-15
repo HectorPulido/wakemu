@@ -1,16 +1,17 @@
 """Async intent cancellation and prepared planting ownership regression tests."""
+
 import json
 import struct
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from psycopg.types.json import Jsonb
 from postgres_case import PostgresCase
 from wakfu_server.ecology_planting_intents import (
     EcologyPlantingIntents,
-    prepare_intents,
 )
+from planting_fixture import prepare_intents
 from wakfu_server.planting_runtime import Plantings
 from wakfu_server.planting import SEEDS
 from wakfu_server.inventory_items import grant
@@ -26,6 +27,19 @@ class EcologyPlantingIntentTests(PostgresCase):
         self.char = self.store.create_character(self.account, "Async Planter")
         self.gen = self.store.begin_session(self.account)
         self.store.select_character(self.account, self.gen, self.char["id"])
+        # Native Astrub edge (-22,-143,70) -> (-23,-143,70).
+        with self.store.connection() as db:
+            # Rust validates leases against PostgreSQL's real wall clock;
+            # the occupation clock below remains deterministic for completion.
+            db.execute(
+                "UPDATE sessions SET expires_at=CURRENT_TIMESTAMP+INTERVAL '1 hour' WHERE account_id=%s",
+                (self.account,),
+            )
+            db.execute(
+                "UPDATE characters SET map_id=1134,instance_id=0,x=-22,y=-143,z=70 WHERE id=%s",
+                (self.char["id"],),
+            )
+        self.char = self.store.character(self.account, self.char["id"])
         ensure_learned(
             self.store,
             self.account,
@@ -45,13 +59,28 @@ class EcologyPlantingIntentTests(PostgresCase):
             allowed_references=SEEDS,
         )
         self.body = struct.pack(
-            ">iqii", SEEDS[4275]["action_id"], self.item["uid"], 10, 11
+            ">iqii", SEEDS[4275]["action_id"], self.item["uid"], -23, -143
         )
         self.repo = EcologyPlantingIntents(self.store, "boot-a")
         self.runtime = Plantings(self.store, open_test_policy=True)
         self.runtime.ecology_intents = self.repo
         self.snapshot = dict(
-            world_epoch="boot-a", players=[self.char], open_planting=True
+            world_epoch="boot-a",
+            players=[
+                {
+                    key: self.char[key]
+                    for key in (
+                        "id",
+                        "account_id",
+                        "map_id",
+                        "instance_id",
+                        "x",
+                        "y",
+                        "z",
+                    )
+                }
+            ],
+            open_planting=True,
         )
         with self.store.connection() as db:
             db.execute(
@@ -60,18 +89,13 @@ class EcologyPlantingIntentTests(PostgresCase):
             )
 
     def prepare(self):
-        origin = tuple(self.char[key] for key in ("x", "y", "z"))
         with self.store.connection() as db:
             started_at_ms = db.execute(
                 "SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS value"
             ).fetchone()["value"]
-        with patch("wakfu_server.planting_cells.authorize", return_value=0), patch(
-            "wakfu_server.combat_geometry.published_geometry",
-            return_value=SimpleNamespace(outgoing={origin: {(10, 11, 0)}}),
-        ):
-            return prepare_intents(
-                self.store, dict(self.snapshot, started_at_ms=started_at_ms)
-            )[0]
+        return prepare_intents(
+            self.store, dict(self.snapshot, started_at_ms=started_at_ms)
+        )[0]
 
     def accept(self, db, proposal):
         return self.runtime.begin_prepared(
@@ -80,7 +104,7 @@ class EcologyPlantingIntentTests(PostgresCase):
             self.char,
             self.body,
             proposal["prepared"],
-            lambda *args: 0,
+            lambda *args: 70,
             db=db,
         )
 
@@ -94,30 +118,22 @@ class EcologyPlantingIntentTests(PostgresCase):
             self.store, self.account, self.gen, self.char["id"], [seed["profession_id"]]
         )
         item = self.grant_monster_seed_for_ranch(seed)
-        body = struct.pack(">iqii", seed["action_id"], item["uid"], 10, 11)
-        live = dict(
-            self.char, map_id=1440, instance_id=self.char["id"], x=10, y=10, z=0
-        )
+        body = struct.pack(">iqii", seed["action_id"], item["uid"], 29, 6)
+        live = dict(self.char, map_id=1440, instance_id=self.char["id"], x=28, y=6, z=4)
         self.repo.enqueue(self.account, self.gen, live, body)
         scalar = {
             key: live[key]
             for key in ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
         }
-        with patch.object(
-            garden, "authorize", return_value=0
-        ) as authorize, patch.object(garden, "validate_target", return_value=0):
-            with self.store.connection() as db:
-                started_at_ms = db.execute(
-                    "SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS value"
-                ).fetchone()["value"]
-            proposal = prepare_intents(
-                self.store,
-                dict(self.snapshot, players=[scalar], started_at_ms=started_at_ms),
-            )[0]
+        with self.store.connection() as db:
+            started_at_ms = db.execute(
+                "SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS value"
+            ).fetchone()["value"]
+        proposal = prepare_intents(
+            self.store,
+            dict(self.snapshot, players=[scalar], started_at_ms=started_at_ms),
+        )[0]
         self.assertEqual(proposal["kind"], "planting_begin")
-        actor = authorize.call_args.args[1]
-        self.assertTrue(actor["haven_ranch_session"])
-        self.assertTrue(garden.is_private_garden(actor))
         self.assertEqual(
             proposal["prepared"]["character"]["instance_id"], self.char["id"]
         )
@@ -127,6 +143,8 @@ class EcologyPlantingIntentTests(PostgresCase):
             stored, [scalar], store=self.store
         )
         current = self.runtime.location_context(self.char)
+        self.assertTrue(current["haven_ranch_session"])
+        self.assertTrue(garden.is_private_garden(current))
 
         def accept(db, accepted):
             return self.runtime.begin_prepared(
@@ -135,16 +153,13 @@ class EcologyPlantingIntentTests(PostgresCase):
                 current,
                 body,
                 accepted["prepared"],
-                lambda *args: 0,
+                lambda *args: 4,
                 db=db,
             )
 
         self.assertTrue(self.repo.apply(proposal, accept)["applied"])
         self.now[0] += 3
-        with patch.object(garden, "validate_target", return_value=0):
-            result = self.runtime.complete(
-                self.account, self.gen, current, b"\x02\x00\x02"
-            )
+        result = self.runtime.complete(self.account, self.gen, current, b"\x02\x00\x02")
         self.assertTrue(result["applied"])
         self.assertTrue(result["success"])
         with self.store.connection() as db:
@@ -282,7 +297,7 @@ class EcologyPlantingIntentTests(PostgresCase):
                 changed,
                 self.body,
                 plan["prepared"],
-                lambda *args: 0,
+                lambda *args: 70,
             )
         with self.store.connection() as db:
             db.execute("DELETE FROM inventory_items WHERE uid=%s", (self.item["uid"],))

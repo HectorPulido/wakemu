@@ -6,6 +6,34 @@ from protocol_codec import decode_body
 
 
 class BootstrapTests(unittest.TestCase):
+    def test_guardian_model71_bootstrap_keeps_native_teams_and_duration(self):
+        cells = [(0, 0, 0), (1, 0, 0)]
+        fight = Fight(
+            8,
+            [
+                Actor(100, 1, cells[0], 60, 6, 3, 100, 1, 1, True),
+                Actor(-200, 0, cells[1], 20, 4, 2, 10, 1),
+            ],
+            cells,
+            {0: {cells[1]}, 1: {cells[0]}},
+        )
+        terrain = arena(1387, 1, cells, {0: cells[1], 1: cells[0]})
+        packets = placement_messages(
+            fight,
+            terrain,
+            {100: (b"player", b""), -200: (b"guardian", b"")},
+            terrain_effect_id=378,
+            terrain_instance_id=-300,
+            leaders={0: -200, 1: 100},
+            duration_ms=600000,
+            kind=71,
+        )
+        self.assertEqual(decode_bootstrap(packets[1][1])["kind"], 71)
+        self.assertEqual(
+            decode_body("in", 13684, packets[2][1])["placement_duration"], 600000
+        )
+        self.assertEqual((fight.actors[100].team, fight.actors[-200].team), (1, 0))
+
     def test_compacted_encounter_relocation_is_the_position_sent_to_clients(self):
         from wakfu_server.combat_bootstrap import create_placement
         from wakfu_server.monsters import owned_instance

@@ -171,3 +171,106 @@ class NpcWorldTests(unittest.TestCase):
                 validate_placements([self.row, other], self.native)
         with self.assertRaises(ValueError):
             validate_placements([dict(self.row, action_ids=[999])], self.native)
+
+    def test_entry_criteria_apply_to_root_while_live_placement_and_child_criteria_remain(
+        self,
+    ):
+        from test_npc_observed_dialogue import captured_row
+        from unittest.mock import patch
+        from wakfu_server.maps import npc_observed_dialogue
+
+        row = captured_row(-1706442046308322, 5461, 1385, -17, -4, 17, 3, 5765, 1243)
+        character = dict(
+            id=100,
+            account_id=200,
+            map_id=1385,
+            instance_id=0,
+            x=-17,
+            y=-4,
+            z=17,
+            level=6,
+        )
+        native = {
+            "nodes": [
+                {
+                    "id": 5765,
+                    "criteria": "not IsAchievementObjectiveComplete(10596)",
+                    "native_cmT": "npc5461",
+                    "choices": [{"id": 11, "criteria": ""}],
+                },
+                {
+                    "id": 5766,
+                    "criteria": "",
+                    "native_cmT": "npc5461",
+                    "choices": [
+                        {"id": 12, "criteria": "IsAchievementObjectiveComplete(10596)"}
+                    ],
+                },
+            ],
+            "speakers": [
+                {
+                    "ref": 5461,
+                    "min_level": 1,
+                    "max_level": 10,
+                    "actions": [{"id": 1243, "criteria": ""}],
+                }
+            ],
+            "translations": {"es": {"content.7.5461": "Otomai"}},
+        }
+        facts = {10596: False}
+        rows = [row]
+        with patch.object(
+            npc_observed_dialogue,
+            "graph",
+            return_value={(5765, 11): 5766, (5766, 12): 0},
+        ):
+            session, _ = begin(
+                lambda: character,
+                lambda: rows,
+                row["actor_id"],
+                1243,
+                native,
+                facts_provider=lambda: facts,
+            )
+            self.assertEqual(session.choose(5765, 11)[1], struct.pack(">i", 5766))
+            facts[10596] = True
+            # A quest transition can invalidate the entry guard while the
+            # already offered child continuation remains available.
+            self.assertEqual(session.choose(5766, 12), (12218, struct.pack(">i", 0)))
+
+            facts[10596] = True
+            with self.assertRaises(ValueError):
+                begin(
+                    lambda: character,
+                    lambda: rows,
+                    row["actor_id"],
+                    1243,
+                    native,
+                    facts_provider=lambda: facts,
+                )
+
+            facts[10596] = False
+            session, _ = begin(
+                lambda: character,
+                lambda: rows,
+                row["actor_id"],
+                1243,
+                native,
+                facts_provider=lambda: facts,
+            )
+            character["x"] = 100
+            with self.assertRaises(ValueError):
+                session.choose(5765, 11)
+
+            character["x"] = -17
+            session, _ = begin(
+                lambda: character,
+                lambda: rows,
+                row["actor_id"],
+                1243,
+                native,
+                facts_provider=lambda: facts,
+            )
+            rows[0] = dict(row, x=-16)
+            with self.assertRaises(ValueError):
+                session.choose(5765, 11)

@@ -1,10 +1,10 @@
 """Exercise the actual owned-native bootstrap wrapper without loading the server."""
+
 import ast
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from unittest.mock import Mock, patch
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

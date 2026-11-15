@@ -1,17 +1,9 @@
-"""Periodic removal of certified native unassigned outdoor monster surfaces.
+"""World-owned removal of certified native unassigned outdoor monsters.
 
 Unknown native data never authorizes deletion. Existing administrative
-population tombstones preserve seed reconciliation and combat lease behavior.
-The ecology delivery queue durably retries publication after the SQL commit.
-"""
-from copy import deepcopy
-import time
+tombstones preserve seed reconciliation and combat lease behavior."""
 
-from .environmental_group_ecology import exclusion_sql, is_owned_group
-
-_SCAN_STATE = None
-_SCAN_SECONDS = 60
-_SCAN_GROUPS = 512
+from .environmental_group_ecology import is_owned_group
 
 
 def certified_unassigned(map_id, member):
@@ -23,69 +15,6 @@ def certified_unassigned(map_id, member):
     except (ValueError, KeyError, TypeError):
         return False
     return type(region) is int and region == -1
-
-
-def prepare(store, snapshot, limit=16, *, clock=time.monotonic):
-    """Sweep bounded pages of public outdoor groups every elapsed minute."""
-    global _SCAN_STATE
-    # Standalone legacy planners do not own the external worker maintenance loop.
-    if "planning_tick" not in snapshot:
-        return []
-    epoch = snapshot.get("world_epoch")
-    if type(epoch) is not str or not epoch:
-        raise ValueError("Missing cleanup world epoch")
-    if type(limit) is not int or not 1 <= limit <= 256:
-        raise ValueError("Invalid cleanup preparation limit")
-    now = clock()
-    if _SCAN_STATE is not None and _SCAN_STATE[0] == epoch:
-        if now - _SCAN_STATE[1] < _SCAN_SECONDS:
-            return []
-        cursor = _SCAN_STATE[2]
-    else:
-        cursor = (-1, -(1 << 63))
-    from .monster_initial_population import REGIONS
-
-    outdoor_maps = sorted({map_id for map_id, _ in REGIONS})
-    excluded = set(snapshot.get("excluded_ids", ()))
-    proposals = []
-    examined = 0
-    with store.connection() as db:
-        rows = db.execute(
-            "SELECT map_id,instance_id,group_id,members FROM combat_groups "
-            "WHERE instance_id=0 AND status='available' AND map_id=ANY(%s) "
-            "AND " + exclusion_sql() + " "
-            "AND NOT EXISTS(SELECT 1 FROM developer_item_test_groups t WHERE "
-            "(t.map_id,t.instance_id,t.group_id)=(combat_groups.map_id,combat_groups.instance_id,combat_groups.group_id)) "
-            "AND (map_id,group_id)>(%s,%s) ORDER BY map_id,group_id LIMIT %s",
-            (outdoor_maps, *cursor, _SCAN_GROUPS),
-        )
-        for row in rows:
-            examined += 1
-            cursor = (row["map_id"], row["group_id"])
-            bad = [
-                member["id"]
-                for member in row["members"]
-                if member["id"] not in excluded
-                and certified_unassigned(row["map_id"], member)
-            ]
-            if not bad:
-                continue
-            proposals.append(
-                dict(
-                    kind="cleanup_unassigned",
-                    world_epoch=epoch,
-                    scope=[row["map_id"], row["instance_id"]],
-                    group_id=row["group_id"],
-                    expected_members=deepcopy(list(row["members"])),
-                    actor_ids=bad,
-                )
-            )
-            if len(proposals) >= limit:
-                break
-    if examined < _SCAN_GROUPS and len(proposals) < limit:
-        cursor = (-1, -(1 << 63))
-    _SCAN_STATE = (epoch, now, cursor)
-    return proposals
 
 
 def apply(store, groups, harvests, world, proposal, *, world_epoch):

@@ -1,8 +1,9 @@
 """Native test groups cannot award progression, loot, or corpses."""
+
 import ast
 import copy
 import struct
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 
 from test_combat_companions_postgres import OwnedCompanionCombatPostgresTests

@@ -1,6 +1,7 @@
 """Paid objective travel is server-priced, transactional and dungeon-only."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from unittest.mock import patch
 

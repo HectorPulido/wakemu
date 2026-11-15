@@ -1,5 +1,8 @@
 """PostgreSQL-only lifecycle coverage from native seed to same-cell replant."""
 
+from planting_fixture import grow_prepared
+
+
 import struct
 import unittest
 from unittest.mock import patch
@@ -9,8 +12,9 @@ from wakfu_server.combat_groups import Groups
 from wakfu_server.combat_terrain import map_geometry
 from wakfu_server.inventory_items import grant
 from wakfu_server.planting_cells import authorize as authorize_cell
-from wakfu_server.planting_probability import resolver
+from planting_fixture import begin_prepared
 from wakfu_server.planting_runtime import Plantings
+from wakfu_server.planting import RESOURCES
 from wakfu_server.resource_collect import (
     acknowledge_publication,
     complete as complete_harvest,
@@ -24,7 +28,7 @@ from wakfu_server.wire import proto_field
 
 
 class FloraPlantingHarvestEndToEndTests(PostgresCase):
-    """Exercise the actual SQL occupations without changing chance policy."""
+    """Exercise SQL occupations with explicit native-planner prepared fixtures."""
 
     def setUp(self):
         super().setUp()
@@ -69,9 +73,6 @@ class FloraPlantingHarvestEndToEndTests(PostgresCase):
         return Plantings(
             store,
             open_test_policy=False,
-            probability_context=resolver(
-                store, profession_bonus=lambda _prepared: 0.0, open_test_policy=False
-            ),
         )
 
     def _owned_seed(self, account, generation, character, reference):
@@ -93,7 +94,8 @@ class FloraPlantingHarvestEndToEndTests(PostgresCase):
         body = struct.pack(
             ">iqii", SEEDS[seed["reference"]]["action_id"], seed["uid"], x, y
         )
-        opcode, _start = runtime.begin(
+        opcode, _start = begin_prepared(
+            runtime,
             account,
             generation,
             character,
@@ -106,12 +108,13 @@ class FloraPlantingHarvestEndToEndTests(PostgresCase):
                 resource,
                 open_test_policy=False,
             ),
+            probability=0.9,
         )
         self.assertEqual(opcode, 12815)
         self.now[0] += 3
         self.assertTrue(self.store.heartbeat(account, generation))
-        # Deterministic draw only; native ground/weather probability remains
-        # authoritative and is recorded on the receipt.
+        # The native Rust planner probability is frozen in the prepared fixture;
+        # World owns the once-only transactional outcome and receipt.
         with patch("wakfu_server.planting.secrets.randbelow", return_value=0):
             result = runtime.complete(
                 account, generation, character, struct.pack(">Bh", 2, 2)
@@ -126,7 +129,33 @@ class FloraPlantingHarvestEndToEndTests(PostgresCase):
     ):
         self.now[0] += 30
         self.assertTrue(self.store.heartbeat(account, generation))
-        deliveries = runtime.mature(self.groups, publish=self.deliveries.append)
+        with runtime.store.connection() as db:
+            resource = dict(
+                db.execute(
+                    "SELECT * FROM planted_resources WHERE resource_uid=%s",
+                    (resource_uid,),
+                ).fetchone()
+            )
+            transition = db.execute(
+                "SELECT to_stage,delay_ms,probability FROM resource_growth_transitions "
+                "WHERE resource_reference=%s AND from_stage=%s",
+                (resource["resource_reference"], resource["stage"]),
+            ).fetchone()
+        deliveries = grow_prepared(
+            runtime,
+            self.groups,
+            [
+                (
+                    resource,
+                    RESOURCES[resource["resource_reference"]],
+                    tuple(
+                        transition[key]
+                        for key in ("to_stage", "delay_ms", "probability")
+                    ),
+                )
+            ],
+            publish=self.deliveries.append,
+        )
         matching = [
             entry for entry in deliveries if entry["resource_uid"] == resource_uid
         ]

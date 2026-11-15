@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 
 import json
 from functools import lru_cache
 from pathlib import Path
 
-
-_CATALOG = (
-    Path(__file__).resolve().parents[2]
-    / "protocol"
-    / "territory-protector-bonuses.json"
-)
+_CATALOG = DATA_ROOT / "territory-protector-bonuses.json"
 
 
 @lru_cache(maxsize=1)
@@ -88,9 +84,9 @@ def evaluate_population(
         "satisfied_wishes": satisfied,
         "total_wishes": total,
         "state_id": selected,
-        "effects": None
-        if selected is None
-        else _catalog()["states"][str(selected)]["effects"],
+        "effects": (
+            None if selected is None else _catalog()["states"][str(selected)]["effects"]
+        ),
     }
 
 

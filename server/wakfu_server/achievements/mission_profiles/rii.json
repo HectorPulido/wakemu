@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "id": "rii",
+  "evidence": [
+    "Official Rii capture official-incarnam-20261112: native ecosystem/crafting sequence and authored quest IDs.",
+    "Reviewed existing counter_missions._RII_EVENTS and rii_combat_counters.WODENT_BREEDS; compatibility conversion only.",
+    "Native recipe9445 creates31159; existing authenticated rii_crafting occupation contract."
+  ],
+  "bindings": [
+    {
+      "id": "wodent-seed",
+      "quest_id": 5145,
+      "objective_id": 10597,
+      "variable_id": 756,
+      "event": {
+        "kind": "monster_harvest",
+        "reference": 30927
+      },
+      "maps": [
+        1385
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "flower-seed",
+      "quest_id": 5155,
+      "objective_id": 10598,
+      "variable_id": 759,
+      "event": {
+        "kind": "resource_harvest",
+        "reference": 31007
+      },
+      "maps": [
+        1385
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "flower-cut",
+      "quest_id": 5155,
+      "objective_id": 10599,
+      "variable_id": 758,
+      "event": {
+        "kind": "resource_harvest",
+        "reference": 31006
+      },
+      "maps": [
+        1385
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "wodent-plant",
+      "quest_id": 5145,
+      "objective_id": 10578,
+      "variable_id": 757,
+      "event": {
+        "kind": "planting",
+        "reference": 30927
+      },
+      "maps": [
+        1385
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "flower-plant",
+      "quest_id": 5155,
+      "objective_id": 10600,
+      "variable_id": 760,
+      "event": {
+        "kind": "planting",
+        "reference": 31007
+      },
+      "maps": [
+        1385
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "wodent-victory",
+      "quest_id": 5145,
+      "objective_id": 10579,
+      "variable_id": 755,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5455
+      },
+      "maps": [
+        1385
+      ],
+      "count": "quantity",
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "craft-tutorial",
+      "quest_id": 5156,
+      "objective_id": 10602,
+      "event": {
+        "kind": "craft_completed",
+        "reference": 9445
+      },
+      "maps": [
+        1385
+      ],
+      "count": "operation",
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "wodent-victory-5456",
+      "quest_id": 5145,
+      "objective_id": 10579,
+      "variable_id": 755,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5456
+      },
+      "maps": [
+        1385
+      ],
+      "count": "quantity",
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "wodent-victory-5525",
+      "quest_id": 5145,
+      "objective_id": 10579,
+      "variable_id": 755,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5525
+      },
+      "maps": [
+        1385
+      ],
+      "count": "quantity",
+      "instances": [
+        0
+      ]
+    }
+  ],
+  "links": [
+    {
+      "parent_quest_id": 5160,
+      "objective_id": 10616,
+      "child_quest_id": 5143
+    },
+    {
+      "parent_quest_id": 5160,
+      "objective_id": 10617,
+      "child_quest_id": 5145
+    },
+    {
+      "parent_quest_id": 5160,
+      "objective_id": 10618,
+      "child_quest_id": 5155
+    },
+    {
+      "parent_quest_id": 5160,
+      "objective_id": 10619,
+      "child_quest_id": 5156
+    },
+    {
+      "parent_quest_id": 5160,
+      "objective_id": 10622,
+      "child_quest_id": 5146
+    }
+  ],
+  "activations": []
+}

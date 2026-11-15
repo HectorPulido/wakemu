@@ -1,7 +1,8 @@
 """Native13932 dispatch and atomic selected-PC recovery; no client is driven."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import threading
 import unittest

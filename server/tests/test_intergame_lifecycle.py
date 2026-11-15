@@ -1,12 +1,12 @@
 """Run the actual World intergame startup and stop AST with socket-free fakes."""
+
 import ast
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import sys
 from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import patch
-
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVER = ROOT / "server" / "local_game_server.py"

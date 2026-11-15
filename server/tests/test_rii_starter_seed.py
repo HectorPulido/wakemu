@@ -1,4 +1,5 @@
 """The Rii starter is an idempotent supply, not quest completion."""
+
 import unittest
 from unittest.mock import Mock, patch
 
@@ -8,31 +9,54 @@ from wakfu_server.achievements import rii_starter_seed
 class RiiStarterSeedTests(unittest.TestCase):
     def setUp(self):
         self.db = Mock()
+        self.db.execute.return_value.fetchone.return_value = None
         self.db.execute.return_value.fetchall.return_value = []
         self.character = {"id": 17, "account_id": 19}
         self.store = Mock()
 
-    def test_missing_seed_is_granted_once_through_inventory_authority(self):
+    def test_missing_seed_records_receipt_before_grant(self):
         with patch.object(
-            rii_starter_seed.storage, "record_event", side_effect=[True, False]
+            rii_starter_seed.storage, "record_event", return_value=True
         ) as record, patch.object(
             rii_starter_seed.rewards, "_item", return_value=[(7, b"seed")]
         ) as grant:
             result = rii_starter_seed.grant_if_missing(
                 self.db, self.store, self.character
             )
-            replay = rii_starter_seed.grant_if_missing(
-                self.db, self.store, self.character
-            )
         self.assertEqual(result, [(7, b"seed")])
-        self.assertEqual(replay, [])
-        self.assertEqual(record.call_count, 2)
+        self.assertEqual(record.call_count, 1)
+        self.assertEqual(record.call_args.args[3]["quantity"], 3)
         grant.assert_called_once_with(self.db, self.store, self.character, 31007, 3)
 
-    def test_owned_seed_does_not_create_event_or_grant(self):
-        self.db.execute.return_value.fetchall.return_value = [
-            {"quantity": 2},
-            {"quantity": 2},
+    def test_existing_receipt_is_authoritative_after_inventory_changes(self):
+        self.db.execute.side_effect = [
+            Mock(
+                fetchone=Mock(
+                    return_value={
+                        "payload": {
+                            "kind": "reconstructed_rii_starter_seed",
+                            "quest_id": 5155,
+                            "reference": 31007,
+                            "quantity": 3,
+                        }
+                    }
+                )
+            )
+        ]
+        with patch.object(
+            rii_starter_seed.storage, "record_event"
+        ) as record, patch.object(rii_starter_seed.rewards, "_item") as grant:
+            self.assertEqual(
+                rii_starter_seed.grant_if_missing(self.db, self.store, self.character),
+                [],
+            )
+        record.assert_not_called()
+        grant.assert_not_called()
+
+    def test_owned_seed_does_not_create_receipt_or_grant(self):
+        self.db.execute.side_effect = [
+            Mock(fetchone=Mock(return_value=None)),
+            Mock(fetchall=Mock(return_value=[{"quantity": 2}, {"quantity": 1}])),
         ]
         with patch.object(
             rii_starter_seed.storage, "record_event"
@@ -45,7 +69,10 @@ class RiiStarterSeedTests(unittest.TestCase):
         grant.assert_not_called()
 
     def test_owned_partial_supply_only_receives_the_difference(self):
-        self.db.execute.return_value.fetchall.return_value = [{"quantity": 1}]
+        self.db.execute.side_effect = [
+            Mock(fetchone=Mock(return_value=None)),
+            Mock(fetchall=Mock(return_value=[{"quantity": 1}])),
+        ]
         with patch.object(
             rii_starter_seed.storage, "record_event", return_value=True
         ) as record, patch.object(
@@ -60,6 +87,14 @@ class RiiStarterSeedTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 rii_starter_seed.grant_if_missing(self.db, self.store, self.character)
         self.db.execute.assert_not_called()
+
+    def test_rejects_malformed_existing_receipt(self):
+        self.db.execute.return_value.fetchone.return_value = {
+            "payload": {"kind": "reconstructed_rii_starter_seed", "quantity": 0}
+        }
+        with self.assertRaises(ValueError):
+            rii_starter_seed.grant_if_missing(self.db, self.store, self.character)
+        self.assertEqual(self.db.execute.call_count, 1)
 
     def test_refresh_targets_only_delivered_character_and_only_inventory_changes(self):
         with patch(

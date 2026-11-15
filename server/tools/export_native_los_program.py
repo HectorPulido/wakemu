@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Reproduce original Sf.bfZ integer raster program from the installed class."""
+
 import argparse, hashlib, json, re, subprocess, zipfile
 from pathlib import Path
 
@@ -74,7 +75,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--javap", required=True)
     parser.add_argument(
-        "--output", default="server/protocol/native-los-ray-program.json"
+        "--output", default="database/protocol/native-los-ray-program.json"
     )
     args = parser.parse_args()
     text = subprocess.check_output(

@@ -12,6 +12,42 @@ from wakfu_server.wire import proto_fields
 
 
 class FightResultTests(unittest.TestCase):
+    def test_model71_report_names_guardian_initiator_and_keeps_ordinary_models(self):
+        from wakfu_server.wire import proto_fields
+
+        player = Actor(100, 1, (0, 0, 0), 45, 6, 3, 100, 1, 1, True)
+        guardian = Actor(-200, 0, (1, 0, 0), 1, 4, 2, 10, 1)
+        fight = Fight(
+            18,
+            [player, guardian],
+            [(0, 0, 0), (1, 0, 0)],
+            {1: {(0, 0, 0)}, 0: {(1, 0, 0)}},
+        )
+        fight.phase, fight.winner = "finished", 0
+        guardian.hp = 0
+        metadata = {
+            100: dict(kind="player", account_id=1, name="Owner", breed=8, is_male=True),
+            -200: dict(kind="monster", ref=5458),
+        }
+        for model, initiator in ((2, 100), (14, 100), (71, -200)):
+            with self.subTest(model=model):
+                report = dict(
+                    proto_fields(
+                        fight_report(
+                            fight,
+                            metadata,
+                            duration_ms=1,
+                            fight_instance_id=8,
+                            initiator_id=initiator,
+                            fight_model=model,
+                        )
+                    )
+                )
+                self.assertEqual(
+                    (report[56], report[64]),
+                    (initiator & 0xFFFFFFFFFFFFFFFF, model),
+                )
+
     def test_terminal_packet_projects_history_for_six_distinct_owners(self):
         from unittest.mock import patch
 

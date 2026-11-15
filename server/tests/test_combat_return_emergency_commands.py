@@ -1,7 +1,8 @@
 """Run the actual pending-return request gate with real retry contention."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import threading
 from types import SimpleNamespace
@@ -177,9 +178,11 @@ class PendingReturnEmergencyTests(unittest.TestCase):
                 self.assertIsNone(queue.pending)
                 self.assertEqual(
                     calls,
-                    ["flush"]
-                    if failed
-                    else ["flush", "complete"] + (["!astrub"] if live else []),
+                    (
+                        ["flush"]
+                        if failed
+                        else ["flush", "complete"] + (["!astrub"] if live else [])
+                    ),
                 )
 
 

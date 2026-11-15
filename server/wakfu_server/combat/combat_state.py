@@ -3,6 +3,7 @@
 Terrain cells and transitions must be validated against client map geometry by
 caller. Actor control is explicit; signed identifiers never imply ownership.
 """
+
 from dataclasses import dataclass, field
 from contextlib import contextmanager
 from .combat_turns import initial_order
@@ -756,6 +757,9 @@ class Fight:
             dealt = min(target.hp, amount)
             target.hp -= dealt
         self._sync_resources(target)
+        from wakfu_server.achievements.rii_native_initial_states import observe_damage
+
+        observe_damage(self, target_id, dealt)
         orientation_fact = {}
         if getattr(self, "rii_orientation_contract", None) is not None:
             from wakfu_server.achievements.rii_orientation import damage_is_qualifying

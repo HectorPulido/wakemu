@@ -1,4 +1,5 @@
 """Inventory scoped native casting tables without importing the runtime catalogs."""
+
 import gzip
 import ast
 import hashlib
@@ -68,7 +69,7 @@ def lexical_calls(raw):
 
 def main():
     inputs = [
-        ROOT / "server/protocol" / name
+        ROOT / "database/protocol" / name
         for name in (
             "native-spell-casting.json",
             "native-class-spell-level-zero.json",
@@ -177,14 +178,16 @@ def main():
             {
                 "name": name,
                 **{k: sorted(v) if isinstance(v, set) else v for k, v in refs.items()},
-                "effect_inventory_status": effect.get("status")
-                if effect
-                else "casting_only_not_in_effect_inventory",
+                "effect_inventory_status": (
+                    effect.get("status")
+                    if effect
+                    else "casting_only_not_in_effect_inventory"
+                ),
                 "native_parser_class": effect.get("native_class") if effect else None,
                 "python_routes": effect.get("python_routes", []) if effect else [],
-                "provider_dependencies": effect.get("provider_dependencies", [])
-                if effect
-                else [],
+                "provider_dependencies": (
+                    effect.get("provider_dependencies", []) if effect else []
+                ),
                 "casting_route_status": "partial_not_certified_by_effect_route",
                 "native_ast_status": "original_casting_parser_exported",
             }

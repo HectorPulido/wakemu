@@ -1,5 +1,7 @@
 """Exact native Sn straight-path traversal over authoritative physical Vy columns."""
+
 from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 from dataclasses import dataclass
 from contextlib import nullcontext
 from functools import lru_cache
@@ -333,7 +335,7 @@ class NativeSnColumns:
 
         if type(map_id) is not int or map_id <= 0:
             raise ValueError("Invalid native Sn map identity")
-        directory = Path(__file__).parents[2] / "protocol" / "native-sn-columns"
+        directory = DATA_ROOT / "native-sn-columns"
         try:
             publication = protocol_catalog.load(directory / "publication.json")
             manifest_bytes = protocol_catalog.read_bytes(directory / "manifest.json")

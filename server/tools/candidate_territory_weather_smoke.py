@@ -4,12 +4,12 @@ Run inside a candidate `world` container after the candidate has applied its
 migrations. The DB-name guard prevents connecting this script to a runtime DB.
 It creates two TLS sessions in different native territories, advances one
 explicit transition through the authenticated scheduler API, verifies regional
-delivery and reconnection bootstrap, and checks the real planting probability
-resolver against the updated authoritative weather row.
+delivery and reconnection bootstrap. Planting probability policy is covered by
+the native Rust Ecology tests; this tool exercises weather delivery only.
 """
+
 from datetime import datetime, timedelta, timezone
 import json
-import math
 import os
 import secrets
 import socket
@@ -21,7 +21,6 @@ import urllib.request
 
 from psycopg.conninfo import conninfo_to_dict
 from wakfu_server.ecology_context import packet as ecology_packet
-from wakfu_server.planting_probability import resolver
 from wakfu_server.store import Store
 from wakfu_server.territory_weather import save, schedule_transition
 from wakfu_server.territory_weather_forecast import (
@@ -29,7 +28,6 @@ from wakfu_server.territory_weather_forecast import (
     packet_for_territory,
     save_policy as save_forecast_policy,
 )
-
 
 MAP_ID = 1134
 INSTANCE_ID = secrets.randbelow(2**31 - 1) + 1
@@ -312,20 +310,6 @@ def main():
         peer_b.assert_no_weather_change(0, initial_b, seconds=0.5)
         peer_b.assert_no_packet_change(0, 13895, clear_forecast, seconds=0.5)
 
-        # The actual planting resolver reads the exact DB territory row. A
-        # heavy-climate resource on this surface has 56% under LIGHT and 70%
-        # under STORM with zero bonus, matching the local configured formula.
-        planting_resolver = resolver(store, profession_bonus=lambda _prepared: 0)
-        prepared = {
-            "character": {"map_id": MAP_ID, "instance_id": INSTANCE_ID},
-            "request": {"x": POSITION_A[0], "y": POSITION_A[1]},
-            "z": POSITION_A[2],
-            "definition": {"resource_reference": 263, "family_id": 1},
-        }
-        before = planting_resolver(prepared)
-        if not math.isclose(before, 0.56, rel_tol=0, abs_tol=1e-9):
-            raise AssertionError("Planting did not read the initial territory climate")
-
         scheduler_token = store.issue_token(account_a, "scheduler")
         update_mark_a = len(peer_a.history)
         update_mark_b = len(peer_b.history)
@@ -364,12 +348,6 @@ def main():
         peer_b.assert_no_packet_change(
             update_mark_b, 13895, clear_forecast, seconds=1.5
         )
-        after = planting_resolver(prepared)
-        if not math.isclose(after, 0.70, rel_tol=0, abs_tol=1e-9):
-            raise AssertionError(
-                "Planting probability did not follow the updated territory weather"
-            )
-
         peer_a.close()
         peers.remove(peer_a)
         peer_a, generation_a, reconnect_mark = _login(
@@ -408,7 +386,7 @@ def main():
         scope = "12789/13948/13895" if not forecast_baseline_only else "13948/13895"
         print(
             f"PASS: two-region TLS bootstrap {scope}, forecast clear, "
-            "scoped updates, reconnect and planting resolver"
+            "scoped updates and reconnect"
         )
         if forecast_baseline_only:
             print(

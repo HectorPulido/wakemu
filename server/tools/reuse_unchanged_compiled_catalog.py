@@ -11,7 +11,6 @@ from pathlib import Path
 
 from psycopg.types.json import Jsonb
 
-
 # These modules are exclusively runtime dialogue, group persistence, and
 # ecology removal; the static combat compiler does not import or call them.
 RUNTIME_ONLY = frozenset(
@@ -23,10 +22,10 @@ RUNTIME_ONLY = frozenset(
     }
 )
 
-# These modules are entry points for live World interactions.  They are not
-# imported by any package module or by the catalog publisher; World dispatches
-# them from local_game_server instead.  A regression test checks this boundary
-# so adding a new package reference makes the change visible for review.
+# These modules are entry points for live World interactions. They are not
+# imported outside the World application or by the catalog publisher; World dispatches
+# them from the World application instead. A regression test checks references
+# outside that application boundary so compiler dependencies remain reviewable.
 WORLD_DISPATCH_ONLY = frozenset(
     {
         "wakfu_server/maps/party_dispatch.py",
@@ -150,6 +149,127 @@ REVIEWED_LOADER_OVERRIDE = {
 }
 
 
+# Exact one-way removal of superseded autonomous ecology planners from the
+# reviewed Rust ecology rollout. World-owned commit/validation bodies and all
+# compiled records are unchanged. The baseline publication is bb2e6f0010fb...;
+# every changed source must match this whole bundle, including deleted modules.
+# Later edits, other source changes and catalog/config changes fail closed.
+REVIEWED_ECOLOGY_REMOVAL_BUNDLE = {
+    "wakfu_server/maps/monster_active_clocks.py": (
+        "371b0bfd853a6cab98fbd29344db7d060a148936cf69f0f4c34ad33e0737d92e",
+        None,
+    ),
+    "wakfu_server/maps/monster_birth_home.py": (
+        "c3718cb83db83318e2d0bd10f177eefaa57df8088c38ab27550e3a96968123eb",
+        None,
+    ),
+    "wakfu_server/maps/monster_home_delivery.py": (
+        "b215db95879b4dcfb7f4ab597048e55f926367b467d15fff170325f4cff7d6ab",
+        None,
+    ),
+    "wakfu_server/maps/monster_home_paths.py": (
+        "d4e2f2f9016623f72427bf8de076193ed0c50179cddc14f53d5f14d039c9c455",
+        None,
+    ),
+    "wakfu_server/maps/monster_idle_distribution.py": (
+        "636ff9e292422cb6889419387bf7da23453ee70b3310d91bc44bd7b5c5fccf18",
+        None,
+    ),
+    "wakfu_server/maps/monster_idle_distribution_store.py": (
+        "5f5f7ba5d364b6aa909f34dda4139cdff298ed6848d52dcad218eba8bf0d6e93",
+        "1c4e6a7d40aa8cac87aeb8c34b5054243a054826dfda36a3bb3fd8096e6b1085",
+    ),
+    "wakfu_server/maps/monster_life_plans.py": (
+        "215a78d08ea5f0e3b53421dcfd9b2a6caa47ff9e766c64897d727277295a9f9b",
+        "9bca5683334cef854cd8306891420b98fe7d1f216bdffe364e27f2a9ad6eac6b",
+    ),
+    "wakfu_server/maps/monster_maturation.py": (
+        "358b61f5c2d84b77475c52b75e663218ca3709245ebf124ce081b2bcc60e19e4",
+        "392dd52a97c45789f35e62ed25551751f643a5ba3cc2dbdf01c13b6fa2678843",
+    ),
+    "wakfu_server/maps/monster_reproduction.py": (
+        "96d4d441763ea97d044360b44342096f3ffb704fbf75a83e7bb355394be654da",
+        "f746c3538f20f48ee934635b9989b516b6a1445b80a089cf49e3355530fd052b",
+    ),
+    "wakfu_server/maps/monster_wander.py": (
+        "56dfb764dfd99d79fb65ff5e16cd3dec963e5bf380fce132467e21335591fe03",
+        "a55a7f0864fed2bfdec1ce48fba012b6b40b195948e03f8d71daa5a0ec124087",
+    ),
+}
+
+# Concurrent retained-Python mission hooks, reviewed only for static artifact
+# compatibility. Both edits are function-body runtime actions; no compiler
+# entry, static definition or top-level import changes. This is not gameplay
+# acceptance of those mission features. Approve them only together with the
+# exact ecology removal above, never as a general exemption for Store/missions.
+REVIEWED_MISSION_RUNTIME_BUNDLE = {
+    "wakfu_server/storage/store.py": (
+        "753c63a0ad151b38f22602d2a942d4b531a42bc44c5946edf1253f592ed2f4b6",
+        "9fe144032050f6cee56d6b09da44870edb5702635dd1738fc056a1510b0380ff",
+    ),
+    "wakfu_server/application/session_objectives.py": (
+        "2484878dcba6744b2fa93a64c56ef4e929f3b053580f83efff59a090c5f82177",
+        "2bc0915e988b356ca132e04b8deea9f4a409de9c03cd66fe6ff9a88ee595c95b",
+    ),
+}
+
+
+# Follow-up to sealed publication ae4d8d2f40f8...: retire the remaining inline
+# ecology producers and require Rust-prepared proposals. The World validators,
+# commit/receipt paths and native static catalog definitions remain authoritative.
+# This whole exact seven-source transition stands alone: it cannot be combined
+# with other changes or used to approve future edits to these modules.
+REVIEWED_ECOLOGY_PREPARED_ONLY_BUNDLE = {
+    "wakfu_server/application/bootstrap.py": (
+        "48888f11935aaff72e362c77bd2a7529bcb9035a594a97187dc1d33233be19f7",
+        "5b24a97c09ff862163b5d19e30162f4bc822bf6e6405896e4a5754ddbb70709d",
+    ),
+    "wakfu_server/application/session_inventory.py": (
+        "583e863422146adb2c33b966bb2b8115d1209ffa249e463ce76e7b18d9bdde0b",
+        "e84a3e2d5c7c03557928f3be12168666baa51bca0b35df4f9b9645f80c0cb219",
+    ),
+    "wakfu_server/maps/monster_group_balance.py": (
+        "e6e13d04163ae6cede7bd75a16a940cecea2d278da1e5d4ba49dab48481ef5e4",
+        "80d4e2e3c82ca894d243b06e8c213853a48400c7dc81b38a7f3d4443e6b376cb",
+    ),
+    "wakfu_server/maps/monster_maturation.py": (
+        "392dd52a97c45789f35e62ed25551751f643a5ba3cc2dbdf01c13b6fa2678843",
+        "fa16e631f05231a0126e06bf92445dfd6718696a1d8bb40cdc0401495573c447",
+    ),
+    "wakfu_server/maps/monster_reproduction.py": (
+        "f746c3538f20f48ee934635b9989b516b6a1445b80a089cf49e3355530fd052b",
+        "dee52e361eb10a245e53e8d4cae6f258800ee2ffef76fce96d6adb995baccb74",
+    ),
+    "wakfu_server/maps/planting_probability.py": (
+        "7d26eaaa8b1d49e317ba463beb3037cf608cb0b204a0f8c9a8d2a14758020487",
+        "26a751a610b9b0becf3f0d2cf209f2c1f970eef3c98684cc0065fe15f1dcf87d",
+    ),
+    "wakfu_server/maps/planting_runtime.py": (
+        "72ca6957995e157724428397402edd6aed5ed46803d85eafee65932dfd886d55",
+        "5ce1b33bf2b13242ec851077b1e7974c20289bb5da9e397fd34d05c295fa9a15",
+    ),
+}
+
+
+# Exact one-way bridge: serialize only coordinates in live walking adapters.
+# These functions are not called by static combat publication; native kernels,
+# topology, source documents and compiler configuration remain unchanged.
+REVIEWED_SPATIAL_WIRE_PROJECTION_BUNDLE = {
+    "wakfu_server/maps/movement.py": (
+        "b4d6dcf085ae84c2570de50be1ea8f4b0a482f4dde2eb8a60d0b52dbe3e215b8",
+        "53bbb3ad44246b8cc9c4f632947444fb45e7b3647b66ad3c44879fca434655a0",
+    ),
+    "wakfu_server/maps/teleporter_approach.py": (
+        "a46674e29305e17914b1c4d85dc0236bea301f5c54c95232f497bfd12f69311b",
+        "35a109d0968a8bc176a12010eb205dc956b5a65ac15d949b18b7fbf86864ecc0",
+    ),
+    "wakfu_server/maps/world_scene_sync.py": (
+        "aec553664f7167306ba0793c4eb761e67b28ace81bd3aecaef3ab72e7fe79721",
+        "f9f7971c93329fad21c4676d7766fac9a2b73f9f7bee80da4a8c4c390ca0a56f",
+    ),
+}
+
+
 def compatible(previous, current, proved_paths=()):
     """Recognize only explicitly reviewed changes to non-compiler modules."""
     if any(
@@ -166,6 +286,11 @@ def compatible(previous, current, proved_paths=()):
     if not isinstance(old, dict) or not isinstance(new, dict):
         return False
     changed = {key for key in old.keys() | new.keys() if old.get(key) != new.get(key)}
+    if changed == set(REVIEWED_SPATIAL_WIRE_PROJECTION_BUNDLE) and all(
+        (old.get(path), new.get(path)) == hashes
+        for path, hashes in REVIEWED_SPATIAL_WIRE_PROJECTION_BUNDLE.items()
+    ):
+        return True
     if changed == set(REVIEWED_VARIANT_REUSE_BUNDLE) and all(
         (old.get(path), new.get(path)) == hashes
         for path, hashes in REVIEWED_VARIANT_REUSE_BUNDLE.items()
@@ -174,6 +299,25 @@ def compatible(previous, current, proved_paths=()):
     if changed == set(REVIEWED_LOADER_OVERRIDE) and all(
         (old.get(path), new.get(path)) == hashes
         for path, hashes in REVIEWED_LOADER_OVERRIDE.items()
+    ):
+        return True
+    if changed == set(REVIEWED_ECOLOGY_REMOVAL_BUNDLE) and all(
+        (old.get(path), new.get(path)) == hashes
+        for path, hashes in REVIEWED_ECOLOGY_REMOVAL_BUNDLE.items()
+    ):
+        return True
+    ecology_and_missions = {
+        **REVIEWED_ECOLOGY_REMOVAL_BUNDLE,
+        **REVIEWED_MISSION_RUNTIME_BUNDLE,
+    }
+    if changed == set(ecology_and_missions) and all(
+        (old.get(path), new.get(path)) == hashes
+        for path, hashes in ecology_and_missions.items()
+    ):
+        return True
+    if changed == set(REVIEWED_ECOLOGY_PREPARED_ONLY_BUNDLE) and all(
+        (old.get(path), new.get(path)) == hashes
+        for path, hashes in REVIEWED_ECOLOGY_PREPARED_ONLY_BUNDLE.items()
     ):
         return True
     reviewed_transition = (

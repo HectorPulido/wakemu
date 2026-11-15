@@ -4,6 +4,7 @@ Positions and initial roots carry explicit SQL provenance. Captured identities
 require an exact native contract and explicit local publication authorization.
 Conversational actors are never registered as attackable monster groups.
 """
+
 import struct
 
 from .npc_dialogue import DialogueSession, catalog, interactions_enabled
@@ -103,9 +104,11 @@ def load_scene(db, map_id, instance_id):
     if any(row.get("provenance", "").startswith(quest_npc.PREFIX) for row in rows):
         published = quest_npc.publication(db)
         rows = [
-            dict(row, _quest_publication=published)
-            if row.get("provenance", "").startswith(quest_npc.PREFIX)
-            else row
+            (
+                dict(row, _quest_publication=published)
+                if row.get("provenance", "").startswith(quest_npc.PREFIX)
+                else row
+            )
             for row in rows
         ]
     return validate_placements(rows)
@@ -163,6 +166,7 @@ def spawn(row, native=None, language="es", *, enabled_actions=()):
     if any(action not in row["action_ids"] for action in enabled_actions):
         raise ValueError("NPC action is not available on this placement")
     from wakfu_server import rii_dialogue_gate
+    from wakfu_server.achievements import npc_dialogue_actions
 
     disabled_actions = (
         ()
@@ -173,6 +177,10 @@ def spawn(row, native=None, language="es", *, enabled_actions=()):
             action["id"]
             for action in speaker["actions"]
             if action["id"] not in enabled_actions
+            and not (
+                authorized_identity(row)
+                and npc_dialogue_actions.resolve(row, action["id"]) is not None
+            )
         )
     )
     out += struct.pack(">hhH", -1, -1, len(disabled_actions)) + b"".join(
@@ -203,7 +211,9 @@ def begin(
     row = next((value for value in rows if value["actor_id"] == actor_id), None)
     from wakfu_server.achievements import npc_dialogue_actions
 
-    action_contract = npc_dialogue_actions.resolve(row, action_id)
+    action_contract = npc_dialogue_actions.resolve(
+        row, action_id, facts=facts_provider() if facts_provider is not None else None
+    )
     if (
         row is None
         or (action_id not in row["action_ids"] and not action_contract)
@@ -212,6 +222,10 @@ def begin(
         raise ValueError("Unavailable nearby NPC dialogue action")
     nodes = {value["id"]: value for value in native["nodes"]}
     root = action_contract["root"] if action_contract else row["dialogue_root"]
+    if action_contract and action_contract.get("terminal_root"):
+        # Reuse the native reminder text as a closeable terminal conversation.
+        # Its original turn-in option no longer applies after completion.
+        nodes[root] = dict(nodes[root], choices=[])
     speaker = next(
         value for value in native["speakers"] if value["ref"] == row["reference_id"]
     )
@@ -245,7 +259,7 @@ def begin(
     if (
         row["reference_id"] == 5459
         and row["map_id"] == 1385
-        and root == 5772
+        and root in (5772, 5763)
         and npc_protectors.speaker(row)[1] == 424
         and authorized_identity(row)
     ):
@@ -271,16 +285,12 @@ def begin(
         current = next(
             (value for value in rows_provider() if value["actor_id"] == actor_id), None
         )
-        # Airyna's captured initial choice sets 10606 while opening 5756.
-        # This changes the *entry* action to 1389, but the current 1390
-        # conversation remains valid through its already offered next node.
-        accepted_airyna_intro = (
-            actor_id == -1706442046308339
-            and action_id == 1390
-            and root == 5755
-            and node_id == 5756
-            and facts_provider is not None
-            and facts_provider().get(10606, False)
+        # Entry eligibility can change when an offered choice advances a
+        # quest. It controls opening the root, not its already offered
+        # continuations. DialogueSession still checks each node and choice
+        # against current facts; identity, placement and range remain live.
+        entry_allowed = node_id != root or (
+            available(action.get("criteria")) and available(nodes[root].get("criteria"))
         )
         return (
             current is not None
@@ -288,8 +298,7 @@ def begin(
             and speaker_id == speaker_identity
             and node_id in allowed_nodes
             and nearby(character, current)
-            and (available(action.get("criteria")) or accepted_airyna_intro)
-            and available(nodes[root].get("criteria"))
+            and entry_allowed
         )
 
     return session, session.open(

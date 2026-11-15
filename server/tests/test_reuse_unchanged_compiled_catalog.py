@@ -31,6 +31,170 @@ def identity(*, changed_source=None, source_revision="a", config="c"):
 
 
 class ReuseCompatibilityTests(unittest.TestCase):
+    def test_spatial_wire_projection_requires_exact_complete_reviewed_delta(self):
+        before, after = identity(), identity()
+        bundle = reuse.REVIEWED_SPATIAL_WIRE_PROJECTION_BUNDLE
+        for path, (old, new) in bundle.items():
+            before["compiler_sources"][path] = old
+            after["compiler_sources"][path] = new
+        self.assertTrue(reuse.compatible(before, after))
+        self.assertFalse(reuse.compatible(after, before))
+        for path in bundle:
+            with self.subTest(path=path):
+                changed = copy.deepcopy(after)
+                changed["compiler_sources"][path] = "unreviewed"
+                self.assertFalse(reuse.compatible(before, changed))
+                partial = copy.deepcopy(after)
+                partial["compiler_sources"][path] = before["compiler_sources"][path]
+                self.assertFalse(reuse.compatible(before, partial))
+        extra = copy.deepcopy(after)
+        extra["compiler_sources"]["wakfu_server/combat/combat_spell.py"] = "changed"
+        self.assertFalse(reuse.compatible(before, extra))
+        for field in (*reuse.PIN_FIELDS, "source_documents", "config"):
+            if field == "compiler_contract_sha256":
+                continue
+            with self.subTest(pin=field):
+                changed = copy.deepcopy(after)
+                changed[field] = "different"
+                self.assertFalse(reuse.compatible(before, changed))
+
+    def test_prepared_only_ecology_retirement_requires_exact_complete_source_bundle(
+        self,
+    ):
+        before, after = identity(), identity()
+        bundle = reuse.REVIEWED_ECOLOGY_PREPARED_ONLY_BUNDLE
+        self.assertEqual(len(bundle), 7)
+        for path, (old, new) in bundle.items():
+            before["compiler_sources"][path] = old
+            after["compiler_sources"][path] = new
+        self.assertTrue(reuse.compatible(before, after))
+        self.assertFalse(reuse.compatible(after, before))
+        for path in bundle:
+            with self.subTest(path=path):
+                future = copy.deepcopy(after)
+                future["compiler_sources"][path] = "f" * 64
+                self.assertFalse(reuse.compatible(before, future))
+                wrong_baseline = copy.deepcopy(before)
+                wrong_baseline["compiler_sources"][path] = "f" * 64
+                self.assertFalse(reuse.compatible(wrong_baseline, after))
+                partial = copy.deepcopy(after)
+                partial["compiler_sources"][path] = before["compiler_sources"][path]
+                self.assertFalse(reuse.compatible(before, partial))
+        for path in (
+            "wakfu_server/combat/combat_spell.py",
+            "wakfu_server/combat/combat_group_store.py",
+            "wakfu_server/maps/ecology_unreviewed.py",
+        ):
+            with self.subTest(extra_source=path):
+                extra = copy.deepcopy(after)
+                extra["compiler_sources"][path] = "f" * 64
+                self.assertFalse(reuse.compatible(before, extra))
+        for field in (*reuse.PIN_FIELDS, "source_documents", "config"):
+            if field == "compiler_contract_sha256":
+                continue
+            with self.subTest(pin=field):
+                changed = copy.deepcopy(after)
+                changed[field] = "different"
+                self.assertFalse(reuse.compatible(before, changed))
+
+    def test_ecology_and_mission_bundle_requires_the_whole_exact_reviewed_delta(self):
+        bundle = {
+            **reuse.REVIEWED_ECOLOGY_REMOVAL_BUNDLE,
+            **reuse.REVIEWED_MISSION_RUNTIME_BUNDLE,
+        }
+        before, after = identity(), identity()
+        for path, (old, new) in bundle.items():
+            before["compiler_sources"][path] = old
+            if new is None:
+                after["compiler_sources"].pop(path, None)
+            else:
+                after["compiler_sources"][path] = new
+        self.assertTrue(reuse.compatible(before, after))
+        self.assertFalse(reuse.compatible(after, before))
+
+        for path in bundle:
+            with self.subTest(path=path):
+                changed = copy.deepcopy(after)
+                changed["compiler_sources"][path] = "f" * 64
+                self.assertFalse(reuse.compatible(before, changed))
+                old_changed = copy.deepcopy(before)
+                old_changed["compiler_sources"][path] = "f" * 64
+                self.assertFalse(reuse.compatible(old_changed, after))
+                partial = copy.deepcopy(after)
+                partial["compiler_sources"][path] = before["compiler_sources"][path]
+                self.assertFalse(reuse.compatible(before, partial))
+
+        mission_only = copy.deepcopy(before)
+        for path, (_, new) in reuse.REVIEWED_MISSION_RUNTIME_BUNDLE.items():
+            mission_only["compiler_sources"][path] = new
+        self.assertFalse(reuse.compatible(before, mission_only))
+        for path in (
+            "wakfu_server/combat/unreviewed.py",
+            "wakfu_server/combat/combat_group_store.py",
+            "wakfu_server/application/unreviewed_mission.py",
+        ):
+            with self.subTest(extra_path=path):
+                extra = copy.deepcopy(after)
+                extra["compiler_sources"][path] = "f" * 64
+                self.assertFalse(reuse.compatible(before, extra))
+        for field in reuse.PIN_FIELDS:
+            if field == "compiler_contract_sha256":
+                continue
+            with self.subTest(pin=field):
+                changed = copy.deepcopy(after)
+                changed[field] = "different"
+                self.assertFalse(reuse.compatible(before, changed))
+        for field in ("source_documents", "config"):
+            with self.subTest(field=field):
+                changed = copy.deepcopy(after)
+                changed[field] = {"changed": "different"}
+                self.assertFalse(reuse.compatible(before, changed))
+
+    def test_ecology_removal_bundle_is_exact_one_way_and_preserves_catalog_pins(self):
+        before, after = identity(), identity()
+        for path, (old, new) in reuse.REVIEWED_ECOLOGY_REMOVAL_BUNDLE.items():
+            before["compiler_sources"][path] = old
+            if new is None:
+                after["compiler_sources"].pop(path, None)
+            else:
+                after["compiler_sources"][path] = new
+        self.assertTrue(reuse.compatible(before, after))
+        self.assertFalse(reuse.compatible(after, before))
+
+        for path in reuse.REVIEWED_ECOLOGY_REMOVAL_BUNDLE:
+            with self.subTest(path=path):
+                future = copy.deepcopy(after)
+                future["compiler_sources"][path] = "f" * 64
+                self.assertFalse(reuse.compatible(before, future))
+                wrong_baseline = copy.deepcopy(before)
+                wrong_baseline["compiler_sources"][path] = "f" * 64
+                self.assertFalse(reuse.compatible(wrong_baseline, after))
+                partial = copy.deepcopy(after)
+                partial["compiler_sources"][path] = before["compiler_sources"][path]
+                self.assertFalse(reuse.compatible(before, partial))
+
+        for path in (
+            "wakfu_server/combat/unreviewed.py",
+            "wakfu_server/combat/combat_group_store.py",
+            "wakfu_server/application/session_objectives.py",
+        ):
+            with self.subTest(extra_path=path):
+                extra = copy.deepcopy(after)
+                extra["compiler_sources"][path] = "f" * 64
+                self.assertFalse(reuse.compatible(before, extra))
+        for field in reuse.PIN_FIELDS:
+            if field == "compiler_contract_sha256":
+                continue
+            with self.subTest(pin=field):
+                changed = copy.deepcopy(after)
+                changed[field] = "different"
+                self.assertFalse(reuse.compatible(before, changed))
+        for field in ("source_documents", "config"):
+            with self.subTest(field=field):
+                changed = copy.deepcopy(after)
+                changed[field] = {"changed": "different"}
+                self.assertFalse(reuse.compatible(before, changed))
+
     def test_reviewed_loader_override_is_exact_and_one_way(self):
         before, after = identity(), identity()
         path, (old, new) = next(iter(reuse.REVIEWED_LOADER_OVERRIDE.items()))
@@ -95,8 +259,10 @@ class ReuseCompatibilityTests(unittest.TestCase):
                 self.assertTrue(reuse.compatible(before, after))
 
     def test_world_dispatch_modules_have_no_package_or_publisher_references(self):
-        # These are standalone World dispatch entry points.  If a compiler
-        # dependency starts referring to one, review its reuse classification.
+        # The World application now owns the former root dispatcher. References
+        # from other package modules still require a reuse classification review.
+        # Application sources remain compiler identity inputs; no broad runtime
+        # exemption is introduced by allowing their dispatch imports here.
         server = Path(__file__).resolve().parents[1]
         package = server / "wakfu_server"
         modules = {Path(path).stem: server / path for path in reuse.WORLD_DISPATCH_ONLY}
@@ -105,10 +271,22 @@ class ReuseCompatibilityTests(unittest.TestCase):
             *package.rglob("*.py"),
             server / "tools/publish_compiled_combat_catalog.py",
         ]:
+            if path.is_relative_to(package / "application"):
+                continue
             source = path.read_text(encoding="utf-8")
             for name, owner in modules.items():
                 if path != owner:
                     self.assertNotIn(name, source, f"{path} references {name}")
+
+    def test_application_edits_are_not_implicitly_approved_for_catalog_reuse(self):
+        for name in ("session_combat.py", "session_inventory.py", "bootstrap.py"):
+            with self.subTest(name=name):
+                self.assertFalse(
+                    reuse.compatible(
+                        identity(),
+                        identity(changed_source="wakfu_server/application/" + name),
+                    )
+                )
 
     def test_only_explicit_runtime_sources_are_compatible(self):
         previous = identity()

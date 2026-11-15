@@ -1,7 +1,8 @@
 """Actual retained legacy bootstrap remains unchanged without public metadata."""
+
 import ast
 import base64
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from unittest.mock import Mock

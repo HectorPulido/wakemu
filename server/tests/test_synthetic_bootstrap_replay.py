@@ -1,4 +1,5 @@
 """Every selected replay frame must adapt a real fresh owned character."""
+
 import base64
 from copy import deepcopy
 import gzip
@@ -38,12 +39,12 @@ class SyntheticBootstrapReplayTests(PostgresCase):
         defaults = json.loads(
             (
                 ROOT
-                / "server/data/installation/source/native-fresh-entity-defaults.json"
+                / "database/data/installation/source/native-fresh-entity-defaults.json"
             ).read_text()
         )
         frames = build(defaults)
         artifact = (
-            ROOT / "server/data/installation/artifacts/bootstrap.synthetic.jsonl.gz"
+            ROOT / "database/data/installation/artifacts/bootstrap.synthetic.jsonl.gz"
         )
         installed_frames = [
             json.loads(line)

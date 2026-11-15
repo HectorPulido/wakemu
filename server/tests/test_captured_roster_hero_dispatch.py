@@ -1,7 +1,8 @@
 """Controlled hero Symbiot requests use the actual shared actor authority."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest
@@ -103,9 +104,11 @@ class CapturedHeroDispatchTests(unittest.TestCase):
             scope.update(opcode=opcode, body=body)
             exec(
                 codes[
-                    "opcode == 13571 and loaded"
-                    if opcode == 13571
-                    else "opcode in (12014, 13068) and loaded"
+                    (
+                        "opcode == 13571 and loaded"
+                        if opcode == 13571
+                        else "opcode in (12014, 13068) and loaded"
+                    )
                 ],
                 scope,
             )

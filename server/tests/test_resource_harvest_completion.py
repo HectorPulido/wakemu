@@ -1,9 +1,10 @@
+from planting_fixture import grow_prepared
 from concurrent.futures import ThreadPoolExecutor
 import ast
 from threading import Barrier
 import struct
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 
 from psycopg.types.json import Jsonb
 from postgres_case import PostgresCase
@@ -97,7 +98,7 @@ class ResourceHarvestCompletionTests(PostgresCase):
     def advance(self, seconds=3.0):
         self.clock[0] += seconds
 
-    def assert_ecology_outcome(self, outcome, expected_fields):
+    def assert_ecology_outcome(self, outcome, expected_fields, *, expected_limits=None):
         self.assertEqual(
             {key: outcome["outcome"][key] for key in expected_fields},
             expected_fields,
@@ -145,7 +146,16 @@ class ResourceHarvestCompletionTests(PostgresCase):
             evidence["before_population"] - evidence["after_population"],
             1 if evidence["action"] == "remove" else 0,
         )
-        if limit is None:
+        if expected_limits is not None:
+            self.assertEqual(
+                expected_limits,
+                tuple(
+                    evidence[key]
+                    for key in ("minimum", "maximum", "limit_source", "limit_revision")
+                ),
+            )
+            self.assertEqual(0, receipt["requested_delta"])
+        elif limit is None:
             self.assertEqual("local_fallback", evidence["limit_source"])
             self.assertIsNone(evidence["limit_revision"])
         else:
@@ -202,24 +212,69 @@ class ResourceHarvestCompletionTests(PostgresCase):
             [profession_id],
         )
 
+    def grow(self, runtime, resource_uid, publish):
+        # The native Rust planner supplies this exact resource transition.
+        with self.store.connection() as db:
+            resource = dict(
+                db.execute(
+                    "SELECT * FROM planted_resources WHERE resource_uid=%s",
+                    (resource_uid,),
+                ).fetchone()
+            )
+            transition = db.execute(
+                "SELECT to_stage,delay_ms,probability FROM resource_growth_transitions "
+                "WHERE resource_reference=%s AND from_stage=%s",
+                (resource["resource_reference"], resource["stage"]),
+            ).fetchone()
+        return grow_prepared(
+            runtime,
+            Groups(),
+            [
+                (
+                    resource,
+                    RESOURCES[resource["resource_reference"]],
+                    tuple(
+                        transition[key]
+                        for key in ("to_stage", "delay_ms", "probability")
+                    ),
+                )
+            ],
+            publish=publish,
+        )
+
     def test_fresno_stage2_action310_yields_sapling_then_grows_after_30s(self):
         self.learn(71)
         self.set_resource_definition(stage=2, reference=139)
         ticket = self.ticket(310)
         self.advance()
+        # The native regional population is below its tree target, applying
+        # the configured -10% harvest XP effect to the base 50 reward.
         outcome = complete(self.store, ticket, result_packet())
+        # This native region has no chief wish for Fresno's family. The old
+        # ecology_family_limits seed is not equilibrium authority.
+        from wakfu_server.ecology_equilibrium import catalog
+
+        evidence = outcome["outcome"]["ecology"]["receipt"]["evidence"]
+        territory = catalog()["territories"].get(str(evidence["region_id"]), {})
+        self.assertFalse(
+            any(
+                wish["family_id"] == RESOURCES[139]["family_id"]
+                for wish in territory.get("plant_wishes", [])
+            )
+        )
         self.assert_ecology_outcome(
             outcome,
-            {"stage": 1, "item_reference": 8063, "quantity": 1, "xp": 50},
+            {"stage": 1, "item_reference": 8063, "quantity": 1, "xp": 45},
+            expected_limits=(None, None, "unmanaged_native_family", None),
         )
         self.assertEqual(
             struct.unpack(
                 ">iq",
                 next(body for opcode, body in outcome["packets"] if opcode == 12916),
             ),
-            (71, 50),
+            (71, 45),
         )
-        self.assertEqual(self.xp(71), 50)
+        self.assertEqual(self.xp(71), 45)
         item = self.store.character(self.account, self.character["id"])[
             "inventory_items"
         ][0]
@@ -233,8 +288,10 @@ class ResourceHarvestCompletionTests(PostgresCase):
 
         self.clock[0] += 30
         delivered = []
-        Plantings(self.store, growth_seconds=30).mature(
-            Groups(), publish=delivered.append
+        self.grow(
+            Plantings(self.store, growth_seconds=30),
+            ticket["resource_uid"],
+            delivered.append,
         )
         self.assertEqual(len(delivered), 1)
         self.assertEqual(struct.unpack(">iihhqi", delivered[0]["packets"][0][1])[3], 2)
@@ -245,7 +302,7 @@ class ResourceHarvestCompletionTests(PostgresCase):
         )
         self.assertEqual(growth["resource"]["stage"], 2)
         self.assertTrue(growth["published"])
-        self.assertEqual(self.xp(71), 50)
+        self.assertEqual(self.xp(71), 45)
         self.assertEqual(
             self.store.character(self.account, self.character["id"])["inventory_items"][
                 0
@@ -458,7 +515,7 @@ class ResourceHarvestCompletionTests(PostgresCase):
         self.clock[0] += 5
         delivered = []
         runtime = Plantings(self.store, growth_seconds=1)
-        runtime.mature(Groups(), publish=delivered.append)
+        self.grow(runtime, self.resource["resource_uid"], delivered.append)
         self.assertEqual(len(delivered), 1)
         self.assertEqual(struct.unpack(">iihhqi", delivered[0]["packets"][0][1])[3], 2)
         row = self.row(

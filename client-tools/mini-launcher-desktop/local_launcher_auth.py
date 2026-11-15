@@ -1,4 +1,5 @@
 """Revocable-token renewal for the local launcher session file."""
+
 import json
 import os
 from pathlib import Path
@@ -36,6 +37,26 @@ class LauncherAuthentication:
             raise LauncherAuthenticationError(
                 "Local login session unavailable; sign in again"
             ) from None
+
+    def user_info(self):
+        """Expose authenticated account identity in the native Zaap JSON format."""
+        account = self._login().get("account", {})
+        if not isinstance(account, dict):
+            raise LauncherAuthenticationError(
+                "Launcher account information unavailable"
+            )
+        account_id = account.get("id")
+        nickname = account.get("username")
+        if (
+            type(account_id) is not int
+            or account_id <= 0
+            or not isinstance(nickname, str)
+            or not nickname.strip()
+        ):
+            raise LauncherAuthenticationError(
+                "Launcher account information unavailable"
+            )
+        return json.dumps({"id": account_id, "nicknameWithTag": nickname})
 
     def _request(self, route, body, token=None):
         headers = {"Content-Type": "application/json"}
@@ -78,6 +99,26 @@ class LauncherAuthentication:
                 and renewed.get("account", {}).get("id") != previous_id
             ):
                 raise ValueError()
+            rotated = renewed.get("remember_token")
+            if (
+                "protected_token" in remembered
+                and isinstance(rotated, str)
+                and rotated
+                and rotated != token
+            ):
+                from launcher_backend import protect, private_write, remove_protected
+
+                previous_reference = remembered["protected_token"]
+                replacement = protect(rotated)
+                try:
+                    private_write(
+                        self.login_file.with_name("remember.json"),
+                        dict(remembered, protected_token=replacement),
+                    )
+                except (OSError, ValueError, TypeError):
+                    remove_protected(replacement)
+                    raise
+                remove_protected(previous_reference)
             self._write(renewed)
             return renewed
         except (urllib.error.URLError, OSError, ValueError, KeyError, TypeError):
@@ -86,6 +127,8 @@ class LauncherAuthentication:
             ) from None
 
     def _write(self, login):
+        session = dict(login)
+        session.pop("remember_token", None)
         staged = None
         try:
             with tempfile.NamedTemporaryFile(
@@ -94,7 +137,7 @@ class LauncherAuthentication:
                 staged = Path(output.name)
                 if hasattr(os, "fchmod"):
                     os.fchmod(output.fileno(), 0o600)
-                json.dump(login, output)
+                json.dump(session, output)
                 output.flush()
                 os.fsync(output.fileno())
             staged.replace(self.login_file)

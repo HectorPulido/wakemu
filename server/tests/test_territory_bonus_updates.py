@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from wakfu_server import territory_bonus_updates as updates
+from wakfu_server import territory_bonuses
 
 
 class Store:
@@ -59,16 +60,23 @@ class World:
 
 class RegionalBonusUpdatesTests(unittest.TestCase):
     def setUp(self):
-        policy = patch.object(
-            updates.territory_bonuses,
-            "control_health_policy",
-            return_value={"1915": 1, "1916": 2, "1917": -1},
+        # World reconciliation is a separate owner. These publication tests
+        # consume its explicit canonical result; native SQL tests own planning.
+        reconcile = patch.object(
+            territory_bonuses,
+            "reconcile_owned",
+            side_effect=lambda _store, _account, _generation, character, *, region, bonuses: dict(
+                character,
+                territory_stat_bonuses=dict(bonuses),
+                territory_state_id=region["state_id"],
+            ),
         )
-        policy.start()
-        self.addCleanup(policy.stop)
+        reconcile.start()
+        self.addCleanup(reconcile.stop)
         self.peer = object()
         self.character = dict(
             id=10,
+            account_id=7,
             map_id=327,
             instance_id=2,
             x=1,
@@ -92,7 +100,7 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
         self.locate.start()
         self.addCleanup(self.locate.stop)
         self.codec = patch.object(
-            updates.territory_bonuses, "world_packet", side_effect=self.packet
+            territory_bonuses, "world_packet", side_effect=self.packet
         )
         self.codec.start()
         self.addCleanup(self.codec.stop)
@@ -145,7 +153,10 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
         packets = self.manager.packets_for(self.character, "lease", self.peer)
         self.assertEqual([opcode for opcode, _ in packets], [13046, 13811, 13046])
         self.assertEqual(packets[0], packets[2])
-        self.assertEqual(self.character, untouched)
+        self.assertEqual({key: self.character[key] for key in untouched}, untouched)
+        self.assertEqual(self.character["territory_stat_bonuses"], {33: 30, 36: 30})
+        self.assertIsNone(self.character["territory_state_id"])
+        self.assertNotIn("_published_territory_stat_bonuses", self.character)
         # A failed send leaves the same pending update available for retry.
         self.assertEqual(
             self.manager.packets_for(self.character, "lease", self.peer), packets
@@ -257,9 +268,11 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
             expected = (
                 [12613] * 5 + [13420]
                 if state_before is None and current is not None
-                else [13560] * 5 + [13420]
-                if current is None
-                else [13560] * 5 + [12613] * 5 + [13420]
+                else (
+                    [13560] * 5 + [13420]
+                    if current is None
+                    else [13560] * 5 + [12613] * 5 + [13420]
+                )
             )
             self.assertEqual(
                 expected, [opcode for opcode, _ in packets[-len(expected) :]]
@@ -297,64 +310,7 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
                 self.manager.apply(self.proposal(), world_epoch="epoch")
         self.assertEqual(self.manager.snapshots, {})
 
-    def test_prepare_reads_once_per_scope_not_per_player_and_rotates_budget(self):
-        snapshot = dict(
-            world_epoch="epoch",
-            planning_tick=0,
-            players=[
-                self.character,
-                dict(self.character, id=11),
-                dict(self.character, id=12, instance_id=3),
-            ],
-        )
-        population = {"complete": True, "regions": {}}
-        with (
-            patch.object(
-                updates.ecology_population, "snapshot", return_value=population
-            ) as read,
-            patch.object(
-                updates.territory_bonuses,
-                "_catalog",
-                return_value={"territories": {"56601": {"map_id": 327}}},
-            ),
-            patch.object(
-                updates.territory_bonuses, "evaluate_population", return_value={}
-            ),
-            patch.object(
-                updates.territory_bonuses, "stat_bonuses", return_value={33: 30}
-            ),
-        ):
-            first = updates.prepare(self.store, snapshot, limit=1)
-            second = updates.prepare(
-                self.store, dict(snapshot, planning_tick=1), limit=1
-            )
-        self.assertEqual(read.call_count, 2)
-        self.assertEqual((first[0]["instance_id"], second[0]["instance_id"]), (2, 3))
-        self.assertEqual(first[0]["regions"], {"56601": {"33": 30}})
-        self.assertIn("observed_at", first[0])
-        self.assertIn("observation_bucket", first[0])
-
-    def test_prepare_concurrent_revision_discards_partial_snapshot_and_incomplete_clears(
-        self,
-    ):
-        snapshot = dict(world_epoch="epoch", players=[self.character])
-        with (
-            patch.object(
-                updates.ecology_population,
-                "snapshot",
-                return_value={"complete": False, "regions": {}},
-            ),
-            patch.object(
-                updates.territory_bonuses,
-                "_catalog",
-                return_value={"territories": {"56601": {"map_id": 327}}},
-            ),
-        ):
-            self.assertEqual(updates.prepare(Store((5, 6)), snapshot), [])
-            proposals = updates.prepare(Store(), snapshot)
-        self.assertEqual(proposals[0]["regions"], {"56601": {}})
-
-    def test_actual_world_projection_merges_only_derived_stats(self):
+    def test_actual_world_projection_merges_derived_stats_and_canonical_health(self):
         from wakfu_server.world import World as ActualWorld
 
         def forbidden(*args):
@@ -369,15 +325,20 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
         )
         world.players[10] = ("lease", self.peer, authoritative)
         before = copy.deepcopy(authoritative)
-        # The caller's unrelated fields can be stale; they must never overwrite
-        # the registry's current health, selected build or inventory graph.
+        # The session supplies canonical reconciled health. Other actor fields
+        # can be stale and must never overwrite the registry's selected build.
+
         self.assertTrue(
             world.update_territory_projection(
                 "lease", self.character, peer=self.peer, bonuses={33: 60, 36: 60}
             )
         )
         current = world.players[10][2]
-        self.assertEqual({key: current[key] for key in before}, before)
+        self.assertEqual(
+            {key: current[key] for key in before if key != "hp"},
+            {key: value for key, value in before.items() if key != "hp"},
+        )
+        self.assertEqual(current["hp"], self.character["hp"])
         self.assertEqual(current["territory_stat_bonuses"], {33: 60, 36: 60})
         self.assertEqual(current["_published_territory_stat_bonuses"], {33: 60, 36: 60})
         self.assertNotIn("territory_stat_bonuses", self.character)
@@ -402,63 +363,6 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
                 )
         self.assertNotIn("territory_stat_bonuses", world.players[10][2])
 
-    def test_prepare_five_domain_cadence_does_not_alias_sixteen_scope_budget(self):
-        players = [
-            dict(self.character, id=index + 10, instance_id=index)
-            for index in range(80)
-        ]
-        covered = set()
-        with (
-            patch.object(
-                updates.ecology_population,
-                "snapshot",
-                return_value={"complete": True, "regions": {}},
-            ),
-            patch.object(
-                updates.territory_bonuses, "_catalog", return_value={"territories": {}}
-            ),
-        ):
-            for tick in range(0, 80, 5):
-                proposals = updates.prepare(
-                    self.store,
-                    dict(world_epoch="epoch", planning_tick=tick, players=players),
-                    limit=16,
-                )
-                covered.update(row["instance_id"] for row in proposals)
-        self.assertEqual(covered, set(range(80)))
-
-    def test_domain_planning_tick_rotates_all_scopes_even_with_one_remaining_slot(self):
-        players = [
-            dict(self.character, id=index + 10, instance_id=index)
-            for index in range(80)
-        ]
-        covered = []
-        with (
-            patch.object(
-                updates.ecology_population,
-                "snapshot",
-                return_value={"complete": True, "regions": {}},
-            ) as read,
-            patch.object(
-                updates.territory_bonuses, "_catalog", return_value={"territories": {}}
-            ),
-        ):
-            for invocation in range(80):
-                proposals = updates.prepare(
-                    self.store,
-                    dict(
-                        world_epoch="epoch",
-                        planning_tick=invocation * 5,
-                        domain_planning_tick=invocation,
-                        players=players,
-                    ),
-                    limit=1,
-                )
-                self.assertEqual(len(proposals), 1)
-                covered.append(proposals[0]["instance_id"])
-        self.assertEqual(covered, list(range(80)))
-        self.assertEqual(read.call_count, 80)
-
     def test_fresh_policy_proposal_reconciles_once_and_retries_identical_owned_batch(
         self,
     ):
@@ -477,9 +381,9 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
             )
 
         with patch.object(
-            updates.territory_bonuses, "reconcile_owned", side_effect=reconcile
+            territory_bonuses, "reconcile_owned", side_effect=reconcile
         ), patch.object(
-            updates.territory_bonuses,
+            territory_bonuses,
             "world_packets",
             side_effect=lambda character: (self.packet(character),),
         ):

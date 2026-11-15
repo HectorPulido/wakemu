@@ -1,8 +1,8 @@
 import java.nio.file.*;import java.util.*;import java.util.zip.*;import java.io.*;import com.google.gson.*;
 public class ExportPlantCells{
  static int region(cdI map,int x,int y){if(map==null)return -1;int result=-1;for(bMh p:map.lVH.valueCollection())if(p.dV(x,y)){if(result!=-1)throw new IllegalStateException("overlapping regions");result=p.d();}return result;}
- public static void main(String[]args)throws Exception{cdH.bla();cdH.exY().dW("jar:file:"+Path.of("client/contents/maps/data.jar").toAbsolutePath()+"!/worlds.lib");Path out=Path.of("server/protocol/planting-maps");Files.createDirectories(out);List<Object> index=new ArrayList<>();Gson gson=new Gson();
- for(Path source:Files.list(Path.of("server/protocol/combat-maps")).filter(p->p.toString().endsWith(".json")).sorted().toList()){
+ public static void main(String[]args)throws Exception{cdH.bla();cdH.exY().dW("jar:file:"+Path.of("client/contents/maps/data.jar").toAbsolutePath()+"!/worlds.lib");Path out=Path.of("database/protocol/planting-maps");Files.createDirectories(out);List<Object> index=new ArrayList<>();Gson gson=new Gson();
+ for(Path source:Files.list(Path.of("database/protocol/combat-maps")).filter(p->p.toString().endsWith(".json")).sorted().toList()){
  String id=source.getFileName().toString().replace(".json","");if(args.length>0&&!Arrays.asList(args).contains(id))continue;
  try(ZipFile env=new ZipFile("client/contents/maps/env/"+id+".jar");Reader reader=new InputStreamReader(Files.newInputStream(source))){
  JsonObject geo=JsonParser.parseReader(reader).getAsJsonObject();Map<String,aIl> chunks=new HashMap<>();List<int[]> cells=new ArrayList<>();

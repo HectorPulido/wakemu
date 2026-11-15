@@ -1,7 +1,8 @@
 """Native party combat prompts never admit a character on their own."""
+
 import ast
 import struct
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from contextlib import nullcontext
 from threading import RLock

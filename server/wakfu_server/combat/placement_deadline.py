@@ -1,4 +1,5 @@
 """Frozen PostgreSQL placement duration and a session-local monotonic deadline."""
+
 import math
 
 
@@ -17,12 +18,16 @@ class Deadline:
     def __init__(self):
         self.fight_id = self.until = None
 
-    def start(self, fight_id, duration_ms, now):
+    def start(self, fight_id, duration_ms, now, *, native=False):
+        # Captured scripted encounters can publish a ten-minute placement.
+        # Ordinary PostgreSQL settings retain their existing five-minute cap.
+        maximum = 600000 if native is True else 300000
         if (
             type(fight_id) is not int
             or fight_id <= 0
             or type(duration_ms) is not int
-            or not 1000 <= duration_ms <= 300000
+            or type(native) is not bool
+            or not 1000 <= duration_ms <= maximum
             or not math.isfinite(now)
         ):
             raise ValueError("Invalid placement deadline")

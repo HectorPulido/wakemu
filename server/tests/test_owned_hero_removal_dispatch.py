@@ -1,8 +1,9 @@
 """Owned-hero removal reaches every party peer before the fresh roster."""
+
 import ast
 from contextlib import contextmanager
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 from unittest.mock import Mock, patch

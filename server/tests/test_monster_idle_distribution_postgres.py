@@ -1,5 +1,5 @@
 """Durable empty-map plans change positions once and cancel on reoccupation."""
-from copy import deepcopy
+
 from unittest.mock import patch
 import threading
 
@@ -8,13 +8,69 @@ from psycopg.types.json import Jsonb
 from wakfu_server import monster_idle_distribution_store as idle
 from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import REFERENCES, owned_instance
-from test_monster_idle_distribution import grid
 from test_ecology_mobs_apply import FakeHarvests
 from wakfu_server import ecology_mobs
 from wakfu_server.world import World
 
 
+def grid(size):
+    """Explicit native-geometry fixture; no ecology placement implementation."""
+    cells = [(x, y, 0) for x in range(size) for y in range(size)]
+    return dict(cells=cells, edges=[])
+
+
 class IdleDistributionPostgresTests(PostgresCase):
+    def frozen_fixture(self, *, epoch, scope, generation, chunks):
+        """Install an explicit Rust proposal contract, without running a planner.
+
+        Chunk membership is supplied by each fixture. Rust freeze/replanning
+        behavior is covered by idle_planner_contract.rs against its real owner.
+        """
+        with self.store.connection() as db:
+            run = db.execute(
+                "INSERT INTO monster_idle_distribution_runs "
+                "(world_epoch,map_id,instance_id,empty_generation,status) "
+                "VALUES(%s,%s,%s,%s,'pending') RETURNING id",
+                (epoch, *scope, generation),
+            ).fetchone()["id"]
+            ordinal = 0
+            for chunk_index, moves in enumerate(chunks):
+                for move in moves:
+                    db.execute(
+                        "INSERT INTO monster_idle_distribution_moves "
+                        "(run_id,ordinal,chunk_index,group_id,expected_members,moved_members) "
+                        "VALUES(%s,%s,%s,%s,%s,%s)",
+                        (
+                            run,
+                            ordinal,
+                            chunk_index,
+                            move["group_id"],
+                            Jsonb(move["expected_members"]),
+                            Jsonb(move["moved_members"]),
+                        ),
+                    )
+                    ordinal += 1
+        return run, [
+            dict(
+                kind="idle_distribution",
+                world_epoch=epoch,
+                scope=list(scope),
+                empty_generation=generation,
+                run_id=run,
+                chunk_index=index,
+            )
+            for index in range(len(chunks))
+        ]
+
+    def assert_no_pending(self, run):
+        with self.store.connection() as db:
+            pending = db.execute(
+                "SELECT count(*) AS n FROM monster_idle_distribution_moves "
+                "WHERE run_id=%s AND status='pending'",
+                (run,),
+            ).fetchone()["n"]
+        self.assertEqual(pending, 0)
+
     def test_independent_chunks_commit_in_reverse_order_once_without_changing_owned_data(
         self,
     ):
@@ -39,9 +95,11 @@ class IdleDistributionPostgresTests(PostgresCase):
                     moved_members=[dict(member, x=index + 10, y=10)],
                 )
             )
-        idle.freeze(self.store, epoch="reverse", scope=scope, generation=1, moves=moves)
-        proposals = idle.pending(
-            self.store, epoch="reverse", scope=scope, generation=1, limit=16
+        run, proposals = self.frozen_fixture(
+            epoch="reverse",
+            scope=scope,
+            generation=1,
+            chunks=[moves[:8], moves[8:]],
         )
         self.assertEqual([p["chunk_index"] for p in proposals], [0, 1])
         self.assertEqual(
@@ -61,12 +119,7 @@ class IdleDistributionPostgresTests(PostgresCase):
                 ),
                 [],
             )
-        self.assertEqual(
-            idle.pending(
-                self.store, epoch="reverse", scope=scope, generation=1, limit=16
-            ),
-            [],
-        )
+        self.assert_no_pending(run)
         with self.store.connection() as db:
             rows = db.execute(
                 "SELECT group_id,members,revision FROM combat_groups "
@@ -108,19 +161,29 @@ class IdleDistributionPostgresTests(PostgresCase):
             4, REFERENCES[4]["min_level"], -8300, map_id=scope[0], x=0, y=0, z=0
         )
         groups.register(*scope, 8300, [member])
-        world = World(lambda _: b"", lambda _: b"", lambda *_: None)
-        player = dict(id=1, account_id=1, map_id=scope[0], instance_id=0, x=0, y=0, z=0)
+        world = World(lambda _: (0, b""), lambda _: (0, b""), lambda *_: None)
+        player = dict(
+            id=1,
+            account_id=1,
+            map_id=scope[0],
+            instance_id=0,
+            x=0,
+            y=0,
+            z=0,
+            direction=0,
+        )
         world.join("first", object(), player)
         world.leave(1, "first")
         generation = world.empty_scope_generation(*scope)
         moved = [dict(member, x=10, y=10)]
         moves = [dict(group_id=8300, expected_members=[member], moved_members=moved)]
-        idle.freeze(
-            self.store, epoch="race", scope=scope, generation=generation, moves=moves
+        _, proposals = self.frozen_fixture(
+            epoch="race",
+            scope=scope,
+            generation=generation,
+            chunks=[moves],
         )
-        proposal = idle.pending(
-            self.store, epoch="race", scope=scope, generation=generation
-        )[0]
+        proposal = proposals[0]
         prepared = threading.Event()
         continue_commit = threading.Event()
         outcomes, errors = [], []
@@ -176,16 +239,13 @@ class IdleDistributionPostgresTests(PostgresCase):
         world.leave(1, "returned")
         next_generation = world.empty_scope_generation(*scope)
         self.assertNotEqual(generation, next_generation)
-        idle.freeze(
-            self.store,
+        _, proposals = self.frozen_fixture(
             epoch="race",
             scope=scope,
             generation=next_generation,
-            moves=moves,
+            chunks=[moves],
         )
-        proposal = idle.pending(
-            self.store, epoch="race", scope=scope, generation=next_generation
-        )[0]
+        proposal = proposals[0]
         with patch("wakfu_server.combat_terrain.map_geometry", return_value=grid(32)):
             applied = ecology_mobs.apply(
                 self.store, groups, FakeHarvests(), world, proposal, world_epoch="race"
@@ -248,45 +308,16 @@ class IdleDistributionPostgresTests(PostgresCase):
                 moved_members=[dict(second[0], x=40, y=10)],
             ),
         ]
-        run = idle.freeze(
-            self.store, epoch="idle-test", scope=scope, generation=1, moves=moves
+        run, proposals = self.frozen_fixture(
+            epoch="idle-test",
+            scope=scope,
+            generation=1,
+            chunks=[moves],
         )
-        different = deepcopy(moves)
-        different[0]["moved_members"][0]["x"] = 100
-        self.assertEqual(
-            idle.freeze(
-                self.store,
-                epoch="idle-test",
-                scope=scope,
-                generation=1,
-                moves=different,
-            ),
-            run,
-        )
-        proposal = idle.pending(
-            self.store, epoch="idle-test", scope=scope, generation=1
-        )[0]
+        proposal = proposals[0]
         self.assertEqual(
             idle.read_chunk(self.store, proposal)[0]["moved_members"], moved
         )
-        snapshot = dict(
-            world_epoch="idle-test",
-            players=[],
-            locations=[],
-            excluded_ids=[],
-            now_ms=1000,
-            empty_scopes=[
-                dict(map_id=scope[0], instance_id=scope[1], empty_generation=1)
-            ],
-        )
-        with patch(
-            "wakfu_server.monster_idle_distribution.plan",
-            side_effect=AssertionError("Frozen empty episode was planned twice"),
-        ):
-            self.assertEqual(
-                ecology_mobs.prepare(self.store, snapshot, limit=1), [proposal]
-            )
-
         stale = [dict(second[0], x=-11)]
         self.assertTrue(groups.move_members((*scope, 8200), second, stale))
         with self.store.connection() as db:
@@ -313,17 +344,7 @@ class IdleDistributionPostgresTests(PostgresCase):
             ),
             [],
         )
-        self.assertEqual(
-            idle.pending(self.store, epoch="idle-test", scope=scope, generation=1), []
-        )
-        with patch(
-            "wakfu_server.monster_idle_distribution.plan",
-            side_effect=AssertionError("Completed empty episode was planned twice"),
-        ):
-            for _ in range(3):
-                self.assertEqual(
-                    ecology_mobs.prepare(self.store, snapshot, limit=1), []
-                )
+        self.assert_no_pending(run)
         with self.store.connection() as db:
             rows = db.execute(
                 "SELECT group_id,members,revision FROM combat_groups "
@@ -352,13 +373,14 @@ class IdleDistributionPostgresTests(PostgresCase):
                 moved_members=[dict(m, y=20) for m in moved],
             )
         ]
-        next_run = idle.freeze(
-            self.store, epoch="idle-test", scope=scope, generation=2, moves=next_moves
+        next_run, next_proposals = self.frozen_fixture(
+            epoch="idle-test",
+            scope=scope,
+            generation=2,
+            chunks=[next_moves],
         )
         self.assertNotEqual(run, next_run)
-        next_proposal = idle.pending(
-            self.store, epoch="idle-test", scope=scope, generation=2
-        )[0]
+        next_proposal = next_proposals[0]
         with patch("wakfu_server.combat_terrain.map_geometry", return_value=grid(64)):
             prepared = idle.validate_chunk(self.store, next_proposal)
         self.assertEqual(
@@ -371,9 +393,7 @@ class IdleDistributionPostgresTests(PostgresCase):
             ),
             [],
         )
-        self.assertEqual(
-            idle.pending(self.store, epoch="idle-test", scope=scope, generation=2), []
-        )
+        self.assert_no_pending(next_run)
         with self.store.connection() as db:
             self.assertEqual(
                 db.execute(

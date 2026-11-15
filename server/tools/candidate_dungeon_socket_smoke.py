@@ -7,6 +7,7 @@ This script does not manufacture victories or bypass source interaction guards.
 automatic whole-party room advancement after victory, exits both owners
 and reconnects outside. No containers or services are started here.
 """
+
 from collections import deque
 import argparse
 import json
@@ -20,6 +21,7 @@ from protocol_codec import DIRECTIONS
 from wakfu_server import generic_transports, proto_dungeon
 from wakfu_server.maps.dungeon_runtime_config import active_configuration
 from wakfu_server.store import Store
+from wakfu_server.paths import DATA_ROOT
 from candidate_shared_combat_push_smoke import (
     Peer as BasePeer,
     login,
@@ -317,11 +319,7 @@ def full_room_cycle(store, peers, identities, config, instance_id):
         )
         reports[-1]["automatic_party_exit_verified"] = True
         return reports
-    catalog = json.loads(
-        (
-            Path(__file__).parents[1] / "protocol/native-generic-teleporters.json"
-        ).read_text()
-    )
+    catalog = json.loads((DATA_ROOT / "native-generic-teleporters.json").read_text())
     final_room_cells = set(map(tuple, config["topology"]["rooms"][-1]["cells"]))
     exits = [
         (source, destination)

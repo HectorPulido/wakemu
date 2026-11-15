@@ -6,11 +6,26 @@ Four alternating zones and the fixed damage are reconstructions; they are not
 evidence of the original encounter script. This module does not start fights,
 grant spells, or award quest progress.
 """
-from .lesson_distance import SPELL, REQUIRED_HITS, observe
 
+from .lesson_distance import SPELL, REQUIRED_HITS, observe
 
 # Native damage effect belonging to the installed version of spell 7967.
 DAMAGE_EFFECT = 361204
+
+# The lesson alternates a close zone (one or two cells) and a far zone (three
+# or more), matching the captured casts from two, three, two and three cells.
+CLOSE_MESSAGE = "Hit the sack from 1 or 2 cells away."
+FAR_MESSAGE = "Hit the sack from 3 or more cells away."
+
+# Four qualifying casts of the 25-damage lesson spell end the encounter.
+LESSON_MAXIMUM_HP = 25 * REQUIRED_HITS
+
+
+def hint(hits):
+    """Return the guide notice shown after a qualifying hit, if any."""
+    if type(hits) is not int or not 0 < hits < 4:
+        return None
+    return FAR_MESSAGE if hits % 2 else CLOSE_MESSAGE
 
 
 def initialize(fight, packets, *, action_id):
@@ -18,6 +33,8 @@ def initialize(fight, packets, *, action_id):
     contract = getattr(fight, "rii_distance_lesson_contract", None)
     if contract is None:
         return False
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return True
     if (
         not isinstance(contract, dict)
         or fight.phase != "active"
@@ -42,6 +59,17 @@ def initialize(fight, packets, *, action_id):
         lesson="distance",
     )
     contract["initialized"] = True
+    # The captured lesson ends with the sack destroyed after four 25-damage
+    # casts, so the bound prop must own exactly that much life; a scaled monster
+    # would survive the qualified fourth hit and then take no damage at all.
+    from wakfu_server.combat_hp_raw import set_hp_raw_current, set_hp_raw_maximum
+
+    sack = fight.actors[target]
+    if getattr(sack, "max_hp", None) == getattr(sack, "hp", None) is None:
+        pass
+    elif sack.max_hp != LESSON_MAXIMUM_HP:
+        set_hp_raw_maximum(sack, LESSON_MAXIMUM_HP)
+        set_hp_raw_current(sack, LESSON_MAXIMUM_HP)
     from wakfu_server.ecology_feedback import information
 
     packets.append(information("Distance lesson: hit the sack from 1 or 2 cells away."))
@@ -56,6 +84,8 @@ def hit(fight, *, source_id, target_id, effect_reference, damage):
     Fight preview/commit owns all mutations, including the hit counter.
     """
     contract = getattr(fight, "rii_distance_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return None
     if not isinstance(contract, dict) or target_id != contract.get("target"):
         return None
     owner = contract.get("owner")

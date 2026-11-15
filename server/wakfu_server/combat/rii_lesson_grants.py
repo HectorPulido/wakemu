@@ -4,11 +4,11 @@ No encounter calls this adapter until that encounter owns a complete contract.
 The eWn source is reconstructed from the installed client; its parameters
 are supplied by the server-owned lesson contract, never by the client.
 """
+
 from .combat_effect_dispatch import EffectInvocation
 from .combat_spell_grant import NativeSpellGrantHandler, remove_spell_grant
 from .combat_stat_handler import StatExecutionContext
 from .rii_lesson_spell_catalog import GRANT_EFFECT
-
 
 SPELLS = (7963, 7964, 7965, 7966)
 LESSONS = {
@@ -40,6 +40,9 @@ def install(fight, actor_id, packets, *, action_id, allocate_uid, lesson="elemen
         or fight.phase != "active"
     ):
         raise ValueError("Missing elemental lesson encounter authority")
+    if contract.get("native_lesson") is True:
+        # The retained 8003 carrier owns the native morphology and shortcuts.
+        return []
     from .combat_morph_spellbook import morph_record
 
     if morph_record(fight, actor_id) is not None:
@@ -129,7 +132,10 @@ def remove(fight, actor_id, grant_uids, packets, *, action_id, lesson="element")
     """Remove remaining server-owned lesson grants and their shortcuts."""
     if lesson not in LESSONS:
         raise ValueError("Unknown Rii lesson")
-    _, spells = LESSONS[lesson]
+    contract_name, spells = LESSONS[lesson]
+    contract = getattr(fight, contract_name, None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return
     handler = NativeSpellGrantHandler(
         fight,
         packets,
@@ -166,6 +172,8 @@ def remove(fight, actor_id, grant_uids, packets, *, action_id, lesson="element")
 def remove_distance_if_present(fight, packets, *, action_id, owner_ids=None):
     """Remove the owned distance grant on terminal or owner-withdraw paths."""
     contract = getattr(fight, "rii_distance_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if (
         not isinstance(contract, dict)
         or contract.get("initialized") is not True
@@ -186,6 +194,8 @@ def remove_distance_if_present(fight, packets, *, action_id, owner_ids=None):
 def remove_los_if_present(fight, packets, *, action_id, owner_ids=None):
     """Remove the owned line-of-sight grant on terminal or withdrawal paths."""
     contract = getattr(fight, "rii_los_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if isinstance(contract, dict) and contract.get("native_los_areas") is True:
         # Spell 7968 belongs to the native morphology carrier; its normal
         # retained-effect lifecycle removes it, not the local grant registry.
@@ -210,6 +220,8 @@ def remove_los_if_present(fight, packets, *, action_id, owner_ids=None):
 def remove_area_if_present(fight, packets, *, action_id, owner_ids=None):
     """Remove the owned area grants on terminal or owner-withdraw paths."""
     contract = getattr(fight, "rii_area_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if (
         not isinstance(contract, dict)
         or contract.get("initialized") is not True
@@ -230,6 +242,8 @@ def remove_area_if_present(fight, packets, *, action_id, owner_ids=None):
 def remove_movement_if_present(fight, packets, *, action_id, owner_ids=None):
     """Remove movement grants on terminal or owner-withdraw paths."""
     contract = getattr(fight, "rii_movement_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if (
         not isinstance(contract, dict)
         or contract.get("initialized") is not True
@@ -265,6 +279,8 @@ def remove_movement_if_present(fight, packets, *, action_id, owner_ids=None):
 def remove_states_if_present(fight, packets, *, action_id, owner_ids=None):
     """Remove the owned state-lesson grant on terminal or withdrawal paths."""
     contract = getattr(fight, "rii_states_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if (
         not isinstance(contract, dict)
         or contract.get("initialized") is not True

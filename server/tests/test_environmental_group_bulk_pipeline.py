@@ -1,10 +1,10 @@
 """One real SQL installation of all frozen environmental resource/group profiles."""
+
 from pathlib import Path
 
 from postgres_case import PostgresCase
 
-
-SEEDS = Path(__file__).parents[1] / "seeds"
+SEEDS = Path(__file__).parents[2] / "database" / "seeds"
 RESOURCE_SEEDS = (
     "environmental_resource_profiles.sql",
     "environmental_resource_races.sql",

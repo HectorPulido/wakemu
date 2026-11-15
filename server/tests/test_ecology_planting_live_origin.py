@@ -1,4 +1,5 @@
 """Live public positions must survive asynchronous planting preparation."""
+
 import struct
 import threading
 import time
@@ -16,11 +17,11 @@ from wakfu_server.inventory_items import grant
 from wakfu_server.planting import SEEDS
 from wakfu_server.planting import complete as complete_planting
 from wakfu_server.planting_location import active_character
+from planting_fixture import prepare_intents
 from wakfu_server.planting_runtime import Plantings
 from wakfu_server.profession_store import ensure_learned
 from wakfu_server.ecology_planting_intents import (
     EcologyPlantingIntents,
-    prepare_intents,
 )
 
 
@@ -34,6 +35,19 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
         self.now = [1000.0]
         self.store.clock = lambda: self.now[0]
         seed = SEEDS[4275]
+        # Native Astrub edge (-22,-143,70) -> (-23,-143,70).
+        with self.store.connection() as db:
+            # Rust validates leases against PostgreSQL's real wall clock;
+            # the occupation clock below remains deterministic for completion.
+            db.execute(
+                "UPDATE sessions SET expires_at=CURRENT_TIMESTAMP+INTERVAL '1 hour' WHERE account_id=%s",
+                (self.account,),
+            )
+            db.execute(
+                "UPDATE characters SET map_id=1134,instance_id=0,x=-22,y=-143,z=70 WHERE id=%s",
+                (self.character["id"],),
+            )
+        self.character = self.store.character(self.account, self.character["id"])
         ensure_learned(
             self.store,
             self.account,
@@ -52,7 +66,7 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
             slot=0,
             allowed_references=SEEDS,
         )
-        self.body = struct.pack(">iqii", seed["action_id"], self.item["uid"], 10, 11)
+        self.body = struct.pack(">iqii", seed["action_id"], self.item["uid"], -23, -143)
         self.intents = EcologyPlantingIntents(self.store, "live-origin-epoch")
 
     def make_world_and_positions(self):
@@ -63,6 +77,7 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
             lambda _: (1, b"spawn"),
             lambda _: (2, b"remove"),
             lambda *_: None,
+            native=positions.native,
         )
         world.join(self.generation, object(), self.character)
         return world, positions
@@ -86,6 +101,9 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
 
     def test_live_public_position_is_used_instead_of_stale_sql_location(self):
         """An intent captured after movement must prepare from that same origin."""
+        self.body = struct.pack(
+            ">iqii", SEEDS[4275]["action_id"], self.item["uid"], -22, -143
+        )
         live = dict(self.character, x=self.character["x"] + 1)
         intent_id = self.intents.enqueue(self.account, self.generation, live, self.body)
         snapshot = {
@@ -108,15 +126,11 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
             "started_at_ms": self.database_now_ms(),
         }
         source = tuple(live[key] for key in ("x", "y", "z"))
-        with patch("wakfu_server.planting_cells.authorize", return_value=0), patch(
-            "wakfu_server.combat_geometry.published_geometry",
-            return_value=SimpleNamespace(outgoing={source: {(10, 11, 0)}}),
-        ):
-            proposal = next(
-                plan
-                for plan in prepare_intents(self.store, snapshot)
-                if plan["intent_id"] == intent_id
-            )
+        proposal = next(
+            plan
+            for plan in prepare_intents(self.store, snapshot)
+            if plan["intent_id"] == intent_id
+        )
 
         self.assertEqual(proposal["kind"], "planting_begin", proposal)
         self.assertEqual(
@@ -126,6 +140,9 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
 
     def test_dirty_position_survives_sql_refresh_and_completion_debits_once(self):
         """A successful async planting cannot put the owner back at stale SQL xyz."""
+        self.body = struct.pack(
+            ">iqii", SEEDS[4275]["action_id"], self.item["uid"], -22, -143
+        )
         self.set_fast_success_policy()
         world, positions = self.make_world_and_positions()
         start = {key: self.character[key] for key in ("x", "y", "z")}
@@ -161,15 +178,11 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
             started_at_ms=self.database_now_ms(),
         )
         source = tuple(destination[key] for key in ("x", "y", "z"))
-        with patch("wakfu_server.planting_cells.authorize", return_value=0), patch(
-            "wakfu_server.combat_geometry.published_geometry",
-            return_value=SimpleNamespace(outgoing={source: {(10, 11, 0)}}),
-        ):
-            proposal = next(
-                plan
-                for plan in prepare_intents(self.store, snapshot)
-                if plan["intent_id"] == intent_id
-            )
+        proposal = next(
+            plan
+            for plan in prepare_intents(self.store, snapshot)
+            if plan["intent_id"] == intent_id
+        )
         self.assertEqual(proposal["kind"], "planting_begin", proposal)
         self.assertEqual(proposal["prepared"]["character"]["x"], destination["x"])
 
@@ -193,7 +206,7 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
                 current,
                 self.body,
                 plan["prepared"],
-                lambda *_: 0,
+                lambda *_: 70,
                 db=db,
             )
 
@@ -266,6 +279,9 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
         self.assertEqual(world.ecology_snapshot()[0]["x"], destination["x"])
 
     def test_real_movement_after_enqueue_rejects_old_origin(self):
+        self.body = struct.pack(
+            ">iqii", SEEDS[4275]["action_id"], self.item["uid"], -22, -143
+        )
         world, positions = self.make_world_and_positions()
         start = {key: self.character[key] for key in ("x", "y", "z")}
         first = dict(start, x=start["x"] + 1, direction=3)
@@ -296,25 +312,19 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
             generation=self.generation,
         )
         world.refresh_location(self.generation, moved)
-        with patch("wakfu_server.planting_cells.authorize", return_value=0), patch(
-            "wakfu_server.combat_geometry.published_geometry",
-            return_value=SimpleNamespace(
-                outgoing={(second["x"], second["y"], second["z"]): {(10, 11, 0)}}
-            ),
-        ):
-            proposal = next(
-                plan
-                for plan in prepare_intents(
-                    self.store,
-                    dict(
-                        world_epoch="live-origin-epoch",
-                        players=world.ecology_snapshot(),
-                        open_planting=True,
-                        started_at_ms=self.database_now_ms(),
-                    ),
-                )
-                if plan["intent_id"] == intent_id
+        proposal = next(
+            plan
+            for plan in prepare_intents(
+                self.store,
+                dict(
+                    world_epoch="live-origin-epoch",
+                    players=world.ecology_snapshot(),
+                    open_planting=True,
+                    started_at_ms=self.database_now_ms(),
+                ),
             )
+            if plan["intent_id"] == intent_id
+        )
         self.assertEqual(proposal["kind"], "planting_rejected")
         self.assertEqual(
             proposal["error"], "Planting origin changed during preparation"
@@ -358,12 +368,7 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
                     self.account, self.generation, self.character, self.body
                 )
 
-        source = tuple(self.character[key] for key in ("x", "y", "z"))
-        with patch("wakfu_server.planting_cells.authorize", return_value=0), patch(
-            "wakfu_server.combat_geometry.published_geometry",
-            return_value=SimpleNamespace(outgoing={source: {(10, 11, 0)}}),
-        ):
-            proposals = prepare_intents(self.store, snapshot)
+        proposals = prepare_intents(self.store, snapshot)
 
         self.assertEqual(
             proposals, [], f"post-cutoff intent {intent_id} was not deferred"
@@ -373,11 +378,7 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
         ][0]["quantity"]
         time.sleep(0.01)
         next_snapshot = dict(snapshot, started_at_ms=self.database_now_ms())
-        with patch("wakfu_server.planting_cells.authorize", return_value=0), patch(
-            "wakfu_server.combat_geometry.published_geometry",
-            return_value=SimpleNamespace(outgoing={source: {(10, 11, 0)}}),
-        ):
-            next_proposals = prepare_intents(self.store, next_snapshot)
+        next_proposals = prepare_intents(self.store, next_snapshot)
         self.assertEqual(len(next_proposals), 1)
         self.assertEqual(next_proposals[0]["intent_id"], intent_id)
         self.assertEqual(next_proposals[0]["kind"], "planting_begin")
@@ -447,7 +448,7 @@ class EcologyPlantingLiveOriginTests(PostgresCase):
         positions = Mock()
         peer = world.players[self.character["id"]][1]
         replacement = self.generation + "-replacement"
-        world.players[self.character["id"]] = (replacement, peer, dict(self.character))
+        world.join(replacement, peer, dict(self.character))
         with self.assertRaisesRegex(ValueError, "no longer active"):
             owned_character(
                 self.store.character(self.account, self.character["id"]),

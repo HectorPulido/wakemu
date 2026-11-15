@@ -1,7 +1,8 @@
 """Execute the real root replay dispatch branch without starting its services."""
+
 import ast
 import struct
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock

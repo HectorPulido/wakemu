@@ -3,9 +3,10 @@
 No listening World is imported. The transport collector is the sole stub;
 the owned-scene group serializer and native gate-packet producer are real.
 """
+
 import ast
 import copy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 from postgres_case import PostgresCase
 from dungeon_physical_choice_fixture import PhysicalChoiceFixture

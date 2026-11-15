@@ -10,7 +10,7 @@ public class ProbeStateApplicatorParameters {
         int level(){return rBo;}
     }
     public static void main(String[] args)throws Exception {
-        JsonObject catalog=JsonParser.parseReader(Files.newBufferedReader(Path.of("server/protocol/spell-effect-trees.json"))).getAsJsonObject();
+        JsonObject catalog=JsonParser.parseReader(Files.newBufferedReader(Path.of("database/protocol/spell-effect-trees.json"))).getAsJsonObject();
         JsonObject effect=catalog.getAsJsonObject("effects").getAsJsonObject("167716");
         JsonArray values=effect.getAsJsonArray("parameters_by_level").get(0).getAsJsonArray();
         int[] parameters=new int[values.size()];for(int i=0;i<parameters.length;i++)parameters[i]=values.get(i).getAsInt();

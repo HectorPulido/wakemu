@@ -74,7 +74,7 @@ public class ExportAllCombatMaps {
         result.put("topology_sha256",sha(archivePath));result.put("geometry_sha256",sha(output));result.put("elapsed_ms",(System.nanoTime()-start)/1000000);return result;
     }
     public static void main(String[]args)throws Exception {
-        Path input=Path.of(args.length>0?args[0]:"client/contents/maps/tplg"),output=Path.of(args.length>1?args[1]:"server/protocol/combat-maps");
+        Path input=Path.of(args.length>0?args[0]:"client/contents/maps/tplg"),output=Path.of(args.length>1?args[1]:"database/protocol/combat-maps");
         Files.createDirectories(output);List<Path> archives;
         try(var files=Files.list(input)){archives=files.filter(p->p.getFileName().toString().matches("\\d+\\.jar")).sorted(Comparator.comparingInt(p->Integer.parseInt(p.getFileName().toString().replace(".jar","")))).toList();}
         String clientHash=sha(Path.of("client/lib/wakfu-client.jar"));

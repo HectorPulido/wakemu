@@ -3,6 +3,7 @@
 These helpers create and bind owner-specific world actors against durable
 receipts. They do not grant spells or authorize client-supplied objectives.
 """
+
 from dataclasses import dataclass
 
 
@@ -51,7 +52,7 @@ def payload(lesson, owner, actor_id):
     }
 
 
-def spawn(store, groups, account_id, generation, character, lesson):
+def spawn(store, groups, account_id, generation, character, lesson, *, repeat=False):
     """Create at most one available owned actor for an eligible lesson.
 
     Placement and actor reference are explicitly reconstructed and must be
@@ -82,7 +83,7 @@ def spawn(store, groups, account_id, generation, character, lesson):
         if (
             5143 not in state["running"]
             or lesson.prerequisite not in state["objectives"]
-            or lesson.objective in state["objectives"]
+            or (lesson.objective in state["objectives"] and not repeat)
         ):
             return None
         groups_here = groups.available(1388, 0)
@@ -215,7 +216,7 @@ def settle_participants(db, store, lesson, fight, members, monsters, *, contract
         or fight.winner != actors[owner].team
     ):
         return {}
-    if native_los and actors[target].hp > 0:
+    if (native_los or contract.get("native_lesson") is True) and actors[target].hp > 0:
         return {}
     member = next((m for m in members if m.get("character_id") == owner), None)
     if (

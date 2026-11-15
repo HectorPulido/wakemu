@@ -5,7 +5,7 @@ import unittest
 from wakfu_server import native_catalog
 
 ROOT = Path(__file__).resolve().parents[2]
-CATALOG = ROOT / "server/protocol/effect-characteristic-registry.json"
+CATALOG = ROOT / "database/protocol/effect-characteristic-registry.json"
 
 
 class NativeCharacteristicRegistryTests(unittest.TestCase):

@@ -4,30 +4,16 @@ The caller serializes transform and socket writes with its connection write lock
 Native nonautomatic assets require one 13984 attachment per loaded partition;
 12344 mutates retained instances without attaching duplicates.
 """
+
 import math
 import struct
 
 
 def refresh_snapshots(body):
-    """Decode the same validated records as world_scene_sync without catalog IO."""
-    if len(body) < 2:
-        raise ValueError("Truncated interactive snapshot count")
-    count = struct.unpack_from(">h", body)[0]
-    if count < 0:
-        raise ValueError("Negative interactive snapshot count")
-    records = []
-    cursor = 2
-    for _ in range(count):
-        if len(body) - cursor < 10:
-            raise ValueError("Truncated interactive snapshot record")
-        _, size = struct.unpack_from(">qH", body, cursor)
-        if size == 0 or size > len(body) - cursor - 10:
-            raise ValueError("Invalid interactive snapshot payload length")
-        records.append(body[cursor : cursor + 10 + size])
-        cursor += 10 + size
-    if cursor != len(body):
-        raise ValueError("Trailing interactive snapshot data")
-    return tuple(records)
+    """Share the native snapshot decoder without importing map catalogs."""
+    from .scene_wire_native import refresh_snapshots as decode
+
+    return decode(body)
 
 
 def resource_cell(opcode, body, *, planting_only=False):
@@ -101,6 +87,64 @@ def resource_cell(opcode, body, *, planting_only=False):
         if not -(1 << 15) <= altitude < 1 << 15:
             return None
     return (coordinates[2], coordinates[3]) if set(coordinates) == {2, 3} else None
+
+
+def _resource_appearance(body):
+    """Read only the already qualified eight public varint fields.
+
+    Keep publication independent of inventory/world catalogs: this boundary
+    must also run during ordinary socket writes before gameplay initialization.
+    """
+    if resource_cell(13135, body, planting_only=True) is None:
+        return None
+    fields = {}
+    cursor = 0
+    while cursor < len(body):
+        field = body[cursor] >> 3  # Qualified tags 8--64 occupy one byte.
+        cursor += 1
+        value, shift = 0, 0
+        while True:
+            byte = body[cursor]
+            cursor += 1
+            value |= (byte & 127) << shift
+            if not byte & 128:
+                break
+            shift += 7
+        fields[field] = value
+    return fields
+
+
+def _resource_stage_body(body, stage):
+    cursor = 0
+    while cursor < len(body):
+        tag = body[cursor]
+        start = cursor + 1
+        cursor = start
+        while body[cursor] & 128:
+            cursor += 1
+        cursor += 1
+        if tag == 40:
+            return body[:start] + bytes((stage,)) + body[cursor:]
+    raise ValueError("Public resource appearance has no stage")
+
+
+def _resource_stage_packet(body, stage):
+    fields = _resource_appearance(body)
+    if fields is None:
+        raise ValueError("Unknown public resource appearance")
+    signed = lambda value: value - (1 << 64) if value >= 1 << 63 else value
+    return _frame(
+        12782,
+        struct.pack(
+            ">iihhqi",
+            signed(fields[2]),
+            signed(fields[3]),
+            signed(fields[4]),
+            stage,
+            0,
+            0,
+        ),
+    )
 
 
 _SCOPE_FIELDS = ("session_id", "generation", "account_id", "map_id", "instance_id")
@@ -227,11 +271,47 @@ class InteractivePublication:
                     cell = (math.floor(position[0] / 18), math.floor(position[1] / 18))
                     if cell in visible:
                         if opcode == 12782:
-                            resource_appearances.pop(position, None)
+                            _x, _y, _z, stage, owner, metadata = struct.unpack(
+                                ">iihhqi", body
+                            )
+                            previous = resource_appearances.get(position)
+                            if (
+                                previous is not None
+                                and 0 < stage < 128
+                                and owner == metadata == 0
+                            ):
+                                # cFJ mutates the resource already registered at
+                                # XY. Only stage zero starts native retirement;
+                                # growth must not forget this peer's appearance.
+                                resource_appearances[position] = _resource_stage_body(
+                                    previous, stage
+                                )
+                            else:
+                                resource_appearances.pop(position, None)
                         elif (
                             resource_cell(opcode, body, planting_only=True) is not None
                         ):
-                            if resource_appearances.get(position) == body:
+                            previous = resource_appearances.get(position)
+                            if previous == body:
+                                continue
+                            before = (
+                                _resource_appearance(previous)
+                                if previous is not None
+                                else None
+                            )
+                            after = _resource_appearance(body)
+                            if before is not None and all(
+                                before[field] == after[field]
+                                for field in (1, 2, 3, 4, 6, 7, 8)
+                            ):
+                                # A snapshot of an existing resource's new
+                                # stage is a native cFJ update, not another
+                                # cFL constructor at the occupied XY.
+                                output.append(_resource_stage_packet(body, after[5]))
+                                if after[5] == 0:
+                                    resource_appearances.pop(position, None)
+                                else:
+                                    resource_appearances[position] = body
                                 continue
                             resource_appearances[position] = body
                         else:

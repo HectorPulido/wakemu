@@ -2,6 +2,7 @@
 
 An official session started both 5160 and 5146 at the island transition.
 """
+
 from copy import deepcopy
 
 from . import mission_progress, storage, wire
@@ -70,6 +71,7 @@ def enter_rii(db, store, character, *, previous_map):
             raise ValueError("Rii activation receipt exists without mission state")
         after["running"] = sorted(set(after["running"]) | {identity})
         mission_progress.auto_track(after, identity)
+        mission_progress.seed_counters(after, definitions[identity])
     storage.store(db, character["id"], after)
     return wire.changes(
         character["id"], before, after, [], [], accepted_at_ms, definitions=definitions

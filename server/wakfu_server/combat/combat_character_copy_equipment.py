@@ -1,5 +1,7 @@
 """Actual big copied-appearance call to eGj.PJ(source.dsK())."""
+
 from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 from functools import lru_cache
 
 
@@ -8,10 +10,7 @@ def native_copied_equipment_catalog():
     import json
     from pathlib import Path
 
-    path = (
-        Path(__file__).resolve().parents[2]
-        / "protocol/native-copied-equipment-definitions.json"
-    )
+    path = DATA_ROOT / "native-copied-equipment-definitions.json"
     from .combat_published_catalogs import compilation_mode
 
     if compilation_mode():

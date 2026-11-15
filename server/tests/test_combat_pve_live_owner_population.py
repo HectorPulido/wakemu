@@ -1,8 +1,9 @@
 """Regression for retained KO participants versus living primary owners."""
+
 import unittest
 import json
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_shared import Session

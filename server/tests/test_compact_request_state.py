@@ -1,7 +1,8 @@
 """Real request summary and World producer callbacks without starting World."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from wakfu_server.request_diagnostics import RequestTrace, state_summary

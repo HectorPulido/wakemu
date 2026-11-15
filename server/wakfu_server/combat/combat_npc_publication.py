@@ -4,6 +4,7 @@ A chosen action is recomputed by NativeOracle before its fresh Transition is
 published. Recorded packets are comparison evidence, never an attack producer.
 Fallback server turn-end is a distinct trusted runtime operation.
 """
+
 from collections import OrderedDict
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -143,6 +144,9 @@ def _turn_start_policy(runtime, providers):
     local = (
         identity["module"] in ("local_game_server", "__main__")
         and identity["qualname"] == "session.<locals>.area_boundary_provider"
+    ) or (
+        identity["module"] == "wakfu_server.application.session_combat"
+        and identity["qualname"] == "CombatSessionMixin.area_boundary_provider"
     )
     if local:
         # These two explicit reads are the known provider's policy expressions;
@@ -637,9 +641,11 @@ def _bind_execution(
             setattr(
                 runtime,
                 name,
-                oracle.live_start_boundary
-                if name == "turn_start_provider"
-                else oracle.live_end_boundary,
+                (
+                    oracle.live_start_boundary
+                    if name == "turn_start_provider"
+                    else oracle.live_end_boundary
+                ),
             )
     if facts["stats_inputs"] is not None:
         _, stats_module, _ = _sdk_modules(runtime, sdk_source=sdk_source)

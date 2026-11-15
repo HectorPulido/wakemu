@@ -1,6 +1,7 @@
 """One final durable Rift state before publication; explicit socket dedup only."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import time
 import unittest
@@ -112,9 +113,9 @@ class RiftFinalCheckpointPublicationTests(unittest.TestCase):
                 with patch.object(
                     case.registry,
                     "_accepted_ack",
-                    side_effect=ValueError("ACK rejected")
-                    if failure == "validation"
-                    else None,
+                    side_effect=(
+                        ValueError("ACK rejected") if failure == "validation" else None
+                    ),
                     return_value=case.shared.ack,
                 ):
                     with self.assertRaises(ValueError):

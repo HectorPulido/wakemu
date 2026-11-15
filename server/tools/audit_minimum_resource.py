@@ -1,4 +1,5 @@
 """Focused installed-family877 reachability and real common-entry audit."""
+
 import sys, json, random, struct
 from pathlib import Path
 
@@ -42,7 +43,7 @@ while pending:
             pending.append(parent)
 names = {
     r["id"]: r["name"]
-    for r in json.load(open("server/protocol/spell-names.json"))["spells"]
+    for r in json.load(open("database/protocol/spell-names.json"))["spells"]
 }
 users = []
 for key, v in spells["spells"].items():

@@ -1,8 +1,9 @@
 """Isolated PostgreSQL lifecycle for every offline native physical candidate."""
+
 import json
 import hashlib
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest

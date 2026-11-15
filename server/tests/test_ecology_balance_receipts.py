@@ -1,7 +1,9 @@
 """Receipt compatibility and prepared proposal authority for balanced ecology."""
+
 import unittest
 from psycopg.types.json import Jsonb
 from postgres_case import PostgresCase
+from lifecycle_fixture import due_tickets
 from wakfu_server import monster_maturation as maturation
 from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import REFERENCES, owned_instance
@@ -82,21 +84,10 @@ class EcologyBalanceReceiptTests(PostgresCase):
             for reference, (other, _) in maturation.STAGES.items()
             if other is not family and REFERENCES[reference].get("name")
         )
-        maturation.observe(
+        tickets = due_tickets(
             self.store,
-            *self.key[:2],
-            present=True,
-            generation="balance-test",
-            now_ms=0,
-            configuration=self.configuration
-        )
-        tickets = maturation.observe(
-            self.store,
-            *self.key[:2],
-            present=True,
-            generation="balance-test",
-            now_ms=1000,
-            configuration=self.configuration
+            "maturation",
+            *self.key,
         )
         ticket = next(row for row in tickets if row["monster_id"] == self.actor)
         with self.assertRaisesRegex(

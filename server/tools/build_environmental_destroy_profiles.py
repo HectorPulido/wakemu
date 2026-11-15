@@ -4,6 +4,7 @@
 The known species derive from external quest evidence joined to native records;
 no original user-group-template roster recovery is claimed. Requires source301.
 """
+
 from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
@@ -40,7 +41,7 @@ CATALOG = (
     ROOT
     / ".runtime/parallel-readiness-20261021/destroy8-source/native-two-actor-records.json"
 )
-SEED = ROOT / "server/seeds/environmental_destroy_profiles.sql"
+SEED = ROOT / "database/seeds/environmental_destroy_profiles.sql"
 MANIFEST = (
     ROOT
     / "agents_docs/reports/parallel-readiness-20261021/environmental-destroy-profile-manifest.json"
@@ -571,9 +572,11 @@ def compile_pipeline(
                         "first_completion" if mode == "race" else "score_at_deadline",
                         winners,
                         "commit_order" if mode == "race" else "character_id",
-                        "wakemu.character-race-original-destroy-group-capacity.v1;one-character-one-place;not-original-winner-limit"
-                        if mode == "race"
-                        else "wakemu.original-destroy-rank-conditions.v1;all-eligible-fallback;character-id-ties",
+                        (
+                            "wakemu.character-race-original-destroy-group-capacity.v1;one-character-one-place;not-original-winner-limit"
+                            if mode == "race"
+                            else "wakemu.original-destroy-rank-conditions.v1;all-eligible-fallback;character-id-ties"
+                        ),
                     )
                 ],
             )
@@ -722,9 +725,11 @@ def compile_pipeline(
                 original_group_count=source["native_user_group_quantity_to_spawn"],
                 minimum_contribution=threshold,
                 static_objective_quantity=required,
-                global_goal="persisted298monster_births"
-                if mode == "collaborative"
-                else "original_personal_threshold",
+                global_goal=(
+                    "persisted298monster_births"
+                    if mode == "collaborative"
+                    else "original_personal_threshold"
+                ),
                 native_region_floor_points=len(surfaces[(map_id, region_id)]),
             )
         )
@@ -850,7 +855,7 @@ def main():
     prior.extend(
         prior_resource_profiles(
             [
-                ROOT / "server/seeds" / name
+                ROOT / "database/seeds" / name
                 for name in (
                     "environmental_resource_profiles.sql",
                     "environmental_resource_races.sql",

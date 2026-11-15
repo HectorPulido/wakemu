@@ -1,7 +1,8 @@
 """Owned scene reconstruction clears the native riding latch, never peer actors."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from unittest.mock import patch

@@ -1,12 +1,12 @@
 """Original noncombat NPC positions, native sR masks and dispatcher boundaries."""
+
 import ast
 import copy
 import struct
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 
 from wakfu_server.maps import npc_placements
-
 
 CREATION_SOURCE = "eedbfd7561e0ae53398bab0eddd26bfac674fb77953d537cea4dbbecd9c4cd69"
 DUNGEON_SOURCE = "0410af8f82ee3c8a209efca093d0ebbdaf477be9f35801b1a63d4559f4e381cb"

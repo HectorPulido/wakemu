@@ -3,6 +3,7 @@
 Seed requirement/surface authorization come from installed data and caller.
 Duration comes from PostgreSQL local policy, not an official duration formula.
 """
+
 import struct
 import threading
 import uuid
@@ -19,14 +20,10 @@ class Plantings:
         *,
         open_test_policy=False,
         growth_seconds=30,
-        probability_context=None,
         location_context=None,
     ):
         self.store = store
         self.location_context = location_context
-        if probability_context is not None and not callable(probability_context):
-            raise ValueError("Invalid authoritative planting probability resolver")
-        self.probability_context = probability_context
         self.open_test_policy = bool(open_test_policy)
         self.growth_seconds = growth_seconds
         self.pending = {}
@@ -39,29 +36,13 @@ class Plantings:
         if type(growth_seconds) not in (int, float) or growth_seconds <= 0:
             raise ValueError("Invalid local planting growth delay")
 
-    def begin(
-        self, account, generation, character, body, authorize_cell, *, _prepared=None
-    ):
+    def _begin_prepared(self, account, generation, character, prepared):
         with self.lock:
-            prepared = (
-                _prepared
-                if _prepared is not None
-                else planting.prepare(
-                    self.store,
-                    account,
-                    generation,
-                    character,
-                    body,
-                    authorize_cell=authorize_cell,
-                    open_test_policy=self.open_test_policy,
-                    location_context=self.location_context,
-                )
-            )
             current = prepared["character"]
             cid = current["id"]
             old = self.pending.get(cid)
             if old and old["generation"] != generation:
-                self.cancel(cid, old["generation"], _skip_intents=_prepared is not None)
+                self.cancel(cid, old["generation"], _skip_intents=True)
             request = prepared["request"]
             key = (
                 current["map_id"],
@@ -99,19 +80,12 @@ class Plantings:
                 raise ValueError("Invalid PostgreSQL planting duration")
             # Freeze the server-owned context before accepting the occupation.
             # The client result never supplies a probability or a random draw.
-            probability = None
-            if _prepared is not None:
-                from .planting_probability import succeeds
+            from .planting_probability import succeeds
 
-                probability = _prepared["probability"]
-                succeeds(probability, 0.0)
-                if duration != _prepared["duration_ms"]:
-                    raise ValueError("Planting duration changed during preparation")
-            elif self.probability_context is not None:
-                from .planting_probability import succeeds
-
-                probability = self.probability_context(prepared)
-                succeeds(probability, 0.0)  # Validate without drawing or mutating.
+            probability = prepared["probability"]
+            succeeds(probability, 0.0)
+            if duration != prepared["duration_ms"]:
+                raise ValueError("Planting duration changed during preparation")
             from wakfu_server.profession_consumable_modifiers import (
                 modifiers,
                 duration_ms,
@@ -200,9 +174,7 @@ class Plantings:
             z = authorize_cell(character, request, seed, definition)
             if type(z) is not int or z != prepared.get("z"):
                 raise ValueError("Planting prepared surface changed")
-            return self.begin(
-                account, generation, character, body, authorize_cell, _prepared=prepared
-            )
+            return self._begin_prepared(account, generation, character, prepared)
 
     def cancel(self, character_id, generation=None, *, _skip_intents=False):
         intents = getattr(self, "ecology_intents", None)
@@ -294,103 +266,29 @@ class Plantings:
             visible_chunks = frozenset(chunks)
         if visible_chunks is not None and not visible_chunks:
             return []
+        # Select only requested partitions before transferring rows from SQL.
+        # Rust still validates/filter-encodes the whole compact batch once.
+        predicate = ""
+        parameters = [map_id, instance_id]
+        if visible_chunks is not None:
+            bounds = []
+            for cx, cy in sorted(visible_chunks):
+                bounds.append("(x >= %s AND x < %s AND y >= %s AND y < %s)")
+                parameters.extend((cx * 18, cx * 18 + 18, cy * 18, cy * 18 + 18))
+            predicate = " AND (" + " OR ".join(bounds) + ")"
         with self.store.connection() as db:
             rows = list(
                 db.execute(
-                    "SELECT * FROM planted_resources WHERE map_id=%s AND instance_id=%s ORDER BY resource_uid",
-                    (map_id, instance_id),
+                    "SELECT resource_reference,x,y,z,stage FROM planted_resources "
+                    "WHERE map_id=%s AND instance_id=%s"
+                    + predicate
+                    + " ORDER BY resource_uid",
+                    tuple(parameters),
                 )
             )
-        return [
-            planting.resource_packet(dict(row))
-            for row in rows
-            if visible_chunks is None or chunk(dict(row)) in visible_chunks
-        ]
+        from .scene_wire_native import resource_packets
 
-    def mature(
-        self,
-        groups,
-        *,
-        publish,
-        authorize_spawn=lambda resource: True,
-        random_draw=lambda: secrets.randbelow(1 << 53) / (1 << 53),
-    ):
-        """Database-owned flora transitions and existing monster seed timing.
-
-        SQL outbox survives Redis outages. Caller excludes live players/objects
-        and group occupancy before spawn. No lease belongs to a planted world
-        resource: it continues growing after its planter logs out.
-        """
-        from .mining_veins import refill
-
-        # Minerals retain fixed slots and use their own SQL respawn deadlines.
-        # Their queued full appearances share only the durable delivery outbox.
-        with self.publisher_lock:
-            refill(self.store)
-            from .fishing_spots import refill as refill_fishing
-
-            refill_fishing(self.store)
-        due = int((self.store.clock() - self.growth_seconds) * 1000)
-        now_ms = int(self.store.clock() * 1000)
-        monster_references = [
-            ref
-            for ref, definition in planting.RESOURCES.items()
-            if definition["monster_resource"]
-        ]
-        with self.store.connection() as db:
-            resources = [
-                dict(row)
-                for row in db.execute(
-                    "SELECT * FROM planted_resources WHERE stage=1 AND creation_time<=%s "
-                    "AND resource_reference=ANY(%s)",
-                    (due, monster_references),
-                )
-            ]
-            from wakfu_server import dungeon_resource_obstacles
-
-            dungeon_owned = dungeon_resource_obstacles.owned_uids(db)
-            flora = list(
-                db.execute(
-                    "SELECT p.*,t.to_stage,t.delay_ms,t.probability FROM planted_resources p "
-                    "JOIN resource_growth_transitions t ON t.resource_reference=p.resource_reference "
-                    "AND t.from_stage=p.stage WHERE p.creation_time+t.delay_ms<=%s "
-                    "AND NOT EXISTS (SELECT 1 FROM environmental_owned_resources e "
-                    "WHERE e.resource_uid=p.resource_uid AND e.retired_at_ms IS NULL) "
-                    "AND NOT EXISTS (SELECT 1 FROM resource_growth_decisions d "
-                    "WHERE d.resource_uid=p.resource_uid AND d.from_stage=p.stage)",
-                    (now_ms,),
-                )
-            )
-        candidates = []
-        for resource in resources:
-            definition = planting.RESOURCES[resource["resource_reference"]]
-            if definition["monster_resource"] and not authorize_spawn(resource):
-                continue
-            candidates.append((resource, definition, None))
-        for row in flora:
-            if row["resource_uid"] in dungeon_owned:
-                continue
-            from .resource_domains import is_fixed_resource
-
-            if is_fixed_resource(row["resource_reference"]):
-                continue
-            resource = {
-                key: value
-                for key, value in row.items()
-                if key not in ("to_stage", "delay_ms", "probability")
-            }
-            definition = planting.RESOURCES[resource["resource_reference"]]
-            transition = (row["to_stage"], row["delay_ms"], row["probability"])
-            if (
-                definition["monster_resource"]
-                or row["to_stage"] not in definition["stages"]
-            ):
-                raise ValueError(
-                    "Growth transition is absent from native flora definition"
-                )
-            candidates.append((resource, definition, transition))
-        self.apply_growth_candidates(candidates, random_draw=random_draw)
-        return self.publish_growth(groups, publish=publish)
+        return resource_packets(rows, visible_chunks)
 
     def apply_growth_candidates(
         self,
@@ -457,7 +355,7 @@ class Plantings:
                         continue
                     member = (prepared_members or {}).get(resource["resource_uid"])
                     if member is None:
-                        member = monster_growth_member(resource, definition)
+                        raise ValueError("Prepared native monster member is required")
                     from .npc_actor_identity import allocate_block
 
                     member = dict(member, id=-allocate_block(db, 1))
@@ -587,13 +485,15 @@ class Plantings:
                         )
                 else:
                     packets = [
-                        planting.resource_packet(resource)
-                        if (
-                            resource.get("mining_spawn")
-                            or resource.get("fishing_spawn")
-                            or resource.get("flora_spawn")
+                        (
+                            planting.resource_packet(resource)
+                            if (
+                                resource.get("mining_spawn")
+                                or resource.get("fishing_spawn")
+                                or resource.get("flora_spawn")
+                            )
+                            else state_packet(resource, resource["stage"])
                         )
-                        else state_packet(resource, resource["stage"])
                     ]
                 delivery = dict(
                     map_id=resource["map_id"],
@@ -636,95 +536,3 @@ def state_packet(resource, stage):
         0,
         0,
     )
-
-
-class NoEligibleMonsterGrowth(ValueError):
-    """A native seed family currently has no publishable ordinary birth form."""
-
-
-def monster_growth_member(resource, definition, *, decision_seed=None):
-    """Choose uniformly among this seed's native initial family alternatives.
-
-    Selection happens once before the durable growth payload is recorded;
-    publication retries reuse that payload and never draw a new identity/form.
-    A decision seed preserves the preference across periodic batch reshuffling.
-    The real actor identity is allocated transactionally when growth commits.
-    """
-    from .monsters import REFERENCES, owned_instance
-    from .monster_collect import _actions
-
-    seed_refs = {
-        s["item_reference"]
-        for s in planting.SEEDS.values()
-        if s["resource_reference"] == definition["resource_reference"]
-    }
-    eligible = []
-    fallback = []
-    for ref, template in REFERENCES.items():
-        if template["family_id"] not in definition["monster_family_ids"]:
-            continue
-        try:
-            member = owned_instance(
-                ref,
-                template["min_level"],
-                -1,
-                map_id=resource["map_id"],
-                x=resource["x"],
-                y=resource["y"],
-                z=resource["z"],
-            )
-        except ValueError:
-            continue
-        key = (template["min_level"], ref)
-        fallback.append((key, ref))
-        if any(
-            raw["csP"] in seed_refs
-            and raw["clT"].strip() in ("", 'not IsDead("target")')
-            for (m, a), raw in _actions().items()
-            if m == ref
-        ):
-            eligible.append((key, ref))
-    choices = eligible or fallback
-    if not choices:
-        raise NoEligibleMonsterGrowth(
-            "Native seed family has no valid local monster growth template"
-        )
-    from .monster_family_stages import initial_candidates
-
-    allowed = {ref for _, ref in choices}
-    candidates = [
-        candidate
-        for family_id in definition["monster_family_ids"]
-        for candidate in initial_candidates(family_id, eligible_references=allowed)
-    ]
-    if not candidates:
-        raise NoEligibleMonsterGrowth(
-            "Native seed family has no eligible initial monster form"
-        )
-    if decision_seed is None:
-        ref = secrets.choice(candidates)["reference"]
-        group_id = secrets.randbits(62) + 1
-    else:
-        import hashlib
-
-        def rank(label):
-            return hashlib.sha256(f"{decision_seed}:{label}".encode()).digest()
-
-        ref = min(candidates, key=lambda c: rank(f"variant:{c['reference']}"))[
-            "reference"
-        ]
-        group_id = (
-            int.from_bytes(rank("preview_identity")[:8], "big") % ((1 << 62) - 1)
-        ) + 1
-    template = REFERENCES[ref]
-    member = owned_instance(
-        ref,
-        template["min_level"],
-        -group_id,
-        map_id=resource["map_id"],
-        x=resource["x"],
-        y=resource["y"],
-        z=resource["z"],
-        instance_id=resource["instance_id"],
-    )
-    return member

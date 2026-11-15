@@ -214,7 +214,7 @@ class NativeStateHandlerTests(unittest.TestCase):
             native_state_resistance_mode,
         )
 
-        protocol = Path(__file__).resolve().parents[1] / "protocol"
+        protocol = Path(__file__).resolve().parents[2] / "database" / "protocol"
         area_path = protocol / "native-area-effect-trees.json"
         captured_path = protocol / "native-class-captured-effect-closure.json"
         with native_catalog.open(area_path, "rt") as source:

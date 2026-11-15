@@ -1,4 +1,5 @@
 """PostgreSQL/Redis regressions for automatic dungeon position barriers."""
+
 import os
 import struct
 import threading
@@ -103,21 +104,24 @@ class SelectedPositionRebindTests(unittest.TestCase):
         from wakfu_server.position_buffer import PositionBaselineChanged
 
         character = self.character(1, 10, 1)
-        self.select(1, 7, character["id"])
-        self.live_accounts.add((1, 7))
-        self.positions.attach(1, 7, character)
+        self.select(1, "7", character["id"])
+        self.live_accounts.add((1, "7"))
+        self.positions.attach(1, "7", character)
         prepared = dict(character)
-        previous = self.positions.entries[(1, 7, character["id"])]
+        previous = self.positions.entry_state((1, "7", character["id"]))
         # Another committed travel wins after hydration prepared its packets.
         character.update(map_id=1086, instance_id=90, x=7)
         with self.assertRaises(PositionBaselineChanged):
-            self.positions.attach(1, 7, prepared)
-        self.assertIs(self.positions.entries[(1, 7, character["id"])], previous)
+            self.positions.attach(1, "7", prepared)
+        self.assertEqual(
+            self.positions.entry_state((1, "7", character["id"])), previous
+        )
         self.assertEqual(previous["current"]["map_id"], 1)
         fresh = dict(self.store.characters[(1, character["id"])])
-        self.positions.attach(1, 7, fresh)
+        self.positions.attach(1, "7", fresh)
         self.assertEqual(
-            self.positions.entries[(1, 7, character["id"])]["persisted"]["map_id"], 1086
+            self.positions.entries[(1, "7", character["id"])]["persisted"]["map_id"],
+            1086,
         )
 
     def test_main_to_hero_switch_prunes_only_old_clean_entry_and_keeps_attach_strict(
@@ -130,11 +134,11 @@ class SelectedPositionRebindTests(unittest.TestCase):
             self.character(1, 11, 2),
             self.character(2, 20, 3),
         )
-        self.select(1, 7, main["id"])
-        self.select(2, 9, foreign["id"])
-        self.live_accounts.update({(1, 7), (2, 9)})
-        self.positions.attach(1, 7, main)
-        self.positions.attach(2, 9, foreign)
+        self.select(1, "7", main["id"])
+        self.select(2, "9", foreign["id"])
+        self.live_accounts.update({(1, "7"), (2, "9")})
+        self.positions.attach(1, "7", main)
+        self.positions.attach(2, "9", foreign)
 
         # Company selection changes under the same account generation. The
         # former main's clean entry is obsolete; the other account is untouched.
@@ -143,35 +147,41 @@ class SelectedPositionRebindTests(unittest.TestCase):
             self.positions,
             1,
             transition=lambda: (
-                self.select(1, 7, hero["id"]),
+                self.select(1, "7", hero["id"]),
                 {"selected": hero["id"]},
             )[1],
         )
         self.assertEqual({"selected": hero["id"]}, result)
-        self.assertNotIn((1, 7, main["id"]), self.positions.entries)
-        self.assertIn((2, 9, foreign["id"]), self.positions.entries)
+        self.assertNotIn((1, "7", main["id"]), self.positions.entries)
+        self.assertIn((2, "9", foreign["id"]), self.positions.entries)
         with self.assertRaisesRegex(ValueError, "Invalid buffered position session"):
-            self.positions.attach(1, 7, main)
-        self.assertEqual(hero, self.positions.attach(1, 7, hero))
+            self.positions.attach(1, "7", main)
+        self.assertEqual(hero, self.positions.attach(1, "7", hero))
 
     def test_dirty_stale_entry_is_retained_and_release_cas_errors_are_not_masked(self):
         from wakfu_server import dungeon_position_barrier
 
         main = self.character(1, 10, 1)
         hero = self.character(1, 11, 2)
-        self.select(1, 7, main["id"])
-        self.live_accounts.add((1, 7))
-        self.positions.attach(1, 7, main)
-        self.positions.entries[(1, 7, main["id"])]["dirty"] = True
-        self.select(1, 7, hero["id"])
+        self.select(1, "7", main["id"])
+        self.live_accounts.add((1, "7"))
+        self.positions.attach(1, "7", main)
+        self.positions.move(
+            1,
+            "7",
+            main["id"],
+            main,
+            dict(x=main["x"] + 1, y=main["y"], z=main["z"]),
+        )
+        self.select(1, "7", hero["id"])
         with self.assertRaisesRegex(ValueError, "requires a clean position baseline"):
             dungeon_position_barrier._rebind_clean(self.store, self.positions, (1,))
-        self.assertIn((1, 7, main["id"]), self.positions.entries)
-        self.assertTrue(self.positions.entries[(1, 7, main["id"])]["dirty"])
+        self.assertIn((1, "7", main["id"]), self.positions.entries)
+        self.assertTrue(self.positions.entries[(1, "7", main["id"])]["dirty"])
 
         class FailedCAS:
             def _entry_snapshot(self):
-                return [((1, 7, 10), {"dirty": False})]
+                return [((1, "7", 10), {"dirty": False})]
 
             def lease_active(self, *_key):
                 return True
@@ -193,18 +203,18 @@ class SelectedPositionRebindTests(unittest.TestCase):
     ):
         main = self.character(1, 10, 1)
         hero = self.character(1, 11, 2)
-        self.select(1, 7, hero["id"])
-        self.assertIsNone(self.positions.rebind_selected(1, 7, main["id"]))
+        self.select(1, "7", hero["id"])
+        self.assertIsNone(self.positions.rebind_selected(1, "7", main["id"]))
         with self.assertRaisesRegex(ValueError, "Invalid buffered position session"):
-            self.positions.attach(1, 7, main)
+            self.positions.attach(1, "7", main)
 
-        self.select(1, 7, main["id"], expires_at=100)
-        self.assertIsNone(self.positions.rebind_selected(1, 7, main["id"]))
+        self.select(1, "7", main["id"], expires_at=100)
+        self.assertIsNone(self.positions.rebind_selected(1, "7", main["id"]))
         with self.assertRaisesRegex(ValueError, "Invalid buffered position session"):
-            self.positions.attach(1, 7, main)
+            self.positions.attach(1, "7", main)
 
-        self.store.sessions.pop((1, 7))
-        self.assertIsNone(self.positions.rebind_selected(1, 7, main["id"]))
+        self.store.sessions.pop((1, "7"))
+        self.assertIsNone(self.positions.rebind_selected(1, "7", main["id"]))
         self.assertEqual([], self.store.loaded)
 
     def test_auto_transition_rebinds_selected_hero_and_other_account_after_commit(self):
@@ -215,18 +225,18 @@ class SelectedPositionRebindTests(unittest.TestCase):
             self.character(1, 11, 2),
             self.character(2, 20, 3),
         )
-        self.select(1, 7, main["id"])
-        self.select(2, 9, foreign["id"])
-        self.live_accounts.update({(1, 7), (2, 9)})
+        self.select(1, "7", main["id"])
+        self.select(2, "9", foreign["id"])
+        self.live_accounts.update({(1, "7"), (2, "9")})
         self.store.members = [
             {"id": main["id"], "account_id": 1},
             {"id": hero["id"], "account_id": 1},
             {"id": foreign["id"], "account_id": 2},
         ]
-        self.positions.attach(1, 7, main)
-        self.select(1, 7, hero["id"])
-        self.positions.attach(1, 7, hero)
-        self.positions.attach(2, 9, foreign)
+        self.positions.attach(1, "7", main)
+        self.select(1, "7", hero["id"])
+        self.positions.attach(1, "7", hero)
+        self.positions.attach(2, "9", foreign)
 
         def committed_transition(_store, _instance, _fight, **_kwargs):
             for character in (hero, foreign):
@@ -246,18 +256,18 @@ class SelectedPositionRebindTests(unittest.TestCase):
             in_fight=lambda _character_id: False,
         )
         self.assertEqual({"moved": [hero["id"], foreign["id"]]}, result)
-        self.assertNotIn((1, 7, main["id"]), self.positions.entries)
+        self.assertNotIn((1, "7", main["id"]), self.positions.entries)
         self.assertEqual(
             (1086, 0, 152, -10, 0),
             tuple(
-                self.positions.entries[(1, 7, hero["id"])]["persisted"][key]
+                self.positions.entries[(1, "7", hero["id"])]["persisted"][key]
                 for key in ("map_id", "instance_id", "x", "y", "z")
             ),
         )
         self.assertEqual(
             (1086, 0, 152, -10, 0),
             tuple(
-                self.positions.entries[(2, 9, foreign["id"])]["persisted"][key]
+                self.positions.entries[(2, "9", foreign["id"])]["persisted"][key]
                 for key in ("map_id", "instance_id", "x", "y", "z")
             ),
         )

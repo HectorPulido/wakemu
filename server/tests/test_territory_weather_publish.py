@@ -2,12 +2,10 @@ import struct
 import unittest
 import ast
 import json
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import patch
 
 from wakfu_server.global_tasks import GlobalTasks
-from wakfu_server import territory_weather
-from wakfu_server import territory_weather_forecast
 from wakfu_server.territory_weather import publish_to_world
 
 
@@ -150,106 +148,17 @@ class TerritoryWeatherPublicationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             GlobalTasks({"arbitrary_weather": lambda: None})
 
-    def test_tick_applies_transitions_then_retries_outbox_publication(self):
-        event = dict(
-            map_id=1134,
-            instance_id=17,
-            region_id=79201,
-            revision=3,
-            weather="STORM",
-            native_payload=self.payload(3),
-        )
-        calls = []
-
-        def advance(_store, *, limit):
-            calls.append(("advance", limit))
-            return [event]
-
-        def publish_pending(_store, callback, *, limit):
-            calls.append(("pending", limit))
-            callback(event)
-            return 1
-
-        forecast_event = dict(
-            map_id=1134,
-            instance_id=17,
-            region_id=79201,
-            policy_version=4,
-        )
-
-        def publish_forecasts(_store, callback, *, limit):
-            calls.append(("forecast_pending", limit))
-            callback(forecast_event)
-            return 1
-
-        with patch.object(
-            territory_weather, "advance_due", side_effect=advance
-        ), patch.object(
-            territory_weather, "publish_pending", side_effect=publish_pending
-        ), patch.object(
-            territory_weather,
-            "publish_to_world",
-            side_effect=lambda _world, _event: calls.append(("publish",)) or 1,
-        ), patch.object(
-            territory_weather_forecast,
-            "publish_pending",
-            side_effect=publish_forecasts,
-        ), patch.object(
-            territory_weather_forecast,
-            "publish_to_world",
-            side_effect=lambda _store, _world, _event: calls.append(
-                ("forecast_publish",)
-            )
-            or 1,
-        ):
-            result = territory_weather.tick_weather(object(), object(), limit=7)
-        self.assertEqual(
-            result, {"advanced": 1, "published": 1, "forecast_published": 1}
-        )
-        self.assertEqual(
-            calls,
-            [
-                ("advance", 7),
-                ("pending", 7),
-                ("publish",),
-                ("forecast_pending", 7),
-                ("forecast_publish",),
-            ],
-        )
-
-    def test_server_callback_and_cron_configuration_are_connected_to_weather_tick(self):
+    def test_world_does_not_register_a_competing_weather_producer(self):
         server_root = Path(__file__).resolve().parents[1]
-        source = ast.parse((server_root / "local_game_server.py").read_text())
+        source = ast.parse(
+            (server_root / "wakfu_server/application/bootstrap.py").read_text()
+        )
         main = next(
             node
             for node in source.body
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and node.name == "main"
+            if isinstance(node, ast.FunctionDef) and node.name == "main"
         )
-        callback = next(
-            node
-            for node in main.body
-            if isinstance(node, ast.FunctionDef)
-            and node.name == "tick_territory_weather"
-        )
-        store, world = object(), object()
-        namespace = {"STORE": store, "WORLD": world}
-        exec(
-            compile(
-                ast.Module(body=[callback], type_ignores=[]),
-                "local_game_server.py",
-                "exec",
-            ),
-            namespace,
-        )
-        tick_result = {"advanced": 0, "published": 0, "forecast_published": 0}
-        with patch.object(
-            territory_weather, "tick_weather", return_value=tick_result
-        ) as tick:
-            self.assertEqual(namespace[callback.name](), tick_result)
-        tick.assert_called_once_with(store, world)
-
-        registrations = [
+        registration = next(
             node
             for node in main.body
             if isinstance(node, ast.Assign)
@@ -257,33 +166,13 @@ class TerritoryWeatherPublicationTests(unittest.TestCase):
                 isinstance(target, ast.Name) and target.id == "callbacks"
                 for target in node.targets
             )
-        ]
-        self.assertEqual(len(registrations), 1)
-        registration_index = main.body.index(registrations[0])
-        conditional_registration = main.body[registration_index + 1]
-        self.assertIsInstance(conditional_registration, ast.If)
-        registration_code = compile(
-            ast.Module(
-                body=[registrations[0], conditional_registration], type_ignores=[]
-            ),
-            "local_game_server.py",
-            "exec",
         )
-        for mode in ("inline", "external", "disabled"):
-            namespace = dict(
-                ECOLOGY_MODE=mode,
-                flush_positions=object(),
-                tick_territory_weather=object(),
-            )
-            exec(registration_code, namespace)
-            self.assertEqual(
-                "territory_weather_tick" in namespace["callbacks"], mode == "inline"
-            )
+        keys = [key.value for key in registration.value.keys]
+        self.assertEqual(keys, ["positions_flush"])
         seed = (server_root / "migrations/151_cron_scheduler_policy.sql").read_text()
-        config = json.loads(seed.split("$cron_policy$")[1])
-        task = config["tasks"]["territory_weather_tick"]
-        # Compose delegates ecology to the external worker; a simultaneous cron
-        # weather loop must stay disabled. Inline still registers its callback.
+        task = json.loads(seed.split("$cron_policy$")[1])["tasks"][
+            "territory_weather_tick"
+        ]
         self.assertFalse(task["enabled"])
         self.assertEqual(
             task["url"], "http://world:18081/test/tasks/territory_weather_tick"

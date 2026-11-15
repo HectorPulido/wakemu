@@ -1,11 +1,11 @@
 """Behavioral tests for the nested local chat command dispatcher."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from unittest.mock import patch
 
 from wakfu_server.command_search import build_index
-
 
 SOURCE = Path(__file__).parents[1] / "local_game_server.py"
 

@@ -1,7 +1,8 @@
 """Production movement checkpoints must hydrate resource-only partitions."""
+
 import ast
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 from unittest.mock import Mock

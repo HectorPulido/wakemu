@@ -1,4 +1,5 @@
 """Explicit fixture adapter. The complete entity serializer is still pending."""
+
 from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import struct
@@ -8,6 +9,12 @@ from pathlib import Path
 from protocol_codec import Reader, APPEARANCE_FIELDS
 from wakfu_server.spells import spell_inventory, default_deck
 from wakfu_server.progression import level_xp, character_xp
+from wakfu_server.wire_native import (
+    patch as _patch_entity,
+    entity_record as _entity_record,
+    assemble as _assemble_entity,
+    roster as _assemble_roster,
+)
 
 TEMPLATE_ACCOUNT = 83668792
 TEMPLATE_CHARACTER = 2409354
@@ -130,7 +137,7 @@ def register_synthetic_bootstrap(metadata):
     SYNTHETIC_BOOTSTRAP = True
 
 
-def minimal_entity(body, character):
+def minimal_entity(body, character, *, preserve_achievements=False):
     """Replace verified fixture sections with the client's own empty encoding."""
     if character.get("level") is None:
         return body
@@ -148,20 +155,31 @@ def minimal_entity(body, character):
         )
         from wakfu_server.characters.nation_state import nation_id, synchro
 
-        return (
-            body[:1]
-            + struct.pack(">i", nation_id(character))
-            + synchro(character)
-            + body[32:]
+        return _patch_entity(
+            body,
+            [(1, 32, struct.pack(">i", nation_id(character)) + synchro(character))],
         )
+    return _patch_entity(
+        body,
+        _entity_replacements(
+            body, character, preserve_achievements=preserve_achievements
+        ),
+    )
+
+
+def _entity_replacements(body, character, *, preserve_achievements=False):
+    """Gather domain payloads against verified original template offsets."""
+    if character.get("level") is None:
+        return []
     level_xp(character["level"])
     layout = ENTITY_LAYOUTS.get(body[0])
     if layout is None or not any(
         s["name"] in EMPTY_SECTIONS for s in layout["sections"]
     ):
-        return body
+        return []
     if hashlib.sha256(body).hexdigest() != layout["template_sha256"]:
         raise ValueError("Entity fixture does not match verified section boundaries")
+    replacements = []
     for section in reversed(layout["sections"]):
         replacement = None
         if section["name"] == "CREATION_DATA" and character.get("recustomization"):
@@ -229,6 +247,11 @@ def minimal_entity(body, character):
             from wakfu_server.characters.cosmetics import actor_component
 
             replacement = actor_component(character)
+        elif section["name"] == "ACHIEVEMENTS" and preserve_achievements:
+            # Native STORAGE_SAFETY (configuration304) treats an absent section
+            # as unchanged. Existing-actor updates must retain bdM identity:
+            # journal providers keep references to that live achievement model.
+            replacement = b"\x00\x00\x00"
         elif (
             section["name"] == "ACHIEVEMENTS"
             and character.get("achievement_section") is not None
@@ -305,8 +328,8 @@ def minimal_entity(body, character):
         elif section["name"] in EMPTY_SECTIONS:
             replacement = ENTITY_DEFAULTS[section["name"]]
         if replacement is not None:
-            body = body[: section["start"]] + replacement + body[section["end"] :]
-    return body
+            replacements.append((section["start"], section["end"], replacement))
+    return replacements
 
 
 def owned_public_characteristics(character):
@@ -551,14 +574,16 @@ def attribute_sheets(body, characters):
     from wakfu_server.builds import equipment_registry
 
     result = b"".join(
-        proto_field(10, equipment_registry(character))
-        if character.get("level") is not None
-        else proto_field(
-            10,
-            b"".join(
-                proto_field(tag, character["id"] if tag == 16 else value)
-                for tag, value in template
-            ),
+        (
+            proto_field(10, equipment_registry(character))
+            if character.get("level") is not None
+            else proto_field(
+                10,
+                b"".join(
+                    proto_field(tag, character["id"] if tag == 16 else value)
+                    for tag, value in template
+                ),
+            )
         )
         for character in characters
     )
@@ -582,52 +607,91 @@ def header(body, account_id, character):
     name = r.text("H")
     if name != TEMPLATE_NAME:
         raise ValueError("Unexpected captured character header")
-    suffix = body[r.pos :]
     encoded_name = character["name"].encode()
-    return (
-        identity(body[:18], account_id, character)
-        + struct.pack(">H", len(encoded_name))
-        + encoded_name
-        + suffix
+    return _patch_entity(
+        body,
+        [
+            (0, 18, identity(body[:18], account_id, character)),
+            (18, r.pos, struct.pack(">H", len(encoded_name)) + encoded_name),
+        ],
     )
+
+
+def _position_projection(character):
+    encoded = struct.pack(">iih", character["x"], character["y"], character["z"])
+    map_id = None
+    if "map_id" in character:
+        from wakfu_server.guild_haven_world import world_identity
+
+        map_id = world_identity(character)
+        # Preserve native fiH.su(guild)=-guild for an owned Haven World.
+        map_id = struct.unpack(">q", struct.pack(">q", map_id))[0]
+    direction = character.get("direction") if "direction" in character else None
+    if "direction" in character and (
+        type(direction) is not int or not 0 <= direction <= 7
+    ):
+        raise ValueError("Invalid native world direction")
+    return encoded, map_id, direction
 
 
 def position(body, character):
     if body.count(INITIAL_POSITION) != 1:
         raise ValueError("Ambiguous captured position")
     offset = body.index(INITIAL_POSITION)
-    result = body.replace(
-        INITIAL_POSITION,
-        struct.pack(">iih", character["x"], character["y"], character["z"]),
-    )
-    if "map_id" in character:
-        from wakfu_server.guild_haven_world import world_identity
-
-        map_id = world_identity(character)
-        # rE.Vp becomes eGj.arM(). Ordinary actors retain the positive asset
-        # identity; an owned Haven World uses native fiH.su(guild)=-guild.
-        # Positive server-instance identity remains separate in both cases.
+    encoded, map_id, direction = _position_projection(character)
+    replacements = [(offset, offset + len(INITIAL_POSITION), encoded)]
+    if map_id is not None:
         map_offset = offset + struct.calcsize(">iih")
-        if map_offset + 8 > len(result):
+        if map_offset + 8 > len(body):
             raise ValueError("Truncated native world position")
-        result = (
-            result[:map_offset] + struct.pack(">q", map_id) + result[map_offset + 8 :]
-        )
-    if "direction" in character:
-        direction = character["direction"]
-        if type(direction) is not int or not 0 <= direction <= 7:
-            raise ValueError("Invalid native world direction")
-        # rE: x:i32,y:i32,z:i16,map:i64,direction:u8,present:u8,
-        # followed by the secondary rH position. Preserve the secondary data.
+        replacements.append((map_offset, map_offset + 8, struct.pack(">q", map_id)))
+    if direction is not None:
         direction_offset = offset + struct.calcsize(">iihq")
-        if direction_offset >= len(result):
+        if direction_offset >= len(body):
             raise ValueError("Truncated native world position")
-        result = (
-            result[:direction_offset]
-            + bytes([direction])
-            + result[direction_offset + 1 :]
+        replacements.append(
+            (direction_offset, direction_offset + 1, bytes([direction]))
         )
-    return result
+    return _patch_entity(body, replacements)
+
+
+def _owned_entity_record(
+    template,
+    account_id,
+    character,
+    *,
+    positioned=False,
+    preserve_achievements=False,
+    wrapper=0,
+):
+    replacements = _entity_replacements(
+        template, character, preserve_achievements=preserve_achievements
+    )
+    encoded, map_id, direction = (
+        _position_projection(character) if positioned else (b"", None, None)
+    )
+    return _entity_record(
+        template,
+        replacements,
+        expected_name=TEMPLATE_NAME.encode("utf-8"),
+        name=character["name"].encode("utf-8"),
+        initial_position=INITIAL_POSITION,
+        position=encoded,
+        positioned=positioned,
+        map_id=map_id,
+        direction=direction,
+        template_account=TEMPLATE_ACCOUNT,
+        account_id=account_id,
+        template_character=TEMPLATE_CHARACTER,
+        character_id=character["id"],
+        wrapper=wrapper,
+    )
+
+
+def _owned_entity(template, account_id, character, **options):
+    return _assemble_entity(
+        _owned_entity_record(template, account_id, character, **options)
+    )
 
 
 def character_list(template, account_id, characters):
@@ -638,34 +702,33 @@ def character_list(template, account_id, characters):
     r = Reader(template)
     r.take(1)
     template_blob = r.take(r.number("I"))
-    result = bytearray([len(characters)])
-    for character in characters:
-        blob = header(minimal_entity(template_blob, character), account_id, character)
-        result.extend(struct.pack(">I", len(blob)))
-        result.extend(blob)
-    result.extend(b"\x00")  # No inherited companion records.
-    return bytes(result)
+    return _assemble_roster(
+        [
+            _owned_entity_record(template_blob, account_id, character, wrapper=3)
+            for character in characters
+        ]
+    )
 
 
 def spawn_player(template, character):
-    blob = header(
-        position(minimal_entity(template, character), character),
-        character["account_id"],
-        character,
+    return _owned_entity(
+        template, character["account_id"], character, positioned=True, wrapper=1
     )
-    return b"\x00\x01" + struct.pack(">BqH", 0, character["id"], len(blob)) + blob
 
 
 def refresh_player(template, character):
     """15548: update an existing actor from the same own entity serializer."""
-    from .mount_codec import entity_refresh
+    from .mount_codec import _integer
 
-    blob = header(
-        position(minimal_entity(template, character), character),
+    _integer(character["id"], 1, (1 << 63) - 1)
+    return 15548, _owned_entity(
+        template,
         character["account_id"],
         character,
+        positioned=True,
+        preserve_achievements=True,
+        wrapper=2,
     )
-    return entity_refresh(character["id"], blob)
 
 
 def remove_player(character_id):

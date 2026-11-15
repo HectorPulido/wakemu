@@ -164,7 +164,10 @@ class MountFeedingTests(PostgresCase):
     def test_seeded_food_policy_matches_every_model_native_catalog_entry(self):
         catalog = json.loads(
             native_catalog.read_text(
-                Path(__file__).parents[1] / "protocol" / "mount-models.json"
+                Path(__file__).parents[2]
+                / "database"
+                / "protocol"
+                / "mount-models.json"
             )
         )
         expected = set()

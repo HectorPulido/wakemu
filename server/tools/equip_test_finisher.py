@@ -1,4 +1,5 @@
 """Explicit development-only grant and equip of one native finisher."""
+
 import argparse
 import json
 import os
@@ -7,6 +8,7 @@ from psycopg.types.json import Jsonb
 from wakfu_server.store import Store
 from wakfu_server.characters.cosmetics import OwnedCosmetics
 from wakfu_server.characters.cosmetic_store import load
+from wakfu_server.paths import DATA_ROOT
 
 
 def main():
@@ -15,11 +17,7 @@ def main():
     parser.add_argument("--finisher", type=int, required=True)
     parser.add_argument("--grant-for-test", action="store_true")
     args = parser.parse_args()
-    catalog = json.loads(
-        (
-            Path(__file__).resolve().parents[1] / "protocol/native-finisher-items.json"
-        ).read_text()
-    )
+    catalog = json.loads((DATA_ROOT / "native-finisher-items.json").read_text())
     entry = next(
         (row for row in catalog["items"] if row["reference"] == args.finisher), None
     )

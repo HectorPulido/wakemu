@@ -4,7 +4,6 @@ from wakfu_server import (
     monster_reproduction,
     monster_population_cleanup,
     monster_removal_ecology,
-    monster_active_clocks,
     monster_population_capacity,
     monster_harvest_ecology,
 )
@@ -14,7 +13,6 @@ for module in (
     monster_reproduction,
     monster_population_cleanup,
     monster_removal_ecology,
-    monster_active_clocks,
     monster_population_capacity,
     monster_harvest_ecology,
 ):

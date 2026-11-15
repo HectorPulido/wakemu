@@ -1,7 +1,8 @@
 """Native walking gates preserve durable victories without changing combat terrain."""
+
 import ast
 import json
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from unittest.mock import patch
@@ -14,11 +15,11 @@ ROOT = Path(__file__).resolve().parents[2]
 class PhysicalDoorTests(unittest.TestCase):
     def setUp(self):
         self.config = json.loads(
-            (ROOT / "docs/reports/dungeons/TOFU-RUNTIME-V3.json").read_text()
+            (ROOT / "agents_docs/reports/dungeons/TOFU-RUNTIME-V3.json").read_text()
         )
         self.topology = self.config["topology"]
         self.flow = json.loads(
-            (ROOT / "docs/reports/dungeons/TOFU-NATIVE-FLOW.json").read_text()
+            (ROOT / "agents_docs/reports/dungeons/TOFU-NATIVE-FLOW.json").read_text()
         )
 
     def request(self, path):
@@ -43,7 +44,7 @@ class PhysicalDoorTests(unittest.TestCase):
     ):
         witness = json.loads(
             (
-                ROOT / "docs/reports/dungeons/TOFU-FIRST-GROUP-REACHABILITY.json"
+                ROOT / "agents_docs/reports/dungeons/TOFU-FIRST-GROUP-REACHABILITY.json"
             ).read_text()
         )
         path = witness["path"]
@@ -71,7 +72,7 @@ class PhysicalDoorTests(unittest.TestCase):
     def test_diagonal_gate_bypass_rejected(self):
         topology = dict(
             policy=doors.POLICY,
-            rooms=[{}, {}],
+            rooms=[dict(order=1), dict(order=2)],
             physical_doors=[dict(position=[1, 0, 0], destination_room=2)],
             exploration_geometry=dict(
                 cells=[[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]],
@@ -83,13 +84,15 @@ class PhysicalDoorTests(unittest.TestCase):
                 ],
             ),
         )
-        with self.assertRaisesRegex(ValueError, "diagonal"):
+        with patch.object(doors, "blocked_cells", return_value=frozenset({(1, 0, 0)})):
+            with self.assertRaisesRegex(ValueError, "diagonal"):
+                doors.validate_movement(
+                    topology, self.request([[0, 0, 0], [1, 1, 0]]), unlocked_room=1
+                )
+        with patch.object(doors, "blocked_cells", return_value=frozenset()):
             doors.validate_movement(
-                topology, self.request([[0, 0, 0], [1, 1, 0]]), unlocked_room=1
+                topology, self.request([[0, 0, 0], [1, 1, 0]]), unlocked_room=2
             )
-        doors.validate_movement(
-            topology, self.request([[0, 0, 0], [1, 1, 0]]), unlocked_room=2
-        )
 
     def test_three_rooms_single_boss_only_in_final_room(self):
         plan = plan_from_configuration(self.config)

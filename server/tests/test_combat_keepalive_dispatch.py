@@ -1,11 +1,11 @@
 """Native keepalive never enters shared fight persistence or transition locks."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from unittest.mock import Mock
-
 
 SOURCE = Path(__file__).parents[1] / "local_game_server.py"
 

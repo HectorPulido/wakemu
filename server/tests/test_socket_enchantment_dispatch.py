@@ -1,5 +1,6 @@
 import ast
 import pathlib
+from source_view import WorldSourcePath as Path
 import unittest
 
 
@@ -7,7 +8,7 @@ class SocketEnchantmentDispatchTests(unittest.TestCase):
     def test_inventory_dispatch_routes_native_requests_through_guarded_service_and_packets(
         self,
     ):
-        source = pathlib.Path(__file__).resolve().parents[1] / "local_game_server.py"
+        source = WorldSourcePath(__file__).resolve().parents[1] / "local_game_server.py"
         tree = ast.parse(source.read_text())
         branch = next(
             node

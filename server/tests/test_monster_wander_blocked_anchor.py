@@ -1,11 +1,10 @@
 """Blocked anchors may hold while companions move through durable publication."""
+
 from unittest.mock import patch
-import random
 
 from postgres_case import PostgresCase
 from protocol_codec import decode_body
-from test_ecology_mobs_apply import FakeHarvests, FakeWorld
-from test_monster_wander_crowded import FixedRng
+from test_ecology_mobs_apply import FakeHarvests, FakeWorld, prepared_movement_packet
 from wakfu_server import ecology_mobs, monster_wander
 from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import owned_instance
@@ -26,17 +25,15 @@ class BlockedAnchorPublicationTests(PostgresCase):
         players = [dict(id=40, map_id=scope[0], instance_id=0, x=1, y=0, z=0)]
         configuration = dict(move_probability=1.0, radius=20, min_steps=1, max_steps=3)
         edges = [((1, 0, 0), (2, 0, 0)), ((2, 0, 0), (3, 0, 0))]
-        planned = monster_wander.plan_group_path(
-            members,
-            players,
-            edges,
-            occupied=[(0, 0, 0), (1, 0, 0)],
-            other_groups=groups.snapshot(*scope),
-            rng=random.Random(1),
-            min_steps=1,
-            max_steps=3,
-        )
-        self.assertTrue(planned["overlap_escape"])
+        # Exact prepared native route; Rust overlap search is tested in
+        # legacy_wander_contract and overlap_escape_matches_distinct_endpoints.
+        import struct
+
+        moved = [dict(members[0], x=2), dict(members[1], x=3)]
+        first = prepared_movement_packet(members[0]["id"], (1, 0, 0), (2, 0, 0))
+        steps = bytes([first[1][-1], first[1][-1]])
+        second = (13852, struct.pack(">qiihB", members[1]["id"], 1, 0, 0, 2) + steps)
+        planned = dict(members=moved, packets=[first, second])
         proposal = dict(
             kind="wander_bulk",
             world_epoch="overlap",
@@ -91,18 +88,12 @@ class BlockedAnchorPublicationTests(PostgresCase):
         groups.register(*scope, 7103, [blocker])
         players = [dict(id=40, map_id=scope[0], instance_id=0, x=0, y=3, z=0)]
         configuration = dict(move_probability=1.0, radius=20, min_steps=1, max_steps=1)
-        planned = monster_wander.plan_group_path(
-            members,
-            players,
-            [((0, 0, 0), (1, 0, 0)), ((0, 1, 0), (1, 1, 0))],
-            occupied=[monster_wander.point(blocker)],
-            rng=FixedRng(),
-            min_steps=1,
-            max_steps=1,
+        # A worker moves only the companion. World still validates and commits
+        # the full roster CAS and emits the one changed actor packet.
+        planned = dict(
+            members=[members[0], dict(members[1], x=1)],
+            packets=[prepared_movement_packet(members[1]["id"], (0, 1, 0), (1, 1, 0))],
         )
-        self.assertIsNotNone(planned)
-        self.assertEqual(planned["members"][0], members[0])
-        self.assertEqual(monster_wander.point(planned["members"][1]), (1, 1, 0))
         proposal = dict(
             kind="wander_bulk",
             world_epoch="blocked-anchor",

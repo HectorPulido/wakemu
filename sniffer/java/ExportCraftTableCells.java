@@ -13,7 +13,7 @@ public final class ExportCraftTableCells {
     throw new NoSuchFieldException(name);
   }
   public static void main(String[] args) throws Exception {
-    JsonArray source=JsonParser.parseString(Files.readString(Path.of("server/protocol/native-map-objects.json"))).getAsJsonArray();
+    JsonArray source=JsonParser.parseString(Files.readString(Path.of("database/protocol/native-map-objects.json"))).getAsJsonArray();
     Field bbz=field(bEG.class,"bbz");
     JsonArray out=new JsonArray(); int total=0;
     for(JsonElement e:source) {
@@ -36,7 +36,7 @@ public final class ExportCraftTableCells {
       }
       row.add("raw_interaction_candidates",cells); out.add(row); total++;
     }
-    JsonObject result=new JsonObject(); result.addProperty("schema_version",1); result.addProperty("source","server/protocol/native-map-objects.json payload_hex parsed through client/lib/wakfu-client.jar bEE.CraftTable and bEG.dST QV/aAS math");
+    JsonObject result=new JsonObject(); result.addProperty("schema_version",1); result.addProperty("source","database/protocol/native-map-objects.json payload_hex parsed through client/lib/wakfu-client.jar bEE.CraftTable and bEG.dST QV/aAS math");
     result.addProperty("row_count",total); result.add("instances",out);
     System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(result));
   }

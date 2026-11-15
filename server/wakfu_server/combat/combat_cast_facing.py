@@ -4,7 +4,9 @@ Known literal native exceptions take precedence over the cardinal default.
 Verified1040 presentation/finish contracts retain their native timing semantics.
 All mutations and wire packets remain inside the private cast transaction.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 import json
 import math
 import struct
@@ -17,7 +19,7 @@ DIRECTIONS = {(1, 0): 1, (0, 1): 3, (-1, 0): 5, (0, -1): 7}
 
 @lru_cache(maxsize=1)
 def native_cast_facing():
-    path = Path(__file__).parents[2] / "protocol/native-cast-facing.json"
+    path = DATA_ROOT / "native-cast-facing.json"
     spells = protocol_catalog.load(path)["spells"]
     from .combat_cast_facing_contracts import SCRIPT_CONTRACTS
 

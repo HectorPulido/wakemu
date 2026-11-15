@@ -4,6 +4,7 @@ Reuses all unchanged content-addressed chunks. Adds original casting getters and
 an original source-revision inventory to the already additive eYk candidate.
 No client, database, private capture, player data or whole-catalog decode is used.
 """
+
 import argparse
 from copy import deepcopy
 import gzip
@@ -236,11 +237,11 @@ def build(pack_root, casting_proof_path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pack", type=Path, default=Path("server/data/installation"))
+    parser.add_argument("--pack", type=Path, default=Path("database/data/installation"))
     parser.add_argument(
         "--casting-proof",
         type=Path,
-        default=Path("server/data/native-rift-casting-root-additions-v1.json"),
+        default=Path("database/data/native-rift-casting-root-additions-v1.json"),
     )
     args = parser.parse_args()
     print(json.dumps(build(args.pack, args.casting_proof), sort_keys=True))

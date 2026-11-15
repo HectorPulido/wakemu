@@ -1,7 +1,8 @@
 """Run the actual native13498 dispatcher branch without starting sockets."""
+
 import ast
 import copy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch

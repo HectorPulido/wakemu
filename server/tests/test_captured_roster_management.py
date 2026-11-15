@@ -1,4 +1,5 @@
 """Native slot-management framing, ownership, transaction and reconnect cases."""
+
 from copy import deepcopy
 from dataclasses import replace
 import struct
@@ -325,7 +326,7 @@ class CapturedManagementPersistenceTests(PostgresCase):
 
     def dispatch_code(self):
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
 
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"
         tree = ast.parse(source.read_text())

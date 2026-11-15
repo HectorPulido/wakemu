@@ -1,6 +1,7 @@
 """Manual native routing must guard world movement and exits before mutation."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 
 

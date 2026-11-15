@@ -16,13 +16,26 @@ class FakeDB:
         if "FROM combat_fight_participants" in query:
             self.row = {"fight": 1} if self.store.fighting else None
         elif query.startswith("SELECT * FROM rii_training_transits"):
-            self.row = self.store.transit
+            self.row = (
+                self.store.transit
+                if self.store.transit and self.store.transit["character_id"] == args[0]
+                else None
+            )
         elif query.startswith("SELECT 1 FROM rii_training_transits"):
-            self.row = self.store.transit
+            self.row = (
+                self.store.transit
+                if self.store.transit
+                and (
+                    self.store.transit["account_id"],
+                    self.store.transit["character_id"],
+                )
+                == tuple(args)
+                else None
+            )
         elif query.startswith("SELECT source_x,source_y,source_z,floor_x"):
             self.row = [self.store.transit] if self.store.transit else []
         elif query.startswith("INSERT INTO rii_training_transits"):
-            (character, account, world, instance, x, y, z, fx, fy, fz, objective) = args
+            character, account, world, instance, x, y, z, fx, fy, fz, objective = args
             self.store.transit = dict(
                 character_id=character,
                 account_id=account,
@@ -96,6 +109,62 @@ class RiiTrainingTransitTests(unittest.TestCase):
         )
         self.geometry.start()
         self.addCleanup(self.geometry.stop)
+
+    def test_only_raised_or_pending_training_requires_a_transit(self):
+        floor = dict(self.original, z=0)
+        raised = dict(self.original, z=3)
+        self.assertFalse(arena.requires_transit(floor, has_pending=False))
+        self.assertTrue(arena.requires_transit(raised, has_pending=False))
+        self.assertTrue(arena.requires_transit(floor, has_pending=True))
+        with self.assertRaisesRegex(ValueError, "public Rii dojo"):
+            arena.requires_transit(dict(floor, map_id=1385), has_pending=False)
+
+    def test_foreign_receipt_reserves_only_private_floor(self):
+        # Another player may share this public source. Their durable private
+        # floor remains reserved, so this lesson must choose the next cell.
+        self.store.transit = {
+            "character_id": 99,
+            "account_id": 88,
+            "source_map": 1388,
+            "source_instance": 0,
+            "source_x": self.original["x"],
+            "source_y": self.original["y"],
+            "source_z": self.original["z"],
+            "floor_x": 0,
+            "floor_y": -16,
+            "floor_z": 0,
+            "lesson_objective": 10609,
+            "setup_failed": False,
+        }
+        self.geometry.stop()
+        geometry = SimpleNamespace(cells={(0, -16, 0), (1, -16, 0)})
+        self.geometry = patch(
+            "wakfu_server.combat_geometry.published_geometry", return_value=geometry
+        )
+        self.geometry.start()
+        self.addCleanup(self.geometry.stop)
+
+        moved = self.enter()
+
+        self.assertEqual((moved["x"], moved["y"], moved["z"]), (1, -16, 0))
+        self.assertEqual(self.store.transit["source_x"], self.original["x"])
+        self.assertEqual(self.store.transit["character_id"], 7)
+
+    def test_return_occupancy_allows_players_but_still_blocks_public_monsters(self):
+        peer = dict(self.original, id=99)
+        monster_group = {"members": [{"x": 2, "y": -16, "z": 0}]}
+
+        entry_occupied = arena.occupied_positions(
+            [self.original, peer], [monster_group], self.original["id"]
+        )
+        return_occupied = arena.occupied_positions(
+            [self.original, peer], [monster_group], self.original["id"], returning=True
+        )
+
+        self.assertIn((1388, 0, peer["x"], peer["y"], peer["z"]), entry_occupied)
+        self.assertNotIn((1388, 0, peer["x"], peer["y"], peer["z"]), return_occupied)
+        self.assertIn((1388, 0, 2, -16, 0), entry_occupied)
+        self.assertIn((1388, 0, 2, -16, 0), return_occupied)
 
     def enter(self):
         return arena.enter(

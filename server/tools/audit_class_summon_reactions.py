@@ -4,6 +4,7 @@
 Mechanic dispatch intentionally does not attest client cast permission. Native
 criteria, initial state triples, owner class and effect containers are preserved.
 """
+
 from contextlib import contextmanager
 import argparse
 import copy
@@ -182,7 +183,7 @@ def run(args):
             ownership.setdefault(reference, []).append(component["breed"])
     descriptors = json.loads(args.native.read_text())
     initial = json.loads(
-        (ROOT / "server/protocol/native-class-summon-initial-states.json").read_text()
+        (ROOT / "database/protocol/native-class-summon-initial-states.json").read_text()
     )["profiles"]
     rows = []
     selected = set(

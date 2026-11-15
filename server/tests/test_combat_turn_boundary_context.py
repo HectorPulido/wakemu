@@ -1,4 +1,5 @@
 """Owned turn facts never fabricate a native triggering runner."""
+
 import unittest
 from dataclasses import replace
 from types import SimpleNamespace
@@ -7,6 +8,10 @@ from wakfu_server.combat_turn_events import (
     TURN_BOUNDARY_POLICY,
     deliver_turn_start,
     validate_turn_boundary_context,
+)
+from wakfu_server.combat_external_turn_recipient import (
+    external_turn_caster,
+    owned_turn_recipient_scope,
 )
 
 
@@ -83,3 +88,63 @@ class TurnBoundaryContextTests(unittest.TestCase):
         ):
             with self.assertRaises(ValueError):
                 changed.validate()
+
+    def test_selector_four_uses_only_the_authenticated_owned_turn_actor(self):
+        actor = SimpleNamespace(id=7)
+        other = SimpleNamespace(id=8)
+        fight = SimpleNamespace(
+            current=actor,
+            phase="active",
+            turn_id=12,
+            actors={7: actor, 8: other},
+        )
+        context = dict(
+            policy=TURN_BOUNDARY_POLICY,
+            actor_id=7,
+            turn_id=12,
+            phase="end",
+            event_id=1002,
+        )
+        event = NativeExternalEvent(7, (1002,), 61, turn_boundary_context=context)
+        event.validate()
+        with self.assertRaisesRegex(ValueError, "Unattested"):
+            external_turn_caster(fight, event, caster_code=4, original_caster=other.id)
+        with owned_turn_recipient_scope(fight, context):
+            self.assertEqual(
+                external_turn_caster(
+                    fight, event, caster_code=4, original_caster=other.id
+                ),
+                actor.id,
+            )
+            self.assertEqual(
+                external_turn_caster(
+                    fight, event, caster_code=3, original_caster=other.id
+                ),
+                other.id,
+            )
+            self.assertEqual(
+                external_turn_caster(
+                    fight,
+                    NativeExternalEvent(7, (1002,), 61),
+                    caster_code=4,
+                    original_caster=other.id,
+                ),
+                other.id,
+            )
+
+    def test_selector_four_rejects_a_cross_bound_turn_event(self):
+        actor = SimpleNamespace(id=7)
+        fight = SimpleNamespace(
+            current=actor, phase="active", turn_id=12, actors={7: actor}
+        )
+        context = dict(
+            policy=TURN_BOUNDARY_POLICY,
+            actor_id=7,
+            turn_id=12,
+            phase="end",
+            event_id=1002,
+        )
+        event = NativeExternalEvent(7, (1001,), 61, turn_boundary_context=context)
+        with owned_turn_recipient_scope(fight, context):
+            with self.assertRaisesRegex(ValueError, "event mismatch"):
+                external_turn_caster(fight, event, caster_code=4, original_caster=None)

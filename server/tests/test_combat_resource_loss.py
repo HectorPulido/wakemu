@@ -171,7 +171,10 @@ class ResourceLossTests(unittest.TestCase):
         from wakfu_server.combat_native_timing_context import native_definition_timing
 
         path = (
-            Path(__file__).resolve().parents[1] / "protocol" / "collision-effect.json"
+            Path(__file__).resolve().parents[2]
+            / "database"
+            / "protocol"
+            / "collision-effect.json"
         )
         definition = json.loads(native_catalog.read_text(path))
         self.assertEqual(

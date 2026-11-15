@@ -1,6 +1,7 @@
 """Payload-free summaries for native 12613 combat-effect frames."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from types import SimpleNamespace

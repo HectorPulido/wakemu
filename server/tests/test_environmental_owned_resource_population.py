@@ -1,4 +1,7 @@
 """Native event resources use real occupations and preserve unrelated crops."""
+
+from planting_fixture import mature as mature_native
+
 from contextlib import contextmanager
 from types import SimpleNamespace
 import struct
@@ -381,10 +384,20 @@ class EnvironmentalOwnedResourcePopulationTests(PostgresCase):
             )
         self.clock[0] += 2
         runtime = Plantings(self.store)
-        with patch("wakfu_server.mining_veins.refill"), patch(
-            "wakfu_server.fishing_spots.refill"
-        ):
-            runtime.mature(Mock(), publish=lambda *args: True, random_draw=lambda: 0)
+        # Exercise the actual Rust due-resource planner: event-owned crops must
+        # be excluded before World receives any ordinary growth candidates.
+        mature_native(
+            runtime,
+            Mock(),
+            publish=lambda *args: True,
+            random_draw=lambda: 0,
+            players=[
+                {
+                    key: self.character[key]
+                    for key in ("id", "map_id", "instance_id", "x", "y", "z")
+                }
+            ],
+        )
         with self.store.connection() as db:
             self.assertEqual(
                 db.execute(

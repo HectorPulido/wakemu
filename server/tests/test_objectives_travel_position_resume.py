@@ -6,14 +6,14 @@ import ast
 import sys
 from contextlib import nullcontext
 import pathlib
+from source_view import WorldSourcePath as Path
 import unittest
 from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 from psycopg.errors import LockNotAvailable
 
-
-ROOT = pathlib.Path(__file__).resolve().parents[2]
+ROOT = WorldSourcePath(__file__).resolve().parents[2]
 SERVER_SOURCE = ROOT / "server" / "local_game_server.py"
 
 
@@ -90,16 +90,14 @@ def _load_travel_closures(globals_ns):
         ],
         decorator_list=[],
     )
-    state_helpers = ast.parse(
-        """
+    state_helpers = ast.parse("""
 def _set_identity(new_character, new_generation):
     nonlocal character, generation
     character = new_character
     generation = new_generation
 def _identity():
     return character, generation
-"""
-    ).body
+""").body
     module = ast.fix_missing_locations(
         ast.Module(
             body=[

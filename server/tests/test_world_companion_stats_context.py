@@ -1,7 +1,8 @@
 """Actual admitted MHS uses the World serializer source with its owned Fight."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import subprocess
 import tempfile
 

@@ -1,4 +1,5 @@
 """Inventory exact static factory bindings; registration never proves execution."""
+
 import ast
 import argparse
 from collections import Counter, defaultdict
@@ -43,7 +44,7 @@ def build(output=None):
     read(ROOT / "server/tools/class_native_requirement_sources.py")
     projection = BASE / "class-captured-native-typed-closure-20261008.jsonl.gz"
     manifest_path = BASE / "class-captured-native-typed-closure-20261008.json"
-    runtime_path = ROOT / "server/protocol/native-class-captured-effect-closure.json"
+    runtime_path = ROOT / "database/protocol/native-class-captured-effect-closure.json"
     for path in (projection, manifest_path, runtime_path):
         read(path)
     captured_manifest, captured_references = verified_projection(
@@ -91,12 +92,12 @@ def build(output=None):
         map(
             int,
             json.loads(
-                read(ROOT / "server/protocol/native-set-current-characteristic.json")
+                read(ROOT / "database/protocol/native-set-current-characteristic.json")
             )["effects"],
         )
     )
     registry = json.loads(
-        read(ROOT / "server/protocol/effect-characteristic-registry.json")
+        read(ROOT / "database/protocol/effect-characteristic-registry.json")
     )["effects"]
     routes = defaultdict(list)
 
@@ -162,9 +163,11 @@ def build(output=None):
                     ids = (
                         resolve(value.generators[0].iter)
                         if isinstance(value, ast.DictComp)
-                        else ast.literal_eval(value).keys()
-                        if all(isinstance(v, ast.Constant) for v in value.values)
-                        else [ast.literal_eval(k) for k in value.keys]
+                        else (
+                            ast.literal_eval(value).keys()
+                            if all(isinstance(v, ast.Constant) for v in value.values)
+                            else [ast.literal_eval(k) for k in value.keys]
+                        )
                     )
                     add(ids, node, guards)
 
@@ -237,9 +240,7 @@ def build(output=None):
         status = (
             "registered"
             if any(not b["construction_guards"] for b in bindings)
-            else "gated"
-            if bindings
-            else "no_handler"
+            else "gated" if bindings else "no_handler"
         )
         membership = {
             domain: sorted({breed for key, _ in nodes for breed in owners[key][domain]})

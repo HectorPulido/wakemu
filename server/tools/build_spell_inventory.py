@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Rebuild combat tracking from catalogs; never overwrite human review.json."""
+
 import argparse
 import ast
 import csv
@@ -15,7 +16,7 @@ sys.path.insert(0, str(ROOT / "server"))
 from wakfu_server.combat_operation_registry import dependency_specs
 from combat_operation_sources import operation_source_paths
 
-PROTOCOL = ROOT / "server/protocol"
+PROTOCOL = ROOT / "database/protocol"
 OUT = ROOT / "agents_docs/reports/combat-inventory"
 
 
@@ -31,9 +32,11 @@ def csv_write(path, rows, columns):
         for row in rows:
             writer.writerow(
                 {
-                    k: json.dumps(v, ensure_ascii=False)
-                    if isinstance(v, (list, dict))
-                    else v
+                    k: (
+                        json.dumps(v, ensure_ascii=False)
+                        if isinstance(v, (list, dict))
+                        else v
+                    )
                     for k, v in row.items()
                 }
             )
@@ -387,19 +390,31 @@ def main(output=OUT):
         module = (
             "combat_effect_dispatch.py"
             if family in (330, 844, 949, 999, 1076)
-            else "combat_state_handler.py"
-            if family == 304
-            else "combat_state_decurse.py"
-            if family == 321
-            else "combat_damage_handler.py"
-            if family in damage_ids
-            else "combat_healing_handler.py"
-            if family in heal_ids
-            else "combat_stat_handler.py"
-            if str(family) in registry
-            else "combat_displacement.py"
-            if family in optional
-            else None
+            else (
+                "combat_state_handler.py"
+                if family == 304
+                else (
+                    "combat_state_decurse.py"
+                    if family == 321
+                    else (
+                        "combat_damage_handler.py"
+                        if family in damage_ids
+                        else (
+                            "combat_healing_handler.py"
+                            if family in heal_ids
+                            else (
+                                "combat_stat_handler.py"
+                                if str(family) in registry
+                                else (
+                                    "combat_displacement.py"
+                                    if family in optional
+                                    else None
+                                )
+                            )
+                        )
+                    )
+                )
+            )
         )
         family_rows.append(
             {
@@ -408,9 +423,9 @@ def main(output=OUT):
                 "in_spell_catalog": family in spell_families,
                 "spell_ids": family_users[family],
                 "registration": status,
-                "implementation_file": f"server/wakfu_server/combat/{module}"
-                if module
-                else None,
+                "implementation_file": (
+                    f"server/wakfu_server/combat/{module}" if module else None
+                ),
                 "runner": registry.get(str(family), {}).get("runner", ""),
                 "characteristic_contract": registry.get(str(family), {}),
                 "review": notes,

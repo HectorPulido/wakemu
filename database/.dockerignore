@@ -1,0 +1,6 @@
+# Only public catalog sources and SQL configuration belong in the World build.
+*
+!protocol/
+!protocol/**
+!seeds/
+!seeds/*.sql

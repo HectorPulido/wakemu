@@ -1,5 +1,6 @@
+from prepared_mob_fixtures import prepared_birth
 from concurrent.futures import ThreadPoolExecutor
-from threading import Barrier, Lock
+from threading import Barrier
 import unittest
 from unittest.mock import patch
 
@@ -14,6 +15,14 @@ from wakfu_server.monster_wander import edge_index
 class MonsterReproductionAttemptTests(PostgresCase):
     def setUp(self):
         super().setUp()
+        # These lifecycle transaction fixtures use authored synthetic cells.
+        # Native habitat rejection is covered by prepared-postgres contracts.
+        habitat = patch(
+            "wakfu_server.monster_habitat_cells.habitat_destination_allowed",
+            return_value=True,
+        )
+        habitat.start()
+        self.addCleanup(habitat.stop)
         self.map_id = 1134
         self.instance_id = 0
         self.group_id = 77001
@@ -109,13 +118,25 @@ class MonsterReproductionAttemptTests(PostgresCase):
                 (self.map_id, self.instance_id, self.monster_id, self.ticket["cycle"]),
             ).fetchall()
 
+    def _prepared(self, ticket=None, destination=None):
+        ticket = self.ticket if ticket is None else ticket
+        # Explicit destinations for the three authored source fixtures below.
+        if destination is None:
+            destination = (0, 1, 0) if ticket["group_id"] == 77002 else (1, 0, 0)
+        return prepared_birth(
+            self.store,
+            ticket,
+            destination=destination,
+            actor_id=-(npc_actor_identity.MINIMUM + abs(ticket["monster_id"])),
+        )
+
     def _attempt(self, **kwargs):
+        kwargs.setdefault("prepared", self._prepared())
         return monster_reproduction.attempt(
             self.store,
             self.ticket,
             present=True,
             indexed=self.indexed,
-            choose=lambda choices: choices[0],
             **kwargs,
         )
 
@@ -212,16 +233,11 @@ class MonsterReproductionAttemptTests(PostgresCase):
         self.assertEqual(child_group, outbox[0]["group_id"])
         self.assertTrue(outbox[0]["new_group"])
 
-    def test_zone_member_limit_rejects_birth_before_random_draws(self):
+    def test_zone_member_limit_rejects_prepared_birth_before_draw_validation(self):
         other = self._member(4, -77901, 4, 0)
         self.groups.register(self.map_id, self.instance_id, 77902, [other])
         self._set_policy(birth=1.0, max_zone_members=2, max_zone_groups=32)
-        with patch.object(
-            monster_reproduction.secrets,
-            "randbelow",
-            side_effect=AssertionError("population cap must reject before RNG"),
-        ):
-            result = self._attempt(draw=None, group_draw=None)
+        result = self._attempt(draw=None, group_draw=None)
         self.assertIsNone(result)
         self.assertIsNone(self._receipt())
         self.assertEqual(1, len(self._group()["members"]))
@@ -256,7 +272,10 @@ class MonsterReproductionAttemptTests(PostgresCase):
                 indexed=self.indexed,
                 draw=0.0,
                 group_draw=0.0,
-                choose=lambda choices: choices[0],
+                prepared=self._prepared(
+                    ticket,
+                    (1, 0, 0) if ticket["group_id"] == self.group_id else (5, 0, 0),
+                ),
             )
 
         with ThreadPoolExecutor(max_workers=2) as pool:
@@ -292,18 +311,13 @@ class MonsterReproductionAttemptTests(PostgresCase):
     def test_replay_returns_receipt_without_random_or_second_child(self):
         self._set_policy(birth=0.05)
         first = self._attempt(draw=0.039, group_draw=0.99)
-        self.assertAlmostEqual(0.04, first["probability"])
+        self.assertAlmostEqual(0.07071067811865477, first["probability"])
         self._set_policy(birth=0.9, birth_stage_decay=1.0)
         group_before = self._group()
-        with patch.object(
-            monster_reproduction.secrets,
-            "randbelow",
-            side_effect=AssertionError("replay redrew"),
-        ):
-            replay = self._attempt(draw=None, group_draw=None)
+        replay = self._attempt(draw=None, group_draw=None)
         self.assertTrue(replay["duplicate"])
         self.assertEqual(first["child_id"], replay["child_id"])
-        self.assertAlmostEqual(0.04, replay["probability"])
+        self.assertAlmostEqual(0.07071067811865477, replay["probability"])
         self.assertAlmostEqual(0.05, replay["policy"]["birth_probability"])
         self.assertEqual(group_before["revision"], self._group()["revision"])
         self.assertEqual(2, len(self._group()["members"]))
@@ -311,10 +325,10 @@ class MonsterReproductionAttemptTests(PostgresCase):
 
     def test_probability_boundary_is_strict_and_saved_for_failed_birth(self):
         self._set_policy(birth=0.05, birth_stage_decay=0.5)
-        result = self._attempt(draw=0.04, group_draw=0.0)
+        result = self._attempt(draw=0.07071067811865477, group_draw=0.0)
         self.assertIsNone(result["child_id"])
-        self.assertAlmostEqual(0.04, result["probability"])
-        self.assertAlmostEqual(0.04, self._receipt()["probability"])
+        self.assertAlmostEqual(0.07071067811865477, result["probability"])
+        self.assertAlmostEqual(0.07071067811865477, self._receipt()["probability"])
         self.assertEqual(1, len(self._group()["members"]))
 
     def test_register_seed_accepts_receipted_birth_movement_and_child_maturation(self):
@@ -363,7 +377,7 @@ class MonsterReproductionAttemptTests(PostgresCase):
             indexed=indexed,
             draw=0.0,
             group_draw=0.99,
-            choose=lambda choices: choices[0],
+            prepared=self._prepared(append_ticket),
         )
         child = result["child"]
         self.assertEqual(instance_id, child["instance_id"])
@@ -392,8 +406,26 @@ class MonsterReproductionAttemptTests(PostgresCase):
                 "cycle": 1,
             },
             present=True,
-            draw=0.0,
-            choose=lambda choices: choices[0],
+            draw=0.1,
+            configuration=dict(
+                interval_ms=60000,
+                base_probability=1.0,
+                stage_decay=0.5,
+                boss_probability=0.0,
+            ),
+            prepared=dict(
+                expected_members=[parent, child],
+                grown=owned_instance(
+                    4,
+                    REFERENCES[4]["min_level"],
+                    child["id"],
+                    map_id=self.map_id,
+                    instance_id=instance_id,
+                    x=child["x"],
+                    y=child["y"],
+                    z=child["z"],
+                ),
+            ),
         )
         self.assertEqual(4, grown["to_reference"])
         recovered_group = next(
@@ -427,6 +459,10 @@ class MonsterReproductionAttemptTests(PostgresCase):
             )["instance_id"],
         )
 
+        # This second fixture requests an external birth. The append policy
+        # above deliberately forbids new groups and would produce a no-op on
+        # a full roster, even with draw zero.
+        self._set_policy(birth=1.0, new_group=1.0)
         separate_group_id = 77217
         full = [
             self._member(4, -77200 - index, 20 + index * 2, 0, instance_id=instance_id)
@@ -454,8 +490,23 @@ class MonsterReproductionAttemptTests(PostgresCase):
             indexed=edge_index([((20, 0, 0), (20, 1, 0))]),
             draw=0.0,
             group_draw=0.99,
-            choose=lambda choices: choices[0],
+            prepared=dict(
+                expected_members=full,
+                destination=[20, 1, 0],
+                child=owned_instance(
+                    6,
+                    REFERENCES[6]["min_level"],
+                    -(npc_actor_identity.MINIMUM + 90000),
+                    map_id=self.map_id,
+                    instance_id=instance_id,
+                    x=20,
+                    y=1,
+                    z=0,
+                ),
+            ),
         )
+        self.assertIsNotNone(separate)
+        self.assertIsNotNone(separate["child"])
         self.assertTrue(separate["child_group_id"] != separate_group_id)
         self.assertEqual(instance_id, separate["child"]["instance_id"])
         separate_group = self.groups.snapshot(self.map_id, instance_id)
@@ -568,7 +619,9 @@ class MonsterReproductionAttemptTests(PostgresCase):
             ),
         )
 
-    def test_absent_fighting_harvesting_stale_baby_and_blocked_cases_do_not_draw(self):
+    def test_absent_fighting_harvesting_stale_and_blocked_prepared_cases_do_not_commit(
+        self,
+    ):
         with patch.object(
             self.store, "connection", side_effect=AssertionError("absent DB access")
         ):
@@ -581,80 +634,82 @@ class MonsterReproductionAttemptTests(PostgresCase):
                 )
             )
 
-        def no_choice(_choices):
-            self.fail("Ineligible reproduction selected a cell/candidate")
-
-        with patch.object(
-            monster_reproduction.secrets,
-            "randbelow",
-            side_effect=AssertionError("ineligible reproduction drew"),
-        ):
-            self.assertIsNone(
-                monster_reproduction.attempt(
-                    self.store,
-                    self.ticket,
-                    present=True,
-                    indexed=self.indexed,
-                    excluded_ids={self.monster_id},
-                    choose=no_choice,
-                )
+        self.assertIsNone(
+            monster_reproduction.attempt(
+                self.store,
+                self.ticket,
+                present=True,
+                indexed=self.indexed,
+                excluded_ids={self.monster_id},
+                prepared=self._prepared(),
             )
-            with self.store.connection() as db:
-                fight_id = db.execute(
-                    "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
-                ).fetchone()["id"]
-            lease, _ = self.groups.claim(self.key, "reproduction-fight", fight_id)
-            self.assertIsNone(
-                monster_reproduction.attempt(
-                    self.store,
-                    self.ticket,
-                    present=True,
-                    indexed=self.indexed,
-                    choose=no_choice,
-                )
+        )
+        with self.store.connection() as db:
+            fight_id = db.execute(
+                "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
+            ).fetchone()["id"]
+        lease, _ = self.groups.claim(self.key, "reproduction-fight", fight_id)
+        self.assertIsNone(
+            monster_reproduction.attempt(
+                self.store,
+                self.ticket,
+                present=True,
+                indexed=self.indexed,
+                prepared=self._prepared(),
             )
-            self.assertTrue(self.groups.finish(lease, defeated=False))
+        )
+        self.assertTrue(self.groups.finish(lease, defeated=False))
 
-            with self.store.connection() as db:
-                db.execute(
-                    "UPDATE monster_reproduction_timers SET due=false WHERE map_id=%s "
-                    "AND instance_id=%s AND monster_id=%s",
-                    (self.map_id, self.instance_id, self.monster_id),
-                )
-            self.assertIsNone(
-                monster_reproduction.attempt(
-                    self.store,
-                    self.ticket,
-                    present=True,
-                    indexed=self.indexed,
-                    choose=no_choice,
-                )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE monster_reproduction_timers SET due=false WHERE map_id=%s "
+                "AND instance_id=%s AND monster_id=%s",
+                (self.map_id, self.instance_id, self.monster_id),
             )
-
-            # A valid but rank-zero offspring is never itself a parent.
-            baby = self._member(6, self.monster_id, 0, 0)
-            with self.store.connection() as db:
-                db.execute(
-                    "UPDATE combat_groups SET members=%s WHERE map_id=%s AND instance_id=%s AND group_id=%s",
-                    (Jsonb([baby]), *self.key),
-                )
-                db.execute(
-                    "UPDATE monster_reproduction_timers SET reference=6,due=true "
-                    "WHERE map_id=%s AND instance_id=%s AND monster_id=%s",
-                    (self.map_id, self.instance_id, self.monster_id),
-                )
-            baby_ticket = {**self.ticket, "reference": 6}
-            self.assertIsNone(
-                monster_reproduction.attempt(
-                    self.store,
-                    baby_ticket,
-                    present=True,
-                    indexed=self.indexed,
-                    choose=no_choice,
-                )
+        self.assertIsNone(
+            monster_reproduction.attempt(
+                self.store,
+                self.ticket,
+                present=True,
+                indexed=self.indexed,
+                prepared=self._prepared(),
             )
+        )
 
-        # Every adjacent surface is occupied, so no chance draw is consumed.
+        # A stale parent-reference ticket cannot authorize the replacement baby.
+        baby = self._member(6, self.monster_id, 0, 0)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_groups SET members=%s WHERE map_id=%s AND instance_id=%s AND group_id=%s",
+                (Jsonb([baby]), *self.key),
+            )
+            db.execute(
+                "UPDATE monster_reproduction_timers SET reference=6,due=true "
+                "WHERE map_id=%s AND instance_id=%s AND monster_id=%s",
+                (self.map_id, self.instance_id, self.monster_id),
+            )
+        self.assertIsNone(
+            monster_reproduction.attempt(
+                self.store,
+                self.ticket,
+                present=True,
+                indexed=self.indexed,
+                prepared=self._prepared(),
+            )
+        )
+
+        # Restore a genuinely eligible source so this checks occupancy rather
+        # than returning early on the preceding stale-reference fixture.
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_groups SET members=%s WHERE map_id=%s AND instance_id=%s AND group_id=%s",
+                (Jsonb([self.parent]), *self.key),
+            )
+            db.execute(
+                "UPDATE monster_reproduction_timers SET reference=4,due=true WHERE map_id=%s AND instance_id=%s AND monster_id=%s",
+                (self.map_id, self.instance_id, self.monster_id),
+            )
+        # Every adjacent surface is occupied; no receipt or child may commit.
         self.assertIsNone(
             monster_reproduction.attempt(
                 self.store,
@@ -665,7 +720,7 @@ class MonsterReproductionAttemptTests(PostgresCase):
                     dict(map_id=self.map_id, instance_id=self.instance_id, x=1, y=0)
                 ],
                 draw=None,
-                choose=no_choice,
+                prepared=self._prepared(),
             )
         )
 
@@ -714,41 +769,22 @@ class MonsterReproductionAttemptTests(PostgresCase):
     def test_concurrent_same_cycle_creates_one_birth_and_one_receipt(self):
         self._set_policy(birth=1.0, new_group=0.0)
         barrier = Barrier(2)
-        lock = Lock()
-        rng_calls = []
-        allocator_calls = []
-        original_allocate = monster_reproduction.allocate_identity
+        prepared = self._prepared()
 
-        def draw(_upper):
-            with lock:
-                rng_calls.append(1)
-            return 0
+        def one_attempt():
+            barrier.wait(timeout=5)
+            return monster_reproduction.attempt(
+                self.store,
+                self.ticket,
+                present=True,
+                indexed=self.indexed,
+                draw=0.0,
+                group_draw=0.99,
+                prepared=prepared,
+            )
 
-        def allocate(db):
-            with lock:
-                allocator_calls.append(1)
-            return original_allocate(db)
-
-        with patch.object(
-            monster_reproduction.secrets, "randbelow", side_effect=draw
-        ), patch.object(
-            monster_reproduction, "allocate_identity", side_effect=allocate
-        ):
-
-            def one_attempt():
-                barrier.wait(timeout=5)
-                return monster_reproduction.attempt(
-                    self.store,
-                    self.ticket,
-                    present=True,
-                    indexed=self.indexed,
-                    choose=lambda choices: choices[0],
-                )
-
-            with ThreadPoolExecutor(max_workers=2) as pool:
-                results = list(pool.map(lambda _: one_attempt(), range(2)))
-        self.assertEqual(2, len(rng_calls))  # One birth roll and one group-choice roll.
-        self.assertEqual(1, len(allocator_calls))
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _: one_attempt(), range(2)))
         self.assertEqual(1, sum(bool(result["duplicate"]) for result in results))
         self.assertEqual(2, len(self._group()["members"]))
         self.assertIsNotNone(self._receipt())

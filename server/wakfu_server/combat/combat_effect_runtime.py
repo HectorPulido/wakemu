@@ -5,6 +5,7 @@ callback receives the same preview and plan, then the effect/invocation when
 needed. Native UID allocation and the outbox stay on that preview; callers
 commit and emit only after prepare_spell_transaction succeeds.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
 from dataclasses import dataclass, replace
 from .combat_effect_dispatch import (
@@ -533,9 +534,11 @@ class NativeEffectRuntimeFactory:
             allocate_uid=allocate,
             context=contextual("damage"),
             rng=rng,
-            block_after_calculation=contextual("damage_block")
-            if provider.damage_block is not None
-            else None,
+            block_after_calculation=(
+                contextual("damage_block")
+                if provider.damage_block is not None
+                else None
+            ),
         )
         if getattr(preview, "rii_los_lesson_contract", None) is not None:
             # The training predicate reuses the same native actor authority as
@@ -560,9 +563,11 @@ class NativeEffectRuntimeFactory:
                 allocate_uid=lambda: source.uid,
                 context=contextual("damage"),
                 rng=rng,
-                block_after_calculation=contextual("damage_block")
-                if provider.damage_block is not None
-                else None,
+                block_after_calculation=(
+                    contextual("damage_block")
+                    if provider.damage_block is not None
+                    else None
+                ),
             )
 
         random_earth = NativeRandomEarthDamageHandler(
@@ -1763,15 +1768,19 @@ class NativeEffectRuntimeFactory:
                 ),
             ),
             group_level=group_level,
-            random_group_children=None
-            if self.random_group_children is None
-            else lambda effect, values, invocation, children: self.random_group_children(
-                preview, plan, effect, values, invocation, children
+            random_group_children=(
+                None
+                if self.random_group_children is None
+                else lambda effect, values, invocation, children: self.random_group_children(
+                    preview, plan, effect, values, invocation, children
+                )
             ),
-            relative_group_children=None
-            if self.relative_group_children is None
-            else lambda effect, values, invocation, children: self.relative_group_children(
-                preview, plan, effect, values, invocation, children
+            relative_group_children=(
+                None
+                if self.relative_group_children is None
+                else lambda effect, values, invocation, children: self.relative_group_children(
+                    preview, plan, effect, values, invocation, children
+                )
             ),
         )
         # Rift reconstruction shares this exact transaction source. Native
@@ -1818,9 +1827,9 @@ class NativeEffectRuntimeFactory:
             context=contextual("state"),
             execute_child=FactoryMethod(dispatcher.execute),
             remove_child_effect=stat.remove,
-            applied_state_scope=None
-            if retention is None
-            else retention.applied_state_scope,
+            applied_state_scope=(
+                None if retention is None else retention.applied_state_scope
+            ),
         )
         if retention is not None:
             from .combat_retained_runtime import remove_owned_stat
@@ -2574,6 +2583,13 @@ class NativeEffectRuntimeFactory:
             for handler in handlers.values()
         ):
             retention.stat_handler = FactoryOwnerReference(stat)
+        area_lesson = getattr(preview, "rii_area_lesson_contract", None)
+        if isinstance(area_lesson, dict) and area_lesson.get("native_lesson") is True:
+            from wakfu_server.achievements.rii_area_runtime import prepare_population
+
+            dispatcher.native_population_preparation = FactoryCallback(
+                prepare_population, preview
+            )
         dispatcher._structural_index_factory = self
         # These components are owned by this dispatcher. Reading their binding
         # still returns the exact object, never a weak proxy.

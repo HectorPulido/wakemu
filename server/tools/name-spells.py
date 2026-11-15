@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Extract a separate Spanish spell/class-name catalogue, offline."""
+
 import hashlib
 import json
 from pathlib import Path
@@ -10,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def main():
     archive = ROOT / "client/contents/i18n/i18n_es.jar"
-    spells_path = ROOT / "server/protocol/spells.json"
+    spells_path = ROOT / "database/protocol/spells.json"
     spells_bytes = spells_path.read_bytes()
     spells = json.loads(spells_bytes)["spells"]
     with zipfile.ZipFile(archive) as jar:
@@ -48,7 +49,7 @@ def main():
             breed for breed in breeds if f"breed.{breed}" not in translations
         ],
     )
-    (ROOT / "server/protocol/spell-names.json").write_text(
+    (ROOT / "database/protocol/spell-names.json").write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n"
     )
     assert spells_path.read_bytes() == spells_bytes

@@ -1,7 +1,8 @@
 """Execute the actual nested World readiness initializer in isolation."""
+
 import ast
 from contextlib import nullcontext
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch

@@ -1,11 +1,12 @@
 """Isolated PostgreSQL lifecycle for La Pischina's native trigger-cut arenas."""
+
 import hashlib
 import json
 import os
 import struct
 import unittest
 from collections import deque
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 
 from postgres_case import PostgresCase

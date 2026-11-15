@@ -133,7 +133,7 @@ class AbandonTests(PostgresCase):
         self,
     ):
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
         from types import SimpleNamespace
         from wakfu_server.combat_spectator_events import is_normal_finish_packet
         from wakfu_server.performance_profiler import PROFILER

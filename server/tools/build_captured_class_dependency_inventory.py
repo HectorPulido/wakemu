@@ -1,4 +1,5 @@
 """Inventory scoped captured-class structural dependencies without importing NPC gameplay."""
+
 import hashlib
 import json
 from pathlib import Path
@@ -9,7 +10,7 @@ sys.path.insert(0, str(ROOT / "server"))
 from wakfu_server.combat_operation_registry import dependency_specs
 from combat_operation_sources import operation_source_paths
 
-PROFILES = ROOT / "server/protocol/native-class-captured-profiles.json"
+PROFILES = ROOT / "database/protocol/native-class-captured-profiles.json"
 GRAPH = ROOT / ".runtime/combat-review-20261007/class-closure-compact-graph.json"
 OUTPUT = (
     ROOT

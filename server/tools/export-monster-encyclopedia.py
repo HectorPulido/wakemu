@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Rebuild installed-client encyclopedia offline; retain native unknown fields."""
+
 import gzip, hashlib, json, subprocess, tempfile
 from pathlib import Path
 
@@ -71,7 +72,7 @@ def main():
     payload = json.dumps(
         data, separators=(",", ":"), ensure_ascii=False, allow_nan=False
     ).encode()
-    dest = ROOT / "server/protocol/monster-encyclopedia.json"
+    dest = ROOT / "database/protocol/monster-encyclopedia.json"
     dest.write_bytes(payload)
     print(
         "Saved",

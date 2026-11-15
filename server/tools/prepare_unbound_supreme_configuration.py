@@ -1,4 +1,5 @@
 """Prepare an unbound native supreme entry without installing routes or policies."""
+
 import copy
 from collections import defaultdict, deque
 
@@ -142,9 +143,9 @@ def prepare(
         provenance=dict(
             policy="native_entry_approved_walkable_approach",
             method="approach_position",
-            catalog_path="server/protocol/native-generic-teleporters.json",
+            catalog_path="database/protocol/native-generic-teleporters.json",
             catalog_sha256=catalog_sha256,
-            geometry_path="server/protocol/" + approach_proof["geometry_path"],
+            geometry_path="database/protocol/" + approach_proof["geometry_path"],
             geometry_sha256=approach_proof["sha256"],
         )
     )

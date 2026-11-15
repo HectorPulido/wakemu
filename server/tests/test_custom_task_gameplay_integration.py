@@ -1,8 +1,10 @@
 """Actual combat and planting hooks atomically persist native and custom tasks."""
+
 from types import SimpleNamespace
 from unittest.mock import patch
 import uuid
 from postgres_case import PostgresCase
+from planting_fixture import begin_prepared
 from wakfu_server.custom_tasks import service as custom, adapters
 
 
@@ -105,8 +107,13 @@ class HookIntegrationTests(PostgresCase):
         from wakfu_server.planting_runtime import Plantings
 
         runtime = Plantings(fixture.store)
-        runtime.begin(
-            fixture.account, fixture.generation, fixture.char, body, lambda *args: 0
+        begin_prepared(
+            runtime,
+            fixture.account,
+            fixture.generation,
+            fixture.char,
+            body,
+            lambda *args: 0,
         )
         operation = runtime.pending[fixture.char["id"]]["token"]
         self.assertEqual(len(operation), 32)

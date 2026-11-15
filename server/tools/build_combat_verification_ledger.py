@@ -5,6 +5,7 @@ Explicit contract evidence uses contract_checks entries with contract, authority
 (semantic/client), evidence_id, passed, expected and actual. Historical review
 flags, aggregate unit results and Ready success do not satisfy these checks.
 """
+
 import gzip
 import argparse
 import csv
@@ -13,7 +14,6 @@ import hashlib
 import json
 from pathlib import Path
 import re
-
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = (
@@ -97,7 +97,7 @@ def resolve_report_source(key, root=ROOT):
     candidates = {
         p.resolve()
         for directory in (
-            "server/protocol",
+            "database/protocol",
             "server/wakfu_server/combat",
             "server/wakfu_server",
             "server/tools",
@@ -541,9 +541,9 @@ def build_ledger(
                     "accredited_by_this_ledger": False,
                 },
                 "offline_execution": executions > 0,
-                "passive_observations": passive
-                if spell.get("kind") == "passive"
-                else None,
+                "passive_observations": (
+                    passive if spell.get("kind") == "passive" else None
+                ),
                 "semantic_verified": semantic_complete,
                 "client_verified": client_complete,
                 "status": "passed" if client_complete else "pending",

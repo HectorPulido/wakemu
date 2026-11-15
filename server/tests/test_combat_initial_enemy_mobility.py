@@ -11,9 +11,8 @@ from wakfu_server.combat_terrain import map_geometry
 from wakfu_server.combat.combat_actor_snapshot import native_actor_catalog
 from wakfu_server.maps.dungeon_encounters import enemy_formation
 
-
 ROOT = Path(__file__).resolve().parents[1]
-JALATO_SECTIONS = ROOT / "test-fixtures/dungeons/jalato-native-sections.json"
+JALATO_SECTIONS = ROOT / "tests/fixtures/dungeons/jalato-native-sections.json"
 
 
 def native_room_fixture(order=3):

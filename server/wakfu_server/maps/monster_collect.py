@@ -3,6 +3,7 @@
 Callers resolve a live registry monster and native reachability before start.
 Yield/cooldown are explicit local policies, not undocumented official rates.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
 import json
 import struct
@@ -383,6 +384,7 @@ class Harvests:
         ):
             raise ValueError("Monster harvest completed too early")
         with self.store.connection() as db:
+            db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
             _lease(self.store, db, account_id, generation, character_id)
             character = self.store.character(account_id, character_id, db)
             if location_context is not None:
@@ -462,14 +464,16 @@ class Harvests:
                     Jsonb(granted["grants"]),
                 ),
             )
-            from wakfu_server.achievements.counter_missions import settle_wodent_harvest
+            from wakfu_server.achievements import mission_toolkit
 
-            mission_packets = settle_wodent_harvest(
+            mission_packets = mission_toolkit.settle(
                 db,
                 self.store,
                 character,
                 token=ticket["token"],
-                item_reference=reference,
+                kind="monster_harvest",
+                reference=reference,
+                quantity=quantity,
             )
             from .profession_rewards import base_xp
             from .profession_store import award

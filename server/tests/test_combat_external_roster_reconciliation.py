@@ -1,4 +1,5 @@
 """Native external contexts need incremental joins and actor-replacement repair."""
+
 import struct
 import unittest
 from types import SimpleNamespace
@@ -154,7 +155,7 @@ class ExternalRosterReconciliationTests(unittest.TestCase):
 
     def test_actual_publisher_targets_only_known_missing_outside_recipient(self):
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
         from threading import RLock
 
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"

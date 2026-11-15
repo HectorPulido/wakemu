@@ -1,6 +1,7 @@
 """The ordinary dungeon escape command precedes privileged test-console dispatch."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 
 

@@ -1,7 +1,7 @@
 """Selected lease recovery preserves private location and fences old delivery."""
 
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import threading
 from types import SimpleNamespace
 import unittest

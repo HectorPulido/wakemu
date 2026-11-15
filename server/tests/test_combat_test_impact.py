@@ -1,9 +1,10 @@
 """Behavioral selector contracts; fixtures never import or execute engine code."""
+
 import copy
 from contextlib import contextmanager
 import hashlib
 import json
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -47,6 +48,20 @@ class ImpactGraphTests(unittest.TestCase):
         return build_graph(
             self.root, catalog_inventory=catalog or self.catalog, scenarios=scenarios
         )
+
+    def test_extracted_application_modules_keep_runtime_impact_classification(self):
+        for name in ("session_combat.py", "session_inventory.py", "bootstrap.py"):
+            self.write(
+                "server/wakfu_server/application/" + name,
+                "def dispatch():\n    return 1\n",
+            )
+        graph = self.graph()
+        modules = {
+            row["path"]: row for row in graph["nodes"] if row["kind"] == "module"
+        }
+        for name in ("session_combat.py", "session_inventory.py", "bootstrap.py"):
+            path = "server/wakfu_server/application/" + name
+            self.assertEqual(modules[path]["category"], "combat")
 
     @contextmanager
     def semantic_reviews(self, classifications=None, accepted=None):

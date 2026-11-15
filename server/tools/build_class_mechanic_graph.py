@@ -4,6 +4,7 @@
 Native parameter/root samples are expectations for those exact primitives, not
 expected gameplay outcomes or proof that their guarded branches are reachable.
 """
+
 import gzip
 import argparse
 from collections import Counter, defaultdict
@@ -28,8 +29,8 @@ def read(path):
 def prepare():
     PRIVATE.mkdir(parents=True, exist_ok=True)
     ledger = read(REPORTS / "verification-ledger-20261007.json")
-    innates = read(ROOT / "server/protocol/breed-innate-definitions.json")
-    profiles = read(ROOT / "server/protocol/native-class-summon-abilities.json")[
+    innates = read(ROOT / "database/protocol/breed-innate-definitions.json")
+    profiles = read(ROOT / "database/protocol/native-class-summon-abilities.json")[
         "profiles"
     ]
     spells = {row["spell_id"] for row in ledger["spells"]}
@@ -56,8 +57,8 @@ def prepare():
         ROOT / "sniffer/java/ExportClassMechanicGraph.java",
         ROOT / "sniffer/java/ExportClassSummonEffectTrees.java",
         ROOT / "sniffer/java/ExportEffectRuntimeMetadata.java",
-        ROOT / "server/protocol/native-class-summon-abilities.json",
-        ROOT / "server/protocol/breed-innate-definitions.json",
+        ROOT / "database/protocol/native-class-summon-abilities.json",
+        ROOT / "database/protocol/breed-innate-definitions.json",
         REPORTS / "verification-ledger-20261007.json",
     ]
     paths.extend(sorted((ROOT / "client/lib").glob("*.jar")))

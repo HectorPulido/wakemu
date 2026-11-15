@@ -1,6 +1,6 @@
 """Server-owned current exterior authority for native instance-entry recovery."""
-from dataclasses import dataclass
 
+from dataclasses import dataclass
 
 _POSITION = ("map_id", "instance_id", "x", "y", "z", "direction")
 _SCENE_POSITION = _POSITION[:-1]
@@ -121,9 +121,8 @@ def capture(
         ):
             raise ValueError("Native exterior requires the loaded selected owner")
         key = (row["account_id"], row["generation"], identity)
-        with positions.lock:
-            entry = positions.entries.get(key)
-            current = None if entry is None else dict(entry["current"])
+        entry = positions.entry_snapshot(key)
+        current = None if entry is None else dict(entry["current"])
         if current is None and allow_world_snapshot:
             # A committed entry releases its source buffer before native
             # hydration. Only an exact current pending-run resume may use
@@ -184,14 +183,13 @@ def capture(
             ):
                 return False
             key = (owner.account_id, owner.generation, owner.character_id)
-            with positions.lock:
-                entry = positions.entries.get(key)
-                current = None if entry is None else entry["current"]
-                if current is None:
-                    if owner.character_id not in missing_buffers:
-                        return False
-                elif tuple(current[field] for field in _POSITION) != point[1:]:
+            entry = positions.entry_state(key)
+            current = None if entry is None else entry["current"]
+            if current is None:
+                if owner.character_id not in missing_buffers:
                     return False
+            elif tuple(current[field] for field in _POSITION) != point[1:]:
+                return False
             if not positions.lease_active(*key):
                 return False
         return True

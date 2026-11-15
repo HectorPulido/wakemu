@@ -1,6 +1,8 @@
 """Public API regressions for source-pinned paid scene activation."""
+
 import copy
 import unittest
+from unittest.mock import patch
 from wakfu_server import native_scene_start, quest_npc
 
 
@@ -53,15 +55,20 @@ class NativeSceneContractTests(unittest.TestCase):
         )
 
     def test_locked_native_gate_denies_walk_before_payment(self):
-        topology, rule = self.topology()
-        gate = rule["gates"][0]["position"]
-        request = dict(start_position=dict(zip(("x", "y", "z"), gate)), steps=[])
-        with self.assertRaises(ValueError):
-            native_scene_start.validate_movement(topology, request)
-        native_scene_start.validate_movement(
-            dict(topology, _native_scene_started=True), request
-        )
-        self.assertEqual(len(native_scene_start.packets(topology)), 3)
+        from wakfu_server import native_scene_policy_authority
+
+        with native_scene_start._policy_database().connection() as db:
+            rules = native_scene_policy_authority.rules(db, lock=False)
+        with patch.object(native_scene_start, "_runtime_rules", return_value=rules):
+            topology, rule = self.topology()
+            gate = rule["gates"][0]["position"]
+            request = dict(start_position=dict(zip(("x", "y", "z"), gate)), steps=[])
+            with self.assertRaises(ValueError):
+                native_scene_start.validate_movement(topology, request)
+            native_scene_start.validate_movement(
+                dict(topology, _native_scene_started=True), request
+            )
+            self.assertEqual(len(native_scene_start.packets(topology)), 3)
 
     def test_quest_arrival_never_bypasses_native_cost_or_criterion(self):
         arrival = dict(

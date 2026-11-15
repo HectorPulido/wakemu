@@ -1,16 +1,17 @@
 """Capture metadata only: never copy authentication or packet bodies into the audit."""
+
 import collections, json, re
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-catalog = json.loads((root / "server/protocol/catalog.json").read_text())
+catalog = json.loads((root / "database/protocol/catalog.json").read_text())
 messages = collections.defaultdict(list)
 for m in catalog["messages"]:
     if m.get("opcode") is not None:
         messages[(m.get("direction"), m["opcode"])].append(m)
 actions = {}
 for p in [
-    root / "server/protocol/actions.json",
+    root / "database/protocol/actions.json",
     *root.glob(
         ".runtime/official-creation/captures/*/snapshot-final/decoded/actions.json"
     ),
@@ -21,7 +22,7 @@ for p in [
 bindings = {
     (a["direction"], a["opcode"]): a
     for a in json.loads(
-        (root / "server/protocol/action-registry-map.json").read_text()
+        (root / "database/protocol/action-registry-map.json").read_text()
     )["observed_direct_bindings"]
 }
 callers = collections.defaultdict(list)
@@ -164,9 +165,11 @@ for (direction, opcode), count in sorted(
             unknown_conditions=[unknown],
         )
         entry["source_evidence"] += [
-            ".runtime/local/coverage-attack-*.txt"
-            if opcode in (13130, 12477)
-            else ".runtime/local/coverage-{chK,cFV,ckM,cjp,aTW}.txt"
+            (
+                ".runtime/local/coverage-attack-*.txt"
+                if opcode in (13130, 12477)
+                else ".runtime/local/coverage-{chK,cFV,ckM,cjp,aTW}.txt"
+            )
         ]
     if opcode in implemented:
         entry.update(
@@ -212,7 +215,7 @@ artifact = dict(
         },
     ],
 )
-(root / "server/protocol/event-coverage.json").write_text(
+(root / "database/protocol/event-coverage.json").write_text(
     json.dumps(artifact, indent=2) + "\n"
 )
 print(

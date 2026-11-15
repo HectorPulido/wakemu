@@ -1,4 +1,5 @@
 """Native eNA direction oracle and actual registered QI occupancy."""
+
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -23,7 +24,7 @@ class BehindTargetConditionTests(unittest.TestCase):
     def test_installed_direction_oracle_keeps_diagonals_and_int32_overflow(self):
         path = (
             Path(__file__).resolve().parents[1]
-            / "test-fixtures/combat/behind-target-direction.json"
+            / "tests/fixtures/combat/behind-target-direction.json"
         )
         for row in json.loads(path.read_text()):
             self.assertEqual(

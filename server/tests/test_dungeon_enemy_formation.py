@@ -19,9 +19,9 @@ def native_sections():
         path = Path(configured)
     else:
         root = Path(__file__).resolve().parents[2]
-        path = root / "server/test-fixtures/dungeons/jalato-native-sections.json"
+        path = root / "server/tests/fixtures/dungeons/jalato-native-sections.json"
         if not path.is_file():
-            path = root / "server/test-fixtures/dungeons/jalato-runtime-config-v1.json"
+            path = root / "server/tests/fixtures/dungeons/jalato-runtime-config-v1.json"
     document = json.loads(path.read_text(encoding="utf8"))
     if "topology" in document:
         document = document["topology"]

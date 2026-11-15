@@ -24,6 +24,40 @@ OBJECTIVES = frozenset({10608, 10609, 10610, 10611})
 POSITION = ("map_id", "instance_id", "x", "y", "z")
 
 
+def occupied_positions(players, groups, character_id, *, returning=False):
+    """Private floor entries avoid peers; public returns may overlap them.
+
+    The caller supplies only groups visible to the returning owner. Ordinary
+    public monsters remain blockers, unlike another player's private lesson.
+    """
+    occupied = (
+        set()
+        if returning
+        else {
+            tuple(peer[key] for key in POSITION)
+            for peer in players
+            if peer["id"] != character_id
+        }
+    )
+    occupied.update(
+        (MAP_ID, 0, *(member[key] for key in ("x", "y", "z")))
+        for group in groups
+        for member in group["members"]
+    )
+    return occupied
+
+
+def requires_transit(character, *, has_pending):
+    """Only elevated approaches need the historical world-floor relocation.
+
+    Native lesson placement owns its separate combat coordinates. A player
+    already on the dojo floor can start there without reserving public world
+    cells; pending older transits still follow their durable recovery path.
+    """
+    _validate_scene(character)
+    return has_pending or character["z"] != 0
+
+
 def pending(store, account_id, character_id):
     """Check for a saved return before paying the cost of a scene snapshot."""
     with store.connection() as db:
@@ -174,9 +208,9 @@ def _reject_fight(db, character_id):
 def enter(store, account_id, generation, character, objective_id, *, available):
     """Atomically move the owned player to the dojo floor and remember return.
 
-    `available` is a server-side position-registry predicate. The destination
-    and saved source must both be free before moving; source is validated by
-    the normal store transition, session generation and account lock.
+    `available` is a server-side position-registry predicate. The private floor
+    destination must be free; public source cells may be shared by independent
+    owner receipts. The normal store transition validates the source.
     """
     if objective_id not in OBJECTIVES or type(objective_id) is not int:
         raise ValueError("Unknown Rii training lesson")
@@ -227,14 +261,9 @@ def enter(store, account_id, generation, character, objective_id, *, available):
             "SELECT source_x,source_y,source_z,floor_x,floor_y,floor_z "
             "FROM rii_training_transits"
         ).fetchall()
-        sources = {
-            (row["source_x"], row["source_y"], row["source_z"]) for row in reservations
-        }
         reserved = {
             (row["floor_x"], row["floor_y"], row["floor_z"]) for row in reservations
         }
-        if tuple(source[key] for key in ("x", "y", "z")) in sources:
-            raise ValueError("Rii training return position is reserved")
         floor = next(
             (
                 dict(FLOOR, x=x, y=y, z=z)

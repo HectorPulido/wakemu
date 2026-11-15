@@ -1,4 +1,5 @@
 """Native NPC authority is SQL-only and imported data preserves exact content."""
+
 from contextlib import contextmanager
 import gzip
 import json
@@ -95,7 +96,9 @@ class NpcCatalogDatabaseTests(unittest.TestCase):
         self.assertEqual({name for name, _ in matches}, set(sources))
         for name, value in matches:
             with gzip.open(
-                root / "protocol" / (sources[name] + ".json.gz"), "rt", encoding="utf-8"
+                root.parent / "database/protocol" / (sources[name] + ".json.gz"),
+                "rt",
+                encoding="utf-8",
             ) as source:
                 self.assertEqual(json.loads(value), json.load(source))
         self.assertIn("ON CONFLICT (name) DO NOTHING", sql)

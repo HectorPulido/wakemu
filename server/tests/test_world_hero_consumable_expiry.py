@@ -1,7 +1,8 @@
 """Run the actual exploration timer branch with an expiring owned hero food."""
+
 import ast
 import itertools
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 from unittest.mock import Mock

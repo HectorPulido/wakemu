@@ -1,7 +1,8 @@
 """Execute actual World herd routes, including their post-commit publication."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import sys
 from types import SimpleNamespace
@@ -74,9 +75,11 @@ class RanchHerdDispatchTests(unittest.TestCase):
             opcode=opcode,
             loaded=loaded,
             ranch_session=object() if active else None,
-            body=struct.pack(">iq", 1001, 9001)
-            if opcode == 13220
-            else struct.pack(">q", 9001),
+            body=(
+                struct.pack(">iq", 1001, 9001)
+                if opcode == 13220
+                else struct.pack(">q", 9001)
+            ),
             fight=object() if combat == "fight" else None,
             combat_session=object() if combat == "combat" else None,
             spectator_session=object() if combat == "spectator" else None,

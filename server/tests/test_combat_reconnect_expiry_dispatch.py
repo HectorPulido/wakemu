@@ -1,7 +1,8 @@
 """Execute the real socket expiry boundary without starting the World process."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import threading
 from types import SimpleNamespace
 import unittest
@@ -16,7 +17,6 @@ from wakfu_server.combat_reconnect_birth_stage import (
     ReconnectPresentationExpired,
 )
 from wakfu_server.combat_shared import Session
-
 
 SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 
@@ -36,9 +36,11 @@ def extract(names, namespace):
             and decorator.id == "combat_reconnect_expiry_boundary"
         ]
         node.body = [
-            ast.Global(names=statement.names)
-            if isinstance(statement, ast.Nonlocal)
-            else statement
+            (
+                ast.Global(names=statement.names)
+                if isinstance(statement, ast.Nonlocal)
+                else statement
+            )
             for statement in node.body
         ]
     exec(

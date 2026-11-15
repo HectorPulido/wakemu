@@ -3,6 +3,7 @@
 
 This tool does not authorize NPC placements, choose missions or mutate progress.
 """
+
 import argparse
 import gzip
 import hashlib
@@ -11,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_QUESTS = ROOT / ".runtime/quest-extraction/native-quest-definitions.json"
-DEFAULT_DIALOGUES = ROOT / "server/protocol/npc-dialogues.json.gz"
+DEFAULT_DIALOGUES = ROOT / "database/protocol/npc-dialogues.json.gz"
 
 
 def build(quest_file, dialogue_file):

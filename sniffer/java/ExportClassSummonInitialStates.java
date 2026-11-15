@@ -7,7 +7,7 @@ import com.google.gson.*;
 public class ExportClassSummonInitialStates {
     public static void main(String[] args) throws Exception {
         JsonObject books = JsonParser.parseString(Files.readString(
-            Path.of("server/protocol/native-class-summon-abilities.json")))
+            Path.of("database/protocol/native-class-summon-abilities.json")))
             .getAsJsonObject().getAsJsonObject("profiles");
         Set<String> wanted = books.keySet();
         Map<String, Object> profiles = new TreeMap<>();

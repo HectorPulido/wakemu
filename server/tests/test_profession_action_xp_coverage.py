@@ -1,8 +1,10 @@
 """Profession XP receipts across native planting and flora harvest actions."""
+
 import json
 import struct
 from hashlib import sha256
 import unittest
+import uuid
 
 from postgres_case import PostgresCase
 from wakfu_server.inventory_items import grant
@@ -10,8 +12,9 @@ from wakfu_server.monsters import REFERENCES, owned_instance
 from wakfu_server.planting import (
     SEEDS,
     complete as complete_plant,
-    prepare as prepare_plant,
 )
+from planting_fixture import prepare as prepare_plant, begin_prepared
+from wakfu_server.planting_runtime import Plantings
 from wakfu_server.profession_store import ensure_learned
 from wakfu_server.resource_collect import (
     complete as complete_harvest,
@@ -21,7 +24,6 @@ from wakfu_server.resource_collect import (
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.wire import proto_field
 from wakfu_server import native_catalog
-
 
 SEED_COVERAGE = (
     # Native seed, profession, native minimum level.
@@ -127,13 +129,13 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                 )
                 if required_level:
                     with self.assertRaisesRegex(ValueError, "below seed requirement"):
-                        prepare_plant(
-                            self.store,
+                        begin_prepared(
+                            Plantings(self.store),
                             self.account,
                             self.generation,
                             self.character,
                             body,
-                            authorize_cell=lambda *_args: 0,
+                            lambda *_args: 0,
                         )
                     self.learn_at(profession_id, required_level)
                 prepared = prepare_plant(
@@ -166,7 +168,9 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                         )
                     ]
                     group_id = 8_000 + index
-                operation = f"profession-plant-{profession_id}"
+                operation = uuid.uuid5(
+                    uuid.NAMESPACE_URL, f"profession-plant-{profession_id}"
+                ).hex
                 outcome = complete_plant(
                     self.store,
                     self.account,
@@ -184,8 +188,10 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                     body for opcode, body in outcome["packets"] if opcode == 12916
                 ]
                 self.assertEqual(len(rewards), 1)
-                self.assertEqual(struct.unpack(">iq", rewards[0]), (profession_id, 10))
-                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 10)
+                # Native regional job effects apply -10% before the account
+                # multiplier: base planting XP 10 becomes 9.
+                self.assertEqual(struct.unpack(">iq", rewards[0]), (profession_id, 9))
+                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 9)
                 xp_operation = "planting:" + sha256(operation.encode()).hexdigest()
                 with self.store.connection() as db:
                     receipt_count = db.execute(
@@ -209,7 +215,7 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                 )
                 self.assertTrue(replay["duplicate"])
                 self.assertEqual(replay["packets"], [])
-                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 10)
+                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 9)
 
                 failed_body = struct.pack(
                     ">iqii", seed_rule["action_id"], item["uid"], 21 + index * 2, 30
@@ -227,7 +233,9 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                     self.account,
                     self.generation,
                     failed_prepared,
-                    operation_id=f"profession-plant-failed-{profession_id}",
+                    operation_id=uuid.uuid5(
+                        uuid.NAMESPACE_URL, f"profession-plant-failed-{profession_id}"
+                    ).hex,
                     stage=resource["stages"][0],
                     creation_time=124_000 + index,
                     result_prefix=(0, 1),
@@ -237,7 +245,7 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                 self.assertFalse(
                     any(opcode == 12916 for opcode, _ in failed["packets"])
                 )
-                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 10)
+                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 9)
                 self.assertEqual(
                     self.counts("profession_xp_receipts", "operation", xp_operation), 1
                 )
@@ -301,7 +309,8 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                 self.assertTrue(result["applied"])
                 self.assertEqual(result["outcome"]["item_reference"], product)
                 self.assertEqual(result["outcome"]["quantity"], 1)
-                self.assertEqual(result["outcome"]["xp"], 50)
+                # The same regional effect applies to base harvest XP 50.
+                self.assertEqual(result["outcome"]["xp"], 45)
                 if profession_id == 73:
                     # Mining shares the native resource protocol, but it is
                     # not flora and must not affect plant ecology or affinity.
@@ -329,8 +338,8 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                     body for opcode, body in result["packets"] if opcode == 12916
                 ]
                 self.assertEqual(len(rewards), 1)
-                self.assertEqual(struct.unpack(">iq", rewards[0]), (profession_id, 50))
-                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 50)
+                self.assertEqual(struct.unpack(">iq", rewards[0]), (profession_id, 45))
+                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 45)
                 self.assertEqual(
                     self.counts("resource_harvest_receipts", "token", ticket["token"]),
                     1,
@@ -339,7 +348,7 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                 self.assertEqual(
                     replay, {"applied": False, "packets": [], "world_packets": []}
                 )
-                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 50)
+                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 45)
 
                 # A second native target for this profession is explicitly cancelled.
                 failed_resource = self._insert_resource(
@@ -358,7 +367,7 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                         "resource_harvest_receipts", "token", failed_ticket["token"]
                     )
                 )
-                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 50)
+                self.assertEqual(self.xp(profession_id), _level_xp(required_level) + 45)
 
     def _receipt(self, table, key, value):
         with self.store.connection() as db:

@@ -1,4 +1,5 @@
 """Coordinate pinned dungeon evidence and durable room groups."""
+
 from wakfu_server import (
     dungeon_progression,
     dungeon_room_spawns,
@@ -21,6 +22,14 @@ def configuration_for_instance(db, instance_id):
         run["context_route_key"],
         run["context_policy_version"],
         expected_plan_hash=None,
+    )
+    from wakfu_server.spatial_topology import FrozenGeometry
+
+    source_geometry = config["topology"].get("exploration_geometry")
+    spatial_authority = (
+        source_geometry.authority
+        if isinstance(source_geometry, FrozenGeometry)
+        else None
     )
     from wakfu_server import dungeon_entry_paths, dungeon_gate_presentation
 
@@ -102,6 +111,24 @@ def configuration_for_instance(db, instance_id):
     from wakfu_server import native_scene_start
 
     config = native_scene_start.project_configuration(db, run, config)
+    topology = config["topology"]
+    geometry = topology.get("exploration_geometry")
+    if geometry is not None and spatial_authority is not None:
+        from wakfu_server.spatial_topology import digest, freeze_geometry
+
+        if not isinstance(geometry, FrozenGeometry):
+            # Only the validated continuation projection replaces this graph.
+            # Its immutable rule hashes and committed view identify its cells.
+            authority = "{}:continuation-v1:{}".format(
+                spatial_authority,
+                digest(topology.get("_optional_continuations", ())),
+            )
+            config = dict(
+                config,
+                topology=dict(
+                    topology, exploration_geometry=freeze_geometry(geometry, authority)
+                ),
+            )
     return run, config
 
 
@@ -398,9 +425,11 @@ def room_for_position(config, map_id, x, y, z, *, current_room=None):
             raise ValueError("Position leaves reviewed shared arena")
         return dungeon_shared_arena.stage(
             config["topology"],
-            current_room
-            if current_room is not None
-            else config["topology"].get("_current_room"),
+            (
+                current_room
+                if current_room is not None
+                else config["topology"].get("_current_room")
+            ),
         )
     if config["topology"].get("optional_room_policy") is not None:
         from wakfu_server.dungeon_optional_rooms import cell_rooms

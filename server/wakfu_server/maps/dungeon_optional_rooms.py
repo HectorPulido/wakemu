@@ -1,4 +1,5 @@
 """Reviewed required encounters, with unresolved optional content kept intact."""
+
 from copy import deepcopy
 
 POLICY = "reviewed-main-and-optional-rooms-v1"
@@ -125,15 +126,13 @@ def validate_movement(topology, request):
             if room["order"] in qualified
             for cell in room["cells"]
         }
-    current = tuple(request["start_position"][axis] for axis in ("x", "y", "z"))
-    inside = current in optional_cells
-    for step in request["steps"]:
-        current = tuple(
-            current[i] + step["d" + axis] for i, axis in enumerate(("x", "y", "z"))
-        )
-        if current in optional_cells and not inside:
-            raise ValueError("Optional native access is unresolved")
-        inside = current in optional_cells
+    from wakfu_server.spatial_native import get_spatial
+
+    get_spatial().call(
+        "navigation.optional_cells",
+        request=request,
+        optional_cells=sorted(optional_cells),
+    )
 
 
 def partition_rooms(plan, topology, *, main_source_orders, access_evidence):

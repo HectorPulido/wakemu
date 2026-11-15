@@ -13,6 +13,9 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
+if [[ "$check_only" == "0" && -z "${WAKFU_GAME_LOGIN_FILE:-}" ]]; then
+  exec python3 "$experiment_dir/client-tools/desktop-launcher.py" --profile "${WAKFU_LOCAL_PROFILE:-main}"
+fi
 if [[ "$(uname -s)" == "Linux" && -z "${WAKFU_LAUNCHER_CONFIG:-}" ]]; then
   WAKFU_LAUNCHER_CONFIG="$(python3 client-tools/runtime/configure-server.py --server 127.0.0.1)"
   export WAKFU_LAUNCHER_CONFIG
@@ -47,8 +50,4 @@ bash sniffer/build-capture-agent.sh
 unset _JAVA_OPTIONS JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
 LOCAL_TEST_JAVA="$experiment_dir/client/jre/Contents/Home/bin/java" python3 client-tools/runtime/verify-local-network.py
 if [[ "$check_only" == "1" ]]; then exit 0; fi
-if [[ -z "${WAKFU_GAME_LOGIN_FILE:-}" ]]; then
-  python3 client-tools/runtime/local-login.py
-  export WAKFU_GAME_LOGIN_FILE="$(python3 -c 'from wakfu_server.profiles import profile_root; print(profile_root()/"login-session.json")')"
-fi
 exec /usr/bin/sandbox-exec -f "$experiment_dir/client-tools/runtime/local-network.sb" python3 client-tools/runtime/local-launcher-bridge.py

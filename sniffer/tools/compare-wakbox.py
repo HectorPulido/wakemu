@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Compare pinned WakBox source and current descriptors without running either server."""
+
 import ast, json, re, subprocess
 from pathlib import Path
 from google.protobuf.descriptor_pb2 import FileDescriptorProto, FileDescriptorSet
 
 root = Path(".runtime/reference/WakBox-Evolution")
 modern = FileDescriptorSet.FromString(
-    Path("server/protocol/descriptors.pb").read_bytes()
+    Path("database/protocol/descriptors.pb").read_bytes()
 )
 old = FileDescriptorSet()
 errors = []
@@ -336,7 +337,7 @@ report = {
     "current_only_proto_messages": sorted(set(new_messages) - set(old_messages)),
     "descriptor_extraction_errors": errors,
 }
-Path("server/protocol/wakbox-comparison.json").write_text(
+Path("database/protocol/wakbox-comparison.json").write_text(
     json.dumps(report, indent=2) + "\n"
 )
 print(

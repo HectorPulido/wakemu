@@ -1,11 +1,11 @@
 """Inspect dispatcher capture boundaries without booting the world service."""
+
 import ast
 from contextlib import nullcontext
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import types
 import unittest
 from unittest.mock import MagicMock, patch
-
 
 SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

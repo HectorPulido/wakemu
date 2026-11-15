@@ -1,4 +1,5 @@
 """Frozen native walking gates controlled by committed private dungeon progress."""
+
 import struct
 
 POLICY = "native_physical_door_victory_policy"
@@ -178,7 +179,7 @@ def validate_movement(
         completed=completed,
     )
     geometry = topology["exploration_geometry"]
-    cells = set(map(tuple, geometry["cells"]))
+    cells = None
     if topology.get("optional_vote_access") is not None:
         from wakfu_server.dungeon_optional_rooms import main_room_orders
         from wakfu_server.dungeon_optional_vote_geometry import extra_cells
@@ -190,32 +191,13 @@ def validate_movement(
             if room["order"] in required
             for c in room["cells"]
         }
-        cells.intersection_update(allowed | set(extra_cells(topology)))
-    edges = {(tuple(a), tuple(b)) for a, b in geometry["edges"]}
-    current = tuple(request["start_position"][k] for k in ("x", "y", "z"))
-    if current not in cells or current in blocked:
-        raise ValueError("Dungeon movement starts outside unlocked native terrain")
-    for step in request["steps"]:
-        target = tuple(
-            current[i] + step["d" + axis] for i, axis in enumerate(("x", "y", "z"))
+        cells = set(map(tuple, geometry["cells"])) & (
+            allowed | set(extra_cells(topology))
         )
-        if target not in cells or target in blocked:
-            raise ValueError("Dungeon movement crosses a locked room gate")
-        if abs(target[0] - current[0]) == 1 and abs(target[1] - current[1]) == 1:
-            choices = []
-            for x, y in ((target[0], current[1]), (current[0], target[1])):
-                choices.append(
-                    any(
-                        (current, middle) in edges and (middle, target) in edges
-                        for middle in cells
-                        if middle[:2] == (x, y) and middle not in blocked
-                    )
-                )
-            if not all(choices):
-                raise ValueError("Dungeon diagonal bypasses native gate collision")
-        elif (current, target) not in edges:
-            raise ValueError("Dungeon movement leaves native exploration edges")
-        current = target
-    if current != tuple(request["end_position"][k] for k in ("x", "y", "z")):
-        raise ValueError("Dungeon movement endpoint mismatch")
-    return current
+    from wakfu_server.spatial_native import get_spatial
+
+    from wakfu_server.spatial_topology import directed_path
+
+    return tuple(
+        directed_path(get_spatial(), geometry, request, blocked, allowed_cells=cells)
+    )

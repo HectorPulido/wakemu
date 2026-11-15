@@ -1,4 +1,5 @@
 """Private ranch gardens retain native geometry and actor-owned inventory."""
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -182,67 +183,83 @@ class HavenRanchGardenTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 planting_cells.private_surfaces(1440, 30, 6)
 
-    def test_private_ranch_uses_world_policy_for_flora_and_monsters(self):
-        from wakfu_server import haven_bag_garden as garden, planting_probability
+    def _accept_prepared_probability(
+        self, reference, probability, *, open_policy=False
+    ):
+        """Exercise World acceptance, not the retired Python chance planner."""
+        import struct
 
-        prepared = dict(
-            character=self.character,
-            request={"x": 29, "y": 6},
-            z=4,
-            definition={
-                "monster_resource": False,
-                "resource_reference": 999,
-                "family_id": 19,
-            },
-        )
-        self.store.connection.return_value.__enter__.return_value.execute.return_value.fetchone.return_value = {
-            "value": 0.01
-        }
-        resolve = planting_probability.resolver(
-            self.store, profession_bonus=lambda _: 0, open_test_policy=True
-        )
-        with patch.object(garden, "validate_target", return_value=4):
-            for monster in (False, True):
-                self.assertEqual(
-                    resolve(
-                        dict(
-                            prepared,
-                            definition=dict(
-                                prepared["definition"], monster_resource=monster
-                            ),
-                        )
-                    ),
-                    0.01,
-                )
-            with self.assertRaises(ValueError):
-                resolve(dict(prepared, character=dict(self.character, instance_id=0)))
+        from planting_fixture import prepare
+        from wakfu_server.planting import SEEDS
+        from wakfu_server.planting_runtime import Plantings
 
-    def test_closed_ranch_probability_retains_native_surface_resolver(self):
-        from wakfu_server import haven_bag_garden as garden, planting_probability
+        seed = SEEDS[reference]
+        body = struct.pack(">iqii", seed["action_id"], 9, 29, 6)
+        db = self.store.connection.return_value.__enter__.return_value
 
-        prepared = dict(
-            character=self.character,
-            request={"x": 29, "y": 6},
-            z=4,
-            definition={"monster_resource": True},
+        def execute(query, *args):
+            result = MagicMock()
+            if "SELECT reference,quantity FROM inventory_items" in query:
+                result.fetchone.return_value = {"reference": reference, "quantity": 2}
+            elif "SELECT 1 FROM planted_resources" in query:
+                result.fetchone.return_value = None
+            elif "SELECT resource FROM planting_growth_outbox" in query:
+                result.__iter__.return_value = iter(())
+            elif "name='planting_duration_ms'" in query:
+                result.fetchone.return_value = {"value": 3000}
+            else:
+                raise AssertionError("Unexpected World planting query: " + query)
+            return result
+
+        db.execute.side_effect = execute
+        self.store.clock.return_value = 1000.0
+        runtime = Plantings(self.store, open_test_policy=open_policy)
+        prepared = prepare(
+            self.store,
+            4,
+            "ranch-generation",
+            self.character,
+            body,
+            authorize_cell=lambda *_args: 4,
+            probability=probability,
+            duration_ms=3000,
+            item_reference=reference,
         )
-        resolve = planting_probability.resolver(
-            self.store, profession_bonus=lambda _: 2
-        )
-        with patch.object(garden, "validate_target", return_value=4), patch(
-            "wakfu_server.territory_weather.context", return_value={"weather": "ABSENT"}
-        ), patch.object(
-            planting_probability, "for_cell", return_value={"probability": 0.6}
-        ) as native:
-            self.assertEqual(resolve(prepared), 0.6)
-            native.assert_called_once_with(
+        with patch("wakfu_server.planting_runtime._lease") as lease, patch(
+            "wakfu_server.profession_store.stored_level", return_value=200
+        ), patch(
+            "wakfu_server.profession_consumable_modifiers.modifiers",
+            return_value={"plant_speed": 0},
+        ), patch(
+            "wakfu_server.native_world_context.is_battleground", return_value=False
+        ):
+            packet = runtime.begin_prepared(
+                4,
+                "ranch-generation",
                 self.character,
-                prepared["request"],
-                prepared["definition"],
-                z=4,
-                weather="ABSENT",
-                profession_bonus_percent=2,
+                body,
+                prepared,
+                lambda *_args: 4,
             )
+        lease.assert_called_once_with(self.store, db, 4, "ranch-generation", 12)
+        self.assertEqual(packet[0], 12815)
+        self.assertEqual(runtime.pending[12]["probability"], probability)
+        return runtime
+
+    def test_private_ranch_accepts_prepared_probability_for_flora_and_monsters(self):
+        # Native Rust owns the open-policy calculation. World keeps the supplied
+        # value for either seed category while rechecking its ownership fences.
+        for reference in (4275, 6220):
+            for open_policy in (False, True):
+                with self.subTest(reference=reference, open_policy=open_policy):
+                    self._accept_prepared_probability(
+                        reference, 0.01, open_policy=open_policy
+                    )
+
+    def test_closed_ranch_keeps_prepared_native_probability_without_replanning(self):
+        # Weather, native surface probability and equipment projections are
+        # verified in Rust. World must not query those policies a second time.
+        self._accept_prepared_probability(6220, 0.6)
 
     def test_furniture_fence_locks_host_before_checking_guest_target(self):
         from wakfu_server.planting_cells import assert_private_furniture_unoccupied

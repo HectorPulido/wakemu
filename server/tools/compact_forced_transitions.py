@@ -2,6 +2,7 @@
 
 This is an offline conversion/equivalence benchmark; runtime remains unchanged.
 """
+
 import argparse
 import hashlib
 import json
@@ -107,7 +108,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("map_id", type=int)
     parser.add_argument(
-        "--directory", type=Path, default=Path("server/protocol/forced-transitions")
+        "--directory", type=Path, default=Path("database/protocol/forced-transitions")
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)

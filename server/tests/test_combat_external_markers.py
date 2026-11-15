@@ -62,6 +62,12 @@ def sample_shared(*, instance_id=0, duel=False):
 
 
 class ExternalFightMarkerTests(unittest.TestCase):
+    def test_owner_scoped_dojo_fight_never_publishes_public_markers(self):
+        shared = sample_shared()
+        self.assertIsNotNone(ExternalFightMarkers._body(shared, started_at_ms=100_000))
+        shared.join_context["world_scene_owner"] = 17
+        self.assertIsNone(ExternalFightMarkers._body(shared, started_at_ms=100_000))
+
     def test_public_sword_center_matches_initiator_for_large_and_odd_arenas(self):
         import copy
         from wakfu_server.combat.combat_wire import decode_topology, topology

@@ -1,7 +1,8 @@
 """Durable World entry roles and public placement/owned-hero admission."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 
 from postgres_case import PostgresCase

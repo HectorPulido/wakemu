@@ -836,9 +836,9 @@ class CombatValidationProfileTests(unittest.TestCase):
                 build_graph=build,
                 impact_inputs=lambda root: {"fixture": "stable"},
                 runtime_policy_inputs=lambda names: {},
-                select_changes=lambda old, new: plan
-                if (old, new) == (before, after)
-                else None,
+                select_changes=lambda old, new: (
+                    plan if (old, new) == (before, after) else None
+                ),
             )
             with patch.dict(sys.modules, {"tools.combat_test_impact": fake}):
                 actual, artifacts, inputs = _impact_observation(
@@ -1015,14 +1015,14 @@ class CombatValidationProfileTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "server/tools").mkdir(parents=True)
-            (root / "server/protocol").mkdir(parents=True)
+            (root / "database/protocol").mkdir(parents=True)
             (root / "server/.runtime").mkdir(parents=True)
             (root / "server/tools/a.py").write_text("pass\n")
-            (root / "server/protocol/spell_catalog.json").write_text("{}\n")
+            (root / "database/protocol/spell_catalog.json").write_text("{}\n")
             (root / "server/.runtime/secret.json").write_text("private\n")
             manifest = _manifest(root)
             self.assertIn("server/tools/a.py", manifest["files"])
-            self.assertIn("server/protocol/spell_catalog.json", manifest["files"])
+            self.assertIn("database/protocol/spell_catalog.json", manifest["files"])
             self.assertNotIn("server/.runtime/secret.json", manifest["files"])
 
     def test_profile_records_child_return_codes_for_pass_and_failure(self):

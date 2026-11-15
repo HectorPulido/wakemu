@@ -3,7 +3,9 @@
 Keys are actual signed-byte QK slot identifiers. State is plain checkpoint data;
 rebuilding from its final key set would lose removed slots and rehash history.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 import bisect
 import json
 import math
@@ -18,7 +20,7 @@ def _float32(value):
 
 @lru_cache(maxsize=1)
 def _contract():
-    path = Path(__file__).resolve().parents[2] / "protocol/native-trove-byte-set.json"
+    path = DATA_ROOT / "native-trove-byte-set.json"
     contract = protocol_catalog.load(path)
     if contract["load_factor"] != 0.5 or contract["auto_compaction_factor"] != 0.5:
         raise ValueError("Unaudited native Trove constructor")

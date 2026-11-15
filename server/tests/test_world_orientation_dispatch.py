@@ -1,7 +1,7 @@
 import ast
 import struct
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 
 from postgres_case import PostgresCase
 from wakfu_server.position_buffer import Positions

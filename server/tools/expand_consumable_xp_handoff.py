@@ -1,4 +1,5 @@
 """Generate208 for the native4872 to6874 START handoff, without editing198/205."""
+
 import copy
 import hashlib
 import json
@@ -8,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def main():
-    catalog_path = ROOT / "server/protocol/native-consumable-actions.json"
+    catalog_path = ROOT / "database/protocol/native-consumable-actions.json"
     payload = json.loads(catalog_path.read_text())
     row = next(row for row in payload["items"] if row["item_ref"] == 22146)
     source = row["plan"]["states"][0]

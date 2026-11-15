@@ -1,7 +1,8 @@
 """One isolated administrative Rift lifecycle, without simulating a fight."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 
 from postgres_case import PostgresCase

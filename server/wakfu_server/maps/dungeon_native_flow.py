@@ -1,4 +1,5 @@
 """Native manual dungeon traversal shared by physical gates and teleports."""
+
 from wakfu_server import dungeon_physical_doors
 
 TELEPORT_POLICY = "native_teleport_victory_policy"
@@ -284,19 +285,18 @@ def validate_movement(topology, request, *, unlocked_room, completed=False):
         from wakfu_server.dungeon_optional_continuations import extra_cells
 
         cells = cells | extra_cells(topology)
-        current = tuple(request["start_position"][k] for k in ("x", "y", "z"))
-        if current not in cells:
-            raise ValueError("Shared arena movement starts outside reviewed cells")
-        for step in request["steps"]:
-            current = tuple(
-                current[i] + step["d" + axis] for i, axis in enumerate(("x", "y", "z"))
-            )
-            if current not in cells:
-                raise ValueError("Shared arena movement leaves reviewed cells")
+        from wakfu_server.spatial_native import get_spatial
+
+        get_spatial().call(
+            "navigation.allowed_cells",
+            request=request,
+            cells=sorted(cells),
+            start_error="Shared arena movement starts outside reviewed cells",
+            step_error="Shared arena movement leaves reviewed cells",
+        )
     if not enabled(topology):
         raise ValueError("Dungeon has no supported native exploration policy")
     if topology.get("policy") in (TELEPORT_POLICY, MIXED_POLICY):
-        current = tuple(request["start_position"][k] for k in ("x", "y", "z"))
         from wakfu_server.dungeon_optional_rooms import cell_rooms
 
         cells = cell_rooms(topology)
@@ -339,20 +339,19 @@ def validate_movement(topology, request, *, unlocked_room, completed=False):
                 position: (1 if room in accessible else room)
                 for position, room in cells.items()
             }
-        visited = [current]
-        for step in request["steps"]:
-            current = tuple(
-                current[i] + step["d" + axis] for i, axis in enumerate(("x", "y", "z"))
-            )
-            visited.append(current)
         from wakfu_server.dungeon_optional_vote_geometry import extra_cells
 
         side_cells = extra_cells(topology)
-        if any(
-            p not in side_cells and cells.get(p, unlocked_room + 1) > unlocked_room
-            for p in visited
-        ):
-            raise ValueError("Native exploration crosses a locked room")
+        allowed = {point for point, room in cells.items() if room <= unlocked_room}
+        from wakfu_server.spatial_native import get_spatial
+
+        get_spatial().call(
+            "navigation.allowed_cells",
+            request=request,
+            cells=sorted(allowed | side_cells),
+            start_error="Native exploration crosses a locked room",
+            step_error="Native exploration crosses a locked room",
+        )
     # Reuse the proven native edge validator; never alter combat geometry.
     return dungeon_physical_doors.validate_movement(
         dict(topology, policy=dungeon_physical_doors.POLICY),

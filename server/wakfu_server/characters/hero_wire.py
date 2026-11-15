@@ -1,4 +1,5 @@
 """Native hero request codecs; roster mutation remains account-authorized."""
+
 import struct
 
 
@@ -72,12 +73,17 @@ def added_result(result):
     return 12587, bytes((result,))
 
 
-def refresh(template, character):
+def refresh(template, character, *, preserve_achievements=True):
     """csZ13046 updates an already-loaded owned hero biB from its real blob."""
     from wakfu_server import wire
 
     blob = wire.header(
-        wire.position(wire.minimal_entity(template, character), character),
+        wire.position(
+            wire.minimal_entity(
+                template, character, preserve_achievements=preserve_achievements
+            ),
+            character,
+        ),
         character["account_id"],
         character,
     )
@@ -90,7 +96,7 @@ def activate(template, character):
     """cue12093 hydrates and activates an owned hero in the native registry."""
     from wakfu_server.builds import build_set, aptitude_registry
 
-    entity = refresh(template, character)[1][10:]
+    entity = refresh(template, character, preserve_achievements=False)[1][10:]
     blocks = (entity, build_set(character, b""), aptitude_registry(character))
     return 12093, b"".join(struct.pack(">I", len(block)) + block for block in blocks)
 
@@ -121,7 +127,11 @@ def configuration(body):
             raise ValueError("Duplicate native server configuration")
         values[key] = value
     reader.finish()
-    values.update({431: "true", 602: "true", 603: "true", 622: "2", 2058: "false"})
+    # Native eHd skips an absent ACHIEVEMENTS section under STORAGE_SAFETY.
+    # Install this before actor hydration so partial refreshes preserve bdM.
+    values.update(
+        {304: "true", 431: "true", 602: "true", 603: "true", 622: "2", 2058: "false"}
+    )
     payload = struct.pack(">I", len(values))
     for key, value in values.items():
         encoded = value.encode("utf-8")

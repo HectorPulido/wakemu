@@ -3,6 +3,7 @@
 Use World's existing occupancy episodes, not persisted character coordinates,
 session expiry, database scans or a second simulation/presence registry.
 """
+
 _world = None
 
 
@@ -28,25 +29,7 @@ def current(token, map_id, instance_id):
 
 
 def try_positions(token, map_id, instance_id):
-    """Read current scoped XYZ without waiting for World's membership lock.
-
-    Population callers can already own SQL account/region/population locks.
-    Ecology commits hold World before taking those SQL locks, so a busy World
-    must defer this population attempt instead of reversing that lock order.
-    No registry, cached positions or stale occupancy episode is introduced.
-    """
+    """Read native scoped XYZ without waiting behind an admitted SQL commit."""
     if token is None:
         return None
-    world = token[0]
-    if not world.lock.acquire(blocking=False):
-        return None
-    try:
-        if not current(token, map_id, instance_id):
-            return None
-        return tuple(
-            (row["x"], row["y"], row["z"])
-            for _, _, row in world.players.values()
-            if world.location(row) == (map_id, instance_id)
-        )
-    finally:
-        world.lock.release()
+    return token[0].try_scope_positions(map_id, instance_id, token[1])

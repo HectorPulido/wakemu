@@ -1,4 +1,5 @@
 """Private native resource lifecycle against disposable PostgreSQL only."""
+
 import copy
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -352,8 +353,28 @@ class DungeonResourceProviderPostgresTests(PhysicalChoiceFixture, PostgresCase):
         self.clock += 2
         published = []
         worker = Plantings(self.store)
-        first = worker.mature(self.groups, publish=published.append)
-        second = worker.publish_growth(self.groups, publish=published.append)
+        from wakfu_server.planting import RESOURCES
+
+        resource_uid = self.rows()[0]["resource_uid"]
+        with self.store.connection() as db:
+            candidate = dict(
+                db.execute(
+                    "SELECT * FROM planted_resources WHERE resource_uid=%s",
+                    (resource_uid,),
+                ).fetchone()
+            )
+        # The external producer supplied this exact row and transition. World
+        # must reject regrowth because dungeon ownership still owns the rock.
+        applied = worker.apply_growth_candidates(
+            [(candidate, RESOURCES[candidate["resource_reference"]], (4, 1000, 1.0))]
+        )
+        self.assertEqual(applied["applied"], [])
+        first = worker.publish_growth(
+            self.groups, publish=published.append, resource_uid=resource_uid
+        )
+        second = worker.publish_growth(
+            self.groups, publish=published.append, resource_uid=resource_uid
+        )
         self.assertEqual(len(first), 1)
         self.assertEqual(second, [])
         self.assertEqual(first[0]["packets"][0][0], 12782)

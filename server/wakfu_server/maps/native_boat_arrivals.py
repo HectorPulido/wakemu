@@ -4,6 +4,7 @@ Nonwalkable landing columns remain excluded from ordinary terrain admission.
 This policy preserves a server-authoritative native POSITION and permits only
 its independently recovered native Sm egress; it never creates an incoming edge.
 """
+
 import hashlib
 import json
 from functools import lru_cache
@@ -218,28 +219,20 @@ def validate_movement(character, request, *, geometry):
     entries = [row for row in _authority() if row["map_id"] == character["map_id"]]
     if not entries:
         return
-    sources = {row["source"]: row for row in entries}
-    point = tuple(request["start_position"][axis] for axis in ("x", "y", "z"))
-    checked = False
-    for step in request["steps"]:
-        target = tuple(
-            point[i] + step["d" + axis] for i, axis in enumerate(("x", "y", "z"))
+    from wakfu_server.spatial_native import get_spatial
+
+    native = get_spatial()
+    arguments = dict(
+        map_id=character["map_id"],
+        request=request,
+        sources=[
+            dict(source=row["source"], targets=sorted(row["targets"]))
+            for row in entries
+        ],
+    )
+    if native.call("navigation.boat_path", **arguments)["needs_geometry"]:
+        base = geometry(character["map_id"])
+        arguments["geometry"] = dict(
+            map_id=base.get("map_id"), cells=list(base.get("cells", ()))
         )
-        if target in sources:
-            raise ValueError(
-                "Native Boat arrival is not an ordinary movement destination"
-            )
-        if point in sources:
-            entry = sources[point]
-            if not checked:
-                base = geometry(character["map_id"])
-                if base.get("map_id") != character["map_id"] or not entry[
-                    "targets"
-                ].issubset({tuple(p) for p in base["cells"]}):
-                    raise ValueError("Native Boat departure terrain changed")
-                checked = True
-            if target not in entry["targets"]:
-                raise ValueError(
-                    "Movement does not follow an original native Boat departure"
-                )
-        point = target
+        native.call("navigation.boat_path", **arguments)

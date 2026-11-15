@@ -1,8 +1,9 @@
 """Dispatcher deadline coverage using the live nested helper AST, no socket loop."""
+
 import ast
 import copy
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import textwrap
 import unittest

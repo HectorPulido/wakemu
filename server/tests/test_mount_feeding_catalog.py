@@ -8,7 +8,10 @@ class MountFeedingCatalogTests(unittest.TestCase):
     def test_native_effect_classification_for_reported_and_xp_foods(self):
         catalog = json.loads(
             native_catalog.read_text(
-                Path(__file__).parents[1] / "protocol" / "mount-models.json"
+                Path(__file__).parents[2]
+                / "database"
+                / "protocol"
+                / "mount-models.json"
             )
         )
         self.assertEqual(catalog["count"], 40)

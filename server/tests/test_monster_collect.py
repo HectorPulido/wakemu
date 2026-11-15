@@ -2,7 +2,7 @@ import struct
 import copy
 import threading
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from datetime import timedelta
 import psycopg
 from unittest.mock import patch
@@ -49,9 +49,7 @@ class HarvestTests(PostgresCase):
                 "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
                 (1134, 17, 54, 36, 17, self.char["id"]),
             )
-        self.body = proto_field(8, 3723) + proto_field(
-            16, self.monster["id"] % (2**64)
-        )
+        self.body = proto_field(8, 3723) + proto_field(16, self.monster["id"] % (2**64))
         self.rule = action(self.monster["ref"], 3723)
         ensure_learned(
             self.store,
@@ -575,9 +573,7 @@ class HarvestTests(PostgresCase):
         first_monster_id = self.monster["id"]
         second_monster_id = first_monster_id + 1
         self.monster["id"] = second_monster_id
-        self.body = proto_field(8, 3723) + proto_field(
-            16, second_monster_id % (2**64)
-        )
+        self.body = proto_field(8, 3723) + proto_field(16, second_monster_id % (2**64))
         self.begin()
         self.now[0] += 3
         self.complete()

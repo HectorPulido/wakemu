@@ -1,4 +1,5 @@
 """Compare local PV-map topology against exported installed-client operations."""
+
 import argparse
 import hashlib
 import json
@@ -18,7 +19,7 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     contract = json.loads(
-        (root / "server/protocol/native-trove-long-map.json").read_text()
+        (root / "database/protocol/native-trove-long-map.json").read_text()
     )
     native_jars = [
         root / "client/lib/wakfu-client.jar",
@@ -27,7 +28,7 @@ def main():
     tracked = [
         Path(__file__).resolve(),
         root / "server/wakfu_server/combat/combat_trove_long_map.py",
-        root / "server/protocol/native-trove-long-map.json",
+        root / "database/protocol/native-trove-long-map.json",
         root / "sniffer/java/ExportNativeTroveLongMap.java",
         args.oracle,
         *native_jars,

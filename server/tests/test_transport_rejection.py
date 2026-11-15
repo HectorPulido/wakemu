@@ -1,6 +1,6 @@
 import ast
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from wakfu_server.dungeon_entry_payment import InsufficientEntranceItems
 from wakfu_server.transport_rejection import requires_scene_recovery

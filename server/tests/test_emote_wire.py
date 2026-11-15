@@ -1,10 +1,11 @@
 """Native account EMOTES and occupation packet layouts."""
+
 import ast
 import struct
 import time
 import unittest
 from unittest.mock import Mock
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from wakfu_server.characters import emotes
 
 

@@ -1,8 +1,9 @@
 """The real global combat guard permits only recognized loaded exterior entry."""
+
 import ast
 from contextlib import nullcontext
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest

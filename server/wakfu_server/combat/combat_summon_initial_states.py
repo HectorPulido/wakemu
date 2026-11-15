@@ -3,7 +3,9 @@
 These rows describe initial eWu construction, not ordinary cast304 parameters.
 Execution needs the actual detached actor's PN/state manager and Qf authority.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 from dataclasses import dataclass
 from functools import lru_cache
 import json
@@ -12,11 +14,7 @@ from pathlib import Path
 
 @lru_cache(maxsize=1)
 def native_initial_states():
-    path = (
-        Path(__file__).resolve().parents[2]
-        / "protocol"
-        / "native-class-summon-initial-states.json"
-    )
+    path = DATA_ROOT / "native-class-summon-initial-states.json"
     from .combat_captured_dependencies import merge_profile_component
     from .combat_copy_dependencies import (
         merge_profile_component as merge_copy_component,

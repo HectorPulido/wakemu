@@ -1,4 +1,5 @@
 """Fresh minimal public-character reads used by external fight markers."""
+
 import ast
 import unittest
 import uuid
@@ -12,7 +13,7 @@ from wakfu_server.combat.combat_state import Actor, Fight
 
 
 def _public_member_packet(store):
-    from pathlib import Path
+    from source_view import WorldSourcePath as Path
 
     source = (
         Path(__file__).resolve().parents[1].joinpath("local_game_server.py").read_text()

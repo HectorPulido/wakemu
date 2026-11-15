@@ -1,47 +1,39 @@
-"""Durable event draws survive restart but never cross a defeated incarnation."""
+"""World lifecycle fences/failure budgets consume explicit native decision rows.
+
+Seed creation, restart/policy pinning, block extension, orphan rejection and
+set-based noops execute in Rust tests/lifecycle_contract.rs.
+"""
+
+from copy import deepcopy
 import test_monster_reproduction_attempts as fixtures
 from wakfu_server import monster_life_plans as plans
+from lifecycle_fixture import attach_decision_fixture, read_decision_fixture
 
 
 class MonsterLifePlansTests(fixtures.MonsterReproductionAttemptTests):
-    # Hide inherited cases; reuse only the durable roster fixture.
-    def test_restart_failures_policy_and_next_block_preserve_original_seed(self):
-        first = plans.attach(
-            self.store,
-            (self.map_id, 0),
-            "reproduction",
-            [self.ticket],
-            dict(chance=0.1, interval_ms=60000),
-        )[0]
+    def test_world_failure_budget_survives_reopen_and_caps_the_current_cycle(self):
+        first = attach_decision_fixture(
+            self.store, "reproduction", self.ticket, dict(interval_ms=60000, chance=0.1)
+        )
         reopened = self.reopen()
-        again = plans.attach(
-            reopened,
-            (self.map_id, 0),
-            "reproduction",
-            [self.ticket],
-            dict(chance=0.9, interval_ms=60000),
-        )[0]
-        self.assertEqual(first, again)
+        self.assertEqual(
+            read_decision_fixture(reopened, "reproduction", self.ticket), first
+        )
         for _ in range(8):
             plans.failure(reopened, first, "reproduction")
-        self.assertEqual(
-            plans.attach(reopened, (self.map_id, 0), "reproduction", [self.ticket], {}),
-            [],
-        )
-        next_ticket = dict(self.ticket, cycle=33)
-        later = plans.attach(
-            reopened, (self.map_id, 0), "reproduction", [next_ticket], {}
-        )[0]
         with reopened.connection() as db:
-            row = db.execute("SELECT seed,events FROM monster_life_plans").fetchone()
-        self.assertEqual(later["decision"], plans.event(row["seed"], 33))
-        self.assertEqual(later["plan_policy"], dict(chance=0.1, interval_ms=60000))
-        self.assertEqual(later["plan_incarnation"], first["plan_incarnation"])
+            row = db.execute("SELECT events FROM monster_life_plans").fetchone()
+            timer = db.execute(
+                "SELECT due,last_active_ms,remaining_ms FROM monster_reproduction_timers"
+            ).fetchone()
+            self.assertFalse(plans.fence(db, first, "reproduction"))
+        self.assertEqual(row["events"][0]["attempts"], 5)
+        self.assertFalse(timer["due"])
+        self.assertIsNone(timer["last_active_ms"])
+        self.assertEqual(timer["remaining_ms"], 60000)
 
     def test_defeat_respawn_and_delete_invalidate_old_tickets(self):
-        first = plans.attach(
-            self.store, (self.map_id, 0), "reproduction", [self.ticket], {}
-        )[0]
+        first = attach_decision_fixture(self.store, "reproduction", self.ticket, {})
         with self.store.connection() as db:
             db.execute(
                 "UPDATE combat_groups SET status='defeated' WHERE map_id=%s AND instance_id=0 AND group_id=%s",
@@ -52,15 +44,15 @@ class MonsterLifePlansTests(fixtures.MonsterReproductionAttemptTests):
                 "UPDATE combat_groups SET status='available' WHERE map_id=%s AND instance_id=0 AND group_id=%s",
                 (self.map_id, self.group_id),
             )
-        respawn = plans.attach(
-            self.store, (self.map_id, 0), "reproduction", [self.ticket], {}
-        )[0]
-        self.assertNotEqual(respawn["plan_incarnation"], first["plan_incarnation"])
+        respawn = attach_decision_fixture(
+            self.store, "reproduction", self.ticket, {}, incarnation="18" * 16
+        )
+        self.assertNotEqual(first["plan_incarnation"], respawn["plan_incarnation"])
         plans.failure(self.store, first, "reproduction")
         self.assertEqual(
-            plans.attach(
-                self.store, (self.map_id, 0), "reproduction", [self.ticket], {}
-            )[0]["decision"]["attempts"],
+            read_decision_fixture(self.store, "reproduction", self.ticket)["decision"][
+                "attempts"
+            ],
             0,
         )
         with self.store.connection() as db:
@@ -76,133 +68,35 @@ class MonsterLifePlansTests(fixtures.MonsterReproductionAttemptTests):
                 0,
             )
 
-    def test_set_based_noops_commit_once_and_reject_stale_or_fighting_rosters(self):
-        self._set_policy(birth=0.0, new_group=0.0, max_members=8)
-        from wakfu_server import monster_reproduction
-
-        policy = monster_reproduction.policy(self.store)
-        ticket = plans.attach(
-            self.store, (self.map_id, 0), "reproduction", [self.ticket], policy
-        )[0]
-        proposal = dict(
-            kind="reproduction",
-            ticket=ticket,
-            configuration=policy,
-            expected_members=self._group()["members"],
-            draw=ticket["decision"]["draw"],
+    def test_world_fence_rejects_foreign_incarnation_policy_draw_and_decision(self):
+        policy = dict(interval_ms=60000, chance=0.1)
+        ticket = attach_decision_fixture(
+            self.store, "reproduction", self.ticket, policy
         )
-        stale = dict(proposal, expected_members=[])
-        plans.resolve_noops(self.store, [stale])
-        self.assertIsNone(self._receipt())
         with self.store.connection() as db:
-            fight_id = db.execute(
-                "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
-            ).fetchone()["id"]
-            db.execute(
-                "UPDATE combat_groups SET generation='test',fight_id=%s,status='fighting' WHERE map_id=%s AND instance_id=0 AND group_id=%s",
-                (fight_id, self.map_id, self.group_id),
-            )
-        plans.resolve_noops(self.store, [proposal])
-        self.assertIsNone(self._receipt())
-        with self.store.connection() as db:
-            db.execute(
-                "UPDATE combat_groups SET status='available' WHERE map_id=%s AND instance_id=0 AND group_id=%s",
-                (self.map_id, self.group_id),
-            )
-        bad_incarnation = dict(proposal, ticket=dict(ticket, plan_incarnation="wrong"))
-        plans.resolve_noops(self.store, [bad_incarnation])
-        self.assertIsNone(self._receipt())
-        self.assertEqual(plans.resolve_noops(self.store, [proposal]), [])
-        first = self._receipt()
-        self.assertIsNotNone(first)
-        self.assertIsNone(first["child_id"])
-        plans.resolve_noops(self.reopen(), [proposal])
-        self.assertEqual(self._receipt(), first)
-        with self.store.connection() as db:
-            timer = db.execute(
-                "SELECT due,remaining_ms FROM monster_reproduction_timers WHERE monster_id=%s",
-                (self.monster_id,),
-            ).fetchone()
-            self.assertFalse(timer["due"])
-            self.assertEqual(timer["remaining_ms"], policy["interval_ms"])
-            self.assertEqual(
-                db.execute(
-                    "SELECT count(*) AS n FROM personal_ecology_receipts"
-                ).fetchone()["n"],
-                0,
-            )
-
-    def test_preexisting_defeated_due_timers_cannot_create_any_life_plan(self):
-        from wakfu_server import monster_maturation, monster_reproduction
-
-        with self.store.connection() as db:
-            db.execute(
-                "UPDATE monster_maturation_timers SET due=true,cycle=1,remaining_ms=0 WHERE monster_id=%s",
-                (self.monster_id,),
-            )
-            db.execute(
-                "UPDATE combat_groups SET status='defeated' WHERE map_id=%s AND instance_id=0 AND group_id=%s",
-                (self.map_id, self.group_id),
-            )
-        for kind, domain in (
-            ("maturation", monster_maturation),
-            ("reproduction", monster_reproduction),
-        ):
-            with self.subTest(kind=kind):
-                self.assertEqual(domain.pending(self.store, self.map_id, 0), [])
-                self.assertEqual(
-                    plans.attach(
-                        self.store,
-                        (self.map_id, 0),
-                        kind,
-                        [self.ticket],
-                        dict(interval_ms=60000),
-                    ),
-                    [],
+            self.assertTrue(
+                plans.fence(
+                    db,
+                    ticket,
+                    "reproduction",
+                    configuration=policy,
+                    draw=ticket["decision"]["draw"],
                 )
-        with self.store.connection() as db:
-            self.assertEqual(
-                db.execute("SELECT count(*) AS n FROM monster_life_plans").fetchone()[
-                    "n"
-                ],
-                0,
             )
-
-    def test_ticket_read_before_defeat_cannot_recreate_deleted_plan(self):
-        from wakfu_server import monster_reproduction
-
-        tickets = monster_reproduction.pending(self.store, self.map_id, 0)
-        self.assertEqual(len(tickets), 1)
-        first = plans.attach(
-            self.store,
-            (self.map_id, 0),
-            "reproduction",
-            tickets,
-            dict(interval_ms=60000),
-        )
-        self.assertEqual(len(first), 1)
-        with self.store.connection() as db:
-            db.execute(
-                "UPDATE combat_groups SET status='defeated' WHERE map_id=%s AND instance_id=0 AND group_id=%s",
-                (self.map_id, self.group_id),
+            self.assertFalse(
+                plans.fence(
+                    db, dict(ticket, plan_incarnation="foreign"), "reproduction"
+                )
             )
-        self.assertEqual(
-            plans.attach(
-                self.reopen(),
-                (self.map_id, 0),
-                "reproduction",
-                tickets,
-                dict(interval_ms=60000),
-            ),
-            [],
-        )
-        with self.store.connection() as db:
-            self.assertEqual(
-                db.execute("SELECT count(*) AS n FROM monster_life_plans").fetchone()[
-                    "n"
-                ],
-                0,
+            self.assertFalse(
+                plans.fence(
+                    db, ticket, "reproduction", configuration=dict(policy, chance=0.9)
+                )
             )
+            self.assertFalse(plans.fence(db, ticket, "reproduction", draw=0.99))
+            changed = deepcopy(ticket)
+            changed["decision"]["variant_seed"] = "ff" * 32
+            self.assertFalse(plans.fence(db, changed, "reproduction"))
 
 
 for _name in dir(fixtures.MonsterReproductionAttemptTests):

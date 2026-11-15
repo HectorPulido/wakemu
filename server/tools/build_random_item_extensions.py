@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Qualify existing native Rift box tables without editing migration200."""
+
 import argparse
 import hashlib
 import json
@@ -8,8 +9,9 @@ from pathlib import Path
 from build_random_item_actions import canonical, literal
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = ROOT / "protocol/native-random-item-actions.json"
-DOCUMENT = ROOT / "protocol/native-random-item-extensions.json"
+DATABASE_ROOT = (ROOT.parent if ROOT.name == "server" else ROOT) / "database"
+BASE = DATABASE_ROOT / "protocol/native-random-item-actions.json"
+DOCUMENT = DATABASE_ROOT / "protocol/native-random-item-extensions.json"
 MIGRATION = ROOT / "migrations/214_native_random_item_extensions.sql"
 BASE_SHA256 = "1ee0fa5fc731932c084570d5f653a26cdacd964d5424270bb38c398d48dc1b97"
 

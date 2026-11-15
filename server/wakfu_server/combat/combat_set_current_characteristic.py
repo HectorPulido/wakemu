@@ -3,8 +3,10 @@
 The requested amount, mutable Qe value and immutable removal delta are distinct.
 No state or spell reference participates in dispatch.
 """
+
 from .combat_source_parent_index import OwnedStateSourceRow
 from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 from dataclasses import replace
 from functools import lru_cache
 import json
@@ -19,11 +21,9 @@ from .combat_value_transfer import apply_context_value
 
 @lru_cache(maxsize=1)
 def set_current_registry():
-    return protocol_catalog.load(
-        Path(__file__).resolve().parents[2]
-        / "protocol"
-        / "native-set-current-characteristic.json"
-    )["effects"]
+    return protocol_catalog.load(DATA_ROOT / "native-set-current-characteristic.json")[
+        "effects"
+    ]
 
 
 def set_current_transition(*, current, requested, minimum, maximum, frozen=False):
@@ -121,9 +121,11 @@ class NativeSetCurrentCharacteristicHandler:
         )
         value = apply_context_value(
             value,
-            None
-            if invocation.native_context_hex is None
-            else bytes.fromhex(invocation.native_context_hex),
+            (
+                None
+                if invocation.native_context_hex is None
+                else bytes.fromhex(invocation.native_context_hex)
+            ),
         )
         return context, value
 
@@ -224,9 +226,7 @@ class NativeSetCurrentCharacteristicHandler:
         changed_event = (
             row["gain_event"]
             if caster_change > 0
-            else row["loss_event"]
-            if caster_change < 0
-            else -1
+            else row["loss_event"] if caster_change < 0 else -1
         )
         events = self._events(effect, () if changed_event < 0 else (changed_event,))
 

@@ -23,6 +23,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 from psycopg.rows import dict_row
 
 SERVER = Path(__file__).resolve().parents[1]
+DATABASE_ROOT = (SERVER.parent if SERVER.name == "server" else SERVER) / "database"
 FORMAT = "wakemu-clean-database-v1"
 COPY_TABLES = {
     "native_catalog_releases": (
@@ -586,7 +587,7 @@ def build(source_url, database_name, *, password_file=None, pack=None, migration
         raise ValueError(
             "Target must be a new dedicated wakemu_clean_backup_* database"
         )
-    pack = Path(pack) if pack is not None else SERVER / "data" / "installation"
+    pack = Path(pack) if pack is not None else DATABASE_ROOT / "data" / "installation"
     manifest, native = read_public_pack(pack)
     password = (
         {}
@@ -649,7 +650,9 @@ def main():
         type=Path,
         default=os.environ.get("WAKFU_DATABASE_PASSWORD_FILE"),
     )
-    parser.add_argument("--pack", type=Path, default=SERVER / "data" / "installation")
+    parser.add_argument(
+        "--pack", type=Path, default=DATABASE_ROOT / "data" / "installation"
+    )
     parser.add_argument("--manifest", type=Path, required=True)
     args = parser.parse_args()
     if not args.source_url:

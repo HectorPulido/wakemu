@@ -1,7 +1,8 @@
 """Private combat keeps its live capability and its durable exterior separate."""
+
 import struct
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 
 from postgres_case import PostgresCase

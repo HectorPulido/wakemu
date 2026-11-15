@@ -1,7 +1,8 @@
 """Production settlement recovers frozen regional credit for every winning owner."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from threading import RLock
 from types import SimpleNamespace
 

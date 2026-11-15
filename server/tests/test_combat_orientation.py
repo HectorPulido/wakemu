@@ -2,7 +2,7 @@ import ast
 import os
 import struct
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import patch
 
 from wakfu_server.combat_orientation import apply, decode_request, response

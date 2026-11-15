@@ -1,4 +1,5 @@
 """Offline regressions for position-buffer lock scope during database stalls."""
+
 import threading
 import unittest
 import uuid
@@ -6,6 +7,7 @@ import uuid
 from postgres_case import PostgresCase
 from wakfu_server.position_buffer import Positions
 from wakfu_server.position_redis import Journal, RedisPositions
+from spatial_fixture import seed_position
 
 
 class _Result:
@@ -103,14 +105,7 @@ def _character(cid, x=0):
 
 def _install(buffer, account, generation, character):
     key = (account, generation, character["id"])
-    baseline = {
-        k: character[k] for k in ("map_id", "instance_id", "x", "y", "z", "direction")
-    }
-    buffer.entries[key] = {
-        "current": dict(character),
-        "persisted": baseline,
-        "dirty": False,
-    }
+    seed_position(buffer, key, character)
     return key
 
 

@@ -1,12 +1,12 @@
 """Ready waits for its already-published owner's socket attachment."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import threading
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
-
 
 SOURCE = Path(__file__).parents[1] / "local_game_server.py"
 
@@ -87,9 +87,9 @@ class InitialAttachmentDispatchTests(unittest.TestCase):
                     account_id=60,
                     generation=owner.generation,
                     publication_recovery_shared=None,
-                    publication_recovery_attempt_token=("source", "lease")
-                    if throttled
-                    else None,
+                    publication_recovery_attempt_token=(
+                        ("source", "lease") if throttled else None
+                    ),
                     publication_recovery_attempt_due=100.0,
                     publication_recovery_notice_token=None,
                     continue_aborted_publication_recovery=lambda: False,

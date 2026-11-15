@@ -25,6 +25,48 @@ def effect(kind, parameters=(), *, criteria="", children=()):
 
 
 class EffectDispatchTests(unittest.TestCase):
+    def test_explicit_population_policy_prepares_all_before_consumption(self):
+        from dataclasses import replace
+
+        selected = (
+            EffectInvocation(90, 1, 7, 8, (0, 0, 0)),
+            EffectInvocation(90, 1, 7, 9, (1, 0, 0)),
+        )
+
+        def run(batch):
+            events = []
+            dispatcher = EffectDispatcher(
+                {"90": effect(400)},
+                {
+                    400: lambda _definition, _values, invocation: (
+                        events.append(("consume", invocation.target_id)) or True
+                    )
+                },
+                resolve=lambda _definition, _invocation: selected,
+                condition_context=lambda _invocation: ConditionContext({}),
+                probability_accepts=lambda *_args: True,
+                group_cells=lambda *_args: (),
+                actor_position=lambda identity: (identity, 0, 0),
+                prepare_effect=lambda _definition, _values, invocation: (
+                    events.append(("prepare", invocation.target_id))
+                    or replace(invocation)
+                ),
+            )
+            dispatcher.native_population_preparation = (
+                lambda _effect, _population: batch
+            )
+            dispatcher.execute(EffectInvocation(90, 1, 7, 8, (0, 0, 0)))
+            return events
+
+        self.assertEqual(
+            run(True),
+            [("prepare", 8), ("prepare", 9), ("consume", 8), ("consume", 9)],
+        )
+        self.assertEqual(
+            run(False),
+            [("prepare", 8), ("consume", 8), ("prepare", 9), ("consume", 9)],
+        )
+
     def test_point_self_center_provenance_is_fresh_only_not_trigger_or_replay(self):
         from dataclasses import replace
 

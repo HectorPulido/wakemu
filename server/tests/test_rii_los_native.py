@@ -94,11 +94,25 @@ class NativeLosRosterTests(unittest.TestCase):
         self.assertIsNone(rii_los_native.bind(object(), 3, [{"id": -20, "ref": 4528}]))
 
     def test_spawn_delegates_exact_lesson_definition(self):
+        from wakfu_server.achievements import rii_los_encounter
+
         with patch(
-            "wakfu_server.achievements.rii_owned_lesson.spawn", return_value=("scene",)
+            "wakfu_server.achievements.rii_owned_lesson.spawn",
+            return_value=("receipt",),
         ) as spawn:
-            self.assertEqual(rii_los_native.spawn(1, 2, 3, 4, 5), ("scene",))
-            self.assertEqual(spawn.call_args.args, (1, 2, 3, 4, 5, rii_los_native.LOS))
+            self.assertEqual(rii_los_native.spawn(1, 2, 3, 4, 5), ("receipt",))
+            self.assertEqual(
+                spawn.call_args,
+                unittest.mock.call(1, 2, 3, 4, 5, rii_los_native.LOS, repeat=False),
+            )
+            spawn.reset_mock()
+            self.assertEqual(
+                rii_los_encounter.spawn(1, 2, 3, 4, 5, repeat=True), ("receipt",)
+            )
+            self.assertEqual(
+                spawn.call_args,
+                unittest.mock.call(1, 2, 3, 4, 5, rii_los_native.LOS, repeat=True),
+            )
 
     def test_native_roster_default_and_legacy_fallback(self):
         from wakfu_server.achievements import rii_los_encounter

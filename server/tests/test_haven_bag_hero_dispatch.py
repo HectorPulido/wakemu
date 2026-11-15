@@ -1,11 +1,12 @@
 """Execute the production hero-switch dispatcher branch for an active bag owner."""
+
 import ast
 import struct
 import sys
 import types
 import unittest
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import patch
 
 from wakfu_server.haven_bag import HavenBagSession

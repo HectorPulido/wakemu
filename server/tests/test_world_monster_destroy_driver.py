@@ -1,9 +1,10 @@
 """Execute the actual World cnT closure without importing its network loop."""
+
 import ast
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timezone
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from threading import RLock
 from types import SimpleNamespace
 import struct
@@ -203,13 +204,11 @@ class WorldMonsterDestroyDriverTests(unittest.TestCase):
             DatabaseError=DatabaseError,
             PoolTimeout=PoolTimeout,
         )
-        poll_wrapper = ast.parse(
-            """
+        poll_wrapper = ast.parse("""
 def make_poll(character):
     environmental_poll_at = 0
     environmental_publication_error = None
-"""
-        ).body[0]
+""").body[0]
         poll_wrapper.body.append(deepcopy(polling))
         poll_wrapper.body.append(
             ast.Return(ast.Name(id="poll_environmental_events", ctx=ast.Load()))

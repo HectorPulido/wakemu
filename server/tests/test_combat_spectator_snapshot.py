@@ -43,6 +43,12 @@ def actor_payload(fight, actor):
 
 
 class SpectatorSnapshotTests(unittest.TestCase):
+    def test_owner_scoped_dojo_fight_is_not_spectatable(self):
+        fight, shared = shared_fixture()
+        shared.join_context["world_scene_owner"] = 5
+        with self.assertRaisesRegex(ValueError, "not publicly observable"):
+            current_snapshot(fight, shared, actor_payload=actor_payload)
+
     def test_ordinary_off_play_corpse_remains_in_snapshot_roster(self):
         from wakfu_server.fight_checkpoint_store import snapshot
         from wakfu_server.combat_global_pv_collections import (

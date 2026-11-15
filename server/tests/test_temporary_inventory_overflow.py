@@ -1,9 +1,10 @@
 """Native lP replacement followed by bounded cwO append events preserves all loot."""
+
 import ast
 import base64
 from contextlib import contextmanager
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest

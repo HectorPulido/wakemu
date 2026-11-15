@@ -1,4 +1,5 @@
 """Normalized policy upgrade compatibility; dedicated isolated test schema only."""
+
 import copy
 import importlib.util
 import json
@@ -19,7 +20,7 @@ ROOT = Path(__file__).resolve().parent
 REPOSITORY = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "fixtures/native_scene_authority"
 MIGRATION = REPOSITORY / "server/migrations/348_native_scene_policy_authority.sql"
-SEEDS = REPOSITORY / "server/data/installation/source/native-scene-policies"
+SEEDS = REPOSITORY / "database/data/installation/source/native-scene-policies"
 
 
 def load(name, path):
@@ -158,9 +159,9 @@ class NormalizedSceneAuthority(unittest.TestCase):
                     asset_map_id=1159,
                     native_scene_start=dict(policy_id=self.identity, source_id=33366),
                     _native_scene_started=started,
-                    _native_scene_profile=copy.deepcopy(self.profile)
-                    if started
-                    else None,
+                    _native_scene_profile=(
+                        copy.deepcopy(self.profile) if started else None
+                    ),
                 )
                 with self.subTest(started=started), patch.object(
                     legacy_scene, "binding", return_value=self.legacy, create=True

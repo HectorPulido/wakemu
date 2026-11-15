@@ -2,9 +2,8 @@ import ast
 from threading import Event, RLock, Thread
 import unittest
 from types import ModuleType, SimpleNamespace
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import patch
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

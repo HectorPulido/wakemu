@@ -1,8 +1,9 @@
 """Actual loaded-bootstrap boundary and existing owned hydration consumer."""
+
 import ast
 import os
 from contextlib import nullcontext
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import Mock, patch
 
 import test_rift_transition_recovery_callers as base
@@ -71,9 +72,9 @@ class TravelDeliveryCallerTests(base.RiftTransitionRecoveryCallerTests):
         ns["POSITIONS"].account_barrier.side_effect = PositionOwnerBusy("busy owner")
         self.assertFalse(deliver())
         ns["WORLD"].leave.assert_not_called()
-        ns[
-            "POSITIONS"
-        ].account_barrier.side_effect = lambda *args, **kwargs: nullcontext()
+        ns["POSITIONS"].account_barrier.side_effect = (
+            lambda *args, **kwargs: nullcontext()
+        )
         ns["POSITIONS"].attach.side_effect = PositionBaselineChanged("new movement")
         self.assertFalse(deliver())
         ns["WORLD"].leave.assert_not_called()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Extract the separate native aLF catalog; never synthesize wave compositions."""
+
 import argparse
 import hashlib
 import json
@@ -70,7 +71,7 @@ def main():
             check=True,
         )
         rows = validate_rows(json.loads(raw.read_text()))
-    monsters = json.loads((ROOT / "server/protocol/monsters.json").read_text())[
+    monsters = json.loads((ROOT / "database/protocol/monsters.json").read_text())[
         "monsters"
     ]
     known = {row["ref"] for row in monsters}

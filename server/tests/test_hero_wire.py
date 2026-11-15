@@ -15,61 +15,82 @@ class HeroWireTests(unittest.TestCase):
         self,
     ):
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
 
-        tree = ast.parse(
-            Path(__file__)
-            .resolve()
-            .parents[1]
-            .joinpath("local_game_server.py")
-            .read_text()
+        root = Path(__file__).resolve().parents[1]
+        dispatch_tree = ast.parse(
+            root.joinpath("wakfu_server/application/session_dispatch.py").read_text(
+                encoding="utf-8"
+            )
         )
-        branch = next(
+        inventory_tree = ast.parse(
+            root.joinpath("wakfu_server/application/session_inventory.py").read_text(
+                encoding="utf-8"
+            )
+        )
+        dispatch_branch = next(
             node
-            for node in ast.walk(tree)
+            for node in ast.walk(dispatch_tree)
             if isinstance(node, ast.If) and "opcode == 12006" in ast.unparse(node.test)
         )
-        calls = [
+        dispatch_calls = [
             node
-            for statement in branch.body
+            for statement in dispatch_branch.body
             for node in ast.walk(statement)
             if isinstance(node, ast.Call)
         ]
-        names = [ast.unparse(call.func) for call in calls]
-        self.assertNotIn("join_world", names)
-        self.assertEqual(1, names.count("hero_wire.refresh"))
+        self.assertEqual(
+            ["self.handle_hero_switch"],
+            [ast.unparse(call.func) for call in dispatch_calls],
+        )
+
+        methods = {
+            node.name: node
+            for node in ast.walk(inventory_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        switch_handler = methods["handle_hero_switch"]
+        switch_calls = [
+            node
+            for statement in switch_handler.body
+            for node in ast.walk(statement)
+            if isinstance(node, ast.Call)
+        ]
+        switch_names = [ast.unparse(call.func) for call in switch_calls]
+        self.assertNotIn("self.runtime.join_world", switch_names)
+        self.assertIn("self.state.heroes.switch_main", switch_names)
+        self.assertIn("self.state.hero_wire.switched_result", switch_names)
+
+        completion_handler = methods["handle_hero_roster"]
+        completion_calls = [
+            node
+            for statement in completion_handler.body
+            for node in ast.walk(statement)
+            if isinstance(node, ast.Call)
+        ]
+        names = [ast.unparse(call.func) for call in completion_calls]
         for forbidden in (
             "owned_native_bootstrap",
             "publish_heroes",
             "mark_static_sync_pending",
         ):
             self.assertNotIn(forbidden, names)
-        self.assertIn("heroes.switch_main", names)
-        self.assertIn("hero_wire.switched_result", names)
-        self.assertIn("hero_wire.statistics", names)
-        completion = next(
-            node
-            for node in ast.walk(tree)
-            if isinstance(node, ast.If) and "opcode == 12054" in ast.unparse(node.test)
-        )
-        completion_calls = [
-            node
-            for statement in completion.body
-            for node in ast.walk(statement)
-            if isinstance(node, ast.Call)
-        ]
+        self.assertIn("self.state.hero_wire.refresh", names)
+        self.assertIn("self.state.hero_wire.statistics", names)
         join = next(
-            call for call in completion_calls if ast.unparse(call.func) == "join_world"
+            call
+            for call in completion_calls
+            if ast.unparse(call.func) == "self.runtime.join_world"
         )
         context = next(
             call
             for call in completion_calls
-            if ast.unparse(call.func) == "wire.adapt"
+            if ast.unparse(call.func) == "self.runtime.wire.adapt"
             and isinstance(call.args[0], ast.Constant)
             and call.args[0].value == 15548
         )
-        self.assertEqual("fixture(15548)", ast.unparse(context.args[1]))
-        self.assertEqual("character", ast.unparse(context.args[3]))
+        self.assertEqual("self.runtime.fixture(15548)", ast.unparse(context.args[1]))
+        self.assertEqual("self.state.character", ast.unparse(context.args[3]))
         self.assertLess(context.lineno, join.lineno)
         self.assertTrue(
             any(
@@ -79,7 +100,8 @@ class HeroWireTests(unittest.TestCase):
         )
         self.assertTrue(
             any(
-                ast.unparse(call.func) == "synchronization" for call in completion_calls
+                ast.unparse(call.func) == "self.state.synchronization"
+                for call in completion_calls
             )
         )
 
@@ -169,7 +191,7 @@ class HeroWireTests(unittest.TestCase):
 
     def test_join_and_roster_publication_emit_native_activation(self):
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
 
         source = (
             Path(__file__)
@@ -309,6 +331,7 @@ class HeroWireTests(unittest.TestCase):
         self.assertEqual(
             {
                 99: "other",
+                304: "true",
                 431: "true",
                 602: "true",
                 603: "true",

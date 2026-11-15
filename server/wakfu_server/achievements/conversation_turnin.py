@@ -5,6 +5,7 @@ session barrier, transaction, session.choose, commit/rollback and packet deliver
 The item requirement must be backed by evidence; dialogue text is not executable
 policy. This module does not publish or activate quests.
 """
+
 from dataclasses import dataclass
 
 from . import conversation
@@ -107,6 +108,19 @@ def settle(
         character["id"], before, after, objectives, completed, now_ms
     )
     packets.extend(drain_rewards(db, store, character))
+    from . import mission_toolkit
+
+    packets.extend(
+        mission_toolkit.settle(
+            db,
+            store,
+            character,
+            token=event_key,
+            kind="item_delivery",
+            reference=requirement.reference,
+            quantity=requirement.quantity,
+        )
+    )
     return dict(
         applied=True, packets=packets, completed=completed, new_objectives=objectives
     )

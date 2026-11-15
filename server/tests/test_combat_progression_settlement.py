@@ -1,4 +1,5 @@
 """Post-group progression executes in the real reward settlement transaction."""
+
 import unittest
 from types import SimpleNamespace
 from postgres_case import PostgresCase
@@ -72,7 +73,7 @@ class CombatProgressionSettlementTests(PostgresCase):
                 0,
             )
 
-    def test_solo_callback_runs_after_group_and_appends_private_packets(self):
+    def test_solo_callback_runs_after_group_and_defers_private_packets(self):
         order = []
 
         def group(db, lease, defeated):
@@ -99,13 +100,22 @@ class CombatProgressionSettlementTests(PostgresCase):
                 1,
             )
             order.append("progression")
-            return {self.account: [(13295, b"private")]}
+            return {self.account: [(13832, b"objective"), (13371, b"tracking")]}
 
         result = self.finish(
             progression, groups=object(), group_lease=object(), group_settlement=group
         )
         self.assertEqual(order, ["group", "progression"])
-        self.assertIn((13295, b"private"), result["packets"])
+        self.assertNotIn((13832, b"objective"), result["packets"])
+        self.assertNotIn((13371, b"tracking"), result["packets"])
+        from wakfu_server.combat.combat_progression_delivery import after_return
+
+        self.assertEqual(
+            ((13832, b"objective"), (13371, b"tracking")),
+            after_return(
+                self.fight, self.account, self.generation, self.character["id"]
+            ),
+        )
 
     def test_resolver_exception_rolls_back_rewards_and_runtime(self):
         before = self.store.character(self.account, self.character["id"])
@@ -167,7 +177,9 @@ class CombatProgressionSettlementTests(PostgresCase):
                 {self.character["id"], hero["id"]},
             )
             self.assertEqual({row["account_id"] for row in members}, {self.account})
-            return {self.account: [(13295, b"hero-a"), (13295, b"hero-b")]}
+            return {
+                self.account: [(13832, b"hero-objective"), (13371, b"hero-tracking")]
+            }
 
         packets = prepare_finish_shared(
             self.store,
@@ -184,8 +196,16 @@ class CombatProgressionSettlementTests(PostgresCase):
             expected_accounts={self.account},
         )
         self.assertEqual(
-            [body for op, body in packets[self.account] if op == 13295],
-            [b"hero-a", b"hero-b"],
+            [body for op, body in packets[self.account] if op in (13832, 13371)],
+            [],
+        )
+        from wakfu_server.combat.combat_progression_delivery import after_return
+
+        self.assertEqual(
+            ((13832, b"hero-objective"), (13371, b"hero-tracking")),
+            after_return(
+                self.fight, self.account, self.generation, self.character["id"]
+            ),
         )
 
 

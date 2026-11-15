@@ -1,6 +1,7 @@
 """Regressions for reviewed dungeon packet and composition boundaries."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from unittest.mock import patch
 

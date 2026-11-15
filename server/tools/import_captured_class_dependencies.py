@@ -1,4 +1,5 @@
 """Publish original scoped captured-class effects; preserve existing native identities."""
+
 import gzip
 import argparse
 import hashlib
@@ -7,7 +8,7 @@ from pathlib import Path
 from import_class_summon_dependencies import select
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / "server/protocol"
+DATA = ROOT / "database/protocol"
 PRIVATE = ROOT / ".runtime/combat-review-20261007/captured-roster"
 IDENTITY = (
     "effect_class",
@@ -50,9 +51,9 @@ def native_effect(row):
             raise ValueError("Missing original native fKP contract")
         # Installed eVE.fKP returns rzi||rzj; eVy/eVH do not override it.
         effect["native_active_effect"] = fields["eVE.rzi"] or fields["eVE.rzj"]
-        effect[
-            "native_active_effect_source"
-        ] = "original eVE.fKP:rzi||rzj, eVy/eVH inherited; raw native fields"
+        effect["native_active_effect_source"] = (
+            "original eVE.fKP:rzi||rzj, eVy/eVH inherited; raw native fields"
+        )
     effect["native_timing_checks"] = {
         level: samples[level]["timing"] for level in ("0", "1", "200", "32767")
     }

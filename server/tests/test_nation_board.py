@@ -2,7 +2,7 @@ import struct
 import unittest
 from contextlib import contextmanager
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import uuid
 from unittest.mock import DEFAULT, Mock, patch
 
@@ -11,7 +11,6 @@ from wakfu_server import environment_interactions as dispatcher_environment_inte
 from wakfu_server import nation_board as dispatcher_nation_board
 from wakfu_server.maps import nation_board
 from postgres_case import PostgresCase
-
 
 BOARD_ID = 20158
 MAP_ID = 527
@@ -265,9 +264,11 @@ class NationBoardTests(unittest.TestCase):
                 dispatcher_nation_board,
                 "open_selection",
                 return_value=selection if behavior == "success" else DEFAULT,
-                side_effect=ValueError("invalid board action")
-                if behavior == "rejected"
-                else None,
+                side_effect=(
+                    ValueError("invalid board action")
+                    if behavior == "rejected"
+                    else None
+                ),
             ) as opened:
                 exec(self.dispatch_code, context)
             opened.assert_called_once()

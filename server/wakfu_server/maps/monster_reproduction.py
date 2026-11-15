@@ -1,7 +1,6 @@
 """Local reproduction policy and collision-free creature identity allocation."""
+
 import math
-import secrets
-from contextlib import nullcontext
 
 
 def dungeon_population(store, instance_id):
@@ -100,11 +99,7 @@ def new_group_probability(group_size, configuration):
     odds = (
         0.08
         if group_size < 4
-        else 0.55
-        if group_size == 4
-        else 0.90
-        if group_size == 5
-        else 0.98
+        else 0.55 if group_size == 4 else 0.90 if group_size == 5 else 0.98
     )
     if baseline in (0, 1):
         return float(baseline)
@@ -129,7 +124,6 @@ def attempt(
     excluded_ids=(),
     draw=None,
     group_draw=None,
-    choose=secrets.choice,
     configuration=None,
     prepared=None,
 ):
@@ -142,6 +136,8 @@ def attempt(
         raise ValueError("Invalid reproduction presence")
     if not present or dungeon_population(store, ticket["instance_id"]):
         return None
+    if prepared is None:
+        raise ValueError("Monster reproduction requires a Rust-prepared proposal")
     from psycopg.types.json import Jsonb
     from .monster_maturation import STAGES
     from .monsters import owned_instance
@@ -192,10 +188,7 @@ def attempt(
             return dict(old, duplicate=True)
         if group is None or group["status"] != "available" or key[2] in excluded_ids:
             return None
-        if (
-            prepared is not None
-            and list(group["members"]) != prepared["expected_members"]
-        ):
+        if list(group["members"]) != prepared["expected_members"]:
             return None
         parent = next((m for m in group["members"] if m["id"] == key[2]), None)
         stage = STAGES.get(ticket["reference"])
@@ -218,32 +211,24 @@ def attempt(
             or timer["reference"] != parent["ref"]
         ):
             return None
-        if prepared is None:
-            from .monster_population_capacity import snapshot
+        from .monster_population_capacity import snapshot
 
-            capacity = snapshot(db, *key[:2])
-            living_groups = capacity["groups"]
-            population, group_count = capacity["members"], capacity["group_count"]
-        else:
-            from .monster_population_capacity import snapshot
-
-            capacity = snapshot(db, *key[:2])
-            living_groups = capacity["groups"]
-            population, group_count = capacity["members"], capacity["group_count"]
-            destination = tuple(prepared["destination"])
-            if db.execute(
-                "SELECT 1 FROM combat_groups g CROSS JOIN LATERAL jsonb_array_elements(g.members) m "
-                "WHERE g.map_id=%s AND g.instance_id=%s AND g.status!='defeated' "
-                "AND (m->>'x')::integer=%s AND (m->>'y')::integer=%s LIMIT 1",
-                (*key[:2], *destination[:2]),
-            ).fetchone():
-                return None
-            if any(
-                (member["x"], member["y"]) == destination[:2]
-                for reservation in capacity["reservations"]
-                for member in reservation["members"]
-            ):
-                return None
+        capacity = snapshot(db, *key[:2])
+        population, group_count = capacity["members"], capacity["group_count"]
+        destination = tuple(prepared["destination"])
+        if db.execute(
+            "SELECT 1 FROM combat_groups g CROSS JOIN LATERAL jsonb_array_elements(g.members) m "
+            "WHERE g.map_id=%s AND g.instance_id=%s AND g.status!='defeated' "
+            "AND (m->>'x')::integer=%s AND (m->>'y')::integer=%s LIMIT 1",
+            (*key[:2], *destination[:2]),
+        ).fetchone():
+            return None
+        if any(
+            (member["x"], member["y"]) == destination[:2]
+            for reservation in capacity["reservations"]
+            for member in reservation["members"]
+        ):
+            return None
         # Seeded probability policy is immutable; administrative hard limits
         # remain live authority and may defer this same event without redrawing.
         capacity_policy = configuration
@@ -264,38 +249,8 @@ def attempt(
             for p in players
             if (p["map_id"], p["instance_id"]) == key[:2]
         }
-        if prepared is None:
-            from .monster_population_capacity import physical_cells
-
-            blocked.update(cell[:2] for cell in physical_cells(db, *key[:2]))
-            blocked.update(
-                (m["x"], m["y"])
-                for reservation in capacity["reservations"]
-                for m in reservation["members"]
-            )
-            blocked.update(
-                (r["x"], r["y"])
-                for r in db.execute(
-                    "SELECT x,y FROM planted_resources WHERE map_id=%s AND instance_id=%s",
-                    key[:2],
-                )
-            )
-        if prepared is None:
-            candidates = [
-                p
-                for p in indexed[1].get(tuple(parent[k] for k in ("x", "y", "z")), ())
-                if p[:2] not in blocked
-                and habitat_destination_allowed(
-                    key[0], key[1], p, parent=parent, family_id=stage[0]["family_id"]
-                )
-            ]
-            if not candidates:
-                return None
-            destination = choose(candidates)
-        else:
-            destination = tuple(prepared["destination"])
-            if destination[:2] in blocked:
-                return None
+        if destination[:2] in blocked:
+            return None
         # Direct durable callers may omit the shared immutable edge index.
         if indexed is None:
             from .ecology_mobs import _edges
@@ -319,7 +274,7 @@ def attempt(
             cell,
         ).fetchone():
             return None
-        sample = secrets.randbelow(1 << 53) / (1 << 53) if draw is None else draw
+        sample = draw
         if (
             type(sample) not in (int, float)
             or not 0 <= sample < 1
@@ -339,11 +294,7 @@ def attempt(
         elif not can_append:
             probability *= new_group_probability(len(group["members"]), configuration)
         if sample < probability:
-            second = (
-                secrets.randbelow(1 << 53) / (1 << 53)
-                if group_draw is None
-                else group_draw
-            )
+            second = group_draw
             if (
                 type(second) not in (int, float)
                 or not 0 <= second < 1
@@ -354,27 +305,10 @@ def attempt(
                 not can_append
                 or second < new_group_probability(len(group["members"]), configuration)
             )
-            if prepared is None:
-                magnitude, child_id = allocate_identity(db)
-                from .monster_family_stages import initial_candidates
-
-                seed = choose(birth_pool)
-                child = owned_instance(
-                    seed["reference"],
-                    seed["min_level"],
-                    child_id,
-                    map_id=key[0],
-                    x=destination[0],
-                    y=destination[1],
-                    z=destination[2],
-                    team=parent["team"],
-                    instance_id=key[1],
-                )
-            else:
-                child = prepared["child"]
-                magnitude, child_id = -child["id"], child["id"]
-                if tuple(child[k] for k in ("x", "y", "z")) != destination:
-                    raise ValueError("Prepared birth position differs")
+            child = prepared["child"]
+            magnitude, child_id = -child["id"], child["id"]
+            if tuple(child[k] for k in ("x", "y", "z")) != destination:
+                raise ValueError("Prepared birth position differs")
             from .monster_family_stages import initial_candidates
 
             candidate = next(
@@ -450,67 +384,6 @@ def attempt(
         return dict(receipt, duplicate=False)
 
 
-def observe(
-    store,
-    map_id,
-    instance_id,
-    *,
-    present,
-    generation,
-    now_ms,
-    excluded_ids=(),
-    configuration=None,
-):
-    from .monster_active_clocks import observe as observe_clocks
-    from .monster_maturation import STAGES
-
-    if dungeon_population(store, instance_id):
-        return []
-    adults = {
-        reference
-        for reference, (family, rank) in STAGES.items()
-        if any(
-            candidate["reference"] == reference
-            and candidate["boss_classification"] == "regular"
-            for candidate in family["tiers"][rank]["candidates"]
-        )
-    }
-    return observe_clocks(
-        store,
-        map_id,
-        instance_id,
-        present=present,
-        generation=generation,
-        now_ms=now_ms,
-        excluded_ids=excluded_ids,
-        table="monster_reproduction_timers",
-        eligible_refs=adults,
-        policy_provider=policy
-        if configuration is None
-        else lambda _: validate_policy(configuration),
-    )
-
-
-def pending(store, map_id, instance_id):
-    if dungeon_population(store, instance_id):
-        return []
-    from .environmental_group_ecology import exclusion_sql
-
-    with store.connection() as db:
-        return [
-            dict(row)
-            for row in db.execute(
-                "SELECT t.map_id,t.instance_id,t.monster_id,t.reference,t.cycle,m.group_id "
-                "FROM monster_reproduction_timers t JOIN combat_group_members m "
-                "USING(map_id,instance_id,monster_id) JOIN combat_groups g "
-                "USING(map_id,instance_id,group_id) "
-                "WHERE t.map_id=%s AND t.instance_id=%s AND t.due AND g.status!='defeated' "
-                "AND " + exclusion_sql("g") + " ORDER BY t.monster_id",
-                (map_id, instance_id),
-            )
-        ]
-
-
 def unpublished(store, map_id, instance_id, *, group_id=None):
     if dungeon_population(store, instance_id):
         return []
@@ -524,9 +397,11 @@ def unpublished(store, map_id, instance_id, *, group_id=None):
                 "AND NOT o.published "
                 + ("AND o.group_id=%s " if group_id is not None else "")
                 + "ORDER BY o.group_id,o.revision,o.monster_id,o.cycle",
-                (map_id, instance_id)
-                if group_id is None
-                else (map_id, instance_id, group_id),
+                (
+                    (map_id, instance_id)
+                    if group_id is None
+                    else (map_id, instance_id, group_id)
+                ),
             )
         ]
 
@@ -554,123 +429,6 @@ def acknowledge(store, event):
         )
 
 
-def tick(
-    store,
-    locations,
-    previous_locations,
-    *,
-    generation,
-    now_ms,
-    indexed_by_map,
-    players,
-    excluded_ids,
-    emit,
-    coordination=None,
-):
-    """One non-catch-up cycle with a fresh fence for each authoritative operation.
-
-    A coordinator yields current (players, excluded harvest identities) while
-    holding the caller's group/harvest fences. Without one, the caller retains
-    the historical responsibility to hold those fences around this function.
-    Enumeration is advisory; attempts and publication revalidate under a fence.
-    """
-    from .combat_monster_world import remove_message, spawn_group
-
-    def guarded(stage, map_id, instance_id):
-        if coordination is None:
-            return nullcontext((players, excluded_ids))
-        return coordination(stage, map_id, instance_id)
-
-    def present_here(current_players, map_id, instance_id):
-        return coordination is None or any(
-            p.get("map_id") == map_id and p.get("instance_id", 0) == instance_id
-            for p in current_players
-        )
-
-    locations = {
-        location for location in locations if not dungeon_population(store, location[1])
-    }
-    previous_locations = {
-        location
-        for location in previous_locations
-        if not dungeon_population(store, location[1])
-    }
-    # Live settings remain dynamic: reload once on each tick, outside registry
-    # fences, rather than reopening a settings transaction for every parent.
-    configuration = policy(store) if locations else None
-    for map_id, instance_id in previous_locations - locations:
-        with guarded("absent", map_id, instance_id):
-            observe(
-                store,
-                map_id,
-                instance_id,
-                present=False,
-                generation=generation,
-                now_ms=now_ms,
-            )
-    for map_id, instance_id in sorted(locations):
-        with guarded("observe", map_id, instance_id) as (
-            current_players,
-            current_excluded,
-        ):
-            observe(
-                store,
-                map_id,
-                instance_id,
-                present=present_here(current_players, map_id, instance_id),
-                generation=generation,
-                now_ms=now_ms,
-                excluded_ids=current_excluded,
-                configuration=configuration,
-            )
-        for ticket in pending(store, map_id, instance_id):
-            with guarded("attempt", map_id, instance_id) as (
-                current_players,
-                current_excluded,
-            ):
-                attempt(
-                    store,
-                    ticket,
-                    present=present_here(current_players, map_id, instance_id),
-                    indexed=indexed_by_map[map_id],
-                    players=current_players,
-                    excluded_ids=current_excluded,
-                    configuration=configuration,
-                )
-        group_ids = dict.fromkeys(
-            event["group_id"] for event in unpublished(store, map_id, instance_id)
-        )
-        for group_id in group_ids:
-            with guarded("publish", map_id, instance_id) as (_, current_excluded):
-                # Claims, defeats and harvest occupations can change between
-                # enumeration and fence acquisition. Never publish that old row.
-                batch = [
-                    event
-                    for event in unpublished(
-                        store, map_id, instance_id, group_id=group_id
-                    )
-                ]
-                if not batch:
-                    continue
-                current = batch[-1]
-                if current["status"] != "available" or any(
-                    m["id"] in current_excluded for m in current["members"]
-                ):
-                    continue
-                spawn = spawn_group(current["members"], group_id=group_id)
-                # Preserve removal, replacement and acknowledgment as one
-                # fenced operation through the current authoritative revision.
-                emit(
-                    map_id,
-                    instance_id,
-                    *remove_message([m["id"] for m in current["members"]]),
-                )
-                emit(map_id, instance_id, 12608, spawn)
-                for event in batch:
-                    acknowledge(store, event)
-    return locations
-
-
 def expanded_seeds(store, key, seeds, persisted):
     """Authorize appended seed-group members only by durable birth snapshots."""
     from .monster_maturation import STAGES, ORIGINAL_STAGES
@@ -695,9 +453,11 @@ def expanded_seeds(store, key, seeds, persisted):
         births = {
             aliases.get(row["child_id"], row["child_id"]): dict(
                 row,
-                child=None
-                if row["child"] is None
-                else aliased_members([row["child"]], aliases)[0],
+                child=(
+                    None
+                    if row["child"] is None
+                    else aliased_members([row["child"]], aliases)[0]
+                ),
             )
             for row in db.execute(
                 "SELECT child_id,child,parent_reference FROM monster_reproduction_receipts "

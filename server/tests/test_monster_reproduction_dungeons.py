@@ -1,7 +1,12 @@
 """Dungeon encounters must never enter ecosystem breeding or birth replay."""
+
 from contextlib import contextmanager
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock
+from types import SimpleNamespace
+import threading
+
+from wakfu_server import ecology_mobs
 
 from wakfu_server import monster_reproduction
 
@@ -40,13 +45,6 @@ class DungeonReproductionTests(unittest.TestCase):
         for map_id in (1086, 1234, 9999):
             with self.subTest(map_id=map_id):
                 self.assertEqual(
-                    monster_reproduction.observe(
-                        store, map_id, 700, present=True, generation="test", now_ms=1000
-                    ),
-                    [],
-                )
-                self.assertEqual(monster_reproduction.pending(store, map_id, 700), [])
-                self.assertEqual(
                     monster_reproduction.unpublished(store, map_id, 700), []
                 )
                 self.assertIsNone(
@@ -55,51 +53,40 @@ class DungeonReproductionTests(unittest.TestCase):
                     )
                 )
 
-    def test_tick_does_not_publish_or_process_dungeon_locations(self):
+    def test_world_does_not_publish_or_process_dungeon_birth_outbox(self):
         store = RunRegistry({700})
-        with patch.object(monster_reproduction, "observe") as observe, patch.object(
-            monster_reproduction, "pending", return_value=[]
-        ) as pending, patch.object(
-            monster_reproduction, "unpublished", return_value=[]
-        ) as unpublished, patch.object(
-            monster_reproduction, "policy", return_value={"test": "snapshot"}
-        ) as policy:
-            remaining = monster_reproduction.tick(
-                store,
-                {(1086, 700), (1134, 0), (527, 701)},
-                {(9999, 700)},
-                generation="test",
-                now_ms=1000,
-                indexed_by_map={},
-                players=[],
-                excluded_ids=[],
-                emit=lambda *_: self.fail("Unexpected birth"),
-            )
-            self.assertEqual(remaining, {(1134, 0), (527, 701)})
-            self.assertEqual(
-                {call.args[1:3] for call in observe.call_args_list}, remaining
-            )
-            self.assertEqual(
-                {call.args[1:3] for call in pending.call_args_list}, remaining
-            )
-            self.assertEqual(
-                {call.args[1:3] for call in unpublished.call_args_list}, remaining
-            )
-            policy.assert_called_once_with(store)
+        world = SimpleNamespace(
+            snapshot=lambda: [dict(id=7, map_id=1086, instance_id=700, x=0, y=0, z=0)],
+            emit_location=Mock(),
+        )
+        groups = SimpleNamespace(lock=threading.RLock())
+        harvests = SimpleNamespace(lock=threading.RLock(), targets=set())
+        result = ecology_mobs.apply(
+            store,
+            groups,
+            harvests,
+            world,
+            dict(
+                kind="publish_reproduction",
+                world_epoch="test",
+                scope=[1086, 700],
+                group_id=3,
+                expected_members=[],
+            ),
+            world_epoch="test",
+        )
+        self.assertEqual(result, dict(status="applied"))
+        world.emit_location.assert_not_called()
+        self.assertEqual(
+            store.queries,
+            [("SELECT 1 FROM dungeon_instances WHERE instance_id=%s", (700,))],
+        )
 
-    def test_exterior_observation_still_enters_active_clock_engine(self):
+    def test_absent_exterior_attempt_never_enters_breeding_persistence(self):
         store = RunRegistry()
-        with patch(
-            "wakfu_server.monster_active_clocks.observe", return_value=["due"]
-        ) as clock:
-            self.assertEqual(
-                monster_reproduction.observe(
-                    store, 527, 0, present=True, generation="test", now_ms=1234
-                ),
-                ["due"],
+        self.assertIsNone(
+            monster_reproduction.attempt(
+                store, {"instance_id": 0}, present=False, indexed=({}, {})
             )
-            self.assertEqual(clock.call_args.args, (store, 527, 0))
-            self.assertEqual(
-                clock.call_args.kwargs["table"], "monster_reproduction_timers"
-            )
-            self.assertEqual(store.queries, [])
+        )
+        self.assertEqual(store.queries, [])

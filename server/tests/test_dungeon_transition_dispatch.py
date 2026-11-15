@@ -1,10 +1,9 @@
 import ast
 import copy
 from types import SimpleNamespace
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from unittest.mock import Mock
-
 
 SERVER_SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 
@@ -134,9 +133,9 @@ class DungeonTransitionDispatchTests(unittest.TestCase):
         namespace.update(
             {
                 "dungeon_hydration": SimpleNamespace(
-                    prepare_transition=record("prepare", plan)
-                    if prepare is None
-                    else prepare
+                    prepare_transition=(
+                        record("prepare", plan) if prepare is None else prepare
+                    )
                 ),
                 "STORE": object(),
                 "account_id": 7,

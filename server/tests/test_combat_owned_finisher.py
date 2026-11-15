@@ -1,4 +1,5 @@
 """Source-backed 4464 finisher tree and delivery boundary regressions."""
+
 import json
 import unittest
 from pathlib import Path
@@ -28,7 +29,7 @@ from wakfu_server import native_catalog
 class OwnedFinisherTreeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        protocol = Path(__file__).parents[1] / "protocol"
+        protocol = Path(__file__).parents[2] / "database" / "protocol"
         with native_catalog.open(
             protocol / "combat-state-definitions.json", "rt"
         ) as source:

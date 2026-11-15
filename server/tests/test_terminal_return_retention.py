@@ -1,8 +1,9 @@
 """A live connection releases its completed return closure, never pending work."""
+
 import ast
 from copy import deepcopy
 import gc
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 import weakref
 

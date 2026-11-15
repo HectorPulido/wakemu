@@ -31,6 +31,45 @@ def movement_blocked_cells(fight, actor, cells):
     )
 
 
+def planner_static_blocked_cells(fight, actor, cells, *, dynamic_actor_ids=None):
+    """Project native blockers not represented by the planner's moving fighters.
+
+    Living presented fighters retain their dynamic planner occupancy, so a
+    hypothetical displacement may free their old cells. Native corpse bodies,
+    masks and nonactor obstacles remain authoritative fixed movement blockers.
+    This read-only projection does not alter QI flags or native execution.
+    """
+    if getattr(fight, "native_qi_slots", None) is None and not hasattr(
+        fight, "native_pointer_checkpoint"
+    ):
+        return set()
+    from .combat_qi_fight import current_registry
+    from .combat_pointer_qi_registry import registered_obstacle
+
+    registry = current_registry(fight)
+    ignored = getattr(fight, "native_qi_ignored_slots", None)
+    if not isinstance(ignored, (tuple, list)):
+        raise ValueError("Missing actual native QI movement exclusions")
+    projected_ignored = list(ignored)
+    visible = None if dynamic_actor_ids is None else frozenset(dynamic_actor_ids)
+    for candidate in fight.actors.values():
+        if candidate.hp <= 0 or visible is not None and candidate.id not in visible:
+            continue
+        slot = getattr(candidate, "native_obstacle_id", None)
+        if type(slot) is not int or not 0 <= slot <= 126:
+            continue
+        row = registered_obstacle(registry, slot)
+        if row is not None and row["identity"] == ["actor", candidate.id]:
+            projected_ignored.append(slot)
+    return movement_blocked_cells_from_registry(
+        registry,
+        actor,
+        cells,
+        override=getattr(fight, "native_qi_movement_override", None),
+        ignored=tuple(sorted(set(projected_ignored))),
+    )
+
+
 def movement_blocked_cells_from_registry(registry, actor, cells, *, override, ignored):
     """Pure passability over an explicitly supplied native registry snapshot.
 

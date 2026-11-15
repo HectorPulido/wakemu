@@ -20,12 +20,12 @@ public class ExportRetainedEffectMetadata {
    m.put("definition_dispellable",e instanceof eVv v?v.cxq():null);effects.put(""+id,m);
   }
   Map<String,Object> spells=new TreeMap<>();
-  var spellRows=new JsonParser().parse(Files.readString(Path.of("server/protocol/spells.json"))).getAsJsonObject().getAsJsonArray("spells");
+  var spellRows=new JsonParser().parse(Files.readString(Path.of("database/protocol/spells.json"))).getAsJsonObject().getAsJsonArray("spells");
   for(var row:spellRows){int id=row.getAsJsonObject().get("id").getAsInt();fyF spell=bPS.elL().IP(id);spells.put(""+id,Map.of("protected",spell.elO()));}
   Map<String,Object> states=new TreeMap<>();List<Integer> stateIDs=new ArrayList<>();
   apw.bGL().a(new aNv(),new apB<aNv>(){public void load(aNv state){stateIDs.add(state.d());}});fyZ.guX().a(new bbV());
   for(int id:stateIDs){fyW state=fyZ.guX().aax(id);states.put(""+id,Map.of("unremovable",state.guN(),"dispellable",state.cxq()));}
-  Files.writeString(Path.of(args.length==0?"server/protocol/native-retained-effect-metadata.json":args[0]),new GsonBuilder().serializeNulls().create().toJson(canonical(Map.of("source","Native PK.aZD/aZA, eVv.cxq from bcA.AH(aNw)","effects",effects,"spells",spells,"states",states))));
+  Files.writeString(Path.of(args.length==0?"database/protocol/native-retained-effect-metadata.json":args[0]),new GsonBuilder().serializeNulls().create().toJson(canonical(Map.of("source","Native PK.aZD/aZA, eVv.cxq from bcA.AH(aNw)","effects",effects,"spells",spells,"states",states))));
   System.out.println("exported "+effects.size());
  }
 }

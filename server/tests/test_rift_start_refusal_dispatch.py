@@ -1,8 +1,9 @@
 """Actual Rift preparation/routing consumes refusals before gameplay mutation."""
+
 import ast
 from contextlib import nullcontext
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest
@@ -143,11 +144,11 @@ class RiftStartRefusalDispatchTests(unittest.TestCase):
         )
         adapter = SimpleNamespace(authorize_start=authorize)
         transition = SimpleNamespace(
-            pending=lambda account, generation, identity: {
-                "instance_id": run["instance_id"]
-            }
-            if pending_peer and identity == 109
-            else None
+            pending=lambda account, generation, identity: (
+                {"instance_id": run["instance_id"]}
+                if pending_peer and identity == 109
+                else None
+            )
         )
         with patch.object(
             wakfu_server, "rift_entry_adapter", adapter, create=True

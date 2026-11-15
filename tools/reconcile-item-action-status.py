@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Reconcile immutable item inventory with current source and a read-only local snapshot."""
+
 import argparse
 import collections
 from datetime import datetime, timezone
@@ -39,9 +40,9 @@ def current_presentation(row):
         and row["source_status"]
         in ("implemented", "implemented_contextual", "implemented_limited")
     ):
-        row[
-            "route"
-        ] = "13220 native inventory action; subsequent domain protocol where applicable"
+        row["route"] = (
+            "13220 native inventory action; subsequent domain protocol where applicable"
+        )
     return row
 
 
@@ -75,9 +76,11 @@ def passing_unittest_log(raw):
 
 def qualification(name, timestamps, source_files):
     paths = [
-        timestamp
-        if "/" in timestamp
-        else f".runtime/consumable-effects-20261019/tests-20261020T{timestamp}Z.log"
+        (
+            timestamp
+            if "/" in timestamp
+            else f".runtime/consumable-effects-20261019/tests-20261020T{timestamp}Z.log"
+        )
         for timestamp in timestamps
     ]
     qualification_receipts(name, paths, source_files)
@@ -331,18 +334,18 @@ def main():
         implemented = row["implementation_status"] == "implemented"
         row.update(
             baseline_status=row["implementation_status"],
-            user_scope="excluded_legacy_set"
-            if row["use_action_class"] == "bIl"
-            else "active",
+            user_scope=(
+                "excluded_legacy_set" if row["use_action_class"] == "bIl" else "active"
+            ),
             source_status="implemented" if implemented else "missing",
             local_status=(
-                "loaded_baseline" if runtime_verified else "baseline_route_unverified"
-            )
-            if implemented
-            else "not_loaded",
-            qualification="historical_route_catalog_audit"
-            if implemented
-            else "not_qualified",
+                ("loaded_baseline" if runtime_verified else "baseline_route_unverified")
+                if implemented
+                else "not_loaded"
+            ),
+            qualification=(
+                "historical_route_catalog_audit" if implemented else "not_qualified"
+            ),
             current_evidence="Historical catalog/route baseline; not individual GUI acceptance",
             limitation=row.get("downstream_limits", ""),
             blocker_kind="" if implemented else "implementation_missing",
@@ -426,10 +429,10 @@ def main():
         row.update(
             source_status=status,
             local_status=(
-                "loaded" if runtime_verified else "catalog_present_runtime_unverified"
-            )
-            if is_loaded
-            else "not_loaded",
+                ("loaded" if runtime_verified else "catalog_present_runtime_unverified")
+                if is_loaded
+                else "not_loaded"
+            ),
             qualification=qualification,
             current_evidence=evidence,
             source_migration=migration or "",
@@ -669,7 +672,7 @@ def main():
         [
             "server/wakfu_server/items/random_item_actions.py",
             "server/migrations/227_native_random_item_use_criteria.sql",
-            "server/protocol/native-random-item-use-criteria.json",
+            "database/protocol/native-random-item-use-criteria.json",
         ],
     )
     qualification(
@@ -681,7 +684,7 @@ def main():
         ),
     )
 
-    simple = read_json("server/protocol/native-simple-item-actions.json")["actions"]
+    simple = read_json("database/protocol/native-simple-item-actions.json")["actions"]
     for item in simple:
         if item["available"]:
             mark(
@@ -765,16 +768,18 @@ def main():
         qualification="Three new cases passed in a mixed process, one corrected capacity control passed separately; native descriptor not rewritten",
         full_quest_lifecycle=False,
     )
-    random = read_json("server/protocol/native-random-item-actions.json")["actions"]
-    extension = read_json("server/protocol/native-random-item-extensions.json")
+    random = read_json("database/protocol/native-random-item-actions.json")["actions"]
+    extension = read_json("database/protocol/native-random-item-extensions.json")
     extended = {item["item_ref"] for item in extension["actions"]}
     for item in random:
         if item["available"] or item["item_ref"] in extended:
             mark(
                 item["item_ref"],
-                "Native random descriptor and atomic typed delivery; extension214 tests3/3 for10 Rift boxes"
-                if item["item_ref"] in extended
-                else "Native random descriptor; baseline random tests9/9",
+                (
+                    "Native random descriptor and atomic typed delivery; extension214 tests3/3 for10 Rift boxes"
+                    if item["item_ref"] in extended
+                    else "Native random descriptor; baseline random tests9/9"
+                ),
                 table="native_random_item_actions",
                 migration=214 if item["item_ref"] in extended else 200,
                 limitation="Explicit documented weighted server draw policy; original server draw engine unavailable",
@@ -793,7 +798,7 @@ def main():
                     else "item"
                 ),
             )
-    food = read_json("server/protocol/native-consumable-actions.json")["items"]
+    food = read_json("database/protocol/native-consumable-actions.json")["items"]
     anti_ko_refs = {10657, 15980, 20471, 24265}
     transform_freeze_path = (
         ROOT
@@ -818,25 +823,35 @@ def main():
                 item["item_ref"],
                 "Current native consumable plan and actual shared runtime",
                 table="native_consumable_actions",
-                migration=212
-                if transformation
-                else (209 if item["item_ref"] == 18422 else 198),
-                status="integration_wip"
-                if transformation and not transforms_qualified
-                else "implemented",
+                migration=(
+                    212
+                    if transformation
+                    else (209 if item["item_ref"] == 18422 else 198)
+                ),
+                status=(
+                    "integration_wip"
+                    if transformation and not transforms_qualified
+                    else "implemented"
+                ),
                 qualification=(
-                    "native_oracle_and_14_focused_tests"
-                    if transforms_qualified
-                    else "descriptor_available_runtime_qualification_pending"
-                )
-                if transformation
-                else "source_and_focused_cohort",
-                limitation="Official-client rendered appearance/particles acceptance remains pending"
-                if transformation
-                else "",
-                blocker="native_HMI_runtime_qualification"
-                if transformation and not transforms_qualified
-                else "",
+                    (
+                        "native_oracle_and_14_focused_tests"
+                        if transforms_qualified
+                        else "descriptor_available_runtime_qualification_pending"
+                    )
+                    if transformation
+                    else "source_and_focused_cohort"
+                ),
+                limitation=(
+                    "Official-client rendered appearance/particles acceptance remains pending"
+                    if transformation
+                    else ""
+                ),
+                blocker=(
+                    "native_HMI_runtime_qualification"
+                    if transformation and not transforms_qualified
+                    else ""
+                ),
             )
         else:
             reason = item.get(
@@ -845,15 +860,21 @@ def main():
             mark(
                 item["item_ref"],
                 reason,
-                status="native_data_unavailable"
-                if "no_native_action_or_effect" in reason
-                else "missing",
-                qualification="explicit_native_gap"
-                if "no_native_action_or_effect" in reason
-                else "native_semantics_pending",
-                blocker="no_native_payload"
-                if "no_native_action_or_effect" in reason
-                else "native_state_lifecycle_unimplemented",
+                status=(
+                    "native_data_unavailable"
+                    if "no_native_action_or_effect" in reason
+                    else "missing"
+                ),
+                qualification=(
+                    "explicit_native_gap"
+                    if "no_native_action_or_effect" in reason
+                    else "native_semantics_pending"
+                ),
+                blocker=(
+                    "no_native_payload"
+                    if "no_native_action_or_effect" in reason
+                    else "native_state_lifecycle_unimplemented"
+                ),
             )
     # Entire small native families are already partitioned uniquely by the baseline.
     family_routes = {
@@ -891,9 +912,11 @@ def main():
             item["item_ref"],
             "Native teleport/recall authority; full company/position transition",
             migration=202,
-            limitation="Recall temporarily uses Astrub by explicit user policy"
-            if item["item_ref"] == 14306
-            else "Documented destination arrival policy",
+            limitation=(
+                "Recall temporarily uses Astrub by explicit user policy"
+                if item["item_ref"] == 14306
+                else "Documented destination arrival policy"
+            ),
         )
     scripts = read_json("server/wakfu_server/items/native_item_scripts.json")["items"]
     for item in scripts:
@@ -1198,7 +1221,7 @@ def main():
         ["092851881241", "092902735783"],
         [
             "server/migrations/221_native_consumable_anti_ko.sql",
-            "server/protocol/native-consumable-actions.json",
+            "database/protocol/native-consumable-actions.json",
             "server/wakfu_server/items/consumable_buffs.py",
             "server/wakfu_server/combat/combat_external_retained_state.py",
             "server/wakfu_server/items/inventory_consumable_effects.py",
@@ -1689,9 +1712,9 @@ def main():
             mark(
                 reference,
                 "Actual enabled guild policy matches the live setting, deployed source and activation receipt",
-                status="implemented"
-                if priority_policy_recorded
-                else "implemented_limited",
+                status=(
+                    "implemented" if priority_policy_recorded else "implemented_limited"
+                ),
                 qualification="guild_primary_identity_activation",
                 runtime_source="server/wakfu_server/characters/guild_service.py",
                 deployed_source_digest=guild_hashes[
@@ -1702,9 +1725,11 @@ def main():
                     if priority_policy_recorded
                     else "Identity-only policy; independent guild systems unavailable"
                 ),
-                blocker=""
-                if priority_policy_recorded
-                else "unqualified_guild_management_and_economy",
+                blocker=(
+                    ""
+                    if priority_policy_recorded
+                    else "unqualified_guild_management_and_economy"
+                ),
             )
         secondary_context(
             reference,
@@ -1956,21 +1981,21 @@ def main():
         row = rows[action["item_ref"]]
         row["local_status"] = "loaded" if herd_loaded else "not_loaded"
         if not herd_loaded:
-            row[
-                "delivery_note"
-            ] = "Whole herd source route present; requires schema237 and exact domain, catalog, component18/scene and World source deployment"
+            row["delivery_note"] = (
+                "Whole herd source route present; requires schema237 and exact domain, catalog, component18/scene and World source deployment"
+            )
         # The historical baseline described a missing herd. Preserve that
         # historical column, but do not append its obsolete limitation here.
-        row[
-            "limitation"
-        ] = "Explicit Wakemu seeded constructor baseline; no native genetics, breeding, growth, production or lifecycle rewards"
+        row["limitation"] = (
+            "Explicit Wakemu seeded constructor baseline; no native genetics, breeding, growth, production or lifecycle rewards"
+        )
     QUALIFICATIONS["ranch_seeded_herd237_source_route"] = dict(
         source_sha256=herd_hashes,
         source_migration=237,
         world_publication_qualification=herd_world_proof_path,
-        composed_world_qualification=herd_composition_path
-        if (ROOT / herd_composition_path).exists()
-        else None,
+        composed_world_qualification=(
+            herd_composition_path if (ROOT / herd_composition_path).exists() else None
+        ),
         world_publication_qualified=herd_world_qualified,
         current_herd_revision_qualification=herd_release_qualification,
         actual_world_image=local["world_image"],
@@ -2491,9 +2516,9 @@ def main():
         row = rows[reference]
         if not assembly_deployed:
             row["local_status"] = "not_loaded"
-            row[
-                "delivery_note"
-            ] = "Current shared assembly repair is source-present; current deployed engine has a known import regression. Final62def34f metadata selector passed; await matching deployment."
+            row["delivery_note"] = (
+                "Current shared assembly repair is source-present; current deployed engine has a known import regression. Final62def34f metadata selector passed; await matching deployment."
+            )
         row["qualification"] = (
             "shared_assembly_final_source_qualified"
             if assembly_final_qualified
@@ -2509,9 +2534,9 @@ def main():
             "current_source_sha256"
         )
     historical_journal["historical_receipts_only"] = True
-    historical_journal[
-        "current_source_qualification"
-    ] = "See shared_assembly31_current_source_delivery; historical receipts are not final-hash accreditation"
+    historical_journal["current_source_qualification"] = (
+        "See shared_assembly31_current_source_delivery; historical receipts are not final-hash accreditation"
+    )
     QUALIFICATIONS["shared_assembly31_current_source_delivery"] = dict(
         source_path=assembly_path,
         current_source_sha256=assembly_digest,
@@ -2526,9 +2551,9 @@ def main():
             passed=1,
         ),
         current_common_adapter_composed_qualification=assembly_238_composed,
-        current_common_adapter_receipt=binding_log_path
-        if assembly_238_composed
-        else None,
+        current_common_adapter_receipt=(
+            binding_log_path if assembly_238_composed else None
+        ),
         prior_semantic_controls=dict(
             log=".runtime/consumable-effects-20261019/tests-20261021T165331749625Z.log",
             source_hash_prefix="7a1f0752",
@@ -2589,9 +2614,9 @@ def main():
         in_scope_pending=len(pending),
         in_scope_source_pending=len(source_pending),
         in_scope_delivery_pending=len(delivery_pending),
-        shared_assembly_source_not_loaded=len(assembly_refs)
-        if not assembly_deployed
-        else 0,
+        shared_assembly_source_not_loaded=(
+            len(assembly_refs) if not assembly_deployed else 0
+        ),
         source_repairs_not_loaded=sum(bool(row["delivery_note"]) for row in result),
         retired_native_function_excluded=len(retired["rows"]),
         legacy_excluded=353,

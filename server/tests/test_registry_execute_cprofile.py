@@ -2,13 +2,12 @@ import importlib.util
 import ast
 import json
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import pstats
 import tempfile
 import threading
 import unittest
 from unittest.mock import patch
-
 
 ROOT = Path(__file__).parent
 PROBE_PATH = ROOT.parent / "tools" / "registry_execute_cprofile.py"

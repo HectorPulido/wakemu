@@ -1,4 +1,5 @@
 """Install explicit reconstructed encounter placement before durable admission."""
+
 import copy
 
 
@@ -319,6 +320,12 @@ def prepare_encounter_scene(character, members, selected_arena, *, layout=None):
 
 def scene_player_position(character, arena):
     original = (character["x"], character["y"], character["z"])
+    if arena.get("native_rii_guardian_layout") is not None:
+        from wakfu_server.achievements.rii_guardian_contract import (
+            validated_player_position,
+        )
+
+        return validated_player_position(character, arena)
     if arena.get("native_rii_lesson_layout") is not None:
         from wakfu_server.achievements.rii_lesson_layout import (
             validated_player_position,

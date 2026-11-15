@@ -1,8 +1,9 @@
 """Real isolated leases, KO mutation and per-owner native abort continuations."""
+
 import json
 import struct
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import patch
 
 from postgres_case import PostgresCase
@@ -492,8 +493,7 @@ class SharedFullAbandonTests(PostgresCase):
             if isinstance(node, ast.FunctionDef)
             and node.name == "refresh_shared_combat"
         )
-        wrapper = ast.parse(
-            """
+        wrapper = ast.parse("""
 def bind(shared, owner, before_dispatch=None):
     fight = shared.fight
     fight_messages = shared.runtime
@@ -506,8 +506,7 @@ def bind(shared, owner, before_dispatch=None):
     if before_dispatch is not None:
         before_dispatch()
     return locals()
-"""
-        )
+""")
         function = wrapper.body[0]
         function.body.insert(-1, refresh)
         # The socket snapshots these locals before receiving the ACK frame.

@@ -5,6 +5,7 @@ The fixture equips exactly one persisted item UID, constructs complete native
 player/NPC snapshots, and uses the production weapon preparation function.
 No selector, area, criterion, effect value or branch is overridden.
 """
+
 import argparse
 from collections import Counter
 from copy import deepcopy
@@ -39,8 +40,8 @@ from test_combat_weapon import equipped
 
 def source_hashes():
     paths = list((ROOT / "server/wakfu_server").rglob("*.py"))
-    paths += list((ROOT / "server/protocol").glob("*.json"))
-    paths += list((ROOT / "server/protocol").glob("*.json"))
+    paths += list((ROOT / "database/protocol").glob("*.json"))
+    paths += list((ROOT / "database/protocol").glob("*.json"))
     return {
         str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted(paths)
@@ -158,9 +159,9 @@ def dynamic_damage_inventory(compiled):
     states = compiled.source_states["states"]
     names = {
         row["id"]: row["name"]
-        for row in json.loads((ROOT / "server/protocol/spell-names.json").read_text())[
-            "spells"
-        ]
+        for row in json.loads(
+            (ROOT / "database/protocol/spell-names.json").read_text()
+        )["spells"]
     }
     result, reachable = [], set()
     definitions = [
@@ -330,9 +331,11 @@ def run(output, references=None):
                 if type(requirement) is not int or requirement > 200:
                     row.update(
                         status="LIMITED",
-                        rejection_category="actor_level_above_supported_200"
-                        if type(requirement) is int
-                        else "missing_equipment_level",
+                        rejection_category=(
+                            "actor_level_above_supported_200"
+                            if type(requirement) is int
+                            else "missing_equipment_level"
+                        ),
                         reason="Production character health/snapshot supports levels1..200; no mismatched actor200/character245 fixture is fabricated.",
                         rollback_preserved=True,
                         not_executed=True,

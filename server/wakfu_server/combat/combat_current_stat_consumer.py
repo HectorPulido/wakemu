@@ -1,6 +1,8 @@
 """Native eWQ/eWR runner lifecycle, independent of null400 and Qq effects."""
+
 from .combat_source_parent_index import OwnedStateSourceRow
 from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 import json
 from pathlib import Path
 from dataclasses import replace
@@ -15,9 +17,9 @@ from .combat_trigger_value_modifier import NativeRunnerAmount
 from .combat_value_transfer import apply_context_value
 from .combat_summon_initialization import registered_or_detached_actor
 
-_EVENTS = protocol_catalog.load(
-    Path(__file__).resolve().parents[2] / "protocol" / "native-current-stat-events.json"
-)["effects"]
+_EVENTS = protocol_catalog.load(DATA_ROOT / "native-current-stat-events.json")[
+    "effects"
+]
 
 
 def _target_pv(handler, identity):
@@ -147,9 +149,11 @@ def _calculate(handler, effect, invocation):
         )
     value = apply_context_value(
         value,
-        None
-        if invocation.native_context_hex is None
-        else bytes.fromhex(invocation.native_context_hex),
+        (
+            None
+            if invocation.native_context_hex is None
+            else bytes.fromhex(invocation.native_context_hex)
+        ),
     )
     return context, plan, value
 
@@ -232,9 +236,11 @@ def apply_current_stat_runner(handler, effect, values, invocation):
             executable=True,
             frozen=stat in target.effect_frozen,
             source_guards_verified=True,
-            limit_policy="NORMAL"
-            if row["limit_policy"] == "RESISTANCE_CAP"
-            else row["limit_policy"],
+            limit_policy=(
+                "NORMAL"
+                if row["limit_policy"] == "RESISTANCE_CAP"
+                else row["limit_policy"]
+            ),
         )
         if getattr(target, "native_copy_pa_source", None) is not None:
             from .combat_copied_pa import copied_current_stat_result

@@ -1,4 +1,5 @@
 """Inventory installed geometry and extracted transports, without capture IDs."""
+
 import csv
 import hashlib
 import io
@@ -6,19 +7,22 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+DATABASE_ROOT = (ROOT.parent if ROOT.name == "server" else ROOT) / "database"
 
 
 def build():
-    map_path = ROOT / "protocol/world-maps.json"
-    transport_path = ROOT / "protocol/native-transports.json"
+    map_path = DATABASE_ROOT / "protocol/world-maps.json"
+    transport_path = DATABASE_ROOT / "protocol/native-transports.json"
     maps = json.loads(map_path.read_text())
     transports = json.loads(transport_path.read_text())
-    object_path = ROOT / "protocol/native-transport-objects.json"
+    object_path = DATABASE_ROOT / "protocol/native-transport-objects.json"
     objects = {row["id"]: row for row in json.loads(object_path.read_text())}
     transports = [
-        dict(row, **{key: objects[row["id"]][key] for key in ("map_id", "z")})
-        if row["id"] in objects
-        else row
+        (
+            dict(row, **{key: objects[row["id"]][key] for key in ("map_id", "z")})
+            if row["id"] in objects
+            else row
+        )
         for row in transports
     ]
     geometry = set(maps["available_geometry_maps"])
@@ -35,9 +39,11 @@ def build():
                 gui_evidence=(
                     "world entry and walking"
                     if identity == 1134
-                    else "user traveled from1134 and walked; return interaction failed"
-                    if identity == 527
-                    else "not verified by this inventory"
+                    else (
+                        "user traveled from1134 and walked; return interaction failed"
+                        if identity == 527
+                        else "not verified by this inventory"
+                    )
                 ),
                 complete_world_initialization_verified=False,
             )
@@ -66,7 +72,7 @@ def build():
 
 if __name__ == "__main__":
     inventory = build()
-    (ROOT / "protocol/map-inventory.json").write_text(
+    (DATABASE_ROOT / "protocol/map-inventory.json").write_text(
         json.dumps(inventory, ensure_ascii=False, indent=2) + "\n"
     )
     output = io.StringIO()

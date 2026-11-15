@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Add native Spanish names to item catalogs without network access."""
+
 import json
 from pathlib import Path
 import zipfile
@@ -15,7 +16,7 @@ def main():
         key, sep, value = line.partition("=")
         if sep and key.startswith("content.15."):
             names[int(key.removeprefix("content.15."))] = value
-    for path in sorted((ROOT / "server/protocol").glob("item-*.json")):
+    for path in sorted((ROOT / "database/protocol").glob("item-*.json")):
         data = json.loads(path.read_text())
         if not isinstance(data, dict) or not isinstance(data.get("items"), list):
             continue

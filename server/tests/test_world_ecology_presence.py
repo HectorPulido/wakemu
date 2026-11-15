@@ -1,4 +1,5 @@
 """Occupancy episodes prevent vacant time from advancing natural monster clocks."""
+
 import unittest
 import threading
 from wakfu_server.world import World
@@ -18,6 +19,7 @@ class WorldEcologyPresenceTests(unittest.TestCase):
             x=0,
             y=0,
             z=0,
+            direction=0,
         )
 
     def test_leave_and_reenter_between_worker_snapshots_changes_episode(self):

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Add Spanish names from the installed client to the catalog offline."""
+
 import json
 from pathlib import Path
 import zipfile
@@ -16,7 +17,7 @@ def main():
         key, separator, value = line.partition("=")
         if separator and key.startswith("content.7."):
             names[int(key.removeprefix("content.7."))] = value
-    path = ROOT / "server/protocol/monsters.json"
+    path = ROOT / "database/protocol/monsters.json"
     data = json.loads(path.read_text())
     for monster in data["monsters"]:
         reference = monster["ref"]

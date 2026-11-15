@@ -1,4 +1,5 @@
 """Compact, source-bound advisory facts for the separate Jondo selector."""
+
 from collections import deque
 from collections.abc import Mapping
 from copy import copy
@@ -9,7 +10,6 @@ import uuid
 
 from ..native.native_control import effective_affiliation
 from ..native.native_deadline import check, clock_now
-
 
 _MECHANIC_MONSTERS = frozenset(
     (2431, 2448, 2977, 3022, 3870, 4251, 4280, 5039, 5040, 5500, 5664)
@@ -192,7 +192,8 @@ def _reachable(
     *,
     geometry=None,
     columns_observer=None,
-    include_movement_blocked=False
+    include_movement_blocked=False,
+    dynamic_actor_ids=None,
 ):
     portals = tuple(portals)
     if geometry is None:
@@ -228,6 +229,14 @@ def _reachable(
         movement_blocked = native_npc_walk_blocked_cells(
             fight, actor, fight.walkable - {actor.position}
         )
+    from wakfu_server.combat_qi_movement import planner_static_blocked_cells
+
+    movement_blocked = set(movement_blocked) | planner_static_blocked_cells(
+        fight,
+        actor,
+        fight.walkable - {actor.position},
+        dynamic_actor_ids=dynamic_actor_ids,
+    )
     occupied = {
         tuple(a.position)
         for a in fight.actors.values()
@@ -280,9 +289,7 @@ def _area_harmful(fight, actor, row, definition, effects, registry):
     relation = (
         "self"
         if actor.id == caster_id
-        else "ally"
-        if effective_affiliation(fight, actor) == team
-        else "enemy"
+        else "ally" if effective_affiliation(fight, actor) == team else "enemy"
     )
     state_catalog = None
 
@@ -637,11 +644,13 @@ def semantic_rows(compiled, roots, level):
                         probability=profile["probability"],
                         conditional=conditional,
                         nativeInArea=row_in_area,
-                        confidence="conditional"
-                        if conditional or profile["probability"] < 100
-                        else "known",
+                        confidence=(
+                            "conditional"
+                            if conditional or profile["probability"] < 100
+                            else "known"
+                        ),
                         nativeReference=reference,
-                        **native_amount
+                        **native_amount,
                     )
                 )
         except (ValueError, TypeError, KeyError, IndexError) as error:
@@ -1240,7 +1249,9 @@ def build_snapshot(oracle, *, excluded_actions=(), budget_ms=500):
                     for entry in candidate.state_ledger.entries
                 ],
                 hidden=False,
-                stats={str(key): value for key, value in candidate.effect_stats.items()}
+                stats={
+                    str(key): value for key, value in candidate.effect_stats.items()
+                },
             )
         )
         if native_hp is not None:
@@ -1346,7 +1357,7 @@ def build_snapshot(oracle, *, excluded_actions=(), budget_ms=500):
                 rows=rows,
                 unknownProjection=unknown,
                 selectedAt="current_caster_self_target",
-                **summarize(rows, unknown)
+                **summarize(rows, unknown),
             )
             if invariant_summon_casting(table, rule, costs, ranges):
                 summon_static_casting.add((spell, level))
@@ -1424,6 +1435,7 @@ def build_snapshot(oracle, *, excluded_actions=(), budget_ms=500):
         geometry=geometry,
         columns_observer=captured_sn_columns.append if wants_sn else None,
         include_movement_blocked=True,
+        dynamic_actor_ids=(candidate.id for candidate in visible if candidate.hp > 0),
     )
     descriptor = oracle.descriptor(fight, actor)
     prepared_visibility = prepare_los_geometry(descriptor["map_id"], fight.walkable)
@@ -1506,7 +1518,7 @@ def build_snapshot(oracle, *, excluded_actions=(), budget_ms=500):
                     blocking_footprints=footprints,
                     prepared_geometry=prepared_visibility,
                     **observation,
-                    **cache_kwargs
+                    **cache_kwargs,
                 )
                 los.append([indices[ray_origin], indices[ray_target], value])
                 receipt = native_static_los_receipt(
@@ -1561,7 +1573,7 @@ def build_snapshot(oracle, *, excluded_actions=(), budget_ms=500):
                 private,
                 blocking_footprints=footprints,
                 prepared_geometry=prepared_visibility,
-                **cache_kwargs
+                **cache_kwargs,
             )
             los.append([indices[origin], indices[target], value])
         except (ValueError, TypeError, KeyError):

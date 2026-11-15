@@ -3,11 +3,13 @@
 13984 updates existing bEG objects (cEX); it cannot spawn missing objects.
 Send only after the client's environment loader has registered the current map.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import hashlib
 import json
 import struct
+from types import MappingProxyType
 from collections import defaultdict
 from pathlib import Path
 
@@ -48,6 +50,18 @@ if set(_DYNAMIC_STATES) != {
 }:
     raise ValueError("Incomplete native dynamic object states")
 
+# Read-only validated sources let native scene indexes reuse their identity
+# without cloning or hashing every object on each movement checkpoint.
+_MAPS = MappingProxyType(
+    {
+        map_id: MappingProxyType(
+            {identity: MappingProxyType(dict(row)) for identity, row in rows.items()}
+        )
+        for map_id, rows in _MAPS.items()
+    }
+)
+_DYNAMIC_STATES = MappingProxyType(_DYNAMIC_STATES)
+
 
 def objects(map_id):
     """Return copies so callers cannot mutate the installed native baseline."""
@@ -85,42 +99,29 @@ def snapshots(map_id, *, position=None):
         return dynamic_snapshots(map_id, neighborhood(chunk(position)))
     from wakfu_server.dungeon_instances import entry_object_ids
 
-    rows = objects(map_id)
     entrances = entry_object_ids(map_id)
-    dynamic_rows = tuple(
+    rows = (
         {
             "id": row["id"],
-            "payload_hex": (
+            "payload": (
                 _DUNGEON_ENTRY_STATE
                 if row["id"] in entrances
                 else dynamic_state(map_id, row["id"])
-            ).hex(),
+            ),
         }
-        for row in rows
+        for row in objects(map_id)
     )
-    # bEC reconstructs each object from the installed raw asset before applying
-    # this state. Sending a separate baseline first attaches an unhydrated
-    # instance which the native scene registry refuses to replace later.
-    return _snapshot_bodies(dynamic_rows)
+    return _snapshot_bodies(rows, entrances)
 
 
 def _snapshot_bodies(rows, entrance_ids=frozenset()):
-    result = []
-    for offset in range(0, len(rows), 32767):
-        chunk = rows[offset : offset + 32767]
-        body = bytearray(struct.pack(">h", len(chunk)))
-        for row in chunk:
-            payload = (
-                _DUNGEON_ENTRY_STATE
-                if row["id"] in entrance_ids
-                else bytes.fromhex(row["payload_hex"])
-            )
-            if len(payload) > 32767:
-                raise ValueError("Native interactive payload exceeds codec limit")
-            body.extend(struct.pack(">qh", row["id"], len(payload)))
-            body.extend(payload)
-        result.append(bytes(body))
-    return tuple(result)
+    from .scene_wire_native import snapshot_bodies
+
+    return snapshot_bodies(rows, entrance_ids)
+
+
+_IMMUTABLE_OBJECT_PROVIDER = objects
+_IMMUTABLE_STATE_PROVIDER = dynamic_state
 
 
 def interaction(character, body):
@@ -143,9 +144,7 @@ def interaction(character, body):
         route = (
             "transport_registration"
             if name == "REGISTER"
-            else "transport_menu"
-            if name == "ACTIVATE"
-            else "unsupported"
+            else "transport_menu" if name == "ACTIVATE" else "unsupported"
         )
     elif row["type"] == "Door":
         route = "door_state"

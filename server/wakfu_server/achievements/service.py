@@ -1,4 +1,5 @@
 """Achievement adapters consume authenticated settlement facts, never client kills."""
+
 from psycopg.pq import TransactionStatus
 from . import catalog, engine, rewards, storage, wire
 
@@ -74,9 +75,9 @@ def _event(db, character, fight, original_monsters):
         "fight_id": fight.id,
         "original_breeds": [breed for _, breed in sorted(breeds)],
         "original_monsters": [[identity, breed] for identity, breed in sorted(breeds)],
-        "completed_dungeon_id": None
-        if encounter is None
-        else encounter["definition_id"],
+        "completed_dungeon_id": (
+            None if encounter is None else encounter["definition_id"]
+        ),
     }
 
 
@@ -186,16 +187,35 @@ def settle(db, store, character, fight, original_monsters):
                 fight.id,
             )
     if fresh:
-        from .rii_combat_counters import settle as settle_rii_combat
+        from . import mission_toolkit
 
         try:
             with db.transaction():
-                packets.extend(settle_rii_combat(db, store, character, event))
+                packets.extend(
+                    mission_toolkit.settle_combat(
+                        db,
+                        store,
+                        character,
+                        fight_id=event["fight_id"],
+                        breeds=event["original_breeds"],
+                    )
+                )
+                if event["completed_dungeon_id"] is not None:
+                    packets.extend(
+                        mission_toolkit.settle(
+                            db,
+                            store,
+                            character,
+                            token=f"fight:{event['fight_id']}",
+                            kind="dungeon_completed",
+                            reference=event["completed_dungeon_id"],
+                        )
+                    )
         except Exception:
             import logging
 
             logging.getLogger(__name__).exception(
-                "Rii combat counter failed for character %s fight %s",
+                "Mission combat event failed for character %s fight %s",
                 character["id"],
                 fight.id,
             )

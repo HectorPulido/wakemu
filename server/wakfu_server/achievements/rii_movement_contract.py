@@ -154,6 +154,8 @@ def initialize(fight, packets, *, action_id):
     contract = getattr(fight, "rii_movement_lesson_contract", None)
     if contract is None:
         return False
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return True
     if (
         not isinstance(contract, dict)
         or fight.phase != "active"
@@ -216,6 +218,9 @@ def initialize(fight, packets, *, action_id):
 
 def announce(fight, packets, *, previous=None):
     """Identify the server-owned marker until native green-cell visuals are known."""
+    contract = getattr(fight, "rii_movement_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     from wakfu_server.ecology_feedback import information
     from wakfu_server.combat_tactical_markers import _marker_packet
 
@@ -234,6 +239,8 @@ def announce(fight, packets, *, previous=None):
 def observe(fight, *, caster_id, effect_reference, before, packets, action_id=0):
     """Count a qualified actual sack relocation onto its marked cell."""
     contract = getattr(fight, "rii_movement_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if not isinstance(contract, dict) or contract.get("initialized") is not True:
         return False
     if caster_id != contract.get("owner") or effect_reference not in EFFECTS:
@@ -286,6 +293,8 @@ def observe(fight, *, caster_id, effect_reference, before, packets, action_id=0)
 def finish_if_qualified(fight):
     """Finish after four committed qualifying moves, without a false sack death."""
     contract = getattr(fight, "rii_movement_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if (
         fight.phase != "active"
         or not isinstance(contract, dict)

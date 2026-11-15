@@ -1,7 +1,8 @@
 """Execute the actual dispatcher branch with isolated boundary functions."""
+
 import ast
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import Mock
 
 

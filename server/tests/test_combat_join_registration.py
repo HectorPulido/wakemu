@@ -1,9 +1,10 @@
 """Joined owned fighters enter the existing native PV/QI population."""
+
 import ast
 from collections import deque
 import struct
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 

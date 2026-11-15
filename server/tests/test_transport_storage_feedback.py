@@ -1,7 +1,8 @@
 """Actual dispatch rejection/publish boundaries preserve travel and chest authority."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest

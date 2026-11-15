@@ -1,6 +1,7 @@
 """Static input precision must retain unknowns rather than invent authority."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import tempfile
 import unittest
 from unittest.mock import patch

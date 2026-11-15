@@ -1,4 +1,5 @@
 """Persistent ordinary native doors; dungeon progression owns its own gates."""
+
 import hashlib
 import math
 import struct
@@ -157,19 +158,10 @@ def validate_movement(store, character, movement):
     intermediate cell on the same floor.
     """
     blocked = blocked_cells(store, character["map_id"], character.get("instance_id", 0))
-    current = tuple(movement["start_position"][axis] for axis in ("x", "y", "z"))
-    # A scene replay or an in-flight route can leave the actor in a newly
-    # closed cell. Allow departure; admitting another blocked target is denied.
-    for step in movement["steps"]:
-        target = tuple(
-            current[i] + step["d" + axis] for i, axis in enumerate(("x", "y", "z"))
+    from wakfu_server.spatial_native import get_spatial
+
+    return tuple(
+        get_spatial().call(
+            "navigation.closed_doors", request=movement, blocked=sorted(blocked)
         )
-        if target in blocked:
-            raise ValueError("Movement crosses a closed ordinary door")
-        if abs(target[0] - current[0]) == 1 and abs(target[1] - current[1]) == 1:
-            corners = {(target[0], current[1], z) for z in (current[2], target[2])}
-            corners.update((current[0], target[1], z) for z in (current[2], target[2]))
-            if corners & blocked:
-                raise ValueError("Diagonal movement crosses a closed ordinary door")
-        current = target
-    return current
+    )

@@ -5,7 +5,9 @@ from psycopg.types.json import Jsonb
 from unittest.mock import patch
 from postgres_case import PostgresCase
 from wakfu_server.inventory_items import grant
-from wakfu_server.planting import prepare, complete, publish_groups, SEEDS, RESOURCES
+from wakfu_server.planting import complete, publish_groups, SEEDS, RESOURCES
+from planting_fixture import prepare, begin_prepared
+from wakfu_server.planting_runtime import Plantings
 from wakfu_server.profession_store import ensure_learned
 from wakfu_server.profession_wire import MAX_XP
 from wakfu_server.monsters import owned_instance
@@ -796,11 +798,11 @@ class PlantingTests(PostgresCase):
                 "DELETE FROM account_professions WHERE account_id=%s", (self.account,)
             )
         with self.assertRaises(ValueError):
-            prepare(
-                self.store,
+            begin_prepared(
+                Plantings(self.store),
                 self.account,
                 self.generation,
                 self.char,
                 body,
-                authorize_cell=lambda *args: 0,
+                lambda *args: 0,
             )

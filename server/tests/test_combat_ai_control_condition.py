@@ -13,7 +13,7 @@ class NativeAIControlConditionTests(unittest.TestCase):
     def test_original_neighborhood_geometry_and_owner_breed_filters(self):
         path = (
             Path(__file__).resolve().parents[2]
-            / "server/test-fixtures/combat/ai-control-neighborhood.json"
+            / "server/tests/fixtures/combat/ai-control-neighborhood.json"
         )
         for row in json.loads(path.read_text())["rows"]:
             summon = SummonBreedRow(8, 3794, 7, (row["x"], row["y"], 99))

@@ -1,8 +1,9 @@
 """Reference effects must not override the owned character after admission."""
+
 import ast
 import base64
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import sys
 from types import SimpleNamespace

@@ -4,6 +4,7 @@ Only one small original document is decoded. Existing compressed catalog chunks
 are referenced in place; neither a client nor a database is needed to rebuild.
 This command never activates a database catalog or changes a running service.
 """
+
 import argparse
 from copy import deepcopy
 import gzip
@@ -191,11 +192,11 @@ def build(pack_root, proof_path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pack", type=Path, default=Path("server/data/installation"))
+    parser.add_argument("--pack", type=Path, default=Path("database/data/installation"))
     parser.add_argument(
         "--proof",
         type=Path,
-        default=Path("server/data/native-rift-cell-groups-v1.json"),
+        default=Path("database/data/native-rift-cell-groups-v1.json"),
     )
     args = parser.parse_args()
     print(json.dumps(build(args.pack, args.proof), sort_keys=True))

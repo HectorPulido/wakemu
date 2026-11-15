@@ -1,8 +1,9 @@
 """Exercise actual private scene hydration after a haven-bag transition."""
+
 import ast
 from contextlib import nullcontext
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch

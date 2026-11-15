@@ -1,9 +1,11 @@
 """Actual planting and Ranch building placement share account-owned cells."""
+
 import struct
 import unittest
 from datetime import timedelta
 
 from postgres_case import PostgresCase
+from planting_fixture import begin_prepared
 
 
 class RanchOccupancyPostgresTests(PostgresCase):
@@ -56,9 +58,6 @@ class RanchOccupancyPostgresTests(PostgresCase):
         self.runtime = Plantings(
             self.store,
             growth_seconds=30,
-            # Planting outcome is caller-owned; keep this cell-occupancy test
-            # deterministic without substituting climate/territory data.
-            probability_context=lambda _prepared: 1.0,
             location_context=lambda stored: active_character(
                 stored, [self.ranch.inside], store=self.store
             ),
@@ -164,7 +163,8 @@ class RanchOccupancyPostgresTests(PostgresCase):
         body = struct.pack(
             ">iqii", SEEDS[4275]["action_id"], item_uid, cell[0], cell[1]
         )
-        self.runtime.begin(
+        begin_prepared(
+            self.runtime,
             self.account,
             self.generation,
             self.ranch.inside,
@@ -172,6 +172,9 @@ class RanchOccupancyPostgresTests(PostgresCase):
             lambda current, request, seed, resource: self.authorize_garden(
                 self.store, current, request, seed, resource
             ),
+            # The producer supplies this deterministic chance; this test owns
+            # the World cell-occupancy fence, not native probability planning.
+            probability=1.0,
         )
         return body
 
@@ -366,13 +369,13 @@ class RanchOccupancyPostgresTests(PostgresCase):
         other_runtime = type(self.runtime)(
             self.store,
             growth_seconds=30,
-            probability_context=self.runtime.probability_context,
             location_context=lambda stored: self.garden(
                 stored, [other_ranch.inside], store=self.store
             ),
         )
         other_target = first[0]
-        other_runtime.begin(
+        begin_prepared(
+            other_runtime,
             other_account,
             other_generation,
             other_ranch.inside,
@@ -386,6 +389,7 @@ class RanchOccupancyPostgresTests(PostgresCase):
             lambda current, request, seed, resource: self.authorize_garden(
                 self.store, current, request, seed, resource
             ),
+            probability=1.0,
         )
         self.now[0] += 3
         other_runtime.complete(

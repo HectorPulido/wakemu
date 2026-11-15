@@ -10,9 +10,10 @@ def transition(
     A rejected transition or failed mission settlement rolls back both together.
     Returned packets are sent only after the destination scene is published.
     """
-    from wakfu_server.achievements import zone_missions
+    from wakfu_server.achievements import rii_dojo_arrival, zone_missions
 
     with store.connection() as db:
+        db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
         if incarnam_exit:
             from wakfu_server.achievements import storage
 
@@ -59,12 +60,35 @@ def transition(
             from wakfu_server.achievements import rii_sanctuary
 
             packets += rii_sanctuary.enter(db, store, source, saved, route)
+        if (
+            saved["map_id"] == rii_dojo_arrival.DOJO_MAP
+            and source["map_id"] != rii_dojo_arrival.DOJO_MAP
+        ):
+            # Native dojo script bootstrap: the client needs the scene actor
+            # identities and the ready event before its lesson UI is valid.
+            packets += rii_dojo_arrival.arrival_packets(rii_dojo_arrival.scene_uids(db))
         if native_zaap:
             from wakfu_server.achievements import transport_missions
 
             packets += transport_missions.on_native_transport(
                 db, store, source, saved, route
             )
+        if (source["map_id"], source["instance_id"]) != (
+            saved["map_id"],
+            saved["instance_id"],
+        ):
+            from uuid import uuid4
+            from wakfu_server.achievements import mission_toolkit
+
+            packets += mission_toolkit.settle(
+                db,
+                store,
+                saved,
+                token="travel:" + uuid4().hex,
+                kind="map_enter",
+                reference=saved["map_id"],
+            )
+            saved = store.character(account_id, saved["id"], db)
         if (
             source["map_id"] != 1385
             and saved["map_id"] == 1385

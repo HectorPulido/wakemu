@@ -1,6 +1,7 @@
 """Logout barrier tests; extract the real finally block without importing server startup."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import threading
 import unittest
 from types import SimpleNamespace
@@ -8,7 +9,6 @@ from unittest.mock import patch
 
 from postgres_case import PostgresCase
 from wakfu_server.session_cleanup import retry_step
-
 
 SERVER_SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 
@@ -231,9 +231,9 @@ class SessionCleanupFinallyTests(unittest.TestCase):
         namespace["fight"] = SimpleNamespace(id=77, phase="active")
         # This retry scenario releases an obsolete generation. A still-active
         # generation deliberately retains its combat group in production.
-        namespace[
-            "COMBAT_SESSIONS"
-        ].registry.lease_generation_active = lambda _generation: False
+        namespace["COMBAT_SESSIONS"].registry.lease_generation_active = (
+            lambda _generation: False
+        )
         checkpoint_calls = []
 
         def checkpoint(status):

@@ -1,14 +1,14 @@
 """Run production seat, cancellation, and logout branches with isolated fakes."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 from wakfu_server import environment_seats
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

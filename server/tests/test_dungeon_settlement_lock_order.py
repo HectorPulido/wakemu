@@ -1,11 +1,11 @@
 """Keep dungeon run locks ahead of group settlement without ordinary-fight work."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import sys
 from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import patch
-
 
 SERVER = Path(__file__).resolve().parents[1]
 

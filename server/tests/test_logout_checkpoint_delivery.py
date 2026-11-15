@@ -1,7 +1,8 @@
 """A closed logout socket cannot block the canonical PostgreSQL checkpoint."""
+
 from copy import deepcopy
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import errno
 import struct
 from types import SimpleNamespace

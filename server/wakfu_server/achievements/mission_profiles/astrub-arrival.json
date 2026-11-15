@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "astrub-arrival",
+  "evidence": [
+    "Official official-incarnam-20261112: dialogue7118 choice15210 frame7204 completes objective11508 in frame7205.",
+    "Official bootstrap7235 places Gultard4688 at527(11,155,0). Dialogue joins and final choices15220/15236 are reviewed reconstruction from native quest5568 criteria and narrative replies; no Gultard conversation was captured."
+  ],
+  "bindings": [
+    {
+      "id": "grandma-introduction",
+      "quest_id": 5568,
+      "objective_id": 11508,
+      "event": {
+        "kind": "dialogue",
+        "reference": 15210
+      },
+      "maps": [
+        895
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "goultard-first-briefing",
+      "quest_id": 5568,
+      "objective_id": 11510,
+      "event": {
+        "kind": "dialogue",
+        "reference": 15220
+      },
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "goultard-final-debriefing",
+      "quest_id": 5568,
+      "objective_id": 11544,
+      "event": {
+        "kind": "dialogue",
+        "reference": 15236
+      },
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": []
+}

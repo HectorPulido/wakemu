@@ -5,6 +5,7 @@ the sack breed, layout, and encounter creation below are reconstructions.  No
 dialogue or combat handler invokes this module until the multi-target producer,
 movement packets and complete settlement are separately integrated.
 """
+
 from .lesson_area import SACK_COUNT, formation
 
 REF = 5466
@@ -18,8 +19,12 @@ def payload(owner, actor):
     return {"kind": KIND, "owner": owner, "actor_id": actor, "ref": REF}
 
 
-def spawn(store, groups, account_id, generation, character):
-    """Atomically publish one complete owner-receipted group when eligible."""
+def spawn(store, groups, account_id, generation, character, *, repeat=False):
+    """Atomically publish one complete owner-receipted group when eligible.
+
+    `repeat` reruns a finished exercise through Airyna's native "already done"
+    entry, so the completed objective must not block a new own group.
+    """
     import secrets
     from wakfu_server.combat_monster_world import spawn_group
     from wakfu_server.combat_terrain import published_geometry
@@ -45,7 +50,7 @@ def spawn(store, groups, account_id, generation, character):
         if (
             5143 not in state["running"]
             or 10608 not in state["objectives"]
-            or 10609 in state["objectives"]
+            or (10609 in state["objectives"] and not repeat)
         ):
             return None
         groups_here = groups.available(1388, 0)
@@ -175,6 +180,10 @@ def settle_participants(db, store, fight, members, monsters):
             for target in targets
         )
         or fight.winner != actors[owner].team
+    ):
+        return {}
+    if contract.get("native_lesson") is True and any(
+        actors[target].hp > 0 for target in targets
     ):
         return {}
     member = next((m for m in members if m.get("character_id") == owner), None)

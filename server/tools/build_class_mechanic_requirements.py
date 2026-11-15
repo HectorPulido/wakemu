@@ -4,6 +4,7 @@
 Structural dependencies establish required work, never dynamic reachability or
 functional success. Evidence is an explicit report with assertions and hashes.
 """
+
 import gzip
 import argparse
 import ast
@@ -121,7 +122,7 @@ def build(output, evidence_path=None):
         "conditions": REPORTS / "class-condition-gap-inventory.json",
         "casting": REPORTS / "class-casting-gap-inventory-20261007.json",
         "local_parser": ROOT / "server/wakfu_server/combat/combat_local_criteria.py",
-        "capturable": ROOT / "server/protocol/native-class-captured-profiles.json",
+        "capturable": ROOT / "database/protocol/native-class-captured-profiles.json",
         "captured_dependencies": REPORTS
         / "class-captured-dependency-inventory-20261007.json",
         "captured_typed": REPORTS
@@ -129,7 +130,7 @@ def build(output, evidence_path=None):
         "captured_manifest": REPORTS
         / "class-captured-native-typed-closure-20261008.json",
         "captured_runtime": ROOT
-        / "server/protocol/native-class-captured-effect-closure.json",
+        / "database/protocol/native-class-captured-effect-closure.json",
         "source_helper": ROOT / "server/tools/class_native_requirement_sources.py",
         "referenced_typed": REPORTS
         / "class-triggered426-native-typed-closure-20261008.jsonl.gz",
@@ -261,9 +262,11 @@ def build(output, evidence_path=None):
                         continue
                     name = call.func.id
                     shape = [
-                        ("literal:" + type(arg.value).__name__)
-                        if isinstance(arg, ast.Constant)
-                        else type(arg).__name__
+                        (
+                            ("literal:" + type(arg.value).__name__)
+                            if isinstance(arg, ast.Constant)
+                            else type(arg).__name__
+                        )
                         for arg in call.args
                     ]
                     metadata = condition_metadata.get(name, {})
@@ -467,9 +470,9 @@ def build(output, evidence_path=None):
                 "root_samples",
             )
         }
-        record["requirements"][key][
-            "zero_casting_flags_costs_verified"
-        ] = referenced_manifest["zero_casting_verified"]
+        record["requirements"][key]["zero_casting_flags_costs_verified"] = (
+            referenced_manifest["zero_casting_verified"]
+        )
         attach(record, key)
 
     for structure in conditions["native_structural_classes"]:

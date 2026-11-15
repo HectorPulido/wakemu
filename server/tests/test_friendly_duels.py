@@ -1,7 +1,7 @@
 import struct
 import unittest
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 
 from postgres_case import PostgresCase
 from wakfu_server.combat_state import Actor, Fight

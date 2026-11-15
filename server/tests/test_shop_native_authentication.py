@@ -1,8 +1,9 @@
 """Native login/renewal keys authenticate through the real local shop HTTP path."""
+
 import ast
 from copy import deepcopy
 import json
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import threading
 from types import SimpleNamespace

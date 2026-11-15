@@ -4,6 +4,7 @@ Territorial authorization and outcome/growth are caller policies; unknown
 conditions are not fabricated. Resource and seed commit together in PostgreSQL.
 Publishing a prepared monster group to Redis is retried from the durable outbox.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
 import json
 import secrets
@@ -16,7 +17,6 @@ from .inventory_items import _lease
 from .monsters import reference, owned_instance
 from .combat_groups import Groups
 from .combat_monster_world import spawn_group
-from .wire import proto_field
 
 SEEDS = {
     r["item_reference"]: r
@@ -38,26 +38,10 @@ def decode(body):
 
 
 def resource_packet(resource):
-    # cAz13135 → zk ProtoResourcePartition → cFL/bOm or bOi.
-    fields = (
-        (8, resource["resource_reference"]),
-        (16, resource["x"]),
-        (24, resource["y"]),
-        (32, resource["z"]),
-        (40, resource["stage"]),
-        (48, 0),
-        # zk field 7 is ownerAccount, not the planting timestamp. World
-        # flora is public; creation_time remains in PostgreSQL for growth.
-        (56, 0),
-        (64, 0),
-    )
-    return (
-        13135,
-        b"".join(
-            proto_field(tag, value if value >= 0 else (1 << 64) + value)
-            for tag, value in fields
-        ),
-    )
+    # Shared native cAz13135 encoder also owns batched scene appearances.
+    from .scene_wire_native import resource_packets
+
+    return resource_packets((resource,))[0]
 
 
 def result_packet(prefix_long, prefix_int, success):
@@ -74,84 +58,6 @@ def start_packet(*, mun, hvY, actor_id, profession_id, duration, egY, x, y):
             ">Bhqiiiii", mun, hvY, actor_id, profession_id, duration, egY, x, y
         ),
     )
-
-
-def prepare(
-    store,
-    account,
-    generation,
-    character,
-    body,
-    *,
-    authorize_cell,
-    open_test_policy=False,
-    location_context=None,
-    read_only=False,
-):
-    request = decode(body)
-    with store.connection() as db:
-        if read_only:
-            # Remote preparation must not hold session/character row locks while
-            # hydrating catalogs. World acceptance rechecks the locking lease.
-            if (
-                db.execute(
-                    "SELECT 1 FROM sessions s JOIN characters c ON c.id=s.character_id "
-                    "AND c.account_id=s.account_id WHERE s.account_id=%s AND s.generation=%s "
-                    "AND s.character_id=%s AND s.expires_at>%s AND c.deleted_at IS NULL",
-                    (account, generation, character["id"], store.now()),
-                ).fetchone()
-                is None
-            ):
-                raise ValueError("Invalid inventory session")
-        else:
-            _lease(store, db, account, generation, character["id"])
-        current = store.character(account, character["id"], db)
-        if location_context is not None:
-            current = location_context(current)
-        item = next(
-            (
-                item
-                for item in current["inventory_items"]
-                if item["uid"] == request["item_uid"]
-            ),
-            None,
-        )
-        if item is None:
-            raise ValueError("Seed unavailable or foreign")
-        seed = SEEDS.get(item["reference"])
-        if (
-            seed is None
-            or seed["action_id"] != request["action_id"]
-            or (seed["has_item_criteria"] and not open_test_policy)
-        ):
-            raise ValueError("Unknown, mismatched or conditional seed action")
-        resource = RESOURCES.get(seed["resource_reference"])
-        if resource is None:
-            raise ValueError("Unknown native resource reference")
-        from .resource_domains import is_mineral, is_fish
-
-        if is_mineral(seed["resource_reference"]):
-            raise ValueError("Mining resources cannot be planted")
-        if is_fish(seed["resource_reference"]):
-            raise ValueError("Fishing resources cannot be planted")
-        from wakfu_server.incarnam_planting import authorize_if_tutorial
-
-        authorize_if_tutorial(db, current, seed, resource)
-        from .profession_store import stored_level
-
-        learned = stored_level(db, account, seed["profession_id"])
-        # The test override relaxes requirements, never account ownership of
-        # profession progress. Reject before starting an uncreditable action.
-        if learned is None or (
-            not open_test_policy and learned < seed["minimum_level"]
-        ):
-            raise ValueError("Profession unlearned or below seed requirement")
-    # Caller verifies authoritative territory permissions, exact native
-    # ground/height and ecosystem rules, rather than a made-up radius/chance.
-    z = authorize_cell(current, request, seed, resource)
-    if type(z) is not int or not -(1 << 15) <= z < (1 << 15):
-        raise ValueError("Planting cell is not authorized")
-    return dict(character=current, request=request, seed=seed, definition=resource, z=z)
 
 
 def complete(
@@ -218,6 +124,7 @@ def complete(
         )
         group = dict(key=key, members=monster_members)
     with store.connection() as db:
+        db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account,))
         _lease(store, db, account, generation, character["id"])
         db.execute(
             "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
@@ -405,16 +312,16 @@ def complete(
 
                 if incarnam_tutorial.claim_presentation(db, current["id"], 22524):
                     mission_packets.append(scenario_event(22524, 2500))
-            from wakfu_server.achievements.counter_missions import settle_rii_event
+            from wakfu_server.achievements import mission_toolkit
 
             mission_packets.extend(
-                settle_rii_event(
+                mission_toolkit.settle(
                     db,
                     store,
                     current,
                     token=operation_id,
                     kind="planting",
-                    item_reference=item["reference"],
+                    reference=item["reference"],
                 )
             )
             from wakfu_server.objectives.environmental_gameplay import (

@@ -3,6 +3,7 @@
 Use --activate to enable the installed bundle in the same transaction, or
 --verify-only to inspect an existing complete installation without writes.
 """
+
 import argparse
 import hashlib
 import json
@@ -13,6 +14,11 @@ import re
 import psycopg
 from psycopg.rows import dict_row
 from psycopg.pq import TransactionStatus
+
+SERVER_ROOT = Path(__file__).resolve().parents[1]
+DATABASE_ROOT = (
+    SERVER_ROOT.parent if SERVER_ROOT.name == "server" else SERVER_ROOT
+) / "database"
 
 
 SEEDS = (
@@ -241,9 +247,7 @@ def install(
             "Environmental profiles already exist; use --verify-only, never reimport"
         )
     seed_directory = (
-        Path(seed_directory)
-        if seed_directory is not None
-        else Path(__file__).resolve().parents[1] / "seeds"
+        Path(seed_directory) if seed_directory is not None else DATABASE_ROOT / "seeds"
     )
     hashes = {}
     for index, name in enumerate(SEEDS):

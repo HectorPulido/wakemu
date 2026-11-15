@@ -1,7 +1,8 @@
 """Historical withdrawal proof failure keeps both selector connections usable."""
+
 import ast
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from unittest.mock import Mock
@@ -18,10 +19,10 @@ class WithdrawalReturnSelectionBoundaryTests(unittest.TestCase):
         fixture.selection_menu_context(context)
         pending = object()
         context["pve_withdrawal_pending"] = pending
-        context[
-            "COMBAT_SESSIONS"
-        ].recover_withdrawn_pve.side_effect = WithdrawalRecoveryDeferred(
-            "Dead withdrawal health no longer matches its exit baseline"
+        context["COMBAT_SESSIONS"].recover_withdrawn_pve.side_effect = (
+            WithdrawalRecoveryDeferred(
+                "Dead withdrawal health no longer matches its exit baseline"
+            )
         )
         path = Path(
             os.environ.get("WAKFU_SELECTION_DISPATCH_SOURCE")

@@ -1,4 +1,5 @@
 """Catalog completeness and preservation of human tracking, not gameplay tests."""
+
 import importlib.util
 import json
 from pathlib import Path
@@ -39,7 +40,7 @@ class InventoryTests(unittest.TestCase):
             builder.main(output)
             inventory = json.loads(native_catalog.read_text(output / "inventory.json"))
             catalog = json.loads(
-                native_catalog.read_text(ROOT / "server/protocol/spells.json")
+                native_catalog.read_text(ROOT / "database/protocol/spells.json")
             )["spells"]
             self.assertEqual(
                 {r["id"] for r in inventory["spells"]}, {r["id"] for r in catalog}

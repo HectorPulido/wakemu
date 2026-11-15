@@ -10,13 +10,13 @@ class EncyclopediaTests(unittest.TestCase):
     def setUpClass(cls):
         cls.data = json.loads(
             native_catalog.read_bytes(
-                ROOT / "server/protocol/monster-encyclopedia.json"
+                ROOT / "database/protocol/monster-encyclopedia.json"
             )
         )
 
     def test_every_existing_monster_reference_is_exported(self):
         original = json.loads(
-            native_catalog.read_text(ROOT / "server/protocol/monsters.json")
+            native_catalog.read_text(ROOT / "database/protocol/monsters.json")
         )
         self.assertEqual(
             {m["ref"] for m in original["monsters"]},

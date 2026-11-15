@@ -22,6 +22,8 @@ def retire_before_cast(
     Scope the removal to the authenticated owner, target and area reference.
     """
     contract = getattr(fight, "rii_los_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return 0
     if (
         not isinstance(contract, dict)
         or contract.get("native_los_areas") is not True
@@ -67,8 +69,10 @@ def bind(db, owner, monsters):
     return contract
 
 
-def spawn(store, groups, account_id, generation, character):
+def spawn(store, groups, account_id, generation, character, *, repeat=False):
     """Use the shared owner-scoped single-sack producer; do not create rocks."""
     from .rii_owned_lesson import spawn as spawn_owned
 
-    return spawn_owned(store, groups, account_id, generation, character, LOS)
+    return spawn_owned(
+        store, groups, account_id, generation, character, LOS, repeat=repeat
+    )

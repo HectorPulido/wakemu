@@ -1,4 +1,5 @@
 """Deterministic class-only native state domain, including typed owned dependencies."""
+
 import gzip
 import argparse, gzip, hashlib, json
 from pathlib import Path
@@ -33,8 +34,8 @@ def build(root):
                     areas.add(row["reference"])
     # Follow only actual class-reachable area roots, including their existing
     # native ordered group descendants. Do not seed all installed areas.
-    area_path = root / "server/protocol/native-effect-areas.json"
-    tree_path = root / "server/protocol/native-area-effect-trees.json"
+    area_path = root / "database/protocol/native-effect-areas.json"
+    tree_path = root / "database/protocol/native-area-effect-trees.json"
     definitions = json.loads(area_path.read_text())["areas"]
     effects = json.load(open(tree_path, "rt"))["effects"]
     for path in (area_path, tree_path):

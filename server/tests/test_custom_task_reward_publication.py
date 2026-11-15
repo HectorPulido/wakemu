@@ -1,8 +1,9 @@
 """Execute the actual reward-publication closure with mocked wire boundaries."""
+
 import ast
 from contextlib import contextmanager
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch

@@ -55,6 +55,26 @@ class SceneSyncTests(unittest.TestCase):
             self.assertEqual(world_scene_sync.chunk((x, x)), (expected, expected))
         self.assertEqual(len(world_scene_sync.neighborhood((0, 0))), 9)
 
+    def test_full_character_binary_metadata_does_not_enter_spatial_command(self):
+        character = {
+            "id": 353,
+            "map_id": 1385,
+            "instance_id": 0,
+            "x": 2,
+            "y": -11,
+            "z": 1,
+            "achievement_section": b"\x05\x00\x01",
+            "inventory": [{"uid": 1099511755000, "effects": b"\x00"}],
+        }
+        self.assertEqual(world_scene_sync.chunk(character), (0, -1))
+        self.assertEqual(world_scene_sync.chunk((-19, 18, object())), (-2, 1))
+        sync = world_scene_sync.SceneSync()
+        sync.arm(character["map_id"], character["instance_id"], [character], 10)
+        self.assertTrue(sync.pending)
+        with patch.object(world_scene_sync, "dynamic_snapshots", return_value=()):
+            sync.poll(character["map_id"], character["instance_id"], 11)
+        self.assertIn((0, -1), sync.last_regions)
+
     def test_selected_regions_have_only_dynamic_payloads(self):
         regions = world_scene_sync.neighborhood((-13, -3))
         actual = decode(world_scene_sync.dynamic_snapshots(527, regions))

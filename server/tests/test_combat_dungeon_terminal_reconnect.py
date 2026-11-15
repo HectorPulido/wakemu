@@ -3,7 +3,7 @@
 import ast
 import struct
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 
 from postgres_case import PostgresCase

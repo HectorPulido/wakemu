@@ -1,7 +1,8 @@
 """The real selector branch reports a frozen company without disconnecting."""
+
 import ast
 import struct
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from psycopg import OperationalError

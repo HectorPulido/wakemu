@@ -1,15 +1,17 @@
-"""Reconstructed Otomai lore branch and the accompanying fresco mission.
+"""Otomai's observed entry paths and reconstructed optional fresco branch.
 
-Native dialogue text connects the question on the World of Twelve to the
-frescoes. Its continuation and quest side effect were not captured, so these
-are explicit local reconstructions, not claims about original server scripts.
+The official Rii session observes returning node5763/13287 opening5775.
+Optional lore branches and the fresco quest effect remain reconstructions
+from native dialogue text, rather than captured original quest progression.
 """
+
 from copy import deepcopy
 
 from wakfu_server import npc_observed_dialogue, npc_protectors, npc_world
 from wakfu_server.achievements import mission_dependencies, mission_progress, storage
 
 EDGES = {
+    (5763, 13287): 5775,
     (5774, 13307): 5775,
     (5775, 13292): 5776,
     (5775, 13294): 5779,

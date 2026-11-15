@@ -1,9 +1,10 @@
 """PostgreSQL lifecycle gate for Palacio Zollo's two native branch routes."""
+
 import hashlib
 import json
 import os
 import struct
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 

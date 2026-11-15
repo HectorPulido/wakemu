@@ -1,8 +1,9 @@
 """Execute the Ranch branches copied directly from the production dispatcher AST."""
+
 import ast
 from contextlib import contextmanager
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import time
 from types import SimpleNamespace
@@ -10,7 +11,6 @@ import unittest
 from unittest.mock import Mock, patch
 
 from wakfu_server.haven_bag import HavenBagSession
-
 
 SERVER_SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 
@@ -564,11 +564,13 @@ class RanchDispatcherTests(unittest.TestCase):
             self.assertGreaterEqual(len(self.sent), before + 2)
             self.assertTrue(
                 any(
-                    isinstance(event, tuple)
-                    and event == ("record", "hero_add_rejected")
-                    if opcode == 12219
-                    else isinstance(event, tuple)
-                    and event == ("record", "hero_switch_rejected")
+                    (
+                        isinstance(event, tuple)
+                        and event == ("record", "hero_add_rejected")
+                        if opcode == 12219
+                        else isinstance(event, tuple)
+                        and event == ("record", "hero_switch_rejected")
+                    )
                     for event in self.events
                 )
             )

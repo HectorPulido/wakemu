@@ -1,11 +1,11 @@
 """First unarmed requests resolve WP without a prior placement-only branch."""
+
 import ast
 import dis
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import symtable
 from types import CodeType
 import unittest
-
 
 SOURCE = Path(__file__).parents[1] / "local_game_server.py"
 

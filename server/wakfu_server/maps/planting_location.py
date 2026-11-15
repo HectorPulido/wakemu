@@ -2,7 +2,6 @@
 
 from .haven_bag_garden import active_character as garden_character
 
-
 LOCATION_KEYS = ("map_id", "instance_id", "x", "y", "z")
 
 
@@ -48,16 +47,27 @@ def active_character(stored, players, *, store=None, expected_location=None):
 
 def owned_character(stored, world, positions, *, store=None, generation=None):
     """Use the current generation's buffered public location or private scene."""
-    with world.lock:
+    live = world.owned_location(
+        stored["id"], generation=generation, ecology_active=True
+    )
+    if live is None:
+        raise ValueError("Planting actor is no longer active in the world")
+    generation = live["generation"]
+    if live["map_id"] in (9, 1440) and live["instance_id"] > 0:
+        # Private permissions belong to session metadata; native ownership and
+        # coordinates still decide which scene may use that metadata.
         entry = world.players.get(stored["id"])
         if (
             entry is None
-            or (generation is not None and entry[0] != generation)
-            or (stored["id"], entry[0]) in world._ecology_inactive
+            or entry[0] != generation
+            or any(entry[2][key] != live[key] for key in LOCATION_KEYS)
         ):
-            raise ValueError("Planting actor is no longer active in the world")
-        generation, _, live = entry
-        live = dict(live)
+            raise ValueError("Planting private scene changed during capture")
+        live.update(
+            (key, entry[2][key])
+            for key in ("haven_bag", "haven_bag_visitor", "haven_ranch_session")
+            if key in entry[2]
+        )
     # Validate ownership before consulting the account's position owner.
     validated = active_character(stored, [live], store=store)
     if live["map_id"] in (9, 1440) and live["instance_id"] > 0:

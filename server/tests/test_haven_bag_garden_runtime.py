@@ -1,9 +1,11 @@
 """Garden planting, growth, harvesting and reconnect use the durable flora engine."""
+
 import struct
 import json
 from unittest.mock import patch
 
 from postgres_case import PostgresCase
+from planting_fixture import begin_prepared, prepare as prepare_plant
 
 
 class HavenBagGardenRuntimeTests(PostgresCase):
@@ -14,7 +16,6 @@ class HavenBagGardenRuntimeTests(PostgresCase):
         from wakfu_server.inventory_items import grant
         from wakfu_server.planting import SEEDS
         from wakfu_server.planting_runtime import Plantings
-        from wakfu_server.planting_probability import resolver
         from wakfu_server.profession_store import ensure_learned
         from wakfu_server.combat_groups import Groups
         from wakfu_server import resource_collect
@@ -27,7 +28,6 @@ class HavenBagGardenRuntimeTests(PostgresCase):
         self.grant_item = grant
         self.seeds = SEEDS
         self.Plantings = Plantings
-        self.planting_resolver = resolver
         self.ensure_learned = ensure_learned
         self.Groups = Groups
         self.resource_collect = resource_collect
@@ -116,46 +116,56 @@ class HavenBagGardenRuntimeTests(PostgresCase):
                 haven_bag_visitor=guest,
             )
         ]
-        context = (
-            lambda stored: self.active_character(stored, live, store=self.store)
+        context = lambda stored: (
+            self.active_character(stored, live, store=self.store)
             if ranch
             else self.active_character(stored, live)
         )
         runtime = self.Plantings(
             self.store,
             location_context=context,
-            probability_context=self.planting_resolver(
-                self.store, profession_bonus=lambda prepared: 0
-            ),
         )
         body = struct.pack(">iqii", self.seeds[4275]["action_id"], seed["uid"], 7, 3)
         if external:
             from wakfu_server.ecology_planting_intents import (
                 EcologyPlantingIntents,
-                prepare_intents,
             )
 
             intents = EcologyPlantingIntents(self.store, "ranch-boot")
             runtime.ecology_intents = intents
-            intents.enqueue(account, generation, live[0], body)
+            intent_id = intents.enqueue(account, generation, live[0], body)
             scalar = {
                 key: live[0][key]
                 for key in ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
             }
             with self.store.connection() as db:
-                started_at_ms = db.execute(
-                    "SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS value"
-                ).fetchone()["value"]
-            with patch("wakfu_server.planting_bonus.current", return_value=0):
-                plan = prepare_intents(
-                    self.store,
-                    {
-                        "world_epoch": "ranch-boot",
-                        "players": [scalar],
-                        "open_planting": False,
-                        "started_at_ms": started_at_ms,
-                    },
-                )[0]
+                intent_version = db.execute(
+                    "SELECT intent_version FROM ecology_planting_intents WHERE id=%s",
+                    (intent_id,),
+                ).fetchone()["intent_version"]
+            prepared = prepare_plant(
+                self.store,
+                account,
+                generation,
+                live[0],
+                body,
+                authorize_cell=lambda *args: self.authorize(self.store, *args),
+                probability=1.0,
+            )
+            prepared["character"] = scalar
+            # This test supplies the worker envelope explicitly; Rust planner
+            # policy is tested separately. World still owns intent acceptance.
+            plan = dict(
+                kind="planting_begin",
+                world_epoch="ranch-boot",
+                intent_id=intent_id,
+                intent_version=intent_version,
+                account_id=account,
+                generation=generation,
+                character_id=character["id"],
+                body_hex=body.hex(),
+                prepared=prepared,
+            )
             self.assertEqual(plan["kind"], "planting_begin", plan)
             plan = json.loads(json.dumps(plan))
             self.assertNotIn("haven_bag", plan["prepared"]["character"])
@@ -174,12 +184,14 @@ class HavenBagGardenRuntimeTests(PostgresCase):
 
             self.assertTrue(intents.apply(plan, accept)["applied"])
         else:
-            runtime.begin(
+            begin_prepared(
+                runtime,
                 account,
                 generation,
                 live[0],
                 body,
                 lambda *args: self.authorize(self.store, *args),
+                probability=1.0,
             )
         now[0] += 3
         with patch("wakfu_server.planting.secrets.randbelow", return_value=0):
@@ -193,7 +205,40 @@ class HavenBagGardenRuntimeTests(PostgresCase):
         self.assertEqual({key: stored[key] for key in exterior}, exterior)
         self.assertEqual(stored["inventory_items"][0]["quantity"], 1)
         now[0] += 30
-        runtime.mature(self.Groups(), publish=lambda event: None)
+        with self.store.connection() as db:
+            resource = dict(
+                db.execute(
+                    "SELECT * FROM planted_resources WHERE resource_uid=%s",
+                    (result["resource"]["resource_uid"],),
+                ).fetchone()
+            )
+            transition = db.execute(
+                "SELECT to_stage,delay_ms,probability FROM resource_growth_transitions "
+                "WHERE resource_reference=%s AND from_stage=%s",
+                (resource["resource_reference"], resource["stage"]),
+            ).fetchone()
+        self.assertIsNotNone(transition)
+        from wakfu_server.planting import RESOURCES
+
+        runtime.apply_growth_candidates(
+            [
+                (
+                    resource,
+                    RESOURCES[resource["resource_reference"]],
+                    (
+                        transition["to_stage"],
+                        transition["delay_ms"],
+                        transition["probability"],
+                    ),
+                )
+            ],
+            random_draw=lambda: 0.0,
+        )
+        runtime.publish_growth(
+            self.Groups(),
+            publish=lambda event: None,
+            resource_uid=resource["resource_uid"],
+        )
         self.assertEqual(
             len(self.Plantings(self.reopen()).snapshots(map_id, bag_id)), 1
         )

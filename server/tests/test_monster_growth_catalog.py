@@ -8,9 +8,8 @@ from collections import Counter
 from pathlib import Path
 from wakfu_server import native_catalog
 
-
 ROOT = Path(__file__).resolve().parents[2]
-PROTOCOL = ROOT / "server" / "protocol"
+PROTOCOL = ROOT / "database" / "protocol"
 MONSTERS_PATH = PROTOCOL / "monsters.json"
 RESOURCES_PATH = PROTOCOL / "plant-resources.json"
 CATALOG_PATH = PROTOCOL / "monster-growth-catalog.json"

@@ -369,7 +369,7 @@ def main():
     )
     known = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(known)
-    catalog = json.loads(Path("server/protocol/catalog.json").read_text())
+    catalog = json.loads(Path("database/protocol/catalog.json").read_text())
     classes = collections.defaultdict(list)
     for message in catalog["messages"]:
         classes[(message["direction"], message["opcode"])].append(message)
@@ -411,10 +411,10 @@ def main():
                     }
                 )
     reviews = (
-        json.loads(Path("server/protocol/source-review-notes.json").read_text())[
+        json.loads(Path("database/protocol/source-review-notes.json").read_text())[
             "reviews"
         ]
-        if Path("server/protocol/source-review-notes.json").exists()
+        if Path("database/protocol/source-review-notes.json").exists()
         else {}
     )
     messages = []
@@ -459,11 +459,15 @@ def main():
                 "source_disassembly_sha256": review.get(
                     "source_disassembly_sha256", {}
                 ),
-                "schema_status": "current_dynamic_protobuf_verified"
-                if key in [("out", 12995), ("out", 13481)]
-                else "java_codec_identified"
-                if ms
-                else "class_not_in_literal_opcode_catalog",
+                "schema_status": (
+                    "current_dynamic_protobuf_verified"
+                    if key in [("out", 12995), ("out", 13481)]
+                    else (
+                        "java_codec_identified"
+                        if ms
+                        else "class_not_in_literal_opcode_catalog"
+                    )
+                ),
             }
         )
     report = {
@@ -488,7 +492,7 @@ def main():
         "notice": "Java field and call inventories are evidence, not a complete wire schema or proof of semantic decoding. Nested binary blocks remain opaque unless independently decoded. No captured payload is included.",
         "messages": messages,
     }
-    Path("server/protocol/unknown-message-map.json").write_text(
+    Path("database/protocol/unknown-message-map.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     )
     lines = [
@@ -504,7 +508,9 @@ def main():
         lines.append(
             f"{m['direction']} | {m['opcode']} | {','.join(m['message_classes'])} | {m['observed_count']} | {m.get('decoded_count',0)} | {m.get('opaque_count',0)} | {m['semantic_status']} | {m['semantic_action']} | {m['reviewed_schema']} | {'; '.join(labels)}"
         )
-    Path("server/protocol/unknown-message-map.txt").write_text("\n".join(lines) + "\n")
+    Path("database/protocol/unknown-message-map.txt").write_text(
+        "\n".join(lines) + "\n"
+    )
     print(
         json.dumps(
             {

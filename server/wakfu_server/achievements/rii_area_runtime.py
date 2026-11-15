@@ -4,11 +4,14 @@ Only the authenticated spell preview supplies impacts; an incomplete cast
 never damages any of its lesson sacks.  The owning spell transaction owns
 publication and rolls back the preview on any failure.
 """
+
 from .lesson_area import AREA_EFFECTS, REQUIRED_HITS, formation
 
 
 def begin(fight, *, source_id, action_id, spell_id):
     contract = getattr(fight, "rii_area_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if not isinstance(contract, dict) or spell_id not in (7969, 7970, 7971):
         return False
     if contract.get("initialized") is not True or contract.get("owner") != source_id:
@@ -42,6 +45,8 @@ def defer(
     kill a training sack; they are suppressed without advancing the lesson.
     """
     contract = getattr(fight, "rii_area_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return False
     if not isinstance(contract, dict) or target_id not in contract.get("targets", ()):
         return False
     pending = getattr(fight, "_rii_area_pending", None)
@@ -165,3 +170,27 @@ def finish(fight, packets):
                 )
             )
     return True
+
+
+def prepare_population(fight, effect, population):
+    """Use the captured prepare-all/consume-all order for this native lesson.
+
+    Official frames 11556--11575 mark all four selected sacks with 8006;
+    frames 11577--11585 then consume their damage. Other encounters retain
+    their existing execution order. Partial selections are still prepared as
+    selected; the native count condition suppresses their resulting damage.
+    """
+    contract = getattr(fight, "rii_area_lesson_contract", None)
+    if not isinstance(contract, dict) or contract.get("native_lesson") is not True:
+        return False
+    if effect.get("effect_class") != 1 or len(population) < 2:
+        return False
+    return all(
+        selected.reference in AREA_EFFECTS
+        and selected.caster_id == contract.get("owner")
+        and selected.target_id in contract.get("targets", ())
+        and selected.state_uid is None
+        and selected.native_running_uid is None
+        and selected.native_delayed_uid is None
+        for selected in population
+    )

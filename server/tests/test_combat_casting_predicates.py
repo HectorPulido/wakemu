@@ -51,7 +51,7 @@ class NativeCastingPredicateTests(unittest.TestCase):
     def test_original_direction_oracle(self):
         path = (
             Path(__file__).resolve().parents[2]
-            / "server/test-fixtures/combat/casting-predicates.json"
+            / "server/tests/fixtures/combat/casting-predicates.json"
         )
         for row in json.loads(path.read_text())["direction_rows"]:
             expected = None if row["vector"] is None else tuple(row["vector"])

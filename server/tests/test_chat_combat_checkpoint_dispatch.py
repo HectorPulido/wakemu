@@ -1,7 +1,8 @@
 """Chat must not wait for another actor's native combat persistence lock."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from threading import Event, Thread
 from types import SimpleNamespace
@@ -14,7 +15,6 @@ from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.fight_checkpoint_store import Checkpoints
 from wakfu_server.world import World
 from wakfu_server import wire
-
 
 SOURCE = Path(__file__).parents[1] / "local_game_server.py"
 

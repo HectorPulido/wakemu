@@ -1,9 +1,8 @@
 import ast
 import unittest
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
-
 
 SERVER_SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 
@@ -231,8 +230,7 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
         self.assertEqual(self.state()[:2], (True, 1))
 
     def _make_sync(self):
-        body = ast.parse(
-            """
+        body = ast.parse("""
 def build_sync():
     character = {"id": 7, "map_id": 1134, "instance_id": 0}
     account_id = 9
@@ -257,8 +255,7 @@ def build_sync():
         nonlocal fight
         fight = value
     return mark_static_sync_pending, sync_static_world, character, state, set_fight
-"""
-        ).body[0]
+""").body[0]
         nested = [
             deepcopy(_session_function("active_private_session")),
             deepcopy(_session_function("mark_static_sync_pending")),
@@ -268,8 +265,7 @@ def build_sync():
         return _run_factory(body, self.namespace)
 
     def _make_world_sync(self):
-        body = ast.parse(
-            """
+        body = ast.parse("""
 def build_world_sync():
     character = {"id": 7, "map_id": 1134, "instance_id": 0}
     generation = 17
@@ -289,8 +285,7 @@ def build_world_sync():
     def state():
         return world_snapshot_pending, world_snapshot_due, world_snapshot_identity
     return mark_static_sync_pending, sync_loaded_world_snapshot, character, state, sent
-"""
-        ).body[0]
+""").body[0]
         nested = [
             deepcopy(_session_function("mark_static_sync_pending")),
             deepcopy(_session_function("sync_loaded_world_snapshot")),
@@ -697,8 +692,7 @@ def build_world_sync():
 
     def test_invalid_session_generation_does_not_run_idle_sync(self):
         idle = deepcopy(_session_function("idle"))
-        factory = ast.parse(
-            """
+        factory = ast.parse("""
 def build_idle():
     account_id = 9
     generation = 17
@@ -712,8 +706,7 @@ def build_idle():
     spectator_fight_id = None
     spectator_terminal_pending = None
     return idle
-"""
-        ).body[0]
+""").body[0]
         factory.body.insert(-1, idle)
         calls = []
         namespace = {

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Real common spell preparation on exported terrain; inspect actual pull path."""
+
 import argparse
 from collections import Counter
 import datetime
@@ -39,7 +40,7 @@ def run(spell_id, levels, output, *, origin=(-8, -7, -1), targets=None):
     terrain = bounded_arena(
         geometry, origin, targets or [(origin[0] + 1, origin[1], origin[2])], radius=12
     )
-    names = json.loads((ROOT / "server/protocol/spell-names.json").read_text())[
+    names = json.loads((ROOT / "database/protocol/spell-names.json").read_text())[
         "spells"
     ]
     name = next(row["name"] for row in names if row["id"] == spell_id)

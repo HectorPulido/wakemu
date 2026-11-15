@@ -4,7 +4,7 @@ import ast
 import struct
 import unittest
 from contextlib import nullcontext
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import Mock
 
 from wakfu_server.inventory_move import EquippedTransferError

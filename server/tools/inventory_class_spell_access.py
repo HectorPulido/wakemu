@@ -1,4 +1,5 @@
 """Bulk class spell and native eWn access inventory, without runtime catalogs."""
+
 import argparse
 from collections import defaultdict, deque
 import hashlib
@@ -6,7 +7,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / "server/protocol"
+DATA = ROOT / "database/protocol"
 
 
 def sha(path):

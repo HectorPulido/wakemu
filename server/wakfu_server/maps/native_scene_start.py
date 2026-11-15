@@ -4,6 +4,7 @@ The original object/descriptor supplies the header, criterion and price. Scene
 selection is explicit reconstructed server policy, pinned once per start; no
 spell root or native runner is replaced. Completion/exit belongs to the run.
 """
+
 from copy import deepcopy
 from functools import lru_cache
 import hashlib
@@ -199,15 +200,11 @@ def validate_movement(topology, request):
         return
     # The existing native edge validator still owns geometry and jump rules.
     blocked = {tuple(p["position"]) for p in rule["gates"]}
-    current = tuple(request["start_position"][k] for k in ("x", "y", "z"))
-    if current in blocked:
-        raise ValueError("Native scene walking starts inside its locked gate")
-    for step in request["steps"]:
-        current = tuple(
-            current[i] + step["d" + axis] for i, axis in enumerate(("x", "y", "z"))
-        )
-        if current in blocked:
-            raise ValueError("Open the native scene entrance before crossing its gate")
+    from wakfu_server.spatial_native import get_spatial
+
+    get_spatial().call(
+        "navigation.locked_scene", request=request, blocked=sorted(blocked)
+    )
 
 
 def packets(topology):

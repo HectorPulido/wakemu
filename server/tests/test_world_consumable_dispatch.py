@@ -1,9 +1,10 @@
 """Exercise the actual opcode12659 branch with bounded World dependencies."""
+
 import ast
 import json
 from copy import deepcopy
 from itertools import count
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest
@@ -290,7 +291,10 @@ class WorldConsumableDispatchTests(unittest.TestCase):
         sent = []
         owner = EquipmentStatsTests().character()
         catalog_path = (
-            Path(__file__).parents[1] / "protocol" / "native-consumable-actions.json"
+            Path(__file__).parents[2]
+            / "database"
+            / "protocol"
+            / "native-consumable-actions.json"
         )
         catalog = json.loads(catalog_path.read_text())
         food_plan = next(

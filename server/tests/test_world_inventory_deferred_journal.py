@@ -1,11 +1,11 @@
 """Exercise the production World receive/send branches for opcode 12851."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
-
 
 SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

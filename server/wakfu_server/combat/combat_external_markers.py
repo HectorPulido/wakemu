@@ -192,6 +192,10 @@ class ExternalFightMarkers:
     def _body(shared, *, started_at_ms):
         fight = getattr(shared, "fight", None)
         context = getattr(shared, "join_context", None)
+        # Owner-scoped encounters have no public world model. Publishing the
+        # normal marker would first create their private NPCs in every peer.
+        if isinstance(context, dict) and context.get("world_scene_owner") is not None:
+            return None
         if (
             fight is None
             or getattr(shared, "is_duel", False)

@@ -280,7 +280,7 @@ class NativeBorderSelectionTests(unittest.TestCase):
 
     def test_real_dispatcher_consumes_frozen_border_for_creation_and_join_context(self):
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
 
         root = Path(__file__).resolve().parents[2]
         tree = ast.parse((root / "server" / "local_game_server.py").read_text())

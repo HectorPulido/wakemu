@@ -112,7 +112,8 @@ class SummonInitialStateTests(unittest.TestCase):
 
     def test_all_class_profiles_all_supported_descriptor_levels(self):
         path = (
-            Path(__file__).resolve().parents[1]
+            Path(__file__).resolve().parents[2]
+            / "database"
             / "protocol"
             / "native-class-summon-initial-states.json"
         )

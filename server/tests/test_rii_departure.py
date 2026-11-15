@@ -1,4 +1,5 @@
 """Rii departure starts only with a newly settled guardian attempt."""
+
 import struct
 import unittest
 from copy import deepcopy
@@ -66,8 +67,10 @@ class RiiDepartureTests(unittest.TestCase):
             self.record_mock.call_args.args[2], "rii-departure-activation:5161"
         )
         packets = wire.changes(12, self.before, result[0], result[2], result[3], 1234)
+        # Official order at 19:42:39: the guardian objective marks and both
+        # completions arrive before the newly activated departure quest.
         self.assertEqual(
-            [packet[0] for packet in packets], [13312, 13371, 13371, 13832, 13422]
+            [packet[0] for packet in packets], [13832, 13422, 13371, 13312, 13371]
         )
 
     def test_other_completion_and_existing_departure_are_unchanged(self):

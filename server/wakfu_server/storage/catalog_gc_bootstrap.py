@@ -36,7 +36,9 @@ def _assert_startup():
     if threading.current_thread() is not threading.main_thread():
         raise RuntimeError("Catalogue heap freeze requires the startup main thread")
     if any(
-        name == "local_game_server" or name.endswith(".local_game_server")
+        name == "local_game_server"
+        or name.endswith(".local_game_server")
+        or name == "wakfu_server.application.bootstrap"
         for name in sys.modules
     ):
         raise RuntimeError("World was imported before catalogue heap freeze")

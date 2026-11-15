@@ -1,4 +1,5 @@
 """Import only native ability dependencies of class-referenced summons, offline."""
+
 import argparse
 import hashlib
 import json
@@ -6,7 +7,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / "server/protocol"
+DATA = ROOT / "database/protocol"
 STAGE = ROOT / ".runtime/combat-review-20261007/bulk-staging"
 REVIEW = ROOT / ".runtime/combat-review-20261007"
 

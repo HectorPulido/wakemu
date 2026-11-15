@@ -1,4 +1,5 @@
 """Batched births retain blocked seeds and use one durable mutation pass."""
+
 import copy
 import unittest
 from unittest.mock import Mock, patch
@@ -6,7 +7,8 @@ from unittest.mock import Mock, patch
 from postgres_case import PostgresCase
 from psycopg.types.json import Jsonb
 from wakfu_server import ecology_plants, planting
-from wakfu_server.planting_runtime import Plantings, monster_growth_member
+from wakfu_server.planting_runtime import Plantings
+from wakfu_server.monsters import owned_instance
 
 
 def batch():
@@ -30,7 +32,17 @@ def batch():
                 world_epoch="boot",
                 expected=resource,
                 transition=None,
-                member=monster_growth_member(resource, planting.RESOURCES[reference]),
+                # A prepared, native Wodent fixture; selection belongs to Rust.
+                member=owned_instance(
+                    5525,
+                    1,
+                    -uid,
+                    map_id=1134,
+                    instance_id=0,
+                    x=resource["x"],
+                    y=resource["y"],
+                    z=resource["z"],
+                ),
             )
         )
     return dict(kind="resource_growth_bulk", world_epoch="boot", resources=rows)
@@ -166,60 +178,5 @@ class BirthBulkPersistenceTests(PostgresCase):
                 2,
             )
 
-    def test_blocked_first_sixty_four_do_not_starve_next_seed_or_reroll_after_restart(
-        self,
-    ):
-        reference = planting.SEEDS[30927]["resource_reference"]
-        resources = [
-            dict(
-                resource_uid=uid,
-                map_id=1134,
-                instance_id=0,
-                x=uid,
-                y=2,
-                z=0,
-                resource_reference=reference,
-                stage=1,
-                creation_time=0,
-            )
-            for uid in range(1, 66)
-        ]
-        with self.store.connection() as db:
-            for row in resources:
-                db.execute(
-                    "INSERT INTO planted_resources(resource_uid,map_id,instance_id,x,y,z,resource_reference,stage,creation_time) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                    tuple(row.values()),
-                )
-        occupied = {(1134, 0, row["x"], row["y"], row["z"]) for row in resources[:64]}
-        snapshot = dict(world_epoch="cursor-test", now_ms=1000000)
-        ecology_plants._CURSORS.pop("cursor-test", None)
-        self.addCleanup(ecology_plants._CURSORS.pop, "cursor-test", None)
-        self.assertEqual(
-            ecology_plants._prepare_birth_batch(
-                self.store, snapshot, [reference], 30, occupied
-            ),
-            [],
-        )
-        second = ecology_plants._prepare_birth_batch(
-            self.store, snapshot, [reference], 30, occupied
-        )
-        self.assertEqual(
-            [r["expected"]["resource_uid"] for r in second[0]["resources"]], [65]
-        )
-        first_member = second[0]["resources"][0]["member"]
-        ecology_plants._CURSORS.pop("cursor-test", None)
-        reopened = self.reopen()
-        ecology_plants._prepare_birth_batch(
-            reopened, snapshot, [reference], 30, occupied
-        )
-        restarted = ecology_plants._prepare_birth_batch(
-            reopened, snapshot, [reference], 30, occupied
-        )
-        self.assertEqual(restarted[0]["resources"][0]["member"], first_member)
-        with self.store.connection() as db:
-            self.assertEqual(
-                db.execute("SELECT count(*) AS n FROM planted_resources").fetchone()[
-                    "n"
-                ],
-                65,
-            )
+    # Cursor fairness and restart-stable birth selection are exercised by the
+    # production Rust planner in tests/plant_planner_contract.rs.

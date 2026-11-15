@@ -1,10 +1,10 @@
 """Evidence classifications must not inflate incomplete spell verification."""
+
 import importlib.util
 import json
 from pathlib import Path
 import tempfile
 import unittest
-
 
 PATH = Path(__file__).resolve().parents[1] / "tools/build_combat_verification_ledger.py"
 SPEC = importlib.util.spec_from_file_location("combat_verification_ledger", PATH)
@@ -17,7 +17,7 @@ NOW = "2026-10-07T12:00:00+00:00"
 class VerificationLedgerTests(unittest.TestCase):
     def inventory(self):
         return {
-            "sources_sha256": {"server/protocol/spells.json": "abc"},
+            "sources_sha256": {"database/protocol/spells.json": "abc"},
             "spells": [
                 {
                     "id": 100,

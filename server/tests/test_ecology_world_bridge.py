@@ -4,14 +4,13 @@ import ast
 import threading
 import unittest
 from datetime import datetime, timezone
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from wakfu_server.ecology.protocol import proposal
 from wakfu_server.ecology.client import EcologyClient
 from wakfu_server.ecology.world_bridge import EcologyBusy, EcologyWorldBridge
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 
@@ -40,15 +39,21 @@ class EcologyWorldBridgeTests(unittest.TestCase):
         self.records = []
         self.bridge = EcologyWorldBridge(
             store=object(),
-            world=SimpleNamespace(ecology_snapshot=lambda: self.players),
+            world=SimpleNamespace(
+                ecology_snapshot=lambda: self.players,
+                empty_scope_snapshot=lambda: [],
+            ),
             groups=SimpleNamespace(),
             harvests=SimpleNamespace(lock=self.harvest_lock, targets={-40: 17}),
             plantings=self.plantings,
             token="secret-token",
             mode="external",
-            record=lambda **fields: self.records.append(fields)
-            if fields["event"] not in ("ecology_handler_started", "ecology_apply_batch")
-            else None,
+            record=lambda **fields: (
+                self.records.append(fields)
+                if fields["event"]
+                not in ("ecology_handler_started", "ecology_apply_batch")
+                else None
+            ),
             clock=lambda: 123.456,
             background_limit=16,
         )
@@ -138,6 +143,10 @@ class EcologyWorldBridgeTests(unittest.TestCase):
                     "event": "ecology_apply_failed",
                     "domain": "plants",
                     "error_type": "RuntimeError",
+                    "proposal_id": envelope["proposals"][0]["id"],
+                    "kind": None,
+                    "scope": None,
+                    "reason": None,
                 }
             ],
         )
@@ -326,145 +335,110 @@ class EcologyModeStartupTests(unittest.TestCase):
         "expire_monster_corpses",
     }
 
-    @staticmethod
-    def condition(node, *, mode, combat_test=True):
-        if isinstance(node, ast.Constant):
-            return node.value
-        if isinstance(node, ast.Name) and node.id == "ECOLOGY_MODE":
-            return mode
-        if isinstance(node, ast.Name) and node.id == "COMBAT_TEST":
-            return combat_test
-        if isinstance(node, ast.BoolOp):
-            if isinstance(node.op, ast.And):
-                for value in node.values:
-                    if not EcologyModeStartupTests.condition(
-                        value, mode=mode, combat_test=combat_test
-                    ):
-                        return False
-                return True
-            if isinstance(node.op, ast.Or):
-                for value in node.values:
-                    if EcologyModeStartupTests.condition(
-                        value, mode=mode, combat_test=combat_test
-                    ):
-                        return True
-                return False
-        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
-            return not EcologyModeStartupTests.condition(
-                node.operand, mode=mode, combat_test=combat_test
-            )
-        if (
-            isinstance(node, ast.Compare)
-            and len(node.ops) == len(node.comparators) == 1
-        ):
-            left = EcologyModeStartupTests.condition(
-                node.left, mode=mode, combat_test=combat_test
-            )
-            right = EcologyModeStartupTests.condition(
-                node.comparators[0], mode=mode, combat_test=combat_test
-            )
-            if isinstance(node.ops[0], ast.Eq):
-                return left == right
-            if isinstance(node.ops[0], ast.NotEq):
-                return left != right
-        if (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Name)
-            and node.func.id == "hasattr"
-        ):
-            return True
-        raise AssertionError(f"Unsupported startup condition: {ast.dump(node)}")
-
-    def test_external_and_disabled_modes_never_start_legacy_ecology_workers_or_weather_tick(
-        self,
-    ):
+    def test_external_default_rejects_inline_and_removes_all_python_producers(self):
         tree = ast.parse(SERVER.read_text())
-        main = next(
-            node
-            for node in tree.body
-            if isinstance(node, ast.FunctionDef) and node.name == "main"
+        definitions = {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
+        self.assertFalse(self.CALLBACKS & definitions)
+        self.assertNotIn("refresh_regional_bonuses", definitions)
+        self.assertNotIn("tick_territory_weather", definitions)
+        self.assertFalse(
+            any(
+                isinstance(n, ast.Name) and n.id == "seed_configured"
+                for n in ast.walk(tree)
+            )
         )
-        for mode in ("external", "disabled"):
-            reachable = []
-
-            def visit_many(nodes, guards):
-                for child in nodes:
-                    visit(child, guards)
-
-            def visit(node, guards=()):
-                if isinstance(node, ast.If):
-                    if any(
-                        isinstance(child, ast.Name) and child.id == "ECOLOGY_MODE"
-                        for child in ast.walk(node.test)
-                    ):
-                        selected = self.condition(node.test, mode=mode)
-                        visit_many(
-                            node.body if selected else node.orelse,
-                            guards + (node.test,),
-                        )
-                    else:
-                        visit_many(node.body, guards)
-                        visit_many(node.orelse, guards)
-                    return
-                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-                    if node.func.attr == "Thread":
-                        target = next(
-                            (kw.value for kw in node.keywords if kw.arg == "target"),
-                            None,
-                        )
-                        if isinstance(target, ast.Name) and target.id in self.CALLBACKS:
-                            reachable.append(target.id)
-                if isinstance(node, ast.Assign):
-                    for target in node.targets:
-                        if (
-                            isinstance(target, ast.Subscript)
-                            and isinstance(target.value, ast.Name)
-                            and target.value.id == "callbacks"
-                            and isinstance(target.slice, ast.Constant)
-                            and target.slice.value == "territory_weather_tick"
-                        ):
-                            reachable.append("territory_weather_tick")
-                visit_many(ast.iter_child_nodes(node), guards)
-
-            visit(main)
-            with self.subTest(mode=mode):
-                self.assertEqual(reachable, [])
-
-    def test_external_and_disabled_modes_do_not_seed_inline_population(self):
-        tree = ast.parse(SERVER.read_text())
-        main = next(
-            node
-            for node in tree.body
-            if isinstance(node, ast.FunctionDef) and node.name == "main"
+        # Execute only the isolated environment validation, with no World or DB.
+        statement = next(
+            i
+            for i, n in enumerate(tree.body)
+            if isinstance(n, ast.Assign)
+            and any(
+                isinstance(t, ast.Name) and t.id == "ECOLOGY_MODE" for t in n.targets
+            )
         )
-        for mode in ("external", "disabled"):
-            calls = []
+        validation = ast.Module(
+            body=tree.body[statement : statement + 3], type_ignores=[]
+        )
+        import os
 
-            def visit(node):
-                if isinstance(node, ast.If):
-                    if any(
-                        isinstance(child, ast.Name) and child.id == "ECOLOGY_MODE"
-                        for child in ast.walk(node.test)
-                    ):
-                        selected = self.condition(node.test, mode=mode)
-                        selected_body = node.body if selected else node.orelse
-                    else:
-                        selected_body = node.body + node.orelse
-                    for child in selected_body:
-                        visit(child)
-                    return
-                if (
-                    isinstance(node, ast.Call)
-                    and isinstance(node.func, ast.Name)
-                    and node.func.id == "seed_configured"
+        for mode, expected in (
+            (None, "external"),
+            ("external", "external"),
+            ("disabled", "disabled"),
+        ):
+            with self.subTest(mode=mode), patch.dict(os.environ, {}, clear=True):
+                if mode is not None:
+                    os.environ["WAKFU_ECOLOGY_MODE"] = mode
+                namespace = {"os": os}
+                exec(compile(validation, "ecology-mode-contract", "exec"), namespace)
+                self.assertEqual(namespace["ECOLOGY_MODE"], expected)
+        for mode in ("inline", "typo"):
+            with self.subTest(mode=mode), patch.dict(
+                os.environ, {"WAKFU_ECOLOGY_MODE": mode}, clear=True
+            ):
+                with self.assertRaisesRegex(
+                    ValueError, "retired.*Rust" if mode == "inline" else "Invalid"
                 ):
-                    calls.append(node.func.id)
-                for child in ast.iter_child_nodes(node):
-                    visit(child)
+                    exec(
+                        compile(validation, "ecology-mode-contract", "exec"), {"os": os}
+                    )
 
-            visit(main)
-            with self.subTest(mode=mode):
-                self.assertEqual(calls, [])
+    def test_world_keeps_developer_ttl_and_unrelated_maintenance(self):
+        tree = ast.parse(SERVER.read_text())
+        main = next(
+            n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "main"
+        )
+        targets = {
+            kw.value.id
+            for n in ast.walk(main)
+            if isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Attribute)
+            and n.func.attr == "Thread"
+            for kw in n.keywords
+            if kw.arg == "target" and isinstance(kw.value, ast.Name)
+        }
+        self.assertFalse(self.CALLBACKS & targets)
+        self.assertTrue(
+            {
+                "expire_developer_test_actors",
+                "refresh_player_parties",
+                "refresh_player_guilds",
+                "refresh_player_exchanges",
+            }
+            <= targets
+        )
+        ttl = next(
+            n
+            for n in tree.body
+            if isinstance(n, ast.FunctionDef)
+            and n.name == "expire_developer_test_actors"
+        )
+        self.assertTrue(
+            any(
+                isinstance(n, ast.ImportFrom)
+                and n.module == "wakfu_server.item_test_spawns"
+                and any(a.name == "expire" for a in n.names)
+                for n in ast.walk(ttl)
+            )
+        )
+        self.assertFalse(
+            any(
+                isinstance(n, ast.Name) and n.id == "ECOLOGY_MODE"
+                for n in ast.walk(ttl)
+            )
+        )
+        self.assertTrue(
+            any(
+                isinstance(n, ast.Constant) and n.value == "positions_flush"
+                for n in ast.walk(main)
+            )
+        )
+        self.assertFalse(
+            any(
+                isinstance(n, ast.Constant) and n.value == "territory_weather_tick"
+                for n in ast.walk(main)
+            )
+        )
 
 
 if __name__ == "__main__":

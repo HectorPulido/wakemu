@@ -1,6 +1,7 @@
 """Keep new item classifiers transparent to unrelated native 13220 families."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 
 from postgres_case import PostgresCase

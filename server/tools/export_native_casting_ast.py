@@ -1,4 +1,5 @@
 """Parse scoped casting expressions with the original grammar; no providers."""
+
 import gzip
 import ast
 import hashlib
@@ -22,8 +23,8 @@ SOURCES = (
     LOCAL,
     Path(__file__).resolve(),
     ROOT / "client/lib/wakfu-client.jar",
-    ROOT / "server/protocol/native-spell-casting.json",
-    ROOT / "server/protocol/native-class-spell-level-zero.json",
+    ROOT / "database/protocol/native-spell-casting.json",
+    ROOT / "database/protocol/native-class-spell-level-zero.json",
 )
 
 
@@ -153,11 +154,11 @@ def main():
                 row["parse_comparison"] = (
                     "both_parse"
                     if native_success and local_success
-                    else "native_only"
-                    if native_success
-                    else "local_only"
-                    if local_success
-                    else "both_reject"
+                    else (
+                        "native_only"
+                        if native_success
+                        else "local_only" if local_success else "both_reject"
+                    )
                 )
                 counts[row["parse_comparison"]] += 1
                 counts["expressions"] += 1

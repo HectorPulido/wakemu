@@ -25,7 +25,7 @@ def selected_configuration():
         Path(configured_path)
         if configured_path
         else Path(__file__).resolve().parents[2]
-        / "server/test-fixtures/dungeons/jalato-runtime-config-v1.json"
+        / "server/tests/fixtures/dungeons/jalato-runtime-config-v1.json"
     )
     return json.loads(path.read_text(encoding="utf8"))
 

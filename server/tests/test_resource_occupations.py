@@ -1,3 +1,4 @@
+from planting_fixture import grow_prepared
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 import os
@@ -20,6 +21,7 @@ from wakfu_server.resource_collect import (
 )
 from wakfu_server.profession_store import ensure_learned
 from wakfu_server.planting_runtime import Plantings
+from wakfu_server.planting import RESOURCES
 from wakfu_server.combat_groups import Groups
 from wakfu_server.wire import proto_field
 
@@ -458,6 +460,34 @@ class ResourceOccupationTests(PostgresCase):
                     ),
                 )
 
+    def grow(self, runtime, groups, uid):
+        with self.store.connection() as db:
+            resource = dict(
+                db.execute(
+                    "SELECT * FROM planted_resources WHERE resource_uid=%s", (uid,)
+                ).fetchone()
+            )
+            transition = db.execute(
+                "SELECT to_stage,delay_ms,probability FROM resource_growth_transitions "
+                "WHERE resource_reference=%s AND from_stage=%s",
+                (resource["resource_reference"], resource["stage"]),
+            ).fetchone()
+        return grow_prepared(
+            runtime,
+            groups,
+            [
+                (
+                    resource,
+                    RESOURCES[resource["resource_reference"]],
+                    tuple(
+                        transition[key]
+                        for key in ("to_stage", "delay_ms", "probability")
+                    ),
+                )
+            ],
+            publish=lambda _delivery: None,
+        )
+
     def test_growth_waits_for_live_occupation_and_proceeds_after_cancel_or_expiry(self):
         runtime = Plantings(self.store)
         groups = Groups()
@@ -486,7 +516,7 @@ class ResourceOccupationTests(PostgresCase):
             reachable=lambda _character, _resource: True,
         )
         live_ticket = reserve(self.store, self.account, self.generation, live_prepared)
-        self.assertEqual(runtime.mature(groups, publish=lambda _delivery: None), [])
+        self.assertEqual(self.grow(runtime, groups, live["resource_uid"]), [])
         with self.store.connection() as db:
             self.assertEqual(
                 db.execute(
@@ -496,7 +526,7 @@ class ResourceOccupationTests(PostgresCase):
                 1,
             )
         self.assertTrue(cancel(self.store, live_ticket))
-        grown = runtime.mature(groups, publish=lambda _delivery: None)
+        grown = self.grow(runtime, groups, live["resource_uid"])
         self.assertEqual(len(grown), 1)
         self.assertEqual(grown[0]["resource_uid"], live["resource_uid"])
         with self.store.connection() as db:
@@ -526,7 +556,7 @@ class ResourceOccupationTests(PostgresCase):
             self.store, self.account, self.generation, expired_prepared
         )
         self.clock[0] = expired_ticket["expires_at"].timestamp()
-        grown = runtime.mature(groups, publish=lambda _delivery: None)
+        grown = self.grow(runtime, groups, expired["resource_uid"])
         self.assertEqual(len(grown), 1)
         self.assertEqual(grown[0]["resource_uid"], expired["resource_uid"])
         self.assertTrue(cancel(self.store, expired_ticket))

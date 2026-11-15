@@ -1,4 +1,5 @@
 """Bulk literal state/deck dependencies of all class and granted cast tables."""
+
 import argparse
 import hashlib
 import json
@@ -26,7 +27,7 @@ def state_references(record):
 
 
 def export(access_inventory):
-    casting = ROOT / "server/protocol/native-spell-casting.json"
+    casting = ROOT / "database/protocol/native-spell-casting.json"
     inventory = json.loads(access_inventory.read_text())
     wanted = {str(row["id"]) for row in inventory["class_spells"]}
     wanted.update(map(str, inventory["granted_spell_references"]))

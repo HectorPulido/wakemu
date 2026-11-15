@@ -1,7 +1,7 @@
 """The actual background dispatchers must not fence an entire ecology tick."""
 
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from threading import RLock
 from types import SimpleNamespace
 import time
@@ -9,7 +9,6 @@ import unittest
 from unittest.mock import patch
 
 from wakfu_server.performance_profiler import PROFILER
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

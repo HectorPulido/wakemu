@@ -1,4 +1,5 @@
 """Server-observed area impacts are committed only as one complete cast."""
+
 import unittest
 import struct
 from contextlib import nullcontext
@@ -139,6 +140,52 @@ class AreaRuntimeTests(unittest.TestCase):
             )
         )
         self.assertEqual(fight.actors[-1].hp, 100)
+
+    def test_native_batch_preparation_requires_all_bound_lesson_targets(self):
+        from wakfu_server.combat_effect_dispatch import EffectInvocation
+
+        fight = Fight()
+        fight.rii_area_lesson_contract["native_lesson"] = True
+        population = tuple(
+            EffectInvocation(367103, 1, 1, target, (index, 0, 0))
+            for index, target in enumerate((-1, -2, -3, -4))
+        )
+        self.assertTrue(
+            runtime.prepare_population(
+                fight,
+                {"effect_class": 1},
+                population,
+            )
+        )
+        self.assertTrue(
+            runtime.prepare_population(
+                fight,
+                {"effect_class": 1},
+                population[:-1],
+            )
+        )
+        self.assertFalse(
+            runtime.prepare_population(
+                fight,
+                {"effect_class": 1},
+                population[:1],
+            )
+        )
+        self.assertFalse(
+            runtime.prepare_population(
+                fight,
+                {"effect_class": 1},
+                (*population[:-1], EffectInvocation(999, 1, 1, -4, (3, 0, 0))),
+            )
+        )
+        fight.rii_area_lesson_contract.pop("native_lesson")
+        self.assertFalse(
+            runtime.prepare_population(
+                fight,
+                {"effect_class": 1},
+                population,
+            )
+        )
 
 
 if __name__ == "__main__":

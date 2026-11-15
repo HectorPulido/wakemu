@@ -4,6 +4,7 @@ This module does not create an actor, join participant membership, or execute
 an effect. Unsupported retained effect families fail closed rather than
 producing a visibly incomplete active-fight snapshot.
 """
+
 from .combat_environment_glyphs import environment_sections
 from .combat_live_area_snapshot import sections as live_area_sections
 from .combat_spectator_wire import spectator_bootstrap, timeline_snapshot
@@ -172,6 +173,8 @@ def current_snapshot(
     context = getattr(shared, "join_context", None)
     if not isinstance(context, dict):
         raise ValueError("Live fight has no native spectator context")
+    if context.get("world_scene_owner") is not None:
+        raise ValueError("Owner-scoped encounter is not publicly observable")
     required = {
         "arena",
         "terrain_effect_id",

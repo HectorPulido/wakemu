@@ -1,4 +1,5 @@
 """Measure registered class effect routes, separately from semantic completion."""
+
 import argparse
 import ast
 from collections import defaultdict
@@ -18,8 +19,8 @@ def build(output):
     relative_paths = [
         "docs/reports/combat-inventory/class-native-mechanic-graph-20261007.json",
         "docs/reports/combat-inventory/verification-ledger-20261007.json",
-        "server/protocol/breed-innate-definitions.json",
-        "server/protocol/effect-characteristic-registry.json",
+        "database/protocol/breed-innate-definitions.json",
+        "database/protocol/effect-characteristic-registry.json",
         "server/wakfu_server/combat/combat_effect_runtime.py",
         "server/wakfu_server/combat/combat_damage_healing.py",
         "server/wakfu_server/combat/combat_displacement.py",

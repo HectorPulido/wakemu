@@ -267,24 +267,28 @@ def main():
                 "evidence": evidence,
                 "message_classes": [m["class"] for m in ms],
                 "observed_count": counts[key],
-                "status": "observed_and_source"
-                if counts[key] and key in KNOWN and op != 649
-                else "observed_unresolved"
-                if counts[key]
-                else "source_only_unvalidated",
+                "status": (
+                    "observed_and_source"
+                    if counts[key] and key in KNOWN and op != 649
+                    else (
+                        "observed_unresolved"
+                        if counts[key]
+                        else "source_only_unvalidated"
+                    )
+                ),
             }
         )
     jarhash = hashlib.sha256(
         Path("client/lib/wakfu-client.jar").read_bytes()
     ).hexdigest()
     catalog["jar_sha256"] = jarhash
-    catalog[
-        "scope"
-    ] = "Nt/Nx descendants with a literal opcode in d(); excludes internal UI messages; may omit dynamic/inherited opcode classes."
-    Path("server/protocol/catalog.json").write_text(
+    catalog["scope"] = (
+        "Nt/Nx descendants with a literal opcode in d(); excludes internal UI messages; may omit dynamic/inherited opcode classes."
+    )
+    Path("database/protocol/catalog.json").write_text(
         json.dumps(catalog, ensure_ascii=False, indent=2) + "\n"
     )
-    Path("server/protocol/actions.json").write_text(
+    Path("database/protocol/actions.json").write_text(
         json.dumps(
             {"jar_sha256": jarhash, "actions": dictionary}, ensure_ascii=False, indent=2
         )
@@ -369,7 +373,7 @@ def main():
         table.append(
             f"{a['direction']} | {a['opcode']} | {','.join(a['message_classes']) or '?'} | {a['action']} | {a['observed_count']} | {a['status']}"
         )
-    Path("server/protocol/actions.txt").write_text("\n".join(table) + "\n")
+    Path("database/protocol/actions.txt").write_text("\n".join(table) + "\n")
     print(
         json.dumps(
             {

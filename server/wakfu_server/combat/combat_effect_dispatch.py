@@ -6,6 +6,7 @@ reflect mutations made by preceding effects. Call run_effect_transaction to
 keep an unsupported later effect from committing earlier damage or states.
 This does not claim that every native effect class has an implemented handler.
 """
+
 from copy import deepcopy
 from contextvars import ContextVar
 from contextlib import nullcontext
@@ -18,7 +19,6 @@ from .combat_native_criterion_failure import (
 from .combat_definitions import effect_profile
 from .combat_effect_groups import decode_group_mode, execute_ordered_group
 from .combat_operation_registry import bind_runtime_contracts, RuntimeOperationBinding
-
 
 _TRIGGER_DEPTH = ContextVar("native_trigger_clone_depth", default=0)
 
@@ -387,6 +387,27 @@ class EffectDispatcher:
         self, invocation, *, ancestors, effect, values, activation, population
     ):
         success = False
+        prepared_population = set()
+        population_policy = getattr(self, "native_population_preparation", None)
+        if (
+            activation is None
+            and self.prepare_effect is not None
+            and callable(population_policy)
+            and population_policy(effect, population)
+        ):
+            prepared = []
+            handler = self._operation_handler(effect["effect_class"])
+            eligibility = getattr(handler, "native_eligibility", None)
+            for selected in population:
+                if callable(eligibility) and not eligibility(effect, selected):
+                    prepared.append(selected)
+                    continue
+                selected = self.prepare_effect(effect, values, selected)
+                if self._prepared_scopes:
+                    self._prepared_scopes[-1].append((effect, selected))
+                prepared_population.add(id(selected))
+                prepared.append(selected)
+            population = tuple(prepared)
         for selected in population:
             if not isinstance(selected, EffectInvocation) or (
                 selected.reference != invocation.reference
@@ -429,7 +450,11 @@ class EffectDispatcher:
             ):
                 success = True
                 continue
-            if activation is None and self.prepare_effect is not None:
+            if (
+                activation is None
+                and self.prepare_effect is not None
+                and id(selected) not in prepared_population
+            ):
                 selected = self.prepare_effect(effect, values, selected)
                 if self._prepared_scopes:
                     self._prepared_scopes[-1].append((effect, selected))
@@ -575,12 +600,16 @@ class EffectDispatcher:
                                 native_context_hex=child_context.hex(),
                                 native_value_scope=None,
                                 native_explicit_target=False,
-                                native_running_uid=None
-                                if distance_family
-                                else selected.native_running_uid,
-                                base_uid=None
-                                if activation is not None
-                                else selected.base_uid,
+                                native_running_uid=(
+                                    None
+                                    if distance_family
+                                    else selected.native_running_uid
+                                ),
+                                base_uid=(
+                                    None
+                                    if activation is not None
+                                    else selected.base_uid
+                                ),
                             ),
                             ancestors=(*ancestors, invocation.reference),
                         )
@@ -635,9 +664,11 @@ class EffectDispatcher:
                     context = (
                         condition_batch.condition(candidate)
                         if condition_batch is not None
-                        else activation[2](effect, candidate, activation[1])
-                        if activation is not None
-                        else self.condition_context(candidate)
+                        else (
+                            activation[2](effect, candidate, activation[1])
+                            if activation is not None
+                            else self.condition_context(candidate)
+                        )
                     )
                     return (
                         condition_batch.evaluate(
@@ -681,9 +712,11 @@ class EffectDispatcher:
                                 native_value_scope=None,
                                 native_running_uid=None,
                                 native_explicit_target=False,
-                                base_uid=None
-                                if activation is not None
-                                else selected.base_uid,
+                                base_uid=(
+                                    None
+                                    if activation is not None
+                                    else selected.base_uid
+                                ),
                             ),
                             ancestors=(*ancestors, invocation.reference),
                         )
@@ -756,9 +789,11 @@ class EffectDispatcher:
                                 # Wakemu reconstructs fresh child relationship
                                 # selectors independently of the transmitted PV.
                                 wakemu_fresh_child_selection=True,
-                                base_uid=None
-                                if activation is not None
-                                else selected.base_uid,
+                                base_uid=(
+                                    None
+                                    if activation is not None
+                                    else selected.base_uid
+                                ),
                             )
                             applied = (
                                 self.execute_pt(
@@ -816,12 +851,14 @@ class EffectDispatcher:
                             native_context_hex=child_context.hex(),
                             native_value_scope=None,
                             native_explicit_target=actor_repeat,
-                            cell=self.actor_position(selected.target_id)
-                            if actor_repeat
-                            else selected.cell,
-                            base_uid=None
-                            if activation is not None
-                            else selected.base_uid,
+                            cell=(
+                                self.actor_position(selected.target_id)
+                                if actor_repeat
+                                else selected.cell
+                            ),
+                            base_uid=(
+                                None if activation is not None else selected.base_uid
+                            ),
                         ),
                         ancestors=(*ancestors, invocation.reference),
                     )
@@ -902,13 +939,15 @@ class EffectDispatcher:
                     mode = random_group_mode(effect, values)
                 else:
                     mode = decode_group_mode(
-                        parameters[:6]
-                        if effect["effect_class"]
-                        in (844, 910, 912, 913, 999, 1020, 1047, 1103)
-                        else parameters,
-                        raw_target_parameter=effect["parameters"][4]
-                        if len(parameters) >= 3
-                        else None,
+                        (
+                            parameters[:6]
+                            if effect["effect_class"]
+                            in (844, 910, 912, 913, 999, 1020, 1047, 1103)
+                            else parameters
+                        ),
+                        raw_target_parameter=(
+                            effect["parameters"][4] if len(parameters) >= 3 else None
+                        ),
                     )
                 child_success = []
                 children = effect["children"]
@@ -1056,9 +1095,9 @@ class EffectDispatcher:
                                 and selected.target_id is not None
                                 and selected.caster_id is not None
                             ),
-                            base_uid=None
-                            if activation is not None
-                            else selected.base_uid,
+                            base_uid=(
+                                None if activation is not None else selected.base_uid
+                            ),
                         ),
                         ancestors=(*ancestors, invocation.reference),
                         _pt_report=report,
@@ -1087,11 +1126,15 @@ class EffectDispatcher:
                             else selected.cell
                         ),
                         execute_child=execute_child,
-                        cell_targets=None
-                        if mode.on_target
-                        else symmetry_cells
-                        if symmetry_cells is not None
-                        else self.group_cells(effect, selected),
+                        cell_targets=(
+                            None
+                            if mode.on_target
+                            else (
+                                symmetry_cells
+                                if symmetry_cells is not None
+                                else self.group_cells(effect, selected)
+                            )
+                        ),
                         caster_cell=self.actor_position(selected.caster_id),
                     )
                 if self.group_retention is not None:

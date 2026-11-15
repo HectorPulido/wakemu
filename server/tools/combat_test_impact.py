@@ -3,6 +3,7 @@
 Edges are conservative structural evidence, not proof that a test asserts a
 contract. Dynamic reachability stays explicit and widens affected selections.
 """
+
 from __future__ import annotations
 
 import ast
@@ -40,8 +41,8 @@ def _path_node(path):
     if path.endswith(".py"):
         return "module:" + path
     return (
-        ("catalog:" + path.removeprefix("server/protocol/"))
-        if path.startswith("server/protocol/")
+        ("catalog:" + path.removeprefix("database/protocol/"))
+        if path.startswith("database/protocol/")
         else "input:" + path
     )
 
@@ -353,11 +354,15 @@ def _migration_source_contracts(root, operation_ids):
 def _category(path):
     if path.startswith("server/tests/"):
         return "test" if Path(path).name.startswith("test") else "test-helper"
-    if "/combat/" in path or path == "server/local_game_server.py":
+    if (
+        "/combat/" in path
+        or path.startswith("server/wakfu_server/application/")
+        or path == "server/local_game_server.py"
+    ):
         return "combat"
     if "/tools/" in path:
         return "tool"
-    if path.startswith("server/protocol/"):
+    if path.startswith("database/protocol/"):
         return "catalog"
     return "server"
 
@@ -436,9 +441,11 @@ def runtime_policy_inputs(names):
         available = name in os.environ
         observations[name] = {
             "available": available,
-            "value_identity": None
-            if _private_policy(name) or not available
-            else canonical_digest(os.environ[name]),
+            "value_identity": (
+                None
+                if _private_policy(name) or not available
+                else canonical_digest(os.environ[name])
+            ),
         }
     return {
         "runtime_policy_sha256": canonical_digest(observations),
@@ -644,9 +651,9 @@ def _classification_review(declaration, files, trees, nodes, inheritance):
     elif not valid_witnesses and not valid_inheritance:
         errors.append("missing-method-or-inheritance-review-proof")
     return {
-        "status": "verified-source-review"
-        if not errors
-        else "unqualified-source-review",
+        "status": (
+            "verified-source-review" if not errors else "unqualified-source-review"
+        ),
         "errors": sorted(set(errors)),
         "kind": kind if not errors else "unknown",
         "source_sha256": declaration.get("source_sha256"),
@@ -931,9 +938,11 @@ def _accepted_scenario_review(
     if not required_tests or not required_tests.issubset(verified_tests):
         errors.append("required-scenario-assertions-not-terminally-verified")
     return {
-        "status": "qualified-bounded-interaction"
-        if not errors
-        else "unqualified-source-scenario",
+        "status": (
+            "qualified-bounded-interaction"
+            if not errors
+            else "unqualified-source-scenario"
+        ),
         "errors": sorted(set(errors)),
         "scope": declaration.get("scope"),
         "limitations": declaration.get("limitations", []),
@@ -1354,7 +1363,11 @@ def build_graph(
             if path.endswith(".py")
             else node(
                 _path_node(path),
-                "catalog-document" if path.startswith("server/protocol/") else "input",
+                (
+                    "catalog-document"
+                    if path.startswith("database/protocol/")
+                    else "input"
+                ),
                 path=path,
                 sha256=digest,
             )
@@ -1539,11 +1552,15 @@ def build_graph(
                     )
                     node(
                         dep_id,
-                        "module"
-                        if dependency.endswith(".py")
-                        else "catalog-document"
-                        if dependency.startswith("server/protocol/")
-                        else "input",
+                        (
+                            "module"
+                            if dependency.endswith(".py")
+                            else (
+                                "catalog-document"
+                                if dependency.startswith("database/protocol/")
+                                else "input"
+                            )
+                        ),
                         path=dependency,
                     )
                     edge(
@@ -1685,9 +1702,11 @@ def build_graph(
                         ):
                             method_id = node(
                                 "method:" + path + ":" + item.name + "." + method.name,
-                                "test-method"
-                                if method.name.startswith("test")
-                                else "fixture-method",
+                                (
+                                    "test-method"
+                                    if method.name.startswith("test")
+                                    else "fixture-method"
+                                ),
                                 path=path,
                                 lexical_name=item.name + "." + method.name,
                                 discovery="static-unconfirmed",
@@ -1880,9 +1899,11 @@ def build_graph(
                             "unqualified-published-reader",
                             domain="source-unbounded",
                             line=item.lineno,
-                            fallback="owner-consumers"
-                            if path in isolated_fixtures
-                            else "full",
+                            fallback=(
+                                "owner-consumers"
+                                if path in isolated_fixtures
+                                else "full"
+                            ),
                         )
                         continue
                     data = (
@@ -1905,7 +1926,7 @@ def build_graph(
                     if strict_published:
                         literal_name = _literal(item.args[0]) if item.args else None
                         data = (
-                            "server/protocol/" + literal_name
+                            "database/protocol/" + literal_name
                             if isinstance(literal_name, str)
                             and literal_name
                             and "\\" not in literal_name
@@ -1929,14 +1950,16 @@ def build_graph(
                             and not Path(literal_path).is_absolute()
                             and ".." not in Path(literal_path).parts
                         ):
-                            data = "server/protocol/" + literal_path
+                            data = "database/protocol/" + literal_path
                     if data:
                         data_id = _path_node(data)
                         node(
                             data_id,
-                            "catalog-document"
-                            if data.startswith("server/protocol/")
-                            else "input",
+                            (
+                                "catalog-document"
+                                if data.startswith("database/protocol/")
+                                else "input"
+                            ),
                             path=data,
                         )
                         edge(
@@ -1975,12 +1998,16 @@ def build_graph(
                         )
                         unknown(
                             owner,
-                            "published-catalog-domain"
-                            if strict_published
-                            else "dynamic-catalog-path",
-                            domain="catalog"
-                            if strict_published or rooted
-                            else "catalog-or-data",
+                            (
+                                "published-catalog-domain"
+                                if strict_published
+                                else "dynamic-catalog-path"
+                            ),
+                            domain=(
+                                "catalog"
+                                if strict_published or rooted
+                                else "catalog-or-data"
+                            ),
                             line=item.lineno,
                         )
                         edge(
@@ -2094,12 +2121,16 @@ def build_graph(
                     "runtime-policy:" + environment_name,
                     "runtime-policy",
                     available=environment_name in os.environ,
-                    value_identity=None
-                    if private
-                    else canonical_digest(os.environ.get(environment_name, default)),
-                    qualification="availability-only-private-input"
-                    if private
-                    else "nonsecret-policy-identity",
+                    value_identity=(
+                        None
+                        if private
+                        else canonical_digest(os.environ.get(environment_name, default))
+                    ),
+                    qualification=(
+                        "availability-only-private-input"
+                        if private
+                        else "nonsecret-policy-identity"
+                    ),
                 )
                 edge(owner, identity, "reads-runtime-policy", path, item.lineno)
                 if private:
@@ -2239,9 +2270,11 @@ def build_graph(
                         data_id = _path_node(data)
                         node(
                             data_id,
-                            "catalog-document"
-                            if data.startswith("server/protocol/")
-                            else "input",
+                            (
+                                "catalog-document"
+                                if data.startswith("database/protocol/")
+                                else "input"
+                            ),
                             path=data,
                         )
                         edge(
@@ -2495,6 +2528,7 @@ def build_graph(
                     )
                 runtime = (
                     path.startswith("server/wakfu_server/combat/")
+                    or path.startswith("server/wakfu_server/application/")
                     or path == "server/local_game_server.py"
                 )
                 for name in requested:
@@ -2517,14 +2551,18 @@ def build_graph(
                     edge(
                         family_node if producer else module_node,
                         module_node if producer else family_node,
-                        "migration-runtime-boundary"
-                        if producer
-                        else "migration-family-consumer",
+                        (
+                            "migration-runtime-boundary"
+                            if producer
+                            else "migration-family-consumer"
+                        ),
                         path,
                         call.lineno,
-                        confidence="source-literal"
-                        if literal is not None
-                        else "dynamic-all-declared-families",
+                        confidence=(
+                            "source-literal"
+                            if literal is not None
+                            else "dynamic-all-declared-families"
+                        ),
                     )
     operation_interaction_errors = []
     interaction_ids = set()
@@ -3112,7 +3150,7 @@ def _data_path(node, owner, bindings=None, depth=0):
         if node.id == "__file__":
             return owner
         if node.id == "DATA_ROOT":
-            return "server/protocol"
+            return "database/protocol"
         if bindings and node.id in bindings:
             return resolve(bindings[node.id])
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
@@ -3618,9 +3656,11 @@ def select_changes(before, after):
         if row["kind"] == "test-module" and row["module_name"] in selected:
             selected_explanations[row["module_name"]] = {
                 "path": explanations.get(identity),
-                "reason": "reverse-dependency-closure"
-                if identity in reached
-                else "conservative-fallback",
+                "reason": (
+                    "reverse-dependency-closure"
+                    if identity in reached
+                    else "conservative-fallback"
+                ),
                 "fallback_ids": [
                     item["id"] for item in fallbacks if identity not in reached
                 ],

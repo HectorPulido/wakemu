@@ -1,4 +1,5 @@
 """Add an attested morphology bundle to the installation pack, never the live DB."""
+
 import argparse
 from copy import deepcopy
 import gzip
@@ -163,7 +164,7 @@ def select_public(pack_root, receipt):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pack", type=Path, default=Path("server/data/installation"))
+    parser.add_argument("--pack", type=Path, default=Path("database/data/installation"))
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--repository-root", type=Path, default=Path.cwd())
     parser.add_argument(

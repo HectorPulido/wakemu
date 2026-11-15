@@ -1,7 +1,8 @@
 """Rolled-back background reward conflicts retain their earned entitlement."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import Mock, patch
 
 from psycopg.errors import SerializationFailure

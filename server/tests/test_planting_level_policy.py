@@ -1,13 +1,14 @@
-"""Balance boundaries and native exact-rounding regression checks."""
-import csv
-import os
-from pathlib import Path
+"""World-owned profession bonuses and native packet publication checks.
+
+Probability arithmetic and the Java oracle matrix run against the actual
+Rust planner in planting_probability_parity.rs.
+"""
+
 import unittest
 import struct
 from contextlib import nullcontext
 from unittest.mock import Mock, patch
 from wakfu_server.planting_level_policy import bonus, validate
-from wakfu_server.planting_probability import calculate
 from wakfu_server.planting_bonus_wire import delta_packet, publication, snapshot_section
 
 
@@ -41,28 +42,6 @@ class PlantingLevelPolicyTests(unittest.TestCase):
                 bonus(level)
         with self.assertRaises(ValueError):
             bonus(200, authoritative_bonus=(1 << 31) - 1)
-
-    def test_every_soil_and_level_remains_bounded_and_monotone(self):
-        for terrain in range(101):
-            for compatible in (True, False):
-                previous = 0.0
-                for level in range(201):
-                    value = calculate(
-                        ground_percent=terrain,
-                        climate_compatible=compatible,
-                        profession_bonus_percent=bonus(level),
-                    )
-                    self.assertGreaterEqual(value["probability"], previous)
-                    self.assertLessEqual(value["probability"], 1.0)
-                    self.assertEqual(value["displayed_percent"] == -1, terrain == 0)
-                    previous = value["probability"]
-
-    def test_native_float_intermediate_preserves_rounding_boundary(self):
-        value = calculate(
-            ground_percent=50, climate_compatible=True, profession_bonus_percent=1
-        )
-        self.assertEqual(0.5049999998882413, value["probability"])
-        self.assertEqual(50, value["displayed_percent"])
 
     def test_snapshot_encodes_valid_owned_bonuses_and_rejects_invalid_input(self):
         value = snapshot_section(42, {71: 25, 72: 50}, first_uid=100)
@@ -133,23 +112,3 @@ class PlantingLevelPolicyTests(unittest.TestCase):
                 allocate_action=allocate,
             )
         self.assertEqual([], result["packets"])
-
-    @unittest.skipUnless(
-        os.environ.get("WAKFU_PLANTING_NATIVE_ORACLE"), "Native Java oracle required"
-    )
-    def test_native_java_matrix_matches_probability_and_display_exactly(self):
-        path = Path(os.environ["WAKFU_PLANTING_NATIVE_ORACLE"])
-        count = 0
-        with path.open() as source:
-            for row in csv.DictReader(source):
-                actual = calculate(
-                    ground_percent=int(row["terrain"]),
-                    climate_compatible=row["compatible"] == "true",
-                    profession_bonus_percent=int(row["bonus"]),
-                )
-                self.assertEqual(float(row["probability"]), actual["probability"], row)
-                self.assertEqual(
-                    int(row["displayed"]), actual["displayed_percent"], row
-                )
-                count += 1
-        self.assertEqual(60802, count)

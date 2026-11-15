@@ -1,11 +1,12 @@
 """Execute the extracted native hero switch dispatcher branches in isolation."""
+
 import ast
 import struct
 import sys
 import types
 import unittest
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import patch
 
 from wakfu_server import hero_wire

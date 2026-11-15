@@ -4,6 +4,7 @@
 Only positive source302 rows are consumed. Template IDs never become species,
 and source301's already frozen eight scenarios are excluded from this delta.
 """
+
 from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
@@ -35,7 +36,7 @@ AUTHORITY = (
     ROOT
     / "agents_docs/reports/parallel-readiness-20261021/environmental810-original-species-authority.json"
 )
-SEED = ROOT / "server/seeds/environmental_named_destroy_profiles.sql"
+SEED = ROOT / "database/seeds/environmental_named_destroy_profiles.sql"
 MANIFEST = (
     ROOT
     / "agents_docs/reports/parallel-readiness-20261021/environmental-named-destroy-profile-manifest.json"
@@ -439,7 +440,7 @@ def main():
     prior.extend(
         prior_resource_profiles(
             [
-                ROOT / "server/seeds" / name
+                ROOT / "database/seeds" / name
                 for name in (
                     "environmental_resource_profiles.sql",
                     "environmental_resource_races.sql",

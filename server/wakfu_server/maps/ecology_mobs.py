@@ -1,19 +1,12 @@
-"""External monster simulation planning with short world-owned commit fences.
+"""World-owned monster proposal validation, commits, and native publication.
 
-Proposals are internal service messages, never client-supplied authority. The
-worker and world use the same pinned catalog release. SQL receipts remain the
-idempotency authority; publication is performed only by world.
-"""
-from copy import deepcopy
-from contextlib import nullcontext
-from functools import lru_cache
-import random
-import secrets
+Rust owns autonomous planning. SQL receipts and current World occupancy remain
+the authoritative fences for accepting and publishing each proposal."""
+
 import json
 import struct
 import time
 from .monster_habitat_cells import habitat_destination_allowed
-
 
 MAX_WANDER_BATCH_GROUPS = 8
 MAX_WANDER_BATCH_MOVED_MEMBERS = 40
@@ -22,16 +15,10 @@ MAX_WANDER_BATCH_JSON_BYTES = 224 * 1024
 MAX_WANDER_BATCH_SECONDS = 0.025
 
 
-@lru_cache(maxsize=16)
 def _edges(map_id):
-    from .combat_terrain import map_geometry
-    from .monster_wander import edge_index
+    from .spatial_geometry import catalog_edges
 
-    return edge_index(map_geometry(map_id)["edges"])
-
-
-def _sample():
-    return secrets.randbelow(1 << 53) / (1 << 53)
+    return catalog_edges(map_id)
 
 
 def _scripted_intro_scope(scope):
@@ -43,651 +30,99 @@ def _scripted_intro_scope(scope):
     )
 
 
-def _scoped_players(players, scope):
-    return [
-        p
-        for p in players
-        if p.get("_ecology_active", True)
-        and (p["map_id"], p.get("instance_id", 0)) == scope
-    ]
-
-
 def _path_cells(packets):
-    """Decode our native movement packets for current occupancy validation."""
-    import struct
-    from protocol_codec import DIRECTIONS
+    from .spatial_native import get_spatial
 
-    cells = set()
-    for opcode, encoded in packets:
-        if opcode != 13852:
-            raise ValueError("Invalid ecology movement opcode")
-        payload = bytes.fromhex(encoded)
-        if len(payload) < 19:
-            raise ValueError("Invalid ecology movement header")
-        _, x, y, z, count = struct.unpack(">qiihB", payload[:19])
-        if len(payload) != 19 + count:
-            raise ValueError("Invalid ecology movement length")
-        for delta in payload[19:]:
-            _, dx, dy = DIRECTIONS[delta >> 5]
-            dz = delta & 31
-            if dz >= 16:
-                dz -= 32
-            x, y, z = x + dx, y + dy, z + dz
-            cells.add((x, y, z))
-    return cells
+    return set(map(tuple, get_spatial().call("geometry.path_cells", packets=packets)))
 
 
 def _path_cells_by_actor(packets):
-    """Decode every native step while retaining the actor that traverses it."""
-    import struct
-    from protocol_codec import DIRECTIONS
+    from .spatial_native import get_spatial
 
-    result = {}
-    for opcode, encoded in packets:
-        if opcode != 13852:
-            raise ValueError("Invalid ecology movement opcode")
-        payload = bytes.fromhex(encoded)
-        if len(payload) < 19:
-            raise ValueError("Invalid ecology movement header")
-        actor_id, x, y, z, count = struct.unpack(">qiihB", payload[:19])
-        if len(payload) != 19 + count:
-            raise ValueError("Invalid ecology movement length")
-        cells = []
-        for delta in payload[19:]:
-            _, dx, dy = DIRECTIONS[delta >> 5]
-            dz = delta & 31
-            if dz >= 16:
-                dz -= 32
-            x, y, z = x + dx, y + dy, z + dz
-            cells.append((x, y, z))
-        result[actor_id] = cells
-    return result
-
-
-def prepare(store, snapshot, limit=16):
-    """Run geometry, native construction and policy decisions outside world."""
-    from . import monster_maturation as maturation
-    from . import monster_life_plans as life_plans
-    from . import monster_reproduction as reproduction
-    from . import monster_wander as wander
-    from .monsters import owned_instance
-    from .combat_monster_world import spawn_group
-
-    if type(limit) is not int or not 1 <= limit <= 256:
-        raise ValueError("Invalid ecology proposal limit")
-    epoch = snapshot["world_epoch"]
-    if type(epoch) is not str or not epoch:
-        raise ValueError("Missing ecology world epoch")
-    players = [p for p in snapshot["players"] if p.get("_ecology_active", True)]
-    excluded = set(snapshot["excluded_ids"])
-    locations = {tuple(scope) for scope in snapshot["locations"]}
-    locations &= {(p["map_id"], p.get("instance_id", 0)) for p in players}
-    # Incarnam's private scripted Wodents are encounter actors, not ecology.
-    locations = {scope for scope in locations if not _scripted_intro_scope(scope)}
-    allow_wander = bool(snapshot.get("allow_wander", True))
-    scopes = sorted(locations)
-    domain_tick = snapshot.get("domain_planning_tick", 0)
-    if type(domain_tick) is not int or domain_tick < 0:
-        domain_tick = 0
-    if scopes:
-        scope_start = domain_tick % len(scopes)
-        scopes = scopes[scope_start:] + scopes[:scope_start]
-    from .monster_population_cleanup import prepare as prepare_cleanup
-
-    # The worker advances wander cadence after a successful planning pass. Reserve
-    # one scope-batch slot so publications or lifecycle tickets cannot fill the
-    # whole budget before movement gets examined.
-    # Overlap recovery runs on the next tick, even between wandering cadences.
-    wander_slots = min(1, len(scopes))
-    background_limit = limit - wander_slots
-    proposals = []
-    if background_limit:
-        from .monster_idle_distribution_store import (
-            prepare as prepare_idle_distribution,
+    return {
+        actor: list(map(tuple, path))
+        for actor, path in get_spatial().call(
+            "geometry.path_cells_by_actor", packets=packets
         )
-
-        proposals.extend(
-            prepare_idle_distribution(store, snapshot, limit=background_limit)
-        )
-        remaining = background_limit - _proposal_slots(proposals)
-        if remaining > 0:
-            proposals.extend(prepare_cleanup(store, snapshot, limit=remaining))
-    noops = []
-    policies = dict(
-        maturation=maturation.policy(store),
-        reproduction=reproduction.policy(store),
-        wander=wander.policy(store),
-    )
-    previous = {tuple(scope) for scope in snapshot.get("previous_locations", [])}
-    for scope in sorted(previous - locations):
-        for domain in (maturation, reproduction):
-            domain.observe(
-                store,
-                *scope,
-                present=False,
-                generation=epoch,
-                now_ms=snapshot["now_ms"],
-            )
-    for scope in scopes:
-        if reproduction.dungeon_population(store, scope[1]):
-            continue
-        scoped = _scoped_players(players, scope)
-        # A fresh occupancy episode resets elapsed time even if the worker never
-        # sampled the intervening empty interval.
-        episode = scoped[0].get("presence_generation")
-        observation_generation = (
-            epoch if episode is None else f"{epoch}:presence:{episode}"
-        )
-        with store.connection() as db:
-            groups = [
-                dict(row)
-                for row in db.execute(
-                    "SELECT * FROM combat_groups WHERE map_id=%s AND instance_id=%s ORDER BY group_id",
-                    scope,
-                )
-            ]
-            planted = {
-                (r["x"], r["y"])
-                for r in db.execute(
-                    "SELECT x,y FROM planted_resources WHERE map_id=%s AND instance_id=%s",
-                    scope,
-                )
-            }
-        by_id = {g["group_id"]: g for g in groups}
-        living_groups = [g for g in groups if g["status"] != "defeated"]
-        from .monster_birth_home import ensure_homes, home_destination_allowed
-        from .monster_idle_distribution import native_physical_radius
-
-        homes = ensure_homes(store, *scope, living_groups)
-        zone_members = sum(len(g["members"]) for g in living_groups)
-        ordered_domains = [("maturation", maturation), ("reproduction", reproduction)]
-        category_offset = domain_tick % len(ordered_domains)
-        ordered_domains = (
-            ordered_domains[category_offset:] + ordered_domains[:category_offset]
-        )
-        for domain_name, domain in ordered_domains if background_limit else ():
-            if _proposal_slots(proposals) >= background_limit:
-                break
-            for group_id in dict.fromkeys(
-                e["group_id"] for e in domain.unpublished(store, *scope)
-            ):
-                if _proposal_slots(proposals) >= background_limit:
-                    break
-                group = by_id.get(group_id)
-                if group is not None and group["status"] == "available":
-                    proposals.append(
-                        dict(
-                            kind="publish_" + domain_name,
-                            world_epoch=epoch,
-                            scope=list(scope),
-                            group_id=group_id,
-                            expected_members=deepcopy(list(group["members"])),
-                        )
-                    )
-        indexed = None
-        for kind, domain in ordered_domains if background_limit else ():
-            if _proposal_slots(proposals) >= background_limit:
-                break
-            domain.observe(
-                store,
-                *scope,
-                present=True,
-                generation=observation_generation,
-                now_ms=snapshot["now_ms"],
-                excluded_ids=excluded,
-                configuration=policies[kind],
-            )
-            tickets = life_plans.attach(
-                store, scope, kind, domain.pending(store, *scope), policies[kind]
-            )
-            for ticket in tickets:
-                if _proposal_slots(proposals) >= background_limit:
-                    break
-                group = by_id.get(ticket["group_id"])
-                if (
-                    group is None
-                    or group["status"] != "available"
-                    or ticket["monster_id"] in excluded
-                ):
-                    continue
-                members = list(group["members"])
-                if kind == "reproduction" and (
-                    zone_members >= policies[kind]["max_zone_members"]
-                    or (
-                        len(living_groups) >= policies[kind]["max_zone_groups"]
-                        and len(members) >= policies[kind]["max_members"]
-                    )
-                ):
-                    # Keep the due timer intact, but do not enqueue work that the
-                    # authoritative apply path must reject at these live counts.
-                    continue
-                parent = next(
-                    (m for m in members if m["id"] == ticket["monster_id"]), None
-                )
-                if parent is None or parent["ref"] != ticket["reference"]:
-                    continue
-                proposal = dict(
-                    kind=kind,
-                    world_epoch=epoch,
-                    scope=list(scope),
-                    ticket=ticket,
-                    configuration=ticket["plan_policy"],
-                    expected_members=deepcopy(members),
-                    draw=ticket["decision"]["draw"],
-                )
-                if kind == "reproduction" and proposal[
-                    "draw"
-                ] >= reproduction.birth_probability(
-                    parent["ref"], proposal["configuration"], group_size=len(members)
-                ):
-                    proposal.update(
-                        child=None,
-                        group_draw=ticket["decision"]["group_draw"],
-                        noop=True,
-                    )
-                    noops.append(proposal)
-                    continue
-                if kind == "maturation":
-                    candidate = maturation.choose_next(
-                        parent["ref"],
-                        proposal["configuration"],
-                        draw=proposal["draw"],
-                        choose=lambda candidates: life_plans.choose(
-                            candidates, ticket["decision"]
-                        ),
-                        members=members,
-                        source_level=parent["level"],
-                    )
-                    grown = (
-                        None
-                        if candidate is None
-                        else owned_instance(
-                            candidate["reference"],
-                            candidate["min_level"],
-                            parent["id"],
-                            map_id=scope[0],
-                            instance_id=scope[1],
-                            team=parent["team"],
-                            **{k: parent[k] for k in ("x", "y", "z")},
-                        )
-                    )
-                    proposal["grown"] = grown
-                    if grown is None:
-                        proposal["noop"] = True
-                        noops.append(proposal)
-                        continue
-                    if grown is not None:
-                        replaced = [
-                            grown if m["id"] == grown["id"] else m for m in members
-                        ]
-                        spawn_group(replaced, group_id=ticket["group_id"])
-                else:
-                    if indexed is None:
-                        indexed = _edges(scope[0])
-                    stage = maturation.STAGES[parent["ref"]]
-                    from .monster_family_stages import initial_candidates
-
-                    birth_pool = initial_candidates(stage[0]["family_id"])
-                    if not birth_pool:
-                        continue
-                    candidate = life_plans.choose(birth_pool, ticket["decision"])
-                    child_radius = native_physical_radius(candidate["reference"])
-                    blocked = planted | {(p["x"], p["y"]) for p in scoped}
-                    blocked |= {
-                        (m["x"], m["y"])
-                        for g in groups
-                        if g["status"] != "defeated"
-                        for m in g["members"]
-                    }
-                    candidates = [
-                        p
-                        for p in indexed[1].get(wander.point(parent), ())
-                        if p[:2] not in blocked
-                        and home_destination_allowed(
-                            scope[0],
-                            homes.get(ticket["group_id"]),
-                            p,
-                            radii=(child_radius,),
-                        )
-                        and habitat_destination_allowed(
-                            scope[0],
-                            scope[1],
-                            p,
-                            parent=parent,
-                            family_id=maturation.STAGES[parent["ref"]][0]["family_id"],
-                        )
-                    ]
-                    if not candidates:
-                        continue
-                    destination = life_plans.choose_destination(
-                        candidates, ticket["decision"]
-                    )
-                    proposal.update(
-                        destination=list(destination),
-                        group_draw=ticket["decision"]["group_draw"],
-                        child=None,
-                    )
-                    if proposal["draw"] < reproduction.birth_probability(
-                        parent["ref"],
-                        proposal["configuration"],
-                        group_size=len(members),
-                    ):
-                        with store.connection() as db:
-                            _, identity = reproduction.allocate_identity(db)
-                        child = owned_instance(
-                            candidate["reference"],
-                            candidate["min_level"],
-                            identity,
-                            map_id=scope[0],
-                            instance_id=scope[1],
-                            team=parent["team"],
-                            x=destination[0],
-                            y=destination[1],
-                            z=destination[2],
-                        )
-                        proposal["child"] = child
-                        spawn_group([child], group_id=-identity)
-                proposals.append(proposal)
-        if indexed is None:
-            indexed = _edges(scope[0])
-        configuration = policies["wander"]
-        if _proposal_slots(proposals) >= limit:
-            continue
-        wander_groups = wander.visible_groups(
-            groups,
-            scoped,
-            radius=configuration["radius"],
-            tick=domain_tick,
-            batch_size=MAX_WANDER_BATCH_GROUPS,
-        )
-        moves = []
-        # Build the live occupancy once per scope. Rewalking every member in
-        # every other group for each candidate costs O(population * moved).
-        scope_occupied = {
-            wander.point(member)
-            for group in living_groups
-            for member in group["members"]
-        }
-        from collections import Counter
-
-        occupants = Counter(
-            wander.point(member)
-            for group in living_groups
-            for member in group["members"]
-        )
-        player_cells = {wander.point(player) for player in scoped}
-        overlapping_groups = {
-            group["group_id"]
-            for group in living_groups
-            if any(
-                occupants[wander.point(member)] > 1
-                or wander.point(member) in player_cells
-                for member in group["members"]
-            )
-        }
-        neighbors = wander.group_neighbor_index(living_groups)
-        wander_groups.sort(
-            key=lambda group: group["group_id"] not in overlapping_groups
-        )
-        moved_member_count = 0
-        packet_bytes = 0
-        plan_deadline = time.monotonic() + MAX_WANDER_BATCH_SECONDS
-        for group in wander_groups:
-            if time.monotonic() >= plan_deadline:
-                break
-            members = list(group["members"])
-            if (
-                group["status"] != "available"
-                or not members
-                or any(m["id"] in excluded for m in members)
-            ):
-                continue
-            # One probability decision and native path search for the entire group.
-            # Rigid translation preserves its formation instead of random walks
-            # increasing the distance between companions on every cadence.
-            if moved_member_count + len(members) > MAX_WANDER_BATCH_MOVED_MEMBERS:
-                continue
-            overlap = group["group_id"] in overlapping_groups
-            if not overlap and (
-                not allow_wander or random.random() >= configuration["move_probability"]
-            ):
-                continue
-            own_cells = {wander.point(member) for member in members}
-            home = homes.get(group["group_id"])
-            radii = tuple({native_physical_radius(member["ref"]) for member in members})
-
-            def inside_home(cell, _map=scope[0], _home=home, _radii=radii):
-                return home_destination_allowed(_map, _home, cell, radii=_radii)
-
-            options = dict(
-                occupied=scope_occupied - own_cells,
-                radius=configuration["radius"],
-                min_steps=configuration["min_steps"],
-                max_steps=configuration["max_steps"],
-                indexed=indexed,
-                destination_allowed=lambda cell: habitat_destination_allowed(
-                    scope[0], scope[1], cell
-                )
-                and inside_home(cell),
-            )
-            if home is not None and any(
-                not inside_home(wander.point(member)) for member in members
-            ):
-                from .monster_home_paths import homing_path
-
-                result = homing_path(
-                    members,
-                    scoped,
-                    indexed,
-                    home,
-                    lambda cell, _home=home, _inside=inside_home: _home
-                    if _inside(cell)
-                    else 0,
-                    occupied=options["occupied"],
-                    radius=configuration["radius"],
-                    min_steps=configuration["min_steps"],
-                    max_steps=configuration["max_steps"],
-                    destination_allowed=lambda cell: habitat_destination_allowed(
-                        scope[0], scope[1], cell
-                    ),
-                    map_id=(scope[0], tuple(sorted(radii))),
-                )
-            else:
-                result = wander.plan_group_path(
-                    members,
-                    scoped,
-                    (),
-                    neighbor_index=neighbors,
-                    other_groups=living_groups,
-                    **options,
-                )
-            if result is None:
-                continue
-            candidate = result["members"]
-            packets = result["packets"]
-            if packets:
-                count = sum(
-                    wander.point(before) != wander.point(after)
-                    for before, after in zip(members, candidate)
-                )
-                group_packet_bytes = sum(len(payload) + 6 for _, payload in packets)
-                if (
-                    moved_member_count + count > MAX_WANDER_BATCH_MOVED_MEMBERS
-                    or packet_bytes + group_packet_bytes > MAX_WANDER_BATCH_PACKET_BYTES
-                ):
-                    continue
-                move = dict(
-                    group_id=group["group_id"],
-                    expected_members=members,
-                    moved_members=candidate,
-                    packets=[[opcode, payload.hex()] for opcode, payload in packets],
-                )
-                if result.get("dispersal") is True:
-                    move["dispersal"] = True
-                if result.get("overlap_escape") is True:
-                    move["overlap_escape"] = True
-                batch = dict(
-                    kind="wander_bulk",
-                    world_epoch=epoch,
-                    scope=list(scope),
-                    configuration=configuration,
-                    moves=moves + [move],
-                )
-                if (
-                    len(json.dumps(batch, separators=(",", ":")).encode("utf-8"))
-                    > MAX_WANDER_BATCH_JSON_BYTES
-                ):
-                    continue
-                moves.append(move)
-                scope_occupied.difference_update(own_cells)
-                scope_occupied.update(wander.point(member) for member in candidate)
-                moved_member_count += count
-                packet_bytes += group_packet_bytes
-                if len(moves) >= MAX_WANDER_BATCH_GROUPS:
-                    break
-        if moves:
-            proposals.append(
-                dict(
-                    kind="wander_bulk",
-                    world_epoch=epoch,
-                    scope=list(scope),
-                    configuration=configuration,
-                    moves=moves,
-                )
-            )
-    return _pack_lifecycle(life_plans.resolve_noops(store, proposals + noops))
+    }
 
 
 def _validate_bulk_wander_move(move):
-    """Return decoded per-group movement data, or reject just this group."""
-    from protocol_codec import decode_body
+    from .spatial_native import get_spatial
 
-    required = {
-        "group_id",
-        "expected_members",
-        "moved_members",
-        "packets",
-    }
-    if (
-        not isinstance(move, dict)
-        or not required <= set(move) <= required | {"dispersal", "overlap_escape"}
-        or any(
-            move[key] is not True
-            for key in ("dispersal", "overlap_escape")
-            if key in move
-        )
-        or ("dispersal" in move and "overlap_escape" in move)
-    ):
-        raise ValueError("Invalid bulk wander group fields")
-    group_id = move["group_id"]
-    expected = move["expected_members"]
-    moved = move["moved_members"]
-    encoded_packets = move["packets"]
-    if (
-        type(group_id) is not int
-        or not isinstance(expected, list)
-        or not isinstance(moved, list)
-        or not expected
-        or len(expected) != len(moved)
-        or not isinstance(encoded_packets, list)
-        or not encoded_packets
-    ):
-        raise ValueError("Invalid bulk wander group roster")
-    if any(
-        not isinstance(member, dict) or type(member.get("id")) is not int
-        for member in expected + moved
-    ):
-        raise ValueError("Invalid bulk wander actor identity")
-    expected_ids = [member["id"] for member in expected]
-    moved_ids = [member["id"] for member in moved]
-    if len(set(expected_ids)) != len(expected_ids) or expected_ids != moved_ids:
-        raise ValueError("Bulk wander changed group identity")
-    moved_by_id = {member["id"]: member for member in moved}
-    expected_by_id = {member["id"]: member for member in expected}
-    changed_ids = {
-        actor_id
-        for actor_id, before in expected_by_id.items()
-        if tuple(before.get(key) for key in ("x", "y", "z"))
-        != tuple(moved_by_id[actor_id].get(key) for key in ("x", "y", "z"))
-    }
-    if not changed_ids or len(changed_ids) > MAX_WANDER_BATCH_MOVED_MEMBERS:
-        raise ValueError("Invalid bulk wander moved-member count")
-    packets = []
-    packet_ids = set()
-    packet_bytes = 0
-    for packet in encoded_packets:
-        if (
-            not isinstance(packet, list)
-            or len(packet) != 2
-            or type(packet[0]) is not int
-            or packet[0] != 13852
-            or not isinstance(packet[1], str)
-        ):
-            raise ValueError("Invalid bulk wander movement packet")
-        body = bytes.fromhex(packet[1])
-        decoded = decode_body("in", packet[0], body)
-        actor_id = decoded["actor_id"]
-        if (
-            actor_id not in changed_ids
-            or actor_id in packet_ids
-            or decoded["start_position"]
-            != {key: expected_by_id[actor_id][key] for key in ("x", "y", "z")}
-            or decoded["end_position"]
-            != {key: moved_by_id[actor_id][key] for key in ("x", "y", "z")}
-        ):
-            raise ValueError("Bulk wander packet does not match its group CAS")
-        packet_ids.add(actor_id)
-        packet_bytes += len(body) + 6
-        packets.append((packet[0], body))
-    if packet_ids != changed_ids or packet_bytes > MAX_WANDER_BATCH_PACKET_BYTES:
-        raise ValueError("Bulk wander packet set is incomplete or oversized")
-    # Keep the existing path parser as the occupancy authority for every step.
-    cells = _path_cells([[opcode, payload.hex()] for opcode, payload in packets])
-    if not cells:
-        raise ValueError("Bulk wander path is empty")
+    result = get_spatial().call("geometry.validate_bulk_move", move=move)
     return (
-        group_id,
-        expected,
-        moved,
-        packets,
-        cells,
-        len(changed_ids),
-        packet_bytes,
-        move.get("dispersal", False),
-        move.get("overlap_escape", False),
+        result["group_id"],
+        result["expected"],
+        result["moved"],
+        [(opcode, bytes.fromhex(payload)) for opcode, payload in result["packets"]],
+        set(map(tuple, result["cells"])),
+        result["moved_count"],
+        result["packet_bytes"],
+        result["dispersal"],
+        result["overlap_escape"],
     )
 
 
 def _valid_dispersal_path(expected, moved, paths_by_actor, current_groups):
-    """Actor overlap is allowed only for steps away from a current live group."""
-    from . import monster_wander as wander
+    from .spatial_native import get_spatial
+    from .spatial_geometry import member_rows, group_rows
 
-    if not wander.separating_movement(expected, moved, current_groups):
-        return False
-    origin = wander.point(expected[0])
-    neighbor = wander.nearest_group(
-        origin,
-        wander.group_neighbor_index(current_groups),
-        exclude_id=expected[0]["id"],
+    return get_spatial().call(
+        "geometry.valid_dispersal_path",
+        expected=member_rows(expected),
+        moved=member_rows(moved),
+        paths=list(paths_by_actor.items()),
+        groups=group_rows(current_groups),
     )
-    if neighbor is None:
-        return False
 
-    def distance(cell):
-        return (cell[0] - neighbor[0]) ** 2 + (cell[1] - neighbor[1]) ** 2
 
-    leader_path = paths_by_actor.get(expected[0]["id"], ())
-    previous = distance(origin)
-    for cell in leader_path:
-        current = distance(cell)
-        if current <= previous:
-            return False
-        previous = current
-    return bool(leader_path)
+def _path_occupied(packets, expected, players, current_groups):
+    from .spatial_native import get_spatial
+    from .spatial_geometry import member_rows, actor_position, group_rows
+
+    return get_spatial().call(
+        "geometry.path_occupied",
+        packets=packets,
+        members=member_rows(expected),
+        players=[actor_position(player) for player in players],
+        groups=group_rows(current_groups),
+    )
+
+
+def _native_paths_allowed(map_id, expected, paths_by_actor, max_steps):
+    from .spatial_geometry import member_rows
+
+    return _edges(map_id).native_index.call(
+        "geometry.paths_allowed",
+        expected=member_rows(expected),
+        paths=list(paths_by_actor.items()),
+        max_steps=max_steps,
+    )
+
+
+def _native_habitat_paths_allowed(scope, paths_by_actor):
+    from .spatial_geometry import habitats, surfaces
+
+    if not habitats().call(
+        "geometry.habitat_tracked", map_id=scope[0], instance_id=scope[1]
+    ):
+        return True
+    return surfaces(scope[0]).call(
+        "geometry.surface_paths_allowed", paths=list(paths_by_actor.items())
+    )
+
+
+def _warm_spatial_scope(scope):
+    from .spatial_geometry import habitats, surfaces
+
+    if habitats().call(
+        "geometry.habitat_tracked", map_id=scope[0], instance_id=scope[1]
+    ):
+        surfaces(scope[0])
 
 
 def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch):
-    from . import monster_maturation as maturation
     from . import monster_wander as wander
 
     scope = proposal.get("scope")
@@ -724,39 +159,17 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
         ):
             invalid_groups += 1
             continue
-        expected_by_id = {member["id"]: member for member in decoded[1]}
         paths_by_actor = {}
         try:
             paths_by_actor = _path_cells_by_actor(
                 [[opcode, payload.hex()] for opcode, payload in decoded[3]]
             )
-            family_ids = {
-                actor_id: maturation.STAGES[member["ref"]][0]["family_id"]
-                if member["ref"] in maturation.STAGES
-                else None
-                for actor_id, member in expected_by_id.items()
-            }
-            habitat_valid = not any(
-                not habitat_destination_allowed(
-                    scope[0],
-                    scope[1],
-                    cell,
-                    parent=expected_by_id[actor_id],
-                    family_id=family_ids[actor_id],
-                )
-                for actor_id, path in paths_by_actor.items()
-                for cell in path
-            )
+            habitat_valid = _native_habitat_paths_allowed(scope, paths_by_actor)
             if decoded[7] or decoded[8]:
-                native_edges = _edges(scope[0])[0]
-                for actor_id, path in paths_by_actor.items():
-                    origin = wander.point(expected_by_id[actor_id])
-                    if len(path) > configuration["max_steps"]:
-                        habitat_valid = False
-                    for destination in path:
-                        if (origin, destination) not in native_edges:
-                            habitat_valid = False
-                        origin = destination
+                if not _native_paths_allowed(
+                    scope[0], decoded[1], paths_by_actor, configuration["max_steps"]
+                ):
+                    habitat_valid = False
         except (KeyError, TypeError, ValueError):
             habitat_valid = False
         seen_group_ids.add(decoded[0])
@@ -764,10 +177,12 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
         packet_bytes += decoded[6]
         decoded_moves.append((*decoded, habitat_valid, paths_by_actor))
 
-    with groups.lock, harvests.lock, getattr(world, "lock", nullcontext()):
-        players = _scoped_players(world.snapshot(), tuple(scope))
-        if not players:
-            return {"status": "absent"}
+    with groups.lock, harvests.lock:
+        # Claims and local group mutations remain serialized by groups.lock.
+        # Read this map once, then update its captured rosters after each CAS.
+        # The native spatial reservation below fences only one group's SQL
+        # commit, never the whole batch or socket publication.
+        current_groups = groups.snapshot(*scope)
         excluded = set(harvests.targets)
         published_packets = []
         applied_groups = 0
@@ -795,49 +210,55 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
             if expected_ids & excluded:
                 skipped_groups += 1
                 continue
-            current_groups = groups.snapshot(*scope)
-            current = next(
-                (
-                    group
-                    for group in current_groups
-                    if group.get("group_id", group.get("key", (None, None, None))[2])
-                    == group_id
-                ),
-                None,
-            )
-            if current is None or current["status"] != "available":
-                skipped_groups += 1
-                continue
-            if not habitat_valid:
-                skipped_groups += 1
-                continue
-            if dispersal:
-                if not _valid_dispersal_path(
-                    expected, moved, paths_by_actor, current_groups
-                ) or not wander.clear_destination(moved, players, current_groups):
+            with world.scope_barrier(*scope):
+                players = world.ecology_snapshot(*scope)
+                if not players:
+                    if not applied_groups:
+                        return {"status": "absent"}
+                    skipped_groups += len(decoded_moves) - index
+                    break
+                current = next(
+                    (
+                        group
+                        for group in current_groups
+                        if group.get(
+                            "group_id", group.get("key", (None, None, None))[2]
+                        )
+                        == group_id
+                    ),
+                    None,
+                )
+                if current is None or current["status"] != "available":
                     skipped_groups += 1
                     continue
-            if overlap_escape and not wander.overlap_escape_valid(
-                expected, moved, players, current_groups
-            ):
-                skipped_groups += 1
-                continue
-            occupied = {wander.point(player) for player in players}
-            occupied |= {
-                wander.point(member)
-                for group in current_groups
-                if group["status"] != "defeated"
-                for member in group["members"]
-                if member["id"] not in expected_ids
-            }
-            if not (dispersal or overlap_escape) and cells & occupied:
-                skipped_groups += 1
-                continue
-            if not groups.move_members((*scope, group_id), expected, moved):
-                skipped_groups += 1
-                continue
-            applied_groups += 1
-            published_packets.extend(packets)
+                if not habitat_valid:
+                    skipped_groups += 1
+                    continue
+                if dispersal:
+                    if not _valid_dispersal_path(
+                        expected, moved, paths_by_actor, current_groups
+                    ) or not wander.clear_destination(moved, players, current_groups):
+                        skipped_groups += 1
+                        continue
+                if overlap_escape and not wander.overlap_escape_valid(
+                    expected, moved, players, current_groups
+                ):
+                    skipped_groups += 1
+                    continue
+                if not (dispersal or overlap_escape) and _path_occupied(
+                    [[opcode, payload.hex()] for opcode, payload in packets],
+                    expected,
+                    players,
+                    current_groups,
+                ):
+                    skipped_groups += 1
+                    continue
+                if not groups.move_members((*scope, group_id), expected, moved):
+                    skipped_groups += 1
+                    continue
+                current["members"] = moved
+                applied_groups += 1
+                published_packets.extend(packets)
         if published_packets:
             world.emit_location_batch(scope[0], scope[1], published_packets)
         if not applied_groups:
@@ -853,9 +274,7 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
             "skip_reason": (
                 "budget"
                 if budget_exhausted
-                else "cas_or_guard"
-                if skipped_groups
-                else None
+                else "cas_or_guard" if skipped_groups else None
             ),
         }
 
@@ -876,13 +295,11 @@ def apply(store, groups, harvests, world, proposal, *, world_epoch):
         from .monster_idle_distribution_store import commit, validate_chunk
 
         prepared = validate_chunk(store, proposal)
-        with groups.lock, harvests.lock, world.lock:
-            scope = tuple(proposal["scope"])
+        scope = tuple(proposal["scope"])
+        with groups.lock, harvests.lock, world.scope_barrier(*scope):
             episode_current = world.empty_scope_generation(*scope) == proposal[
                 "empty_generation"
-            ] and not any(
-                world.location(entry[2]) == scope for entry in world.players.values()
-            )
+            ] and not world.registered_scope_snapshot(*scope)
             outcomes = commit(
                 store,
                 groups,
@@ -891,11 +308,11 @@ def apply(store, groups, harvests, world, proposal, *, world_epoch):
                 prepared=prepared,
             )
             return dict(
-                status="applied"
-                if outcomes
-                else "duplicate"
-                if episode_current
-                else "stale",
+                status=(
+                    "applied"
+                    if outcomes
+                    else "duplicate" if episode_current else "stale"
+                ),
                 applied_groups=sum(row["status"] == "applied" for row in outcomes),
                 skipped_groups=sum(row["status"] == "skipped" for row in outcomes),
             )
@@ -930,118 +347,93 @@ def apply(store, groups, harvests, world, proposal, *, world_epoch):
     birth_edges = (
         _edges(scope[0]) if kind == "reproduction" and not publication else None
     )
-    with groups.lock, harvests.lock, getattr(world, "lock", nullcontext()):
-        players = _scoped_players(world.snapshot(), scope)
-        if not players:
-            return {"status": "absent"}
-        excluded = set(harvests.targets)
-        if any(m["id"] in excluded for m in proposal["expected_members"]):
-            return {"status": "harvesting"}
-        if kind == "wander" and not publication:
-            current_groups = groups.snapshot(*scope)
-            own_ids = {m["id"] for m in proposal["expected_members"]}
-            occupied = {wander.point(p) for p in players}
-            occupied |= {
-                wander.point(m)
-                for g in current_groups
-                if g["status"] != "defeated"
-                for m in g["members"]
-                if m["id"] not in own_ids
-            }
-            if _path_cells(proposal["packets"]) & occupied:
-                return {"status": "occupied"}
-            if not groups.move_members(
-                (*scope, proposal["group_id"]),
-                proposal["expected_members"],
-                proposal["moved_members"],
-            ):
-                return {"status": "stale_group"}
-            for opcode, payload in proposal["packets"]:
-                world.emit_location(*scope, opcode, bytes.fromhex(payload))
-            return {"status": "applied"}
-        receipt = None
-        if publication:
-            affected_group = proposal["group_id"]
-        else:
-            kwargs = dict(
-                present=True,
-                excluded_ids=excluded,
-                draw=proposal["draw"],
-                configuration=proposal["configuration"],
-                prepared=proposal,
-            )
-            if kind == "reproduction":
-                kwargs.update(
-                    indexed=birth_edges,
-                    players=players,
-                    group_draw=proposal["group_draw"],
+    _warm_spatial_scope(scope)
+    with groups.lock, harvests.lock:
+        packets_to_publish = []
+        acknowledgements = []
+        with world.scope_barrier(*scope):
+            players = world.ecology_snapshot(*scope)
+            if not players:
+                return {"status": "absent"}
+            excluded = set(harvests.targets)
+            if any(m["id"] in excluded for m in proposal["expected_members"]):
+                return {"status": "harvesting"}
+            if kind == "wander" and not publication:
+                current_groups = groups.snapshot(*scope)
+                if _path_occupied(
+                    proposal["packets"],
+                    proposal["expected_members"],
+                    players,
+                    current_groups,
+                ):
+                    return {"status": "occupied"}
+                if not groups.move_members(
+                    (*scope, proposal["group_id"]),
+                    proposal["expected_members"],
+                    proposal["moved_members"],
+                ):
+                    return {"status": "stale_group"}
+                packets_to_publish.extend(
+                    (opcode, bytes.fromhex(payload))
+                    for opcode, payload in proposal["packets"]
                 )
-            receipt = domains[kind].attempt(store, proposal["ticket"], **kwargs)
-            if receipt is None:
-                return {"status": "stale_group"}
-            affected_group = (
-                receipt.get("child_group_id")
-                if kind == "reproduction"
-                else receipt.get("group_id")
-            )
-        # Re-read durable outbox and current group while claims remain fenced.
-        for group_id in () if affected_group is None else (affected_group,):
-            batch = domains[kind].unpublished(store, *scope, group_id=group_id)
-            if not batch:
-                continue
-            current = batch[-1]
-            if current["status"] != "available" or any(
-                m["id"] in excluded for m in current["members"]
-            ):
-                continue
-            world.emit_location(
-                *scope, *remove_message([m["id"] for m in current["members"]])
-            )
-            world.emit_location(
-                *scope, 12608, spawn_group(current["members"], group_id=group_id)
-            )
-            for event in batch:
-                domains[kind].acknowledge(store, event)
-        return {
-            "status": "duplicate"
-            if receipt is not None and receipt["duplicate"]
-            else "applied"
-        }
-
-
-def _pack_lifecycle(proposals):
-    """Bound lifecycle envelopes while preserving original operation order."""
-    result = []
-    for proposal in proposals:
-        if proposal["kind"] not in ("maturation", "reproduction"):
-            result.append(proposal)
-            continue
-        batch = (
-            result[-1] if result and result[-1]["kind"] == "lifecycle_bulk" else None
-        )
-        if (
-            batch is None
-            or batch["scope"] != proposal["scope"]
-            or len(batch["operations"]) >= 16
-        ):
-            batch = dict(
-                kind="lifecycle_bulk",
-                scope=proposal["scope"],
-                world_epoch=proposal["world_epoch"],
-                operations=[],
-            )
-            result.append(batch)
-        candidate = dict(batch, operations=batch["operations"] + [proposal])
-        if len(json.dumps(candidate, separators=(",", ":")).encode()) > 224 * 1024:
-            batch = dict(
-                kind="lifecycle_bulk",
-                scope=proposal["scope"],
-                world_epoch=proposal["world_epoch"],
-                operations=[],
-            )
-            result.append(batch)
-        batch["operations"].append(proposal)
-    return result
+                outcome = {"status": "applied"}
+            else:
+                receipt = None
+                if publication:
+                    affected_group = proposal["group_id"]
+                else:
+                    kwargs = dict(
+                        present=True,
+                        excluded_ids=excluded,
+                        draw=proposal["draw"],
+                        configuration=proposal["configuration"],
+                        prepared=proposal,
+                    )
+                    if kind == "reproduction":
+                        kwargs.update(
+                            indexed=birth_edges,
+                            players=players,
+                            group_draw=proposal["group_draw"],
+                        )
+                    receipt = domains[kind].attempt(store, proposal["ticket"], **kwargs)
+                    if receipt is None:
+                        return {"status": "stale_group"}
+                    affected_group = (
+                        receipt.get("child_group_id")
+                        if kind == "reproduction"
+                        else receipt.get("group_id")
+                    )
+                # The durable group/outbox stays claim-fenced; sockets do not
+                # retain the native map reservation while a peer is slow.
+                for group_id in () if affected_group is None else (affected_group,):
+                    batch = domains[kind].unpublished(store, *scope, group_id=group_id)
+                    if not batch:
+                        continue
+                    current = batch[-1]
+                    if current["status"] != "available" or any(
+                        m["id"] in excluded for m in current["members"]
+                    ):
+                        continue
+                    packets_to_publish.append(
+                        remove_message([m["id"] for m in current["members"]])
+                    )
+                    packets_to_publish.append(
+                        (12608, spawn_group(current["members"], group_id=group_id))
+                    )
+                    acknowledgements.extend((domains[kind], event) for event in batch)
+                outcome = {
+                    "status": (
+                        "duplicate"
+                        if receipt is not None and receipt["duplicate"]
+                        else "applied"
+                    )
+                }
+        for opcode, payload in packets_to_publish:
+            world.emit_location(*scope, opcode, payload)
+        for domain, event in acknowledgements:
+            domain.acknowledge(store, event)
+        return outcome
 
 
 def _apply_lifecycle_bulk(store, groups, harvests, world, proposal, *, world_epoch):
@@ -1148,17 +540,3 @@ def _apply_lifecycle_bulk(store, groups, harvests, world, proposal, *, world_epo
         skipped_operations=len(operations) - len(results),
         skip_reason="budget" if len(results) < len(operations) else None,
     )
-
-
-def _proposal_slots(proposals):
-    counts = {}
-    other = 0
-    for p in proposals:
-        if p.get("noop"):
-            continue
-        if p["kind"] in ("maturation", "reproduction"):
-            key = tuple(p["scope"])
-            counts[key] = counts.get(key, 0) + 1
-        else:
-            other += 1
-    return other + sum((count + 15) // 16 for count in counts.values())

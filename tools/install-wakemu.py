@@ -138,20 +138,47 @@ def _wakia_build_output(parts):
     )
 
 
+def _rust_build_output(parts):
+    """Cargo artifacts are outputs, not installer source or versioned assets."""
+    return parts[:3] == ("server", "rust-services", "target")
+
+
+SOURCE_ROOTS = (
+    "server",
+    "tools",
+    "database/.dockerignore",
+    "database/shop-assets",
+    "database/protocol",
+    "database/data",
+    "database/seeds",
+)
+
+
+def _source_inventory_path(parts):
+    return any(
+        parts[: len(prefix.parts)] == prefix.parts
+        for prefix in map(PurePosixPath, SOURCE_ROOTS)
+    )
+
+
 def source_inventory(root=ROOT):
     """Hash complete build/helper sources; data chunks have their own pack identity."""
     files = {}
-    for prefix in ("server", "tools", "database/shop-assets"):
-        for path in sorted((root / prefix).rglob("*")):
+    for prefix in SOURCE_ROOTS:
+        source = root / prefix
+        paths = [source] if source.is_file() else sorted(source.rglob("*"))
+        for path in paths:
             relative = path.relative_to(root)
             if any(
                 p in ("__pycache__", ".pytest_cache", ".venv", "venv", ".git")
                 for p in relative.parts
             ):
                 continue
-            if relative.parts[:3] == ("server", "data", "installation"):
+            if relative.parts[:3] == ("database", "data", "installation"):
                 continue
-            if _wakia_build_output(relative.parts):
+            if _wakia_build_output(relative.parts) or _rust_build_output(
+                relative.parts
+            ):
                 continue
             if (
                 path.is_file()
@@ -178,17 +205,21 @@ def archived_source_inventory(archive, *, include_wakia_build_outputs=False):
             ):
                 raise ValueError("Unsafe previous source archive")
             parts = path.parts
-            relevant = (
-                member.name == "compose.install.yaml"
-                or parts[:1] in (("server",), ("tools",))
-                or parts[:2] == ("database", "shop-assets")
+            relevant = member.name == "compose.install.yaml" or _source_inventory_path(
+                parts
             )
             if (
                 not relevant
                 or not member.isfile()
-                or parts[:3] == ("server", "data", "installation")
+                # Preserve pre-relocation archive receipts without a live-path fallback.
+                or parts[:3]
+                in (
+                    ("database", "data", "installation"),
+                    ("server", "data", "installation"),
+                )
                 or not include_wakia_build_outputs
                 and _wakia_build_output(parts)
+                or _rust_build_output(parts)
                 or any(
                     part in ("__pycache__", ".pytest_cache", ".venv", "venv", ".git")
                     for part in parts
@@ -219,7 +250,7 @@ def migrations(root=ROOT):
 
 
 def world_services(state):
-    """Validate the planner configuration and start WakIA with World."""
+    """Validate AI selection and start World with its native ecology worker."""
     selector = runpy.run_path(
         str(
             ROOT
@@ -227,7 +258,7 @@ def world_services(state):
         )
     )
     selector["read_config"](state / "world/ai-backend.json")
-    return ["wakia", "shop", "world"]
+    return ["wakia", "shop", "world", "ecology"]
 
 
 @contextmanager
@@ -466,7 +497,13 @@ class Installer:
                 raise ValueError("Materialized public seed identity changed")
         invalidated = {
             key: stages[key]
-            for key in ("compose-config", "build-world", "build-wakia", "build-shop")
+            for key in (
+                "compose-config",
+                "build-world",
+                "build-wakia",
+                "build-shop",
+                "build-ecology",
+            )
             if key in stages
         }
         transition = dict(
@@ -486,12 +523,13 @@ class Installer:
             invalidated_stages=invalidated,
             previous_images={
                 kind: "wakemu-install-" + kind + ":" + previous_sha[:16]
-                for kind in ("world", "ai", "wakia", "shop")
-                if kind != "wakia" or "build-wakia" in stages
+                for kind in ("world", "ai", "wakia", "shop", "ecology")
+                if (kind != "wakia" or "build-wakia" in stages)
+                and (kind != "ecology" or "build-ecology" in stages)
             },
             next_images={
                 kind: "wakemu-install-" + kind + ":" + self.source_sha[:16]
-                for kind in ("world", "ai", "wakia", "shop")
+                for kind in ("world", "ai", "wakia", "shop", "ecology")
             },
         )
         name = (
@@ -602,6 +640,7 @@ class Installer:
             "WAKFU_WORLD_IMAGE": "wakemu-install-world:" + self.source_sha[:16],
             "WAKIA_IMAGE": "wakemu-install-wakia:" + self.source_sha[:16],
             "WAKFU_SHOP_IMAGE": "wakemu-install-shop:" + self.source_sha[:16],
+            "WAKFU_ECOLOGY_IMAGE": "wakemu-install-ecology:" + self.source_sha[:16],
             "WAKFU_CATALOG_REVISION": active,
             "WAKFU_MINING_CATALOG_REVISION": mining,
             "WAKFU_FISHING_CATALOG_REVISION": fishing,
@@ -629,6 +668,7 @@ class Installer:
         self.run("build-world", self.compose("build", "world"))
         self.run("build-wakia", self.compose("build", "wakia"))
         self.run("build-shop", self.compose("build", "shop"))
+        self.run("build-ecology", self.compose("build", "ecology"))
         self.run(
             "start-storage",
             self.compose("up", "-d", "--no-build", "--wait", "postgres", "redis"),
@@ -771,7 +811,7 @@ class Installer:
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--data-pack", type=Path, default=ROOT / "server/data/installation"
+        "--data-pack", type=Path, default=ROOT / "database/data/installation"
     )
     parser.add_argument("--project", default="wakemu-install")
     parser.add_argument(

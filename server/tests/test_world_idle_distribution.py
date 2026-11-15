@@ -1,4 +1,5 @@
 """One redistribution request belongs to each real last-player departure."""
+
 import threading
 import unittest
 from types import SimpleNamespace
@@ -20,6 +21,7 @@ class WorldIdleEpisodeTests(unittest.TestCase):
             x=0,
             y=0,
             z=0,
+            direction=0,
         )
 
     def test_last_real_leave_creates_one_episode_and_reentry_exit_creates_another(self):

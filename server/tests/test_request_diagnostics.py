@@ -135,7 +135,7 @@ class RequestDiagnosticsTests(unittest.TestCase):
     def test_shared_malformed_decoder_rejection_has_no_stale_movement_fields(self):
         import ast
         from copy import deepcopy
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
         from unittest.mock import Mock
 
         source = (

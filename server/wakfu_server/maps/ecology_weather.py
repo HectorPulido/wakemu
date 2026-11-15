@@ -1,51 +1,7 @@
-"""External weather simulation and bounded world publication contracts.
+"""World-owned weather publication and conditional durable acknowledgement."""
 
-Proposals carry trusted service-produced forecast bytes, never client input.
-Database authority is reloaded before each publication; no socket operation
-occurs inside a transaction. Delivery remains at-least-once, not a client ACK.
-"""
 from . import territory_weather as weather
 from . import territory_weather_forecast as forecast
-
-
-def prepare(store, snapshot, limit=16):
-    """Advance durable weather and prepare JSON-safe publication proposals."""
-    if type(limit) is not int or not 1 <= limit <= 1000:
-        raise ValueError("Invalid ecology weather batch size")
-    epoch = snapshot.get("world_epoch", snapshot.get("epoch"))
-    weather.advance_due(store, limit=limit)
-    proposals = []
-    for event in weather.pending_publications(store, limit=limit):
-        proposals.append(
-            dict(
-                domain="weather",
-                operation="publish",
-                world_epoch=epoch,
-                event={
-                    key: event[key]
-                    for key in ("map_id", "instance_id", "region_id", "revision")
-                },
-            )
-        )
-    remaining = limit - len(proposals)
-    if remaining:
-        for event in forecast.pending_publications(store, limit=remaining):
-            try:
-                payload = forecast.packet_for_territory(store, **event)
-            except ValueError as error:
-                if str(error) == "Weather forecast policy was superseded":
-                    continue
-                raise
-            proposals.append(
-                dict(
-                    domain="weather",
-                    operation="forecast_publish",
-                    world_epoch=epoch,
-                    event=event,
-                    payload_hex=payload.hex(),
-                )
-            )
-    return proposals
 
 
 def apply(store, world, proposal):

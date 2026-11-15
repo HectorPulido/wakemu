@@ -3,7 +3,7 @@ import json
 import struct
 import threading
 import uuid
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import patch
 
 from postgres_case import PostgresCase

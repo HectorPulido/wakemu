@@ -62,7 +62,8 @@ class TeleporterApproachTests(unittest.TestCase):
             "z": 0,
             "approach_mask": 1,
             "approach_orientation": 3,
-            "approach_positions": [{"x": -245, "y": -89, "z": 0}],
+            "approach_positions": [{"x": -245, "y": -89, "z": 0, "metadata": b"\xff"}],
+            "metadata": b"\x00",
         }
         movement = Movement({"x": -245, "y": -89, "z": 0})
         allowed = callback(movement, map_id=527)

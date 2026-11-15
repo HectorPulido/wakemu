@@ -4,6 +4,7 @@
 This builds declared Wakemu reconstruction data, not recovered original numeric
 quest selectors. It never accepts a quest or installs a public gameplay file.
 """
+
 import argparse
 from collections import Counter, defaultdict
 import csv
@@ -480,7 +481,7 @@ def main():
     dungeon_path = evidence / "native-dungeon-qa/original-aKU-definitions.json"
     original_dungeon_bytes = dungeon_path.read_bytes()
     original_dungeons = json.loads(original_dungeon_bytes)
-    with gzip.open(ROOT / "server/protocol/npc-dialogues.json.gz", "rt") as stream:
+    with gzip.open(ROOT / "database/protocol/npc-dialogues.json.gz", "rt") as stream:
         native = json.load(stream)
     if configs["revision"] != monsters["revision"]:
         raise ValueError("Native monster/config release changed")

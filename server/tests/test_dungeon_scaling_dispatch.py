@@ -1,11 +1,11 @@
 """Fight-entry integration boundary for frozen dungeon scaling."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from unittest.mock import Mock, patch
 
 from wakfu_server import dungeon_scaling_entry
-
 
 SERVER_SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

@@ -1,4 +1,5 @@
 """Public bootstrap callers and native wire registration, no World startup."""
+
 import ast
 import base64
 from copy import deepcopy
@@ -6,7 +7,7 @@ import hashlib
 import ipaddress
 import json
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import sys
 import unittest
@@ -29,7 +30,7 @@ class SyntheticBootstrapTests(unittest.TestCase):
             os.environ.get(
                 "WAKFU_PUBLIC_BOOTSTRAP_DEFAULTS",
                 ROOT
-                / "server/data/installation/source/native-fresh-entity-defaults.json",
+                / "database/data/installation/source/native-fresh-entity-defaults.json",
             )
         )
         self.assertTrue(

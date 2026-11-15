@@ -1,8 +1,9 @@
 """Private company publication keeps host isolation and exterior return custody."""
+
 import ast
 import copy
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 
 from wakfu_server.characters import hero_private_scene
 from wakfu_server.haven_bag import HavenBagSession

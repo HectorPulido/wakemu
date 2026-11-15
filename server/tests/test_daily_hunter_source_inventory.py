@@ -1,4 +1,5 @@
 """Bounded original daily source contracts, without gameplay activation."""
+
 import csv
 import gzip
 import importlib.util
@@ -22,7 +23,9 @@ class DailyHunterSourceInventoryTests(unittest.TestCase):
             definitions = list(csv.DictReader(stream))
         with (base / "recurring-source-family-classification.csv").open() as stream:
             families = list(csv.DictReader(stream))
-        with gzip.open(ROOT / "server/protocol/npc-dialogues.json.gz", "rt") as stream:
+        with gzip.open(
+            ROOT / "database/protocol/npc-dialogues.json.gz", "rt"
+        ) as stream:
             nodes = json.load(stream)["nodes"]
         result = audit.compile_inventory(definitions, families, nodes)
         self.assertEqual(result["total"], 311)

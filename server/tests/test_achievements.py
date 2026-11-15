@@ -1,4 +1,5 @@
 """Qualified achievements consume exact identities and unit counter transitions."""
+
 import copy
 import hashlib
 import json
@@ -146,9 +147,11 @@ class AchievementTests(unittest.TestCase):
         class DB:
             def execute(self, sql, params):
                 return SimpleNamespace(
-                    fetchone=lambda: dict(team=0, status="finished", fight_kind="pve")
-                    if "combat_fight_participants" in sql
-                    else None
+                    fetchone=lambda: (
+                        dict(team=0, status="finished", fight_kind="pve")
+                        if "combat_fight_participants" in sql
+                        else None
+                    )
                 )
 
         player = SimpleNamespace(controlled=True, owner_id=7, team=0, hp=1)
@@ -185,11 +188,14 @@ class AchievementTests(unittest.TestCase):
         self.assertEqual(int.from_bytes(section[:2], "big"), len(section) - 3)
         self.assertEqual(int.from_bytes(section[2:6], "big"), 5)
         self.assertEqual(section[-1], 0)
+        # Official journal order: the active mission's counter and objective
+        # marks precede a newly activated mission's packets (2026-11-12
+        # capture, Rii frames 2577-2592 and 8494-8506).
         self.assertEqual(
             [op for op, _ in wire.changes(1, empty_state(), state, [617], [], 1000)],
-            [13312, 13295, 13832],
+            [13295, 13832, 13312],
         )
-        activation = wire.changes(1, empty_state(), state, [617], [], 1000)[0]
+        activation = wire.changes(1, empty_state(), state, [617], [], 1000)[-1]
         import struct
 
         self.assertEqual(activation, (13312, struct.pack(">qi", 1, 238)))

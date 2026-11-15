@@ -1,11 +1,12 @@
 """Reconnect recovery for stale placement fights uses durable abort authority."""
+
 import unittest
 import struct
 import ast
 import importlib
 from copy import deepcopy
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import patch
 
 from wakfu_server.combat_state import Actor, Fight

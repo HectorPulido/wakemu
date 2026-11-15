@@ -1,4 +1,5 @@
 """Explicit unassigned native terrain must not suppress another ecosystem UI."""
+
 import unittest
 from contextlib import nullcontext
 from types import SimpleNamespace
@@ -7,7 +8,6 @@ from wakfu_server import (
     ecology_context,
     ecology_population,
     territory_bonuses,
-    territory_bonus_updates,
 )
 
 
@@ -154,8 +154,6 @@ class EcologyUnassignedPopulationTests(unittest.TestCase):
         ), patch.object(
             territory_bonuses, "evaluate_population", return_value={"verified": True}
         ) as evaluate, patch.object(
-            territory_bonus_updates, "_revision", return_value=0
-        ), patch.object(
             territory_bonuses,
             "_catalog",
             return_value={"territories": {"7": {"map_id": 527}}},
@@ -175,11 +173,6 @@ class EcologyUnassignedPopulationTests(unittest.TestCase):
                 )
                 evaluate.assert_called_once_with(7, {81: 1}, {})
                 evaluate.reset_mock()
-                proposals = territory_bonus_updates.prepare(
-                    store, dict(world_epoch="epoch", players=[character])
-                )
-                self.assertEqual(proposals[0]["regions"], {"7": {"33": 30}})
-                evaluate.assert_called_once_with(7, {81: 1}, {})
             evaluate.reset_mock()
             with patch.object(
                 ecology_context.planting_cells,
@@ -187,10 +180,6 @@ class EcologyUnassignedPopulationTests(unittest.TestCase):
                 side_effect=ValueError("unknown native height"),
             ):
                 self.assertIsNone(territory_bonuses.current_region(DB(), character))
-                proposals = territory_bonus_updates.prepare(
-                    store, dict(world_epoch="epoch", players=[character])
-                )
-                self.assertEqual(proposals[0]["regions"], {"7": {}})
                 evaluate.assert_not_called()
 
     def test_packet_uses_certified_exclusion_and_unknown_still_blocks_entire_packet(

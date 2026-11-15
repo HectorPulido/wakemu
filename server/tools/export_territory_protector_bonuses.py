@@ -7,12 +7,11 @@ import hashlib
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "server/protocol/combat-state-definitions.json"
-PROTECTORS = ROOT / "server/protocol/monster-encyclopedia.json"
-REGIONS = ROOT / "server/protocol/ecology-regions.json"
-OUTPUT = ROOT / "server/protocol/territory-protector-bonuses.json"
+SOURCE = ROOT / "database/protocol/combat-state-definitions.json"
+PROTECTORS = ROOT / "database/protocol/monster-encyclopedia.json"
+REGIONS = ROOT / "database/protocol/ecology-regions.json"
+OUTPUT = ROOT / "database/protocol/territory-protector-bonuses.json"
 STATE_IDS = (1915, 1916, 1917)
 
 

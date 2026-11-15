@@ -1,10 +1,11 @@
 """Bounded build-context contract; no Docker execution or general matcher claim."""
+
 from pathlib import Path
 import re
 import unittest
 
-
 ROOT = Path(__file__).resolve().parents[1]
+DATABASE_ROOT = ROOT.parent / "database"
 
 
 def context_file_is_included(path, rules):
@@ -50,9 +51,35 @@ class InstallationBuildContextTests(unittest.TestCase):
         self,
     ):
         rules = (ROOT / ".dockerignore").read_text().splitlines()
+        database_rules = (DATABASE_ROOT / ".dockerignore").read_text().splitlines()
         dockerfile = (ROOT / "Dockerfile").read_text()
+        self.assertIn("FROM rust:1.100-slim-bookworm AS spatial-builder", dockerfile)
+        self.assertIn(
+            "cargo build --release --locked --package wakemu-world-spatial --lib",
+            dockerfile,
+        )
+        self.assertIn(
+            "COPY --from=spatial-builder /out/libwakemu_world_spatial.so "
+            "/usr/local/lib/wakemu/libwakemu_world_spatial.so",
+            dockerfile,
+        )
+        for source in (
+            "rust-services/Cargo.toml",
+            "rust-services/Cargo.lock",
+            "rust-services/crates/world-spatial/Cargo.toml",
+            "rust-services/crates/world-spatial/src/lib.rs",
+            "rust-services/crates/world-spatial/src/ffi.rs",
+            "rust-services/crates/world-spatial/src/engine.rs",
+        ):
+            self.assertTrue(context_file_is_included(source, rules), source)
+        self.assertFalse(
+            context_file_is_included(
+                "rust-services/target/release/libwakemu_world_spatial.so", rules
+            )
+        )
         self.assertRegex(dockerfile, r"(?m)^COPY tools ./tools$")
         self.assertNotRegex(dockerfile, r"(?m)^COPY tools/[^ ]+\.py ")
+        self.assertIn("COPY --from=database seeds ./database/seeds", dockerfile)
         tools = sorted(
             [*(ROOT / "tools").glob("*.py"), *(ROOT / "tools").glob("*.json")]
         )
@@ -65,13 +92,33 @@ class InstallationBuildContextTests(unittest.TestCase):
             if path.is_file()
             and (path.name.endswith(".json") or path.name.endswith(".json.gz"))
         )
-        self.assertEqual(len(assets), 35)
-        seeds = sorted((ROOT / "seeds").glob("*.sql"))
+        for relative in (
+            "wakfu_server/items/native_ranch_building_footprints.json",
+            "wakfu_server/items/native_ranch_building_definitions.json",
+            "wakfu_server/items/native_ranch_biome_topology.json",
+            "wakfu_server/maps/interior-base-partition-geometry.json",
+            "wakfu_server/storage/profession_equipment_effects.json",
+        ):
+            with self.subTest(required_asset=relative):
+                self.assertIn(ROOT / relative, assets)
+        seeds = sorted((DATABASE_ROOT / "seeds").glob("*.sql"))
         self.assertGreaterEqual(len(seeds), 10)
-        for path in [*tools, *assets, *seeds]:
+        for path in [*tools, *assets]:
             relative = path.relative_to(ROOT).as_posix()
             with self.subTest(included=relative):
                 self.assertTrue(context_file_is_included(relative, rules))
+        for path in [*seeds, *(DATABASE_ROOT / "protocol").glob("*")]:
+            if path.is_file():
+                relative = path.relative_to(DATABASE_ROOT).as_posix()
+                with self.subTest(database_included=relative):
+                    self.assertTrue(context_file_is_included(relative, database_rules))
+        for relative in (
+            "data/installation/manifest.json",
+            "backups/private.sql",
+            "secrets/password",
+        ):
+            with self.subTest(database_excluded=relative):
+                self.assertFalse(context_file_is_included(relative, database_rules))
         for relative in (
             ".runtime/private.json",
             "client/lib/client.jar",

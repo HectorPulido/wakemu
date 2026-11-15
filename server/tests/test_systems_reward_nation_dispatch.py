@@ -1,6 +1,7 @@
 """Exercise the actual dispatcher seams without opening network services."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch

@@ -248,6 +248,66 @@ class WorldTests(unittest.TestCase):
         self.assertEqual(observations, [(True, 11)])
         self.assertEqual(messages, [("new-peer", 12634, ("ride", 11))])
 
+    def test_paused_join_replays_concurrent_movement_and_membership_in_order(self):
+        paused, resume = threading.Event(), threading.Event()
+        messages = []
+
+        def spawn(character):
+            if character["id"] == 1 and not paused.is_set():
+                paused.set()
+                if not resume.wait(3):
+                    raise AssertionError("Paused spawn was not released")
+            return ("spawn", character["id"], character["x"])
+
+        world = World(
+            lambda character: ("spawn", character["id"], character["x"]),
+            lambda identity: ("remove", identity),
+            lambda peer, opcode, body: messages.append((peer, opcode, body)),
+        )
+        mover, departing = self.character(1), self.character(2)
+        world.join("mover", "mover-peer", mover)
+        world.join("departing", "departing-peer", departing)
+        world.deactivate_ecology(1, "mover")
+        world.deactivate_ecology(2, "departing")
+        self.assertIsNone(world.scope_presence(1134, 0))
+        messages.clear()
+        world.spawn = spawn
+
+        def change_scene():
+            world.update("mover", dict(mover, x=5), 13530, ("position", 1, 5))
+            self.assertTrue(world.leave(2, "departing"))
+            world.join("transient", "transient-peer", self.character(4))
+            self.assertTrue(world.leave(4, "transient"))
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            joining = pool.submit(world.join, "new", "new-peer", self.character(3))
+            try:
+                self.assertTrue(paused.wait(1))
+                changing = pool.submit(change_scene)
+                # Socket/bootstrap work must not retain the native scope mutex.
+                changing.result(timeout=1)
+                self.assertNotIn(3, world.players)
+                self.assertIsNone(world.scope_presence(1134, 0))
+                self.assertEqual(world.ecology_snapshot(), [])
+            finally:
+                resume.set()
+            joining.result(timeout=2)
+
+        self.assertEqual(
+            [(opcode, body) for peer, opcode, body in messages if peer == "new-peer"],
+            [
+                (12608, ("spawn", 1, 0)),
+                (12608, ("spawn", 2, 0)),
+                (13530, ("position", 1, 5)),
+                (12304, ("remove", 2)),
+                (12608, ("spawn", 4, 0)),
+                (12304, ("remove", 4)),
+            ],
+        )
+        self.assertEqual(set(world.players), {1, 3})
+        self.assertEqual(world.players[1][2]["x"], 5)
+        self.assertEqual([row["id"] for row in world.ecology_snapshot()], [3])
+
     def test_resynchronize_restores_visible_snapshot_only_to_current_peer(self):
         messages = []
         world = World(
@@ -389,7 +449,16 @@ class WorldTests(unittest.TestCase):
         )
 
     def character(self, id, map_id=1134, instance_id=0, x=0):
-        return dict(id=id, map_id=map_id, instance_id=instance_id, x=x)
+        return dict(
+            id=id,
+            account_id=id,
+            map_id=map_id,
+            instance_id=instance_id,
+            x=x,
+            y=0,
+            z=0,
+            direction=0,
+        )
 
     def chat_character(self, character_id, account_id, name, map_id):
         return dict(
@@ -401,6 +470,7 @@ class WorldTests(unittest.TestCase):
             x=0,
             y=0,
             z=0,
+            direction=0,
         )
 
     def test_private_chat_is_targeted_casefolded_cross_map_and_uses_distinct_ids(self):

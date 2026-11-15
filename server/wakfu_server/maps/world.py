@@ -1,5 +1,14 @@
-"""Live player membership, scoped by map and instance, separate from storage."""
+"""Socket and character projections for the native Rust world authority."""
+
+from collections.abc import Mapping
+from contextlib import contextmanager, nullcontext
+from copy import deepcopy
 import threading
+from weakref import WeakValueDictionary
+
+from wakfu_server.spatial_native import NativeSpatial
+
+_SPATIAL_FIELDS = ("map_id", "instance_id", "x", "y", "z", "direction")
 
 
 class WorldBatchDeliveryDeferred(OSError):
@@ -9,6 +18,37 @@ class WorldBatchDeliveryDeferred(OSError):
         self.delivered = delivered
         self.expected = expected
         super().__init__("World location batch has unpublished recipients")
+
+
+class _Players(Mapping):
+    """Read projections of native membership; never a Python membership store."""
+
+    def __init__(self, world):
+        self.world = world
+
+    def __getitem__(self, character_id):
+        with self.world.lock:
+            row = self.world.native.call("world.get", id=character_id)
+            if row is None:
+                raise KeyError(character_id)
+            return self.world._entry(row)
+
+    def __iter__(self):
+        with self.world.lock:
+            return iter(
+                tuple(
+                    row["character_id"] for row in self.world.native.call("world.list")
+                )
+            )
+
+    def __len__(self):
+        return len(self.world.native.call("world.list"))
+
+    def values(self):
+        return self.world.captured_players()
+
+    def items(self):
+        return tuple((entry[2]["id"], entry) for entry in self.values())
 
 
 class World:
@@ -23,19 +63,20 @@ class World:
         state_packets=None,
         own_state_packets=None,
         refresh_state_packets=None,
+        native=None,
     ):
+        self.native = native if native is not None else NativeSpatial()
+        # This lock protects only Python bindings and projection replacement.
+        # Native scope reservations are acquired before it; socket writes and
+        # database work never run inside this lock in the adapter.
         self.lock = threading.RLock()
-        self.players = {}
-        self._ecology_inactive = set()
-        # SQL-owned environmental operations read presence without acquiring
-        # the membership lock held by World movement commits waiting on SQL.
-        # Writers take membership -> presence; presence never encloses callbacks.
-        self._presence_lock = threading.Lock()
-        self._presence_generation = {}
-        self._presence_sequence = 0
-        self._empty_scopes = {}
-        self._empty_scope_sequence = 0
-        self._ranch_scene_refresh_sequence = 0
+        self.players = _Players(self)
+        self._peers = {}
+        self._peer_bindings = {}
+        self._pending_output = {}
+        self._write_gates = WeakValueDictionary()
+        self._draining = set()
+        self._lifecycle_locks = WeakValueDictionary()
         self.spawn = spawn
         self.remove = remove
         self.deliver = deliver
@@ -49,127 +90,190 @@ class World:
     def location(character):
         return character["map_id"], character["instance_id"]
 
+    @staticmethod
+    def _owner(row):
+        return row["account_id"], row["generation"], row["character_id"]
+
+    @staticmethod
+    def _scalars(character):
+        return {key: character[key] for key in ("id", "account_id", *_SPATIAL_FIELDS)}
+
+    def _character(self, row):
+        character = dict(self.native.character(self._owner(row), domain="world"))
+        character.update(
+            id=row["character_id"],
+            account_id=row["account_id"],
+            **{key: row[key] for key in _SPATIAL_FIELDS},
+        )
+        return character
+
+    def _entry(self, row):
+        return row["generation"], self._peers[row["binding_id"]], self._character(row)
+
+    def _entries(self, rows):
+        return tuple(self._entry(row) for row in rows)
+
+    def _actor_lock(self, character_id):
+        with self.lock:
+            lock = self._lifecycle_locks.get(character_id)
+            if lock is None:
+                lock = threading.RLock()
+                self._lifecycle_locks[character_id] = lock
+            return lock
+
+    @contextmanager
+    def scope_barrier(self, map_id, instance_id):
+        reservation = self.native.call(
+            "world.scope_acquire", map_id=map_id, instance_id=instance_id
+        )
+        try:
+            yield
+        finally:
+            self.native.call("world.scope_release", token=reservation["token"])
+
+    @contextmanager
+    def _actor_scopes(self, character_id, character=None):
+        row = self.native.call("world.get", id=character_id)
+        scopes = set()
+        if row is not None:
+            scopes.add((row["map_id"], row["instance_id"]))
+        if character is not None:
+            scopes.add(self.location(character))
+        reservations = []
+        try:
+            for map_id, instance_id in sorted(scopes):
+                reservations.append(
+                    self.native.call(
+                        "world.scope_acquire", map_id=map_id, instance_id=instance_id
+                    )["token"]
+                )
+            yield
+        finally:
+            for token in reversed(reservations):
+                self.native.call("world.scope_release", token=token)
+
+    def captured_players(self):
+        with self.lock:
+            return self._entries(self.native.call("world.list"))
+
     def snapshot(self):
-        """Detached player data for proximity policies; no peers or tokens."""
-        from copy import deepcopy
-
+        """Detached character-domain projections with native spatial fields."""
         with self.lock:
-            return [
-                (
-                    dict(deepcopy(character), _ecology_active=False)
-                    if (character["id"], generation) in self._ecology_inactive
-                    else deepcopy(character)
-                )
-                for generation, _, character in self.players.values()
-            ]
+            result = []
+            for row in self.native.call("world.list"):
+                character = deepcopy(self._character(row))
+                if not row["ecology_active"]:
+                    character["_ecology_active"] = False
+                result.append(character)
+            return result
 
-    def update_territory_projection(
-        self, generation, character, *, peer, bonuses, regional_state_id=None
-    ):
-        """Merge derived stats/icons while the exact owner/location lease is live."""
-        if regional_state_id is not None and (
-            type(regional_state_id) is not int
-            or regional_state_id not in (1915, 1916, 1917)
-        ):
-            raise ValueError("Invalid native regional state projection")
-        with self.lock:
-            entry = self.players.get(character["id"])
-            if (
-                entry is None
-                or entry[0] != generation
-                or entry[1] is not peer
-                or any(
-                    entry[2].get(key) != character.get(key)
-                    for key in ("map_id", "instance_id", "x", "y", "z")
-                )
-            ):
-                return False
-            entry[2]["territory_stat_bonuses"] = dict(bonuses)
-            entry[2]["_published_territory_stat_bonuses"] = dict(bonuses)
-            entry[2]["territory_state_id"] = regional_state_id
-            entry[2]["_published_territory_state_id"] = regional_state_id
-            for key in (
-                "hp",
-                "max_hp",
-                "hp_damage",
-                "health_dead",
-                "hp_zero_valid",
-                "territory_health_projection",
-                "equipment_hp_projection",
-            ):
-                if key in character:
-                    entry[2][key] = character[key]
-            return True
+    def owned_location(self, character_id, generation=None, *, ecology_active=False):
+        request = dict(id=character_id, generation=generation)
+        if ecology_active:
+            request["ecology_active"] = True
+        row = self.native.call("world.get", **request)
+        if row is None:
+            return None
+        return dict(
+            id=row["character_id"],
+            account_id=row["account_id"],
+            generation=row["generation"],
+            **{key: row[key] for key in _SPATIAL_FIELDS},
+        )
 
-    def ecology_snapshot(self):
-        """Copy only scalar occupancy authority, without inventory/build graphs."""
-        keys = ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
-        with self.lock:
-            return [
-                dict(
-                    {key: character[key] for key in keys},
-                    presence_generation=self._presence_generation[
-                        self.location(character)
-                    ],
-                )
-                for generation, _, character in self.players.values()
-                if (character["id"], generation) not in self._ecology_inactive
-            ]
+    def ecology_snapshot(self, map_id=None, instance_id=None):
+        return self.native.call(
+            "world.ecology_snapshot", map_id=map_id, instance_id=instance_id
+        )
+
+    def registered_scope_snapshot(self, map_id, instance_id):
+        return self.native.call(
+            "world.registered_scope_snapshot", map_id=map_id, instance_id=instance_id
+        )
 
     def scope_presence(self, map_id, instance_id):
-        """Constant-time live occupancy episode, absent after the last departure."""
-        with self._presence_lock:
-            return self._presence_generation.get((map_id, instance_id))
+        return self.native.call(
+            "world.scope_presence", map_id=map_id, instance_id=instance_id
+        )
+
+    def try_scope_positions(self, map_id, instance_id, presence_generation):
+        result = self.native.call(
+            "world.try_scope_positions",
+            map_id=map_id,
+            instance_id=instance_id,
+            presence_generation=presence_generation,
+        )
+        return None if result is None else tuple(tuple(point) for point in result)
 
     def empty_scope_generation(self, map_id, instance_id):
-        """Read the last actual departure episode without taking SQL-owned locks."""
-        with self._presence_lock:
-            return self._empty_scopes.get((map_id, instance_id))
+        return self.native.call(
+            "world.empty_scope_generation", map_id=map_id, instance_id=instance_id
+        )
 
     def empty_scope_snapshot(self):
-        with self._presence_lock:
-            return [
-                dict(map_id=scope[0], instance_id=scope[1], empty_generation=generation)
-                for scope, generation in sorted(self._empty_scopes.items())
-            ]
+        return self.native.call("world.empty_scope_snapshot")
 
     def deactivate_ecology(self, character_id, generation):
-        """Stop simulation authority immediately without disrupting combat cleanup."""
+        with self._actor_lock(character_id), self._actor_scopes(character_id):
+            return self.native.call(
+                "world.deactivate_ecology", id=character_id, generation=generation
+            )
+
+    def _capture(self, map_id, instance_id, **filters):
+        # Callers hold the metadata lock only for capture/materialization.
+        return self._entries(
+            self.native.call(
+                "world.capture", map_id=map_id, instance_id=instance_id, **filters
+            )
+        )
+
+    def _get(self, character_id, generation=None, peer=None):
+        request = dict(id=character_id, generation=generation)
+        if peer is not None:
+            request["peer_id"] = id(peer)
+        row = self.native.call("world.get", **request)
+        return None if row is None else (row, self._entry(row))
+
+    def _write_gate(self, peer, *, routing=False):
+        gate = getattr(peer, "write_lock", None)
+        if gate is not None:
+            return gate
         with self.lock:
-            entry = self.players.get(character_id)
-            if entry is None or entry[0] != generation:
-                return False
-            self._ecology_inactive.add((character_id, generation))
-            location = self.location(entry[2])
-            if not any(
-                self.location(other) == location
-                and (other["id"], lease) not in self._ecology_inactive
-                for lease, _, other in self.players.values()
+            if (
+                routing
+                and id(peer) not in self._draining
+                and not any(
+                    binding in self._pending_output
+                    for binding in self._peer_bindings.get(id(peer), ())
+                )
             ):
-                with self._presence_lock:
-                    self._presence_generation.pop(location, None)
-            return True
+                return nullcontext()
+            gate = self._write_gates.get(id(peer))
+            if gate is None:
+                gate = threading.RLock()
+                self._write_gates[id(peer)] = gate
+            return gate
 
-    def _send(self, peer, opcode, body):
-        try:
-            self.deliver(peer, opcode, body)
-            return True
-        except OSError as error:
-            if self.delivery_failure is not None:
-                try:
-                    self.delivery_failure(peer, opcode, error)
-                except Exception:
-                    pass  # Diagnostics must not prevent existing socket cleanup.
-            # Its connection worker owns lease cleanup and departure notification.
-            try:
-                peer.shutdown(2)
-            except OSError:
-                pass
-            return False
+    def _bind_peer(self, row, peer):
+        binding = row["binding_id"]
+        self._peers[binding] = peer
+        self._peer_bindings.setdefault(id(peer), set()).add(binding)
+        self._pending_output[binding] = [[], 0, False]
 
-    def _send_batch(self, peer, packets):
+    def _unbind_peer(self, row):
+        binding = row["binding_id"]
+        peer = self._peers.pop(binding, None)
+        self._pending_output.pop(binding, None)
+        if peer is not None:
+            bindings = self._peer_bindings[id(peer)]
+            bindings.discard(binding)
+            if not bindings:
+                del self._peer_bindings[id(peer)]
+
+    def _write_batch(self, peer, packets, *, single=False):
+        """Write with the caller's socket gate held and no world lock."""
         try:
-            if self.deliver_batch is None:
+            if single or self.deliver_batch is None:
                 for opcode, body in packets:
                     self.deliver(peer, opcode, body)
             else:
@@ -189,115 +293,202 @@ class World:
                 pass
             return False
 
-    def live_identity(self, *, character_id=None, name=None):
-        """Capture an identity and lease, without exposing its socket."""
-        from copy import deepcopy
+    def _route_batch(self, peer, packets, *, queued_is_success=False, single=False):
+        # The native phase is checked inside the same socket gate used by
+        # commit/drain. A capture made before commit cannot overtake its replay.
+        with self._write_gate(peer, routing=True):
+            with self.lock:
+                for binding in tuple(self._peer_bindings.get(id(peer), ())):
+                    row = self.native.call("world.delivery_state", binding_id=binding)
+                    if row is None or not row["pending"]:
+                        continue
+                    queue = self._pending_output[binding]
+                    size = sum(len(body) for _, body in packets)
+                    if queue[2] or len(queue[0]) >= 4096 or queue[1] + size > 4194304:
+                        queue[0].clear()
+                        queue[1] = 0
+                        queue[2] = True
+                        return False
+                    queue[0].append((packets, single))
+                    queue[1] += size
+                    # Durable publishers must not acknowledge queued packets.
+                    return queued_is_success
+            return self._write_batch(peer, packets, single=single)
 
+    def _send(self, peer, opcode, body):
+        return self._route_batch(
+            peer, ((opcode, body),), queued_is_success=True, single=True
+        )
+
+    def _send_batch(self, peer, packets):
+        return self._route_batch(peer, tuple(packets))
+
+    def _send_direct(self, peer, opcode, body):
+        with self._write_gate(peer):
+            return self._write_batch(peer, ((opcode, body),), single=True)
+
+    def live_identity(self, *, character_id=None, name=None):
         with self.lock:
-            entry = (
-                self.players.get(character_id)
-                if character_id is not None
-                else next(
+            if character_id is not None:
+                found = self._get(character_id)
+                entry = None if found is None else found[1]
+            else:
+                entry = next(
                     (
                         entry
-                        for entry in self.players.values()
+                        for entry in self.captured_players()
                         if entry[2]["name"].casefold() == name.casefold()
                     ),
                     None,
                 )
-            )
             return None if entry is None else (entry[0], deepcopy(entry[2]))
+
+    def refresh_projection(self, generation, character, *, peer=None):
+        """Replace only character-domain metadata for an exact native owner."""
+        with self.lock:
+            request = dict(
+                id=character["id"],
+                generation=generation,
+                account_id=character["account_id"],
+                position={key: character[key] for key in _SPATIAL_FIELDS},
+            )
+            if peer is not None:
+                request["peer_id"] = id(peer)
+            if not self.native.call("world.matches", **request):
+                return False
+            row = self.native.call("world.get", id=character["id"])
+            self.native.bind_character(self._owner(row), character, domain="world")
+            return True
+
+    def update_territory_projection(
+        self, generation, character, *, peer, bonuses, regional_state_id=None
+    ):
+        if regional_state_id is not None and (
+            type(regional_state_id) is not int
+            or regional_state_id not in (1915, 1916, 1917)
+        ):
+            raise ValueError("Invalid native regional state projection")
+        with self.lock:
+            if not self.native.call(
+                "world.matches",
+                id=character["id"],
+                generation=generation,
+                peer_id=id(peer),
+                position={key: character.get(key) for key in _SPATIAL_FIELDS[:-1]},
+            ):
+                return False
+            row = self.native.call("world.get", id=character["id"])
+            projection = self.native.character(self._owner(row), domain="world")
+            projection["territory_stat_bonuses"] = dict(bonuses)
+            projection["_published_territory_stat_bonuses"] = dict(bonuses)
+            projection["territory_state_id"] = regional_state_id
+            projection["_published_territory_state_id"] = regional_state_id
+            for key in (
+                "hp",
+                "max_hp",
+                "hp_damage",
+                "health_dead",
+                "hp_zero_valid",
+                "territory_health_projection",
+                "equipment_hp_projection",
+            ):
+                if key in character:
+                    projection[key] = character[key]
+            return True
 
     def set_guild_projection(
         self, character_id, generation, model, factor, *, member_bonus_records=None
     ):
-        """Update social fields for future spawns without replacing combat data."""
-        from copy import deepcopy
-
         with self.lock:
-            entry = self.players.get(character_id)
-            if entry is None or entry[0] != generation:
+            found = self._get(character_id, generation)
+            if found is None:
                 return False
-            character = dict(entry[2])
-            character["guild_native"] = deepcopy(model)
-            character["guild_moderation_factor"] = factor
-            character["guild_member_bonus_records"] = deepcopy(
+            projection = self.native.character(self._owner(found[0]), domain="world")
+            projection["guild_native"] = deepcopy(model)
+            projection["guild_moderation_factor"] = factor
+            projection["guild_member_bonus_records"] = deepcopy(
                 {} if member_bonus_records is None else member_bonus_records
             )
-            self.players[character_id] = (entry[0], entry[1], character)
             return True
 
     def guild_projection(self, character_id, generation):
-        from copy import deepcopy
-
         with self.lock:
-            entry = self.players.get(character_id)
-            if entry is None or entry[0] != generation:
+            found = self._get(character_id, generation)
+            if found is None:
                 return {}
             return {
-                key: deepcopy(entry[2][key])
+                key: deepcopy(found[1][2][key])
                 for key in (
                     "guild_native",
                     "guild_moderation_factor",
                     "guild_member_bonus_records",
                 )
-                if key in entry[2]
+                if key in found[1][2]
             }
 
     def send_to(self, character_id, generation, opcode, body):
-        """Send across maps to a captured lease; never redirect to its replacement.
-
-        Socket writes happen outside the world membership lock. A disconnect
-        after capture may fail delivery to the old peer, never the new one.
-        """
         with self.lock:
-            entry = self.players.get(character_id)
-            if entry is None or entry[0] != generation:
-                return False
-            peer = entry[1]
-        return self._send(peer, opcode, body)
+            found = self._get(character_id, generation)
+            peer = None if found is None else found[1][1]
+        return False if found is None else self._send(peer, opcode, body)
 
     def send_batch_to(self, character_id, generation, packets):
-        """Deliver a captured lease's ordered packet batch as one write."""
         with self.lock:
-            entry = self.players.get(character_id)
-            if entry is None or entry[0] != generation:
+            found = self._get(character_id, generation)
+            peer = None if found is None else found[1][1]
+        return False if found is None else self._send_batch(peer, tuple(packets))
+
+    def send_to_if_location(
+        self, character_id, generation, expected_location, opcode, body, *, peer=None
+    ):
+        return self.send_batch_to_if_location(
+            character_id, generation, expected_location, ((opcode, body),), peer=peer
+        )
+
+    def send_batch_to_if_location(
+        self, character_id, generation, expected_location, packets, *, peer=None
+    ):
+        with self.lock:
+            found = self._get(character_id, generation, peer)
+            if found is None:
                 return False
-            peer = entry[1]
-        return self._send_batch(peer, tuple(packets))
+            captured = found[1][1]
+        with getattr(captured, "write_lock", nullcontext()):
+            if not self.native.call(
+                "world.matches",
+                id=character_id,
+                generation=generation,
+                peer_id=id(captured),
+                position=dict(expected_location),
+            ):
+                return False
+            return self._send_batch(captured, tuple(packets))
 
     def request_ranch_scene_refresh(
         self, map_id, instance_id, *, exclude_generation=None
     ):
-        """Queue a scoped Ranch scene rebuild for peers currently at a location.
-
-        This only records work on each current connection. The socket worker
-        checks the captured lease and location before sending; repeated requests
-        coalesce by replacing the pending tuple with a newer nonce.
-        """
-        if type(map_id) is not int or type(instance_id) is not int:
-            raise ValueError("Ranch scene refresh requires an exact map location")
+        with self.scope_barrier(map_id, instance_id), self.lock:
+            plans = self.native.call(
+                "world.ranch_refresh",
+                map_id=map_id,
+                instance_id=instance_id,
+                exclude_generation=exclude_generation,
+            )
+            captured = tuple((self._entry(plan["row"])[1], plan) for plan in plans)
         queued = 0
-        with self.lock:
-            for generation, peer, character in self.players.values():
-                if self.location(character) != (map_id, instance_id) or (
-                    exclude_generation is not None and generation == exclude_generation
-                ):
-                    continue
-                self._ranch_scene_refresh_sequence += 1
-                request = (
-                    character["id"],
-                    generation,
-                    map_id,
-                    instance_id,
-                    self._ranch_scene_refresh_sequence,
+        for peer, plan in captured:
+            row = plan["row"]
+            try:
+                peer.ranch_scene_refresh = (
+                    row["character_id"],
+                    row["generation"],
+                    row["map_id"],
+                    row["instance_id"],
+                    plan["nonce"],
                 )
-                try:
-                    peer.ranch_scene_refresh = request
-                except (AttributeError, TypeError):
-                    # Only production Connection objects own the idle worker.
-                    continue
-                queued += 1
+            except (AttributeError, TypeError):
+                continue
+            queued += 1
         return queued
 
     def private_chat(
@@ -311,7 +502,6 @@ class World:
         valid_session,
         block_reason=None,
     ):
-        """Route native720 to current loaded peers across maps; never broadcast."""
         from wakfu_server import wire
 
         if (
@@ -324,7 +514,7 @@ class World:
             target = next(
                 (
                     entry
-                    for entry in self.players.values()
+                    for entry in self.captured_players()
                     if entry[2]["name"].casefold() == recipient.casefold()
                 ),
                 None,
@@ -333,24 +523,23 @@ class World:
             raise ValueError("Private chat sender session is stale")
         if sender[2]["account_id"] != account_id:
             raise ValueError("Private chat account identity disagrees")
-        # PostgreSQL and socket latency must not hold the membership lock.
         if not valid_session(sender):
             raise ValueError("Private chat sender session is stale")
         target_valid = target is not None and valid_session(target)
         with self.lock:
-            current_sender = self.players.get(sender_id)
-            if (
-                current_sender is None
-                or current_sender[0] != sender[0]
-                or current_sender[1] is not sender[1]
+            if not self.native.call(
+                "world.matches",
+                id=sender_id,
+                generation=sender[0],
+                peer_id=id(sender[1]),
             ):
                 raise ValueError("Private chat sender session is stale")
             if target_valid:
-                current_target = self.players.get(target[2]["id"])
-                target_valid = (
-                    current_target is not None
-                    and current_target[0] == target[0]
-                    and current_target[1] is target[1]
+                target_valid = self.native.call(
+                    "world.matches",
+                    id=target[2]["id"],
+                    generation=target[0],
+                    peer_id=id(target[1]),
                 )
         if not target_valid:
             self._send(sender[1], 349, wire.private_chat_error(101, recipient))
@@ -358,8 +547,6 @@ class World:
         if target[2]["id"] == sender_id:
             self._send(sender[1], 349, wire.private_chat_error(104))
             return False
-        # Social policy may query PostgreSQL. Keep it outside the membership
-        # lock, and evaluate against the captured account identities only.
         if block_reason is not None:
             reason = block_reason(account_id, target[2]["account_id"])
             if reason is not None:
@@ -369,64 +556,102 @@ class World:
         if not self._send(target[1], 720, payload):
             self._send(sender[1], 349, wire.private_chat_error(140))
             return False
-        # A captured peer can disconnect after validation; writes are not atomic
-        # with lease changes. Never redirect this payload to a replacement peer.
         return self._send(sender[1], 720, payload)
 
     def join(self, generation, peer, character):
-        with self.lock:
-            existing = self.players.get(character["id"])
-            if existing:
-                self.leave(character["id"], existing[0])
-            location = self.location(character)
-            self._ecology_inactive.discard((character["id"], generation))
-            entry = (generation, peer, dict(character))
-            for _, other_peer, other in self.players.values():
-                if self.location(other) == self.location(character):
-                    self._send(peer, 12608, self.spawn(other))
+        identity = character["id"]
+        with self._actor_lock(identity):
+            with self._actor_scopes(identity, character), self.lock:
+                prepared = self.native.call(
+                    "world.join_prepare",
+                    generation=generation,
+                    peer_id=id(peer),
+                    character=self._scalars(character),
+                )
+                previous = prepared.get("previous")
+                previous_entry = None if previous is None else self._entry(previous)
+                departed = self._entries(prepared.get("leave_recipients", ()))
+                row = prepared["row"]
+                self.native.bind_character(self._owner(row), character, domain="world")
+                self._bind_peer(row, peer)
+                if previous is not None:
+                    self._unbind_peer(previous)
+                    if self._owner(previous) != self._owner(row):
+                        self.native.release_character(self._owner(previous), "world")
+                ready = self.native.call("world.join_ready", token=prepared["token"])
+                others = self._entries(ready["others"])
+            try:
+                if previous_entry is not None:
+                    for _, old_peer, _ in departed:
+                        self._send(old_peer, 12304, self.remove(identity))
+                for _, other_peer, other in others:
+                    if not self._send_direct(peer, 12608, self.spawn(other)):
+                        raise OSError("World bootstrap delivery failed")
                     for opcode, body in self.state_packets(other):
-                        self._send(peer, opcode, body)
+                        if not self._send_direct(peer, opcode, body):
+                            raise OSError("World bootstrap delivery failed")
                     self._send(other_peer, 12608, self.spawn(character))
                     for opcode, body in self.state_packets(character):
                         self._send(other_peer, opcode, body)
-            self.players[character["id"]] = entry
-            with self._presence_lock:
-                self._empty_scopes.pop(location, None)
-                if location not in self._presence_generation:
-                    self._presence_sequence += 1
-                    self._presence_generation[location] = self._presence_sequence
-            for opcode, body in self.own_state_packets(character):
-                self._send(peer, opcode, body)
+                with self._write_gate(peer):
+                    with self._actor_scopes(identity, character), self.lock:
+                        queue = self._pending_output[row["binding_id"]]
+                        if queue[2]:
+                            raise OSError("World bootstrap replay exceeded its buffer")
+                        self._draining.add(id(peer))
+                        self.native.call("world.join_commit", token=prepared["token"])
+                        batches = self._pending_output.pop(row["binding_id"])[0]
+                    try:
+                        for packets, single in batches:
+                            if not self._write_batch(peer, packets, single=single):
+                                raise OSError("World bootstrap replay delivery failed")
+                        for opcode, body in self.own_state_packets(character):
+                            if not self._write_batch(
+                                peer, ((opcode, body),), single=True
+                            ):
+                                raise OSError("World own-state delivery failed")
+                    finally:
+                        with self.lock:
+                            self._draining.discard(id(peer))
+            except BaseException:
+                with self._actor_scopes(identity, character), self.lock:
+                    aborted = self.native.call(
+                        "world.join_abort", token=prepared["token"]
+                    )
+                    removed = aborted.get("removed")
+                    recipients = self._entries(aborted.get("recipients", ()))
+                    if removed is None:
+                        # A socket failure after commit still withdraws the actor.
+                        aborted = self.native.call(
+                            "world.leave", id=identity, generation=generation
+                        )
+                        removed = aborted["removed"]
+                        recipients = self._entries(aborted["recipients"])
+                    self._unbind_peer(row)
+                    self.native.release_character(self._owner(row), "world")
+                if removed is not None:
+                    for _, other_peer, _ in recipients:
+                        self._send(other_peer, 12304, self.remove(identity))
+                raise
 
     def resynchronize(self, generation, peer, character):
-        """Restore this loaded client's current visible actors and retained state.
-
-        Unlike `join`, this is directed only to the current peer: it must not
-        announce a second player arrival to the other occupants of the map.
-        The native client may clear its world view while leaving an external
-        fight, so this rebuilds the same current snapshot that `join` sends to
-        a newly loaded client.
-        """
-        from copy import deepcopy
-
         with self.lock:
-            own = self.players.get(character["id"])
-            if (
-                own is None
-                or own[0] != generation
-                or own[1] is not peer
-                or self.location(own[2]) != self.location(character)
+            if not self.native.call(
+                "world.matches",
+                id=character["id"],
+                generation=generation,
+                peer_id=id(peer),
+                position={key: character[key] for key in ("map_id", "instance_id")},
             ):
                 raise ValueError("World resynchronization session is stale")
-            location = self.location(character)
             others = tuple(
-                (other_peer, deepcopy(other))
-                for _, other_peer, other in self.players.values()
-                if other["id"] != character["id"] and self.location(other) == location
+                deepcopy(entry[2])
+                for entry in self._capture(
+                    *self.location(character), exclude_character_id=character["id"]
+                )
             )
-            own_state = tuple(self.own_state_packets(character))
-
-        for _, other in others:
+        own_state = tuple(self.own_state_packets(character))
+        for other in others:
             if not self._send(peer, 12608, self.spawn(other)):
                 return False
             for opcode, body in self.state_packets(other):
@@ -438,92 +663,66 @@ class World:
         return True
 
     def leave(self, character_id, generation):
-        with self.lock:
-            existing = self.players.get(character_id)
-            if not existing or existing[0] != generation:
+        with self._actor_lock(character_id), self._actor_scopes(
+            character_id
+        ), self.lock:
+            result = self.native.call(
+                "world.leave", id=character_id, generation=generation
+            )
+            row = result["removed"]
+            if row is None:
                 return False
-            self.deactivate_ecology(character_id, generation)
-            self.players.pop(character_id)
-            self._ecology_inactive.discard((character_id, generation))
-            location = self.location(existing[2])
-            if location[1] == 0 and not any(
-                self.location(other) == location
-                for _, _, other in self.players.values()
-            ):
-                with self._presence_lock:
-                    self._empty_scope_sequence += 1
-                    self._empty_scopes[location] = self._empty_scope_sequence
-            for _, peer, other in self.players.values():
-                if self.location(other) == self.location(existing[2]):
-                    self._send(peer, 12304, self.remove(character_id))
-            return True
+            recipients = self._entries(result["recipients"])
+            self._unbind_peer(row)
+            self.native.release_character(self._owner(row), "world")
+        for _, peer, _ in recipients:
+            self._send(peer, 12304, self.remove(character_id))
+        return True
 
     def update(self, generation, character, opcode, body, *, include_sender=True):
-        with self.lock:
-            existing = self.players.get(character["id"])
-            if not existing or existing[0] != generation:
-                raise ValueError("Character is no longer in this world session")
-            if self.location(character) != self.location(existing[2]):
-                raise ValueError("Map transition requires leave/join")
-            refresh_states = ()
-            if self.refresh_state_packets is not None and opcode in (15548, 13713):
-                from .planting_bonus_publisher import reset_actor
+        refresh_states = ()
+        if self.refresh_state_packets is not None and opcode in (15548, 13713):
+            from .planting_bonus_publisher import reset_actor
 
-                if reset_actor(opcode, body) == character["id"]:
-                    refresh_states = tuple(self.refresh_state_packets(character))
-            self.players[character["id"]] = (generation, existing[1], dict(character))
-            if refresh_states:
-                # A native format10/11 reconstruction clears actor effects.
-                # Keep reset and food-only replay adjacent for exactly the
-                # original audience, including the observer-only policy.
-                packets = ((opcode, body), *refresh_states)
-                for _, peer, other in self.players.values():
-                    if (
-                        include_sender or other["id"] != character["id"]
-                    ) and self.location(other) == self.location(character):
-                        self._send_batch(peer, packets)
-            else:
-                self.broadcast(
-                    generation,
-                    character["id"],
-                    opcode,
-                    body,
-                    include_sender=include_sender,
-                )
+            if reset_actor(opcode, body) == character["id"]:
+                refresh_states = tuple(self.refresh_state_packets(character))
+        with self._actor_lock(character["id"]), self._actor_scopes(
+            character["id"], character
+        ), self.lock:
+            row = self.native.call(
+                "world.update",
+                id=character["id"],
+                generation=generation,
+                character=self._scalars(character),
+            )
+            self.native.bind_character(self._owner(row), character, domain="world")
+            recipients = self._capture(
+                *self.location(character),
+                exclude_character_id=None if include_sender else character["id"],
+            )
+        if refresh_states:
+            packets = ((opcode, body), *refresh_states)
+            for _, peer, _ in recipients:
+                self._send_batch(peer, packets)
+        else:
+            for _, peer, _ in recipients:
+                self._send(peer, opcode, body)
 
     def refresh_location(self, generation, character):
-        """Publish canonical owner coordinates without sending a synthetic walk."""
-        from .planting_location import _validate_location
-
-        _validate_location(character)
-        direction = character.get("direction")
-        if type(direction) is not int or not 0 <= direction <= 7:
-            raise ValueError("Invalid owned world direction")
-        with self.lock:
-            existing = self.players.get(character["id"])
-            if (
-                existing is None
-                or existing[0] != generation
-                or existing[2]["account_id"] != character["account_id"]
-            ):
-                raise ValueError("Character is no longer in this world session")
-            if self.location(character) != self.location(existing[2]):
-                raise ValueError("Map transition requires leave/join")
-            updated = dict(existing[2])
-            updated.update(
-                {
-                    key: character[key]
-                    for key in ("map_id", "instance_id", "x", "y", "z", "direction")
-                }
+        with self._actor_lock(character["id"]), self._actor_scopes(
+            character["id"], character
+        ), self.lock:
+            self.native.call(
+                "world.update",
+                id=character["id"],
+                generation=generation,
+                account_id=character["account_id"],
+                character=self._scalars(character),
             )
-            self.players[character["id"]] = (generation, existing[1], updated)
+            # Location refresh deliberately preserves all nonspatial projections.
+            return None
 
     def publish_ecology(self, character):
-        """Publish committed ecology to the current session, wherever it is.
-
-        Preserve its current location and reject older revisions from delayed
-        asynchronous world births. Offline characters restore on next join.
-        """
         from wakfu_server.personal_ecology import packet
 
         payload = packet(character["id"], character["ecology_value"])
@@ -531,56 +730,49 @@ class World:
         if type(revision) is not int or revision < 0:
             raise ValueError("Invalid ecology revision")
         with self.lock:
-            current = self.players.get(character["id"])
-            if current is None:
+            current = self._get(character["id"])
+            if current is None or revision < current[1][2].get("ecology_revision", 0):
                 return False
-            if revision < current[2].get("ecology_revision", 0):
-                return False
-            updated = dict(
-                current[2],
-                ecology_value=character["ecology_value"],
-                ecology_revision=revision,
-            )
-            self.players[character["id"]] = (current[0], current[1], updated)
-            self.broadcast(current[0], character["id"], *payload)
-            return True
+            projection = self.native.character(self._owner(current[0]), domain="world")
+            projection["ecology_value"] = character["ecology_value"]
+            projection["ecology_revision"] = revision
+            recipients = self._capture(current[0]["map_id"], current[0]["instance_id"])
+        for _, peer, _ in recipients:
+            self._send(peer, *payload)
+        return True
 
     def information(self, character_id, text):
-        """Private game-log feedback for the currently loaded actor."""
         from wakfu_server.ecology_feedback import information
 
         message = information(text)
         with self.lock:
-            current = self.players.get(character_id)
-            return False if current is None else self._send(current[1], *message)
+            current = self._get(character_id)
+            peer = None if current is None else current[1][1]
+        return False if current is None else self._send(peer, *message)
 
     def information_all(self, text):
-        """Deliver an informational game-log entry to a snapshot of all peers.
-
-        Copy sockets while membership is locked, then write after releasing the
-        lock so a slow connection cannot stall joins, leaves, or world updates.
-        """
         from wakfu_server.ecology_feedback import information
 
         message = information(text)
         with self.lock:
-            peers = [peer for _, peer, _ in self.players.values()]
-        delivered = 0
-        for peer in peers:
-            if self._send(peer, *message):
-                delivered += 1
-        return delivered
+            peers = tuple(entry[1] for entry in self.captured_players())
+        return sum(self._send(peer, *message) for peer in peers)
 
     def broadcast(self, generation, character_id, opcode, body, *, include_sender=True):
         with self.lock:
-            existing = self.players.get(character_id)
-            if not existing or existing[0] != generation:
+            current = self._get(character_id, generation)
+            if current is None:
                 raise ValueError("Character is no longer in this world session")
-            for _, peer, other in self.players.values():
-                if (include_sender or other["id"] != character_id) and self.location(
-                    other
-                ) == self.location(existing[2]):
-                    self._send(peer, opcode, body)
+            peers = tuple(
+                entry[1]
+                for entry in self._capture(
+                    current[0]["map_id"],
+                    current[0]["instance_id"],
+                    exclude_character_id=None if include_sender else character_id,
+                )
+            )
+        for peer in peers:
+            self._send(peer, opcode, body)
 
     def emit_location(
         self,
@@ -593,20 +785,19 @@ class World:
         exclude_sessions=(),
         only_character_id=None,
     ):
-        """Broadcast a location event without requiring a player sender."""
-        exclude_sessions = frozenset(exclude_sessions)
         with self.lock:
-            for generation, peer, character in self.players.values():
-                if (
-                    generation != exclude_generation
-                    and (character["id"], generation) not in exclude_sessions
-                    and (
-                        only_character_id is None
-                        or character["id"] == only_character_id
-                    )
-                    and self.location(character) == (map_id, instance_id)
-                ):
-                    self._send(peer, opcode, body)
+            peers = tuple(
+                entry[1]
+                for entry in self._capture(
+                    map_id,
+                    instance_id,
+                    exclude_generation=exclude_generation,
+                    exclude_sessions=list(exclude_sessions),
+                    only_character_id=only_character_id,
+                )
+            )
+        for peer in peers:
+            self._send(peer, opcode, body)
 
     def emit_location_batch(
         self,
@@ -619,28 +810,19 @@ class World:
         exclude_character_id=None,
         require_all=False,
     ):
-        """Capture location peers, then deliver each ordered batch in one write.
-
-        Identity/generation exclusions have the same meaning as emit_location.
-        A remote-only actor component can exclude that actor's selected local
-        renderer by character identity, including a replacement session lease.
-        Captured sockets are never redirected to replacement leases. A failed
-        peer cannot prevent delivery to the other captured recipients.
-        Strict outbox callers raise after all sends if any recipient failed;
-        they retain their durable publication retry rather than acknowledging it.
-        """
         packets = tuple(packets)
         if not packets:
             return 0
-        exclude_sessions = frozenset(exclude_sessions)
         with self.lock:
             peers = tuple(
-                peer
-                for generation, peer, character in self.players.values()
-                if generation != exclude_generation
-                and (character["id"], generation) not in exclude_sessions
-                and character["id"] != exclude_character_id
-                and self.location(character) == (map_id, instance_id)
+                entry[1]
+                for entry in self._capture(
+                    map_id,
+                    instance_id,
+                    exclude_generation=exclude_generation,
+                    exclude_sessions=list(exclude_sessions),
+                    exclude_character_id=exclude_character_id,
+                )
             )
         delivered = sum(self._send_batch(peer, packets) for peer in peers)
         if require_all and delivered != len(peers):

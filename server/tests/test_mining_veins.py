@@ -1,4 +1,5 @@
 """PostgreSQL lifecycle tests for fixed, non-flora mineral placements."""
+
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 import json
@@ -14,10 +15,12 @@ from postgres_case import PostgresCase
 from wakfu_server.mining_veins import install, refill
 from wakfu_server.planting_runtime import Plantings
 from wakfu_server.planting import (
+    RESOURCES,
     SEEDS,
     complete as complete_plant,
-    prepare as prepare_plant,
+    decode as decode_plant,
 )
+from planting_fixture import prepare as prepare_plant
 from wakfu_server.inventory_items import grant
 from wakfu_server.profession_store import ensure_learned
 from wakfu_server.resource_collect import complete, prepare, reserve
@@ -206,7 +209,9 @@ class MiningVeinPostgresTests(PostgresCase):
             deliveries.append(value)
 
         deliveries = []
-        self.plantings.mature(None, publish=publish)
+        self.plantings.publish_growth(
+            None, publish=publish, resource_uid=self.slot["resource_uid"]
+        )
         self.assertEqual(1, len(deliveries))
         self.assertEqual(self.slot["resource_uid"], deliveries[0]["resource_uid"])
         self.assertEqual([13135], [opcode for opcode, _ in deliveries[0]["packets"]])
@@ -218,7 +223,8 @@ class MiningVeinPostgresTests(PostgresCase):
         ticket, harvested = self._harvest()
         self.assertTrue(harvested["applied"])
         self.assertEqual(13180, harvested["outcome"]["item_reference"])
-        self.assertEqual(50, harvested["outcome"]["xp"])
+        # The live native regional policy applies its -10% profession XP bonus.
+        self.assertEqual(45, harvested["outcome"]["xp"])
         self.assertEqual(
             "mineral_not_ecological", harvested["outcome"]["ecology"]["reason"]
         )
@@ -236,10 +242,23 @@ class MiningVeinPostgresTests(PostgresCase):
 
         # Publish the completed removal separately; before the policy deadline
         # the slot remains absent and after it the same fixed identity returns.
-        self.plantings.mature(None, publish=publish)
+        self.plantings.publish_growth(
+            None, publish=publish, resource_uid=self.slot["resource_uid"]
+        )
         self.assertEqual(0, refill(self.store))
         self.clock[0] += 30.1
-        respawn = self.plantings.mature(None, publish=publish)
+        due = self._slot()
+        self.assertEqual(
+            1,
+            refill(
+                self.store,
+                resource_uid=due["resource_uid"],
+                expected_available_at=due["available_at"],
+            ),
+        )
+        respawn = self.plantings.publish_growth(
+            None, publish=publish, resource_uid=self.slot["resource_uid"]
+        )
         self.assertEqual(1, len(respawn))
         self.assertEqual(self.slot["resource_uid"], respawn[0]["resource_uid"])
         self.assertEqual([13135], [opcode for opcode, _ in respawn[0]["packets"]])
@@ -458,11 +477,17 @@ class MiningVeinPostgresTests(PostgresCase):
     def test_failed_world_publish_keeps_spawn_outbox_for_retry(self):
         self._insert_slot()
         with self.assertRaisesRegex(RuntimeError, "publish unavailable"):
-            self.plantings.mature(
+            refill(
+                self.store,
+                resource_uid=self.slot["resource_uid"],
+                expected_available_at=self.slot["available_at"],
+            )
+            self.plantings.publish_growth(
                 None,
                 publish=lambda _delivery: (_ for _ in ()).throw(
                     RuntimeError("publish unavailable")
                 ),
+                resource_uid=self.slot["resource_uid"],
             )
         self.assertTrue(self._slot()["active"])
         self.assertFalse(self._outbox()["published"])
@@ -483,36 +508,45 @@ class MiningVeinPostgresTests(PostgresCase):
             "minimum_level": 0,
             "has_item_criteria": False,
         }
-        with patch.dict(SEEDS, {item_reference: synthetic}):
-            item = grant(
-                self.store,
+        item = grant(
+            self.store,
+            self.account,
+            self.generation,
+            self.character["id"],
+            reference=4275,
+            quantity=2,
+            container=self.character["inventory_containers"][0]["uid"],
+            slot=0,
+            allowed_references=SEEDS,
+        )
+        body = struct.pack(
+            ">iqii",
+            action_id,
+            item["uid"],
+            self.character["x"],
+            self.character["y"],
+        )
+        # Native Rust policy rejects mineral seed definitions. Independently,
+        # World must refuse a worker envelope inventing a seed absent from the
+        # installed catalog, without consuming its owner's inventory item.
+        prepared = dict(
+            character=self.character,
+            request=decode_plant(body),
+            seed=synthetic,
+            definition=RESOURCES[433],
+            z=self.character["z"],
+            probability=1.0,
+            duration_ms=3000,
+        )
+        with self.assertRaisesRegex(ValueError, "prepared seed differs"):
+            self.plantings.begin_prepared(
                 self.account,
                 self.generation,
-                self.character["id"],
-                reference=item_reference,
-                quantity=2,
-                container=self.character["inventory_containers"][0]["uid"],
-                slot=0,
-                allowed_references={item_reference: synthetic},
+                self.character,
+                body,
+                prepared,
+                lambda *_args: self.character["z"],
             )
-            body = struct.pack(
-                ">iqii",
-                action_id,
-                item["uid"],
-                self.character["x"],
-                self.character["y"],
-            )
-            with self.assertRaisesRegex(
-                ValueError, "Mining resources cannot be planted"
-            ):
-                prepare_plant(
-                    self.store,
-                    self.account,
-                    self.generation,
-                    self.character,
-                    body,
-                    authorize_cell=lambda *_args: self.character["z"],
-                )
         inventory = self.store.character(self.account, self.character["id"])[
             "inventory_items"
         ]

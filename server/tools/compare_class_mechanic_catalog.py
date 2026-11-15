@@ -4,6 +4,7 @@
 SQLite is a private disposable comparison index, never a game database. Native
 HMI ID allocation-only differences remain observations, not silent rewrites.
 """
+
 import gzip
 from collections import Counter
 import hashlib
@@ -16,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PRIVATE = ROOT / ".runtime/combat-review-20261007/mechanic-graph"
 REPORTS = ROOT / "docs/reports/combat-inventory"
 CATALOGS = [
-    ROOT / "server/protocol" / name
+    ROOT / "database/protocol" / name
     for name in (
         "spell-effect-trees.json",
         "granted-spell-effect-trees.json",
@@ -25,7 +26,7 @@ CATALOGS = [
     )
 ]
 NATIVE = PRIVATE / "native-graph.jsonl.gz"
-POINT_AREAS = ROOT / "server/protocol/native-point-areas.json"
+POINT_AREAS = ROOT / "database/protocol/native-point-areas.json"
 
 
 def sha(path):
@@ -166,9 +167,11 @@ def main():
                             "locations": json.loads(existing[1]) + [location],
                             "different_fields": fields,
                             "field_classifications": reasons,
-                            "classification": "metadata_only_native_equal"
-                            if "unclassified_definition_difference" not in reasons
-                            else "definition_field_difference_requires_review",
+                            "classification": (
+                                "metadata_only_native_equal"
+                                if "unclassified_definition_difference" not in reasons
+                                else "definition_field_difference_requires_review"
+                            ),
                         }
                     )
                 locations = json.loads(existing[1])

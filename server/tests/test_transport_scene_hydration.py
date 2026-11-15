@@ -1,7 +1,8 @@
 """Transport joins defer dynamic creates until the single ready/fallback replay."""
+
 import ast
 from contextlib import nullcontext
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace as NS
 import unittest
 from unittest.mock import Mock

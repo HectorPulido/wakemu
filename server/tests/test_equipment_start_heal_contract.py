@@ -1,4 +1,5 @@
 """Complete original copied-equipment graphs and fail-closed mutations."""
+
 import copy
 from functools import lru_cache
 from pathlib import Path
@@ -14,7 +15,7 @@ from wakfu_server.combat_static_catalogs import characteristic_registry
 @lru_cache(maxsize=None)
 def original_graph(reference):
     definition = native_catalog.record(
-        Path("server/protocol/native-copied-equipment-definitions.json"),
+        Path("database/protocol/native-copied-equipment-definitions.json"),
         "definitions",
         reference,
     )
@@ -28,7 +29,7 @@ def original_graph(reference):
     for root in roots:
         state_id = int(root["parameters"][0])
         state = native_catalog.record(
-            Path("server/protocol/combat-state-definitions.json"), "states", state_id
+            Path("database/protocol/combat-state-definitions.json"), "states", state_id
         )
         states[str(state_id)] = state
         pending = list(state["effect_ids"])
@@ -37,7 +38,7 @@ def original_graph(reference):
             if str(effect_id) in effects:
                 continue
             effect = native_catalog.record(
-                Path("server/protocol/combat-state-definitions.json"),
+                Path("database/protocol/combat-state-definitions.json"),
                 "effects",
                 effect_id,
             )

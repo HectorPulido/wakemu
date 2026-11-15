@@ -1,11 +1,12 @@
 """Exact event ownership fences ordinary ecology without erasing collisions."""
+
 from copy import deepcopy
 from threading import RLock
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from wakfu_server import ecology_population, monster_active_clocks
+from wakfu_server import ecology_population
 from wakfu_server import monster_harvest_ecology, monster_population_capacity
 from wakfu_server import (
     monster_population_cleanup,
@@ -162,36 +163,16 @@ class EnvironmentalOwnedGroupEcologyTests(unittest.TestCase):
             max_zone_members=100,
             max_zone_groups=100,
         )
-        # Seed a stale ordinary timer to prove the observer removes it as well
-        # as refusing to create clocks for newly observed event-owned actors.
+        # Rust owns observer cleanup and wild-only clock creation; native
+        # lifecycle_contract.rs covers that ownership episode. This World case
+        # deliberately supplies a due ordinary timer for the forbidden identity:
+        # execution must still refuse it before any draw or durable mutation.
         with store.connection() as db:
             for table in ("monster_maturation_timers", "monster_reproduction_timers"):
                 db.execute(
-                    f"INSERT INTO {table}(map_id,instance_id,monster_id,reference,remaining_ms) "
-                    "VALUES(1134,0,%s,%s,1000)",
+                    f"INSERT INTO {table}(map_id,instance_id,monster_id,reference,"
+                    "remaining_ms,due,cycle) VALUES(1134,0,%s,%s,0,true,1)",
                     (owned[0]["id"], reference),
-                )
-        for table in ("monster_maturation_timers", "monster_reproduction_timers"):
-            monster_active_clocks.observe(
-                store,
-                1134,
-                0,
-                present=True,
-                generation="owned-ecology-test",
-                now_ms=fixture.now,
-                table=table,
-                eligible_refs={reference},
-                policy_provider=lambda _: configuration,
-            )
-            with store.connection() as db:
-                self.assertEqual(
-                    {
-                        r["monster_id"]
-                        for r in db.execute(
-                            f"SELECT monster_id FROM {table} WHERE map_id=1134 AND instance_id=0"
-                        )
-                    },
-                    {wild["id"]},
                 )
         draw = Mock(
             side_effect=AssertionError(
@@ -214,7 +195,9 @@ class EnvironmentalOwnedGroupEcologyTests(unittest.TestCase):
                 indexed={},
                 draw=draw,
                 group_draw=draw,
-                choose=draw,
+                prepared=dict(
+                    expected_members=owned, destination=[0, 0, 0], child=None
+                ),
                 configuration=configuration,
             )
         )

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Index native class components, preserving common innates as a separate layer."""
+
 import ast
 from collections import Counter, defaultdict
 import csv, gzip, hashlib, json
@@ -43,9 +44,11 @@ def csv_write(path, rows):
         for row in rows:
             writer.writerow(
                 {
-                    key: json.dumps(value, ensure_ascii=False)
-                    if isinstance(value, (list, dict))
-                    else value
+                    key: (
+                        json.dumps(value, ensure_ascii=False)
+                        if isinstance(value, (list, dict))
+                        else value
+                    )
                     for key, value in row.items()
                 }
             )
@@ -55,7 +58,7 @@ def main():
     inputs = [
         GRAPH,
         REPORTS / "verification-ledger-20261007.json",
-        ROOT / "server/protocol/breed-innate-definitions.json",
+        ROOT / "database/protocol/breed-innate-definitions.json",
         ROOT / "server/wakfu_server/combat/combat_effect_targets.py",
         ROOT / "server/wakfu_server/combat/combat_effect_area.py",
         Path(__file__),
@@ -172,9 +175,11 @@ def main():
                 "root_effects": [
                     target for target in by_source[key] if target.startswith("effect:")
                 ],
-                "creation_source_route": "conditional audited type branch present"
-                if node.get("native_type") in supported_types
-                else "no audited type branch observed",
+                "creation_source_route": (
+                    "conditional audited type branch present"
+                    if node.get("native_type") in supported_types
+                    else "no audited type branch observed"
+                ),
                 "owner_affiliation_contract": "shared capture implemented; per-prototype runtime unknown",
                 "stat_initialization_contract": "prototype-dependent authority; complete domain unknown",
                 "QI_registration_contract": "actual bcO/slot/history required; per-prototype runtime unknown",
@@ -210,17 +215,21 @@ def main():
                 "native_mask": mask,
                 "dependent_effect_ids": references,
                 "source_known_flag_mask": known,
-                "unhandled_mask_bits": mask & ~known
-                if type(mask) is int and mask >= 0
-                else None,
-                "source_route": "null-area policy present"
-                if selector is None
-                else "fcE flag branch present"
-                if selector["class"] == "fcE"
-                and type(mask) is int
-                and mask >= 0
-                and not mask & ~known
-                else "unhandled selector class or flags",
+                "unhandled_mask_bits": (
+                    mask & ~known if type(mask) is int and mask >= 0 else None
+                ),
+                "source_route": (
+                    "null-area policy present"
+                    if selector is None
+                    else (
+                        "fcE flag branch present"
+                        if selector["class"] == "fcE"
+                        and type(mask) is int
+                        and mask >= 0
+                        and not mask & ~known
+                        else "unhandled selector class or flags"
+                    )
+                ),
                 "runtime_native_actor_fact_producers": "required; complete domain unknown",
                 "semantic_client_contract": "unknown",
             }

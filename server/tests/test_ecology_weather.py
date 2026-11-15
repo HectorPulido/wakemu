@@ -1,5 +1,4 @@
 import contextlib
-import json
 import unittest
 from unittest.mock import patch
 
@@ -37,16 +36,6 @@ class EcologyWeatherTests(unittest.TestCase):
             event=self.event,
             world_epoch="test-epoch",
         )
-
-    def test_prepare_total_bound_and_json_safe(self):
-        event = dict(self.event, weather="STORM", native_payload=b"native")
-        with patch.object(domain.weather, "advance_due") as advance, patch.object(
-            domain.weather, "pending_publications", return_value=[event]
-        ), patch.object(domain.forecast, "pending_publications") as forecasts:
-            proposals = domain.prepare(object(), {"world_epoch": "test-epoch"}, limit=1)
-        advance.assert_called_once()
-        forecasts.assert_not_called()
-        self.assertEqual(json.loads(json.dumps(proposals)), [self.proposal])
 
     def test_stale_authority_never_publishes_or_acknowledges(self):
         store = Store(None)
@@ -86,15 +75,16 @@ class EcologyWeatherTests(unittest.TestCase):
     def test_forecast_service_encodes_world_uses_prepared_payload(self):
         event = {key: value for key, value in self.event.items() if key != "revision"}
         event["policy_version"] = 3
-        with patch.object(domain.weather, "advance_due"), patch.object(
-            domain.weather, "pending_publications", return_value=[]
-        ), patch.object(
-            domain.forecast, "pending_publications", return_value=[event]
-        ), patch.object(
-            domain.forecast, "packet_for_territory", return_value=b"forecast"
-        ):
-            proposals = domain.prepare(object(), {"epoch": "fallback-epoch"}, 1)
-        self.assertEqual(proposals[0]["world_epoch"], "fallback-epoch")
+        # Native weather planner owns encoding; World consumes its frozen wire payload.
+        proposals = [
+            {
+                "domain": "weather",
+                "operation": "forecast_publish",
+                "world_epoch": "fallback-epoch",
+                "event": event,
+                "payload_hex": b"forecast".hex(),
+            }
+        ]
         store = Store(event)
         with patch.object(domain.forecast, "publish_to_world") as publish, patch.object(
             domain.forecast, "acknowledge_publication", return_value=True

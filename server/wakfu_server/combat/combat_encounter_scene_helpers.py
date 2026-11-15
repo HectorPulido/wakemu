@@ -4,6 +4,7 @@ Ordinary reference records retain their exact native shape and books. The
 manifest owns only initial scene roles and a separate current-controller link.
 It does not insert actors into a world group or manufacture307/207/933 effects.
 """
+
 from copy import deepcopy
 
 from .combat_quest_scene_authority import canonical_digest
@@ -117,15 +118,23 @@ def _cells(character, members, definitions):
     return selected
 
 
-def prepare_scene_roster(store, character, members):
+def prepare_scene_roster(store, character, members, *, mission_allies=None):
     """Return extended ordinary sources and a frozen explicit reconstruction.
 
     Caller retains original world-group membership independently. Only this
     returned combat roster gains initial scene actors. IDs use the existing
-    durable ordinary-NPC identity allocator.
+    durable ordinary-NPC identity allocator. Quest producers may supply a
+    typed mission_allies admission after their durable mission/room checks.
     """
     members = tuple(members)
-    if tuple(member["ref"] for member in members) not in ((3518,), (5848,), (4689,)):
+    mission_declaration = None
+    if mission_allies is not None:
+        from .combat_mission_allies import validate
+
+        mission_declaration = validate(mission_allies, character, members)
+    if mission_declaration is None and tuple(
+        member["ref"] for member in members
+    ) not in ((3518,), (5848,), (4689,)):
         return members, None
     from .combat_encounter_roles import role_assignment, ORDINARY_POLICY
 
@@ -141,11 +150,12 @@ def prepare_scene_roster(store, character, members):
         for member in members
     ):
         return members, None
-    scope = (
-        _ruel_scene(store, character, members)
-        if members[0]["ref"] == 4689
-        else _scene(character, members)
-    )
+    if mission_declaration is not None:
+        scope = mission_allies.policy, mission_declaration["helpers"]
+    elif members[0]["ref"] == 4689:
+        scope = _ruel_scene(store, character, members)
+    else:
+        scope = _scene(character, members)
     if scope is None:
         return members, None
     policy, definitions = scope
@@ -215,19 +225,24 @@ def prepare_scene_roster(store, character, members):
                 "reviewed guide:three globs; initial assembly is explicit reconstruction",
             ]
             if policy == SECURITY_POLICY
-            else [
-                "scenario2335:event19732:invoke Ruel",
-                "native4690:level15/HP300",
-                "native4689:level15/HP80",
-            ]
-            if policy == RUEL_POLICY
-            else [
-                "native guide175:level96/player-controlled allies",
-                "native5849:9149/9169",
-                "native5850:9169",
-            ]
+            else (
+                [
+                    "scenario2335:event19732:invoke Ruel",
+                    "native4690:level15/HP300",
+                    "native4689:level15/HP80",
+                ]
+                if policy == RUEL_POLICY
+                else [
+                    "native guide175:level96/player-controlled allies",
+                    "native5849:9149/9169",
+                    "native5850:9169",
+                ]
+            )
         ),
     )
+    if mission_declaration is not None:
+        source["mission_admission"] = mission_allies.record()
+        source["source_facts"] = list(mission_declaration["facts"])
     return members + tuple(helpers), dict(
         source=source, source_digest=canonical_digest(source)
     )
@@ -241,19 +256,35 @@ def validated_manifest(manifest):
     ):
         raise ValueError("Initial scene helper manifest changed")
     source = manifest["source"]
+    from .combat_mission_allies import declaration, validate_manifest
+
+    mission_declaration = (
+        validate_manifest(source)
+        if declaration(source.get("policy")) is not None
+        else None
+    )
     if (
         source.get("schema") != SCHEMA
         or source.get("version") != 1
-        or source.get("policy") not in (SPIRIT_POLICY, SECURITY_POLICY, RUEL_POLICY)
+        or (
+            source.get("policy") not in (SPIRIT_POLICY, SECURITY_POLICY, RUEL_POLICY)
+            and mission_declaration is None
+        )
         or source.get("authority") != "explicit_source_backed_wakemu_reconstruction"
     ):
         raise ValueError("Unknown initial scene helper authority")
     expected = (
-        ((5849, "player", "principal"), (5850, "player", "principal"))
-        if (source["policy"] == SPIRIT_POLICY)
-        else ((4690, "player", "self"),)
-        if source["policy"] == RUEL_POLICY
-        else ((3516, "npc", "self"),) * 3
+        tuple((row[1], row[3], row[4]) for row in mission_declaration["helpers"])
+        if mission_declaration is not None
+        else (
+            ((5849, "player", "principal"), (5850, "player", "principal"))
+            if (source["policy"] == SPIRIT_POLICY)
+            else (
+                ((4690, "player", "self"),)
+                if source["policy"] == RUEL_POLICY
+                else ((3516, "npc", "self"),) * 3
+            )
+        )
     )
     actual = tuple(
         (row["reference"], row["team_role"], row["controller_role"])
@@ -262,14 +293,26 @@ def validated_manifest(manifest):
     expected_original = (
         5848
         if source["policy"] == SPIRIT_POLICY
-        else 4689
-        if source["policy"] == RUEL_POLICY
-        else 3518
+        else 4689 if source["policy"] == RUEL_POLICY else 3518
     )
     if (
         actual != expected
-        or len(source["originals"]) != 1
-        or source["originals"][0]["reference"] != expected_original
+        or (
+            mission_declaration is None
+            and (
+                len(source["originals"]) != 1
+                or source["originals"][0]["reference"] != expected_original
+            )
+        )
+        or (
+            mission_declaration is not None
+            and any(
+                row["level"] != declaration_row[2]
+                for row, declaration_row in zip(
+                    source["helpers"], mission_declaration["helpers"]
+                )
+            )
+        )
         or any(
             type(row["actor_id"]) is not int or row["actor_id"] >= 0
             for row in source["helpers"]
@@ -422,6 +465,55 @@ def apply_helper_constructor_roles(
     return deepcopy(manifest)
 
 
+def initial_helper_appearances(fight):
+    """Create declared NPC world identities before cvb resolves its fighters.
+
+    Initial scene actors have no exploration spawn. Combat-only myE/myF data
+    cannot construct a missing bje, even when the complete cvb roster names it.
+    """
+    manifest = getattr(fight, "native_scene_helper_manifest", None)
+    if manifest is None:
+        return ()
+    source = validated_manifest(manifest)
+    from wakfu_server.monsters import owned_instance
+    from .combat_monster_world import spawn_monster
+
+    packets = []
+    for row in source["helpers"]:
+        actor = fight.actors.get(row["actor_id"])
+        if (
+            actor is None
+            or actor.controlled
+            or actor.owner_id is not None
+            or actor.effective_level != row["level"]
+            or getattr(actor, "native_summon_source", None) is not None
+            or helper_initial_team(fight, actor.id) != actor.team
+        ):
+            raise ValueError("Initial helper appearance lost its native constructor")
+        member = owned_instance(
+            row["reference"],
+            row["level"],
+            actor.id,
+            map_id=source["map_id"],
+            instance_id=source["instance_id"],
+            x=actor.position[0],
+            y=actor.position[1],
+            z=actor.position[2],
+            team=actor.team,
+        )
+        packets.append(
+            (
+                12608,
+                spawn_monster(
+                    member,
+                    group_id=-actor.id,
+                    direction=actor.direction,
+                ),
+            )
+        )
+    return tuple(packets)
+
+
 def helper_initial_team(fight, actor_id):
     manifest = getattr(fight, "native_scene_helper_manifest", None)
     if manifest is None:
@@ -511,6 +603,58 @@ def reward_eligible_members(fight, members):
         row["actor_id"] for row in source["helpers"] if not row["reward_eligible"]
     }
     return tuple(member for member in members if member["id"] not in excluded)
+
+
+def reward_excluded_actor_ids(fight):
+    """Recognize friendly NPC birth records without treating them as kills.
+
+    A native reference alone grants no exception to strict reward attribution.
+    The actual actor must retain its frozen helper constructor and native NPC
+    identity, independently of its current AI or controller routing. Ordinary
+    NPCs with no initial states have no state-initialization receipt.
+    """
+    manifest = getattr(fight, "native_scene_helper_manifest", None)
+    if manifest is None:
+        return frozenset()
+    source = validated_manifest(manifest)
+    excluded = set()
+    receipts = getattr(fight, "native_npc_initialization_receipts", {})
+    for row in source["helpers"]:
+        if row["reward_eligible"] or row["team_role"] != "player":
+            continue
+        actor = fight.actors.get(row["actor_id"])
+        if actor is None:
+            continue
+        origin = getattr(actor, "native_scene_helper_origin", None)
+        receipt = receipts.get(actor.id)
+        if (
+            actor.controlled
+            or actor.owner_id is not None
+            or getattr(actor, "native_summon_source", None) is not None
+            or origin
+            != dict(
+                source="explicit_initial_scene_npc",
+                fight_id=fight.id,
+                manifest_digest=manifest["source_digest"],
+                role=row["role"],
+            )
+            or actor.effective_level != row["level"]
+            or (
+                receipt is not None
+                and (
+                    not isinstance(receipt, dict)
+                    or receipt.get("initialized") is not True
+                    or receipt.get("ref") != row["reference"]
+                    or receipt.get("descriptor_level") != row["level"]
+                )
+            )
+        ):
+            raise ValueError(
+                "Reward-excluded helper lost its native constructor authority"
+            )
+        helper_initial_team(fight, actor.id)
+        excluded.add(actor.id)
+    return frozenset(excluded)
 
 
 def scene_helper_controller_records(fight):

@@ -1,10 +1,11 @@
 """Replay account data is loaded once per invocation, without bootstrap imports."""
+
 import ast
 import base64
 from copy import deepcopy
 import json
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 

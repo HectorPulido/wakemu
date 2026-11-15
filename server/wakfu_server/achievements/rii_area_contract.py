@@ -3,6 +3,7 @@
 This is not yet connected to combat: the producer must supply a single cast's
 server-selected, actually hit actors and relocate the sacks after each success.
 """
+
 from .lesson_area import observe
 
 
@@ -11,6 +12,8 @@ def initialize(fight, packets, *, action_id):
     contract = getattr(fight, "rii_area_lesson_contract", None)
     if contract is None:
         return False
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return True
     if (
         not isinstance(contract, dict)
         or fight.phase != "active"

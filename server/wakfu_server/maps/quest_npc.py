@@ -4,6 +4,7 @@ Ordinary unqualified NPC dialogue remains disabled. Published native quest
 markers may establish reconstructed placements, but never a client-authored
 objective/completion endpoint or an inferred edge from numerical ordering.
 """
+
 from copy import deepcopy
 import struct
 import ast
@@ -322,9 +323,10 @@ def _activate(db, store, character, row, definition):
         raise ValueError("Quest activation receipt lacks its running state")
     after = deepcopy(before)
     after["running"] = sorted(set(after["running"]) | {identity})
-    from wakfu_server.achievements.mission_progress import auto_track
+    from wakfu_server.achievements.mission_progress import auto_track, seed_counters
 
     auto_track(after, identity)
+    seed_counters(after, definition)
     storage.store(db, character["id"], after)
     return wire.changes(
         character["id"], before, after, [], [], int(store.now().timestamp() * 1000)

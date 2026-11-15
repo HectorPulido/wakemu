@@ -48,7 +48,10 @@ class ExchangeRulesCatalogTests(unittest.TestCase):
     ):
         mounts = json.loads(
             native_catalog.read_text(
-                Path(__file__).parents[1] / "protocol" / "mount-models.json",
+                Path(__file__).parents[2]
+                / "database"
+                / "protocol"
+                / "mount-models.json",
                 encoding="utf-8",
             )
         )["models"]

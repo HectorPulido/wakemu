@@ -1,4 +1,5 @@
 """One focused compiler delta; no geometry heap or PostgreSQL fixture."""
+
 import hashlib
 import json
 import unittest
@@ -102,7 +103,7 @@ class EnvironmentalResourceLevelCriteriaCompilerTests(unittest.TestCase):
         for filename, digest in seed_hashes.items():
             self.assertEqual(
                 hashlib.sha256(
-                    (compiler.ROOT / "server/seeds" / filename).read_bytes()
+                    (compiler.ROOT / "database/seeds" / filename).read_bytes()
                 ).hexdigest(),
                 digest,
             )

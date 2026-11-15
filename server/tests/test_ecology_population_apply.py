@@ -1,10 +1,17 @@
 """Durable ecology expiry and startup-publication retry contracts."""
+
 from types import SimpleNamespace
 from threading import RLock
 import unittest
 
 from postgres_case import PostgresCase
-from wakfu_server import ecology_population, monster_corpses, monster_initial_population
+from wakfu_server import (
+    ecology_population,
+    monster_corpses,
+    monster_initial_population,
+    native_catalog,
+)
+from wakfu_server.paths import DATA_ROOT
 from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import owned_instance
 
@@ -101,9 +108,26 @@ class EcologyPopulationApplyTests(PostgresCase):
     def test_initial_population_prepared_plan_is_idempotent_and_publication_retries(
         self,
     ):
-        plan = monster_initial_population.configured_plans()[0]
-        prepared = monster_initial_population.prepare_zone(self.store, plan)
-        self.assertIsNotNone(prepared)
+        # Frozen worker contract: World receives a configured native plan and the
+        # exact durable scope digest; it does not run the retired Python planner.
+        plan = native_catalog.load(DATA_ROOT / "initial-monster-population.json")[
+            "plans"
+        ][0]
+        with self.store.connection() as db:
+            policy = db.execute(
+                "SELECT value FROM settings WHERE name='monster_initial_population'"
+            ).fetchone()["value"]
+            digest = monster_initial_population._scope_digest(
+                monster_initial_population._scope_state(
+                    db, plan["map_id"], plan["instance_id"]
+                )
+            )
+        prepared = dict(
+            plan=plan,
+            policy=policy,
+            scope_digest=digest,
+            catalog_revision=native_catalog.release(),
+        )
         proposal = dict(prepared, kind="initial_population", world_epoch="boot-a")
         self.assertEqual(
             ecology_population.apply(

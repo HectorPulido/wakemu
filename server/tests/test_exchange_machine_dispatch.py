@@ -1,8 +1,9 @@
 """Exercise the production 13057 purchase branch without starting the server."""
+
 import ast
 from copy import deepcopy
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 

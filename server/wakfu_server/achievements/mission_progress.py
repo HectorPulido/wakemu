@@ -3,6 +3,7 @@
 Callers must authenticate and qualify events before invoking this function.
 Persistence and reward delivery remain in the existing achievement service.
 """
+
 from copy import deepcopy
 
 
@@ -13,6 +14,25 @@ def auto_track(state, identity):
     tracked = set(state["tracking"])
     if identity not in tracked and len(tracked) < 255:
         state["tracking"] = sorted(tracked | {identity})
+
+
+def seed_counters(state, definition):
+    """Initialise a freshly activated mission's native counters, as the server does.
+
+    The original journal announces each counter of an activated mission with an
+    absolute zero before its activation packets, so the tracker can render
+    "0/3" immediately. Existing values are never overwritten.
+    """
+    seeded = []
+    for objective in definition.get("cjJ") or ():
+        for condition in objective.get("ckf") or ():
+            for source in condition.get("ckn") or ():
+                key = str(source)
+                if type(source) is not int or source <= 0 or key in state["variables"]:
+                    continue
+                state["variables"][key] = 0
+                seeded.append(source)
+    return seeded
 
 
 def advance_objective(state, definition, objective_id, *, character, store, now_ms):

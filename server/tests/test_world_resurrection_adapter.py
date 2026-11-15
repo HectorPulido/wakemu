@@ -2,7 +2,7 @@
 
 import ast
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from unittest.mock import MagicMock, Mock, patch

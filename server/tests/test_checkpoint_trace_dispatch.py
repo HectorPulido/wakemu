@@ -1,6 +1,7 @@
 """Checkpoint stage instrumentation must accept an explicit fight identity."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from types import SimpleNamespace
 

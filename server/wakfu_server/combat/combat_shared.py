@@ -5,6 +5,7 @@ Every combat command must enter execute/ready/join; connection-local FSMs must
 not remain authoritative. Runtime/codec factories never send or persist inside
 these transactions: they produce owned packet batches before the FSM commits.
 """
+
 import struct
 import time
 import os
@@ -802,6 +803,9 @@ class Registry:
             ):
                 raise ValueError("Join target changed during admission")
             fight = shared.fight
+            private_owner = (shared.join_context or {}).get("world_scene_owner")
+            if private_owner is not None and session.character_id != private_owner:
+                raise ValueError("Owned scenario cannot admit another player")
             target = fight.actors.get(request["target_id"])
             if getattr(shared, "is_duel", False):
                 raise ValueError("Friendly duel roster cannot admit another fighter")
@@ -1767,9 +1771,9 @@ class Registry:
                 shared.reconnect_remaining_turn_seconds = None
             shared.participants[session.account_id] = session
             if fresh_world:
-                shared.pending_world_recoveries[
-                    session.account_id
-                ] = PendingWorldRecovery(session, fight_id)
+                shared.pending_world_recoveries[session.account_id] = (
+                    PendingWorldRecovery(session, fight_id)
+                )
             if recover_disconnected:
                 paused_at = getattr(shared, "reconnect_placement_paused_at", None)
                 if paused_at is not None:
@@ -1796,9 +1800,9 @@ class Registry:
             shared.reconnect_presentations.pop(session.account_id, None)
             shared.completed_reconnect_presentations.pop(session.account_id, None)
             if prepared.presentation is not None:
-                shared.reconnect_presentations[
-                    session.account_id
-                ] = PendingBirthPresentation.bind(session, prepared.presentation)
+                shared.reconnect_presentations[session.account_id] = (
+                    PendingBirthPresentation.bind(session, prepared.presentation)
+                )
             shared.outboxes[session.account_id] = deque(
                 [Batch(shared.sequence, packets, public_events=False)]
             )
@@ -1813,10 +1817,10 @@ class Registry:
                 shared.reconnect_presentations.pop(account, None)
                 shared.completed_reconnect_presentations.pop(account, None)
                 if account in staged_presentations:
-                    shared.reconnect_presentations[
-                        account
-                    ] = PendingBirthPresentation.bind(
-                        owner, staged_presentations[account]
+                    shared.reconnect_presentations[account] = (
+                        PendingBirthPresentation.bind(
+                            owner, staged_presentations[account]
+                        )
                     )
                 shared.outboxes[account] = deque(
                     [Batch(shared.sequence, owner_packets, public_events=False)]

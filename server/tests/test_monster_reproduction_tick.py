@@ -1,10 +1,14 @@
+from prepared_mob_fixtures import prepared_birth
+from wakfu_server.npc_actor_identity import MINIMUM
 import struct
 import unittest
 from unittest.mock import patch
 
 from postgres_case import PostgresCase
 from psycopg.types.json import Jsonb
-from wakfu_server import monster_reproduction
+from wakfu_server import monster_reproduction, ecology_mobs
+from types import SimpleNamespace
+import threading
 from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import REFERENCES, owned_instance
 from wakfu_server.monster_wander import edge_index
@@ -13,7 +17,8 @@ from wakfu_server.monster_wander import edge_index
 class MonsterReproductionTickTests(PostgresCase):
     def setUp(self):
         super().setUp()
-        # These tests intentionally exercise clocks/publication on synthetic cells.
+        # These tests exercise World commits/publication on explicit synthetic cells.
+        # Autonomous clock pacing lives in Rust lifecycle_contract/clock_cases.rs.
         habitat = patch(
             "wakfu_server.monster_habitat_cells.habitat_destination_allowed",
             return_value=True,
@@ -78,27 +83,70 @@ class MonsterReproductionTickTests(PostgresCase):
             (map_id, instance_id, opcode, body)
         )
 
-    def _tick(
-        self,
-        now,
-        packets,
-        *,
-        locations=None,
-        previous=(),
-        excluded=(),
-        emit=None,
-        generation="reproduction-world"
-    ):
-        return monster_reproduction.tick(
+    def _commit_due_birth_fixtures(self):
+        """Apply two explicit Rust due tickets through the real World authority."""
+        for parent in self.members:
+            with self.store.connection() as db:
+                db.execute(
+                    "INSERT INTO monster_reproduction_timers"
+                    "(map_id,instance_id,monster_id,reference,remaining_ms,due,cycle) "
+                    "VALUES(%s,%s,%s,%s,0,true,1)",
+                    (self.map_id, self.instance_id, parent["id"], parent["ref"]),
+                )
+            ticket = dict(
+                map_id=self.map_id,
+                instance_id=self.instance_id,
+                group_id=self.group_id,
+                monster_id=parent["id"],
+                reference=parent["ref"],
+                cycle=1,
+            )
+            result = monster_reproduction.attempt(
+                self.store,
+                ticket,
+                present=True,
+                indexed=self.indexed,
+                players=[],
+                excluded_ids=[],
+                draw=0.0,
+                group_draw=0.99,
+                prepared=prepared_birth(
+                    self.store,
+                    ticket,
+                    destination=(1, 0, 0) if parent["id"] == -78101 else (5, 0, 0),
+                    actor_id=-(MINIMUM + abs(parent["id"])),
+                ),
+            )
+            self.assertIsNotNone(result)
+            self.assertFalse(result["duplicate"])
+
+    def _publish(self, packets, *, excluded=(), emit=None):
+        world = SimpleNamespace(
+            snapshot=lambda: [
+                dict(
+                    id=7,
+                    map_id=self.map_id,
+                    instance_id=self.instance_id,
+                    x=99,
+                    y=99,
+                    z=0,
+                )
+            ],
+            emit_location=emit or self._emit(packets),
+        )
+        return ecology_mobs.apply(
             self.store,
-            {self.location} if locations is None else locations,
-            previous,
-            generation=generation,
-            now_ms=now,
-            indexed_by_map={self.map_id: self.indexed},
-            players=[],
-            excluded_ids=set(excluded),
-            emit=emit or self._emit(packets),
+            self.groups,
+            SimpleNamespace(lock=threading.RLock(), targets=set(excluded)),
+            world,
+            dict(
+                kind="publish_reproduction",
+                scope=list(self.location),
+                world_epoch="reproduction-world",
+                group_id=self.group_id,
+                expected_members=self._group()["members"],
+            ),
+            world_epoch="reproduction-world",
         )
 
     def _group(self):
@@ -129,11 +177,10 @@ class MonsterReproductionTickTests(PostgresCase):
         self.assertEqual(len(body), offset)
         return ids
 
-    def test_tick_coalesces_births_and_publishes_remove_then_latest_roster(self):
+    def test_world_coalesces_births_and_publishes_remove_then_latest_roster(self):
+        self._commit_due_birth_fixtures()
         packets = []
-        self._tick(0, packets)
-        with patch.object(monster_reproduction.secrets, "randbelow", return_value=0):
-            self._tick(60000, packets)
+        self._publish(packets)
         self.assertEqual([12304, 12608], [packet[2] for packet in packets])
         ids_removed = self._packet_ids(packets[0][3], remove=True)
         ids_spawned = self._packet_ids(packets[1][3], remove=False)
@@ -145,16 +192,7 @@ class MonsterReproductionTickTests(PostgresCase):
         self.assertEqual([], self._unpublished())
 
     def test_stale_ack_does_not_mark_event_published(self):
-        # Create an outbox event through the actual due-cycle transaction.
-        packets = []
-        self._tick(0, packets)
-
-        def fail_emit(*_):
-            raise OSError("hold publication for stale-ack test")
-
-        with patch.object(monster_reproduction.secrets, "randbelow", return_value=0):
-            with self.assertRaisesRegex(OSError, "hold publication"):
-                self._tick(60000, packets, emit=fail_emit)
+        self._commit_due_birth_fixtures()
         event = self._unpublished()[0]
         current = self._group()
         moved = [dict(member) for member in current["members"]]
@@ -165,102 +203,41 @@ class MonsterReproductionTickTests(PostgresCase):
         self.assertEqual(2, len(self._unpublished()))
 
     def test_fighting_and_harvesting_defer_publication_and_retry(self):
+        self._commit_due_birth_fixtures()
         packets = []
-        self._tick(0, packets)
-
-        def fail_emit(*_):
-            raise OSError("hold publication for lease test")
-
-        with patch.object(monster_reproduction.secrets, "randbelow", return_value=0):
-            with self.assertRaisesRegex(OSError, "hold publication"):
-                self._tick(60000, packets, emit=fail_emit)
-        self.assertEqual(2, len(self._unpublished()))
-
         with self.store.connection() as db:
             fight_id = db.execute(
-                "INSERT INTO combat_fights(status) VALUES('active') " "RETURNING id"
+                "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
             ).fetchone()["id"]
         lease, _ = self.groups.claim(self.key, "reproduction-fight", fight_id)
-        self._tick(61000, packets)
+        self._publish(packets)
         self.assertEqual([], packets)
         self.assertEqual(2, len(self._unpublished()))
         self.assertTrue(self.groups.finish(lease, defeated=False))
-
-        # A harvesting sibling also holds back the whole roster snapshot.
-        self._tick(62000, packets, excluded={self.members[1]["id"]})
+        self.assertEqual(
+            self._publish(packets, excluded={self.members[1]["id"]}),
+            dict(status="harvesting"),
+        )
         self.assertEqual([], packets)
         self.assertEqual(2, len(self._unpublished()))
-        self._tick(63000, packets)
+        self._publish(packets)
         self.assertEqual([12304, 12608], [row[2] for row in packets])
         self.assertEqual([], self._unpublished())
 
-    def test_active_clock_pauses_when_absent_or_restarted_and_babies_have_no_clock(
-        self,
-    ):
-        packets = []
-        self._tick(0, packets)
-        self._tick(30000, packets)
-        self._tick(90000, packets, locations=set(), previous={self.location})
-        self._tick(500000, packets, generation="new-restart")
-        self.assertEqual([], packets)
-        with self.store.connection() as db:
-            timers = db.execute(
-                "SELECT monster_id,remaining_ms,last_active_ms,due FROM "
-                "monster_reproduction_timers WHERE map_id=%s AND instance_id=%s",
-                self.location,
-            ).fetchall()
-        self.assertEqual(2, len(timers))
-        self.assertTrue(
-            all(row["remaining_ms"] == 30000 and not row["due"] for row in timers)
-        )
-        self._tick(529999, packets, generation="new-restart")
-        self.assertEqual([], packets)
-        with patch.object(monster_reproduction.secrets, "randbelow", return_value=0):
-            self._tick(530000, packets, generation="new-restart")
-        self.assertEqual([12304, 12608], [row[2] for row in packets])
-
-        # Initial-form offspring enter the ordinary reproduction clock too,
-        # allowing a newly established group to grow from a singleton.
-        with self.store.connection() as db:
-            births = db.execute(
-                "SELECT child_id,child FROM monster_reproduction_receipts "
-                "WHERE map_id=%s AND instance_id=%s AND child_id IS NOT NULL",
-                self.location,
-            ).fetchall()
-        self.assertTrue(births)
-        children = {row["child_id"]: row["child"] for row in births}
-        monster_reproduction.observe(
-            self.store,
-            *self.location,
-            present=True,
-            generation="new-restart",
-            now_ms=590000
-        )
-        with self.store.connection() as db:
-            child_timers = db.execute(
-                "SELECT monster_id,reference FROM monster_reproduction_timers "
-                "WHERE map_id=%s AND instance_id=%s AND monster_id=ANY(%s)",
-                (*self.location, list(children)),
-            ).fetchall()
-        self.assertEqual(set(children), {row["monster_id"] for row in child_timers})
-        self.assertEqual(
-            {actor_id: child["ref"] for actor_id, child in children.items()},
-            {row["monster_id"]: row["reference"] for row in child_timers},
-        )
-
     def test_emission_failure_retains_outbox_for_exact_packet_retry(self):
-        packets = []
-        self._tick(0, packets)
+        self._commit_due_birth_fixtures()
+        attempted = []
 
-        def fail(*_):
+        def fail(*packet):
+            attempted.append(packet)
             raise OSError("injected reproduction emit failure")
 
-        with patch.object(monster_reproduction.secrets, "randbelow", return_value=0):
-            with self.assertRaisesRegex(OSError, "injected reproduction emit failure"):
-                self._tick(60000, packets, emit=fail)
+        with self.assertRaisesRegex(OSError, "injected reproduction emit failure"):
+            self._publish([], emit=fail)
         self.assertEqual(2, len(self._unpublished()))
         retry = []
-        self._tick(70000, retry)
+        self._publish(retry)
+        self.assertEqual(retry[0], attempted[0])
         self.assertEqual([12304, 12608], [row[2] for row in retry])
         self.assertEqual([], self._unpublished())
 

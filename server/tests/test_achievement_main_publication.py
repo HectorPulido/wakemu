@@ -1,7 +1,8 @@
 """Achievement publication replaces only verified owned native section bytes."""
+
 import ast
 import hashlib
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from unittest.mock import patch
 from wakfu_server import wire
@@ -47,6 +48,39 @@ class AchievementEntityPublicationTests(unittest.TestCase):
                 )
             with self.assertRaisesRegex(ValueError, "achievement"):
                 wire.minimal_entity(body, dict(level=6, achievement_section="notbytes"))
+
+    def test_existing_actor_refresh_preserves_model_without_touching_other_sections(
+        self,
+    ):
+        native = achievement_wire.section(self.state())
+        body = b"\x0aprefixoldachievementstail"
+        layout = dict(
+            template_sha256=hashlib.sha256(body).hexdigest(),
+            sections=[dict(name="ACHIEVEMENTS", start=7, end=22)],
+        )
+        character = dict(id=91, account_id=12, level=6, achievement_section=native)
+        from wakfu_server import hero_wire
+
+        with patch.dict(wire.ENTITY_LAYOUTS, {10: layout}), patch.object(
+            wire, "position", side_effect=lambda blob, character: blob
+        ), patch.object(
+            wire, "header", side_effect=lambda blob, account, character: blob
+        ):
+            expected = body[:7] + b"\x00\x00\x00" + body[22:]
+            self.assertEqual(wire.refresh_player(body, character)[1][10:], expected)
+            self.assertEqual(hero_wire.refresh(body, character)[1][10:], expected)
+            without_section = {
+                key: value
+                for key, value in character.items()
+                if key != "achievement_section"
+            }
+            self.assertEqual(
+                wire.refresh_player(body, without_section)[1][10:], expected
+            )
+            self.assertEqual(hero_wire.refresh(body, without_section)[1][10:], expected)
+            # Initial activation uses the complete achievement authority.
+            initial = hero_wire.refresh(body, character, preserve_achievements=False)
+            self.assertEqual(initial[1][10:], body[:7] + native + body[22:])
 
     def test_actual_finish_paths_use_postgroup_progression_callback(self):
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"

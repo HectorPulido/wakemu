@@ -18,7 +18,7 @@ public class ExportNativeInteractiveStates {
     }
     public static void main(String[] args) throws Exception {
         apw.bGL().dd("jar:file:" + Path.of("client/contents/bdata").toAbsolutePath() + "/%d.jar!/%d.bin");
-        JsonArray rows = JsonParser.parseString(Files.readString(Path.of("server/protocol/native-map-objects.json"))).getAsJsonArray();
+        JsonArray rows = JsonParser.parseString(Files.readString(Path.of("database/protocol/native-map-objects.json"))).getAsJsonArray();
         List<Map<String, Object>> states = new ArrayList<>();
         int failures = 0;
         for (JsonElement entry : rows) {

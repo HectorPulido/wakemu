@@ -61,7 +61,7 @@ def main():
     report = audit(
         frames,
         module.KNOWN,
-        json.loads((root / "server/protocol/catalog.json").read_text()),
+        json.loads((root / "database/protocol/catalog.json").read_text()),
     )
     result = {
         "frame_count": len(frames),

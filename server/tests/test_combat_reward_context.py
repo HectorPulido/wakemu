@@ -1,6 +1,7 @@
 import unittest
+from contextlib import nullcontext
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from wakfu_server.combat_state import Actor
 from wakfu_server.combat_actor_snapshot import build_player_snapshot
@@ -17,6 +18,176 @@ from wakfu_server.wire import proto_field
 
 
 class CombatRewardContextTests(unittest.TestCase):
+    def test_owned_mission_ally_is_excluded_only_with_exact_native_birth_authority(
+        self,
+    ):
+        import sys
+        from copy import deepcopy
+
+        from wakfu_server.combat_mission_allies import admit
+        from wakfu_server.combat_encounter_scene_helpers import (
+            apply_helper_constructor_roles,
+            prepare_scene_roster,
+        )
+
+        character = dict(
+            id=501,
+            account_id=41,
+            breed=8,
+            level=6,
+            hp=60,
+            max_hp=60,
+            map_id=312,
+            instance_id=99,
+            x=0,
+            y=0,
+            z=0,
+            active_build_index=0,
+            inventory_items=[],
+            builds={},
+        )
+        enemies = tuple(
+            dict(id=-301 - index, ref=2616, level=1, x=5 + index, y=2, z=0)
+            for index in range(3)
+        )
+        admission = admit(character, enemies, room=1)
+        store = SimpleNamespace(connection=lambda: nullcontext(None))
+        resources = {
+            1: {"current": 200, "maximum": 200},
+            2: {"current": 8, "maximum": 8},
+            3: {"current": 4, "maximum": 4},
+            4: {"current": 4, "maximum": 4},
+        }
+        with patch(
+            "wakfu_server.combat_encounter_scene_helpers._cells",
+            return_value=[(2, 0, 0)],
+        ), patch(
+            "wakfu_server.npc_actor_identity.allocate_block", return_value=900
+        ), patch(
+            "wakfu_server.combat_encounter_roles.role_assignment",
+            return_value=SimpleNamespace(policy="wakemu-ordinary-player0-npc1-v1"),
+        ), patch(
+            "wakfu_server.combat_supreme_scene_policies.policy_for_reference",
+            return_value=None,
+        ), patch(
+            "wakfu_server.native_catalog.release", return_value="fixture-revision"
+        ), patch.dict(
+            sys.modules,
+            {
+                "wakfu_server.combat_actor_snapshot": SimpleNamespace(
+                    native_npc_creation_values=lambda *_args, **_kwargs: resources
+                )
+            },
+        ):
+            roster, manifest = prepare_scene_roster(
+                store, character, enemies, mission_allies=admission
+            )
+
+        player = Actor(501, 0, (0, 0, 0), 60, 6, 3, 10, 6, 41, True)
+        player.effect_stats = {36: 17, 118: 100}
+        actors = {player.id: player}
+        for member in enemies:
+            actors[member["id"]] = Actor(
+                member["id"],
+                1,
+                (member["x"], member["y"], member["z"]),
+                100,
+                0,
+                0,
+                1,
+                member["level"],
+            )
+        helper_member = roster[-1]
+        helper = Actor(
+            helper_member["id"],
+            1,
+            (helper_member["x"], helper_member["y"], helper_member["z"]),
+            helper_member["hp"],
+            helper_member["ap"],
+            helper_member["mp"],
+            helper_member["initiative"],
+            helper_member["level"],
+        )
+        actors[helper.id] = helper
+        fight = SimpleNamespace(
+            id=672,
+            phase="finished",
+            winner=0,
+            actors=actors,
+            native_scene_helper_manifest=manifest,
+            # Native4691 has no initial states; ordinary setup creates no
+            # initialization receipt for it.
+            native_npc_initialization_receipts={},
+        )
+        apply_helper_constructor_roles(
+            character,
+            roster,
+            {member["id"]: actors[member["id"]] for member in roster},
+            {"map_id": 312, "native_encounter_scene_helpers": manifest},
+            fight_id=fight.id,
+            player_team=0,
+            npc_team=1,
+        )
+        with patch(
+            "wakfu_server.combat_reward_context.native_actor_catalog",
+            return_value={
+                "characteristics": {
+                    "36": {
+                        "name": "WISDOM",
+                        "hard_minimum": -2000,
+                        "hard_maximum": 2000,
+                    }
+                }
+            },
+        ):
+            filtered = build_context(fight, character, list(enemies))
+            full = build_context(fight, character, list(roster))
+            self.assertEqual(full, filtered)
+            self.assertEqual(
+                full["winners"],
+                [
+                    {
+                        "level": 6,
+                        "player": True,
+                        "eligible": True,
+                        "character_id": 501,
+                        "wisdom": 17,
+                    }
+                ],
+            )
+            self.assertEqual(
+                full["losers"], [{"level": 1, "monster_reference": 2616}] * 3
+            )
+
+            origin = deepcopy(helper.native_scene_helper_origin)
+            helper.native_scene_helper_origin["role"] = "forged"
+            with self.assertRaisesRegex(ValueError, "constructor authority"):
+                build_context(fight, character, list(roster))
+            helper.native_scene_helper_origin = origin
+
+            helper.effective_level = 5
+            with self.assertRaisesRegex(ValueError, "constructor authority"):
+                build_context(fight, character, list(roster))
+            helper.effective_level = 6
+
+            receipt = dict(initialized=True, ref=4691, descriptor_level=6)
+            fight.native_npc_initialization_receipts[helper.id] = receipt
+            receipt["descriptor_level"] = 5
+            with self.assertRaisesRegex(ValueError, "constructor authority"):
+                build_context(fight, character, list(roster))
+            fight.native_npc_initialization_receipts = {}
+
+            corrupted = deepcopy(manifest)
+            corrupted["source"]["helpers"][0]["reference"] = 4690
+            fight.native_scene_helper_manifest = corrupted
+            with self.assertRaisesRegex(ValueError, "manifest changed"):
+                build_context(fight, character, list(roster))
+            fight.native_scene_helper_manifest = manifest
+
+            del fight.native_scene_helper_manifest
+            with self.assertRaisesRegex(ValueError, "Unregistered NPC"):
+                build_context(fight, character, list(enemies))
+
     def setup_fight(self, *, winner=0, phase="finished", wisdom=17):
         account_id, character_id = 41, 501
         player = Actor(character_id, 0, (0, 0, 0), 80, 6, 3, 10, 1, account_id, True)

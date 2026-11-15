@@ -1,8 +1,9 @@
 """Emergency cancellation sends public marker removal only to World observers."""
+
 import ast
 from collections import defaultdict
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import threading
 from types import SimpleNamespace

@@ -1,7 +1,8 @@
 """Guard account -> group -> SQL lock order in the real dispatcher nodes."""
+
 import ast
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import threading
 import time
 import unittest
@@ -9,7 +10,6 @@ from types import SimpleNamespace
 
 from wakfu_server.combat_groups import Groups
 from wakfu_server.position_buffer import Positions
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

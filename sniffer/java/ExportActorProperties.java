@@ -20,7 +20,7 @@ public class ExportActorProperties {
   for(ffe p:ffe.values())properties.put(""+(p.aKg()&255),p.toString());
   Map<String,Object> result=Map.of("source","eGj.d(eGH) loads fsp with ffe.Ua; bbo.a(aMb,short)->blj; eGE.pIq.fsp empty",
    "player",Map.of("fight_properties",eGE.pIq.fsp(),"world_properties",eGE.pIq.fsq()),"npc",npc,"properties",properties);
-  Files.writeString(Path.of(args.length==0?"server/protocol/native-actor-properties.json":args[0]),new Gson().toJson(canonical(result)));
+  Files.writeString(Path.of(args.length==0?"database/protocol/native-actor-properties.json":args[0]),new Gson().toJson(canonical(result)));
   System.out.println("Exported "+npc.size()+" native NPC property profiles");
  }
 }

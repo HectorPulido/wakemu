@@ -1,11 +1,9 @@
-from contextlib import contextmanager
 import struct
 from concurrent.futures import ThreadPoolExecutor
 import json
 import unittest
 
 from psycopg.errors import CheckViolation
-from psycopg.types.json import Jsonb
 from postgres_case import PostgresCase
 from wakfu_server.combat_groups import Groups
 from wakfu_server.planting import RESOURCES, SEEDS
@@ -15,6 +13,7 @@ from wakfu_server.resource_collect import action, complete, prepare, reserve
 from wakfu_server.wire import proto_field
 from wakfu_server import native_catalog
 from wakfu_server.paths import DATA_ROOT
+from planting_fixture import grow_prepared, mature as mature_prepared
 
 
 def harvest_request(action_id, x, y):
@@ -53,9 +52,9 @@ class PlantGrowthGraphTests(PostgresCase):
             z=0,
             resource_reference=reference,
             stage=stage,
-            creation_time=int(self.clock[0] * 1000)
-            if creation_time is None
-            else creation_time,
+            creation_time=(
+                int(self.clock[0] * 1000) if creation_time is None else creation_time
+            ),
         )
         with self.store.connection() as db:
             db.execute(
@@ -98,11 +97,33 @@ class PlantGrowthGraphTests(PostgresCase):
         options = {}
         if random_draw is not None:
             options["random_draw"] = random_draw
-        return (runtime or self.runtime).mature(
+        return mature_prepared(
+            runtime or self.runtime,
             self.groups,
             publish=self.deliveries.append if publish is None else publish,
             **options,
         )
+
+    def emit_prepared_until(self, expected_uids, **options):
+        """Exercise bounded real Rust planning until this fixture batch drains.
+
+        Each expected UID is explicitly supplied by the graph test. This helper
+        does not determine eligibility or select a resource/stage in Python.
+        """
+        remaining = set(expected_uids)
+        emitted = []
+        for _ in range(len(remaining) + 1):
+            if not remaining:
+                return emitted
+            batch = self.mature(**options)
+            self.assertTrue(
+                batch, f"Rust planner left expected growth unpublished: {remaining}"
+            )
+            actual = {event["resource_uid"] for event in batch}
+            self.assertTrue(actual <= remaining, (actual, remaining))
+            remaining.difference_update(actual)
+            emitted.extend(batch)
+        self.fail(f"Prepared growth exceeded bounded fixture passes: {remaining}")
 
     def test_migration_graph_has_401_valid_local_edges(self):
         optional_variants = self.optional_variant_references()
@@ -249,7 +270,7 @@ class PlantGrowthGraphTests(PostgresCase):
                 for reference, stages in paths.items()
                 if len(stages) > edge_index + 1
             }
-            emitted = self.mature()
+            emitted = self.emit_prepared_until(expected)
             self.assertEqual(
                 set(expected), {event["resource_uid"] for event in emitted}
             )
@@ -461,7 +482,9 @@ class PlantGrowthGraphTests(PostgresCase):
         self.clock[0] += 3
         outcome = complete(self.store, ticket, collect_result())
         self.assertEqual(outcome["outcome"]["stage"], 2)
-        self.assertEqual(outcome["outcome"]["xp"], 50)
+        # Native regional ecology applies the current -10% profession bonus
+        # to this fixture's base 50 XP. Maturation must not grant extra XP.
+        self.assertEqual(outcome["outcome"]["xp"], 45)
         self.clock[0] += 30
         result = self.mature()
         self.assertEqual(len(result), 1)
@@ -478,7 +501,7 @@ class PlantGrowthGraphTests(PostgresCase):
                     "SELECT xp FROM account_professions WHERE account_id=%s AND profession_id=%s",
                     (account, profession_id),
                 ).fetchone()["xp"],
-                50,
+                45,
             )
         self.assertEqual(
             self.store.character(account, character["id"])["inventory_items"][0][
@@ -572,7 +595,7 @@ class PlantGrowthGraphTests(PostgresCase):
                 uid, reference, 4, creation_time=2_000_000, x=uid, y=uid + 1
             )
         self.clock[0] = 2030.0
-        result = self.mature()
+        result = self.emit_prepared_until(ids)
         self.assertEqual({delivery["resource_uid"] for delivery in result}, set(ids))
         self.assertTrue(all(self.resource_row(uid)["stage"] == 5 for uid in ids))
         self.clock[0] += 30
@@ -703,24 +726,21 @@ class PlantGrowthGraphTests(PostgresCase):
                 "UPDATE resource_growth_transitions SET to_stage=2,delay_ms=30000 "
                 "WHERE resource_reference=60 AND from_stage=1"
             )
-        original = self.store.connection
-        calls = [0]
-
-        @contextmanager
-        def change_policy_after_candidate_read():
-            calls[0] += 1
-            current_call = calls[0]
-            with original() as db:
-                yield db
-            if current_call == 1:
-                with original() as db:
-                    db.execute(
-                        "UPDATE resource_growth_transitions SET delay_ms=60000 "
-                        "WHERE resource_reference=60 AND from_stage=1"
-                    )
-
-        self.store.connection = change_policy_after_candidate_read
-        self.assertEqual(self.mature(), [])
+        expected = dict(self.resource_row(uid))
+        candidate = (expected, RESOURCES[60], (2, 30000, 1.0))
+        # The worker's already-prepared policy loses its authority before World
+        # commits it. Test the actual locked policy comparison, not query order.
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE resource_growth_transitions SET delay_ms=60000 "
+                "WHERE resource_reference=60 AND from_stage=1"
+            )
+        self.assertEqual(
+            grow_prepared(
+                self.runtime, self.groups, [candidate], publish=self.deliveries.append
+            ),
+            [],
+        )
         self.assertEqual(self.resource_row(uid)["stage"], 1)
         self.assertIsNone(self.outbox_row(uid))
 
@@ -778,7 +798,8 @@ class PlantGrowthGraphTests(PostgresCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             futures = [
                 pool.submit(
-                    runtime.mature,
+                    mature_prepared,
+                    runtime,
                     self.groups,
                     publish=self.deliveries.append,
                     random_draw=forbidden_reroll,
@@ -823,10 +844,13 @@ class PlantGrowthGraphTests(PostgresCase):
         self.add_resource(accepted_uids[1], 139, 3, creation_time=1_000_000)
         self.set_growth_probability(60, 3, 1.0)
         self.set_growth_probability(139, 3, 1.0)
-        result = self.mature(
+        # The native keyset cursor may split newly inserted low/high UIDs
+        # across its wrap. Drain the prepared passes while forbidding RNG.
+        result = self.emit_prepared_until(
+            accepted_uids,
             random_draw=lambda: (_ for _ in ()).throw(
                 AssertionError("probability one does not draw")
-            )
+            ),
         )
         self.assertEqual(
             set(accepted_uids), {event["resource_uid"] for event in result}

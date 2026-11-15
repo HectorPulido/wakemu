@@ -4,6 +4,7 @@ Actor snapshots and resolver decisions must be authoritative. Construct this
 handler on a transaction preview; its outbox is emitted only after the whole
 spell succeeds. Unsupported modes/flags fail before changing any resources.
 """
+
 from dataclasses import dataclass, replace
 from .combat_vitality_execution import (
     plan_damage_consumption,
@@ -140,9 +141,11 @@ class NativeDamageHandler:
             effect["parameters"],
             invocation.level,
             hp_context=dict(
-                {}
-                if plain_area_source(source)
-                else dict(source_hp=source.hp, source_max_hp=source.max_hp),
+                (
+                    {}
+                    if plain_area_source(source)
+                    else dict(source_hp=source.hp, source_max_hp=source.max_hp)
+                ),
                 target_hp=target_hp,
                 target_max_hp=target_max_hp,
             ),
@@ -163,9 +166,11 @@ class NativeDamageHandler:
 
         return apply_context_value(
             amount,
-            None
-            if invocation.native_context_hex is None
-            else bytes.fromhex(invocation.native_context_hex),
+            (
+                None
+                if invocation.native_context_hex is None
+                else bytes.fromhex(invocation.native_context_hex)
+            ),
         )
 
     def _calculate(self, effect, invocation, *, additional_final=0, runner=None):
@@ -310,12 +315,14 @@ class NativeDamageHandler:
             target_xy=target_position[:2],
             source_radius=0 if plain_area_source(source) else source.physical_radius,
             target_radius=target_radius,
-            source_total_hp=None
-            if plain_area_source(source)
-            else source.hp + source_stats[92],
-            source_total_max_hp=None
-            if plain_area_source(source)
-            else source.max_hp + source.effect_maxima[92],
+            source_total_hp=(
+                None if plain_area_source(source) else source.hp + source_stats[92]
+            ),
+            source_total_max_hp=(
+                None
+                if plain_area_source(source)
+                else source.max_hp + source.effect_maxima[92]
+            ),
             source_has_berserk=not plain_area_source(source),
         )
         from .combat_boss_outgoing_policy import (
@@ -339,13 +346,15 @@ class NativeDamageHandler:
                 additional_final=additional_final,
                 encounter_multiplier_bp=outgoing_level_factor_bp(self.fight, source),
                 additional_mastery=0 if runner is None else runner.additional_mastery,
-                additional_resistance=0
-                if runner is None
-                else runner.additional_resistance,
+                additional_resistance=(
+                    0 if runner is None else runner.additional_resistance
+                ),
                 ignore_resistance_cap=context.ignore_resistance_cap,
-                localization=context.localization
-                if effect["native_localization_enabled"]
-                else "FRONT",
+                localization=(
+                    context.localization
+                    if effect["native_localization_enabled"]
+                    else "FRONT"
+                ),
             ),
         )
         # eXt.fOC samples BLOCK after fau arithmetic and before bbJ criteria/RNG.
@@ -475,9 +484,9 @@ class NativeDamageHandler:
                 value=amount,
                 channel=2,
                 blocked=False if context is None else context.blocked,
-                localization="FRONT"
-                if context is None
-                else context.localization or "FRONT",
+                localization=(
+                    "FRONT" if context is None else context.localization or "FRONT"
+                ),
             )
         amount = runner.value
         invocation = runner_target_invocation(runner, invocation)
@@ -626,18 +635,13 @@ class NativeDamageHandler:
                     replace(context, blocked=False),
                     {**interpreted, "bypass_armor_and_barrier": True},
                 )
-                if (
-                    distance_damage
-                    and self.fight.rii_distance_lesson_contract["hits"] < 4
-                ):
+                if distance_damage:
                     from wakfu_server.ecology_feedback import information
+                    from wakfu_server.achievements.rii_distance_contract import hint
 
-                    message = (
-                        "Hit the sack from 3 or more cells away."
-                        if self.fight.rii_distance_lesson_contract["hits"] % 2
-                        else "Hit the sack from 1 or 2 cells away."
-                    )
-                    self.packets.append(information(message))
+                    message = hint(self.fight.rii_distance_lesson_contract["hits"])
+                    if message is not None:
+                        self.packets.append(information(message))
         if getattr(self.fight, "rii_states_lesson_contract", None) is not None:
             from wakfu_server.achievements.rii_states_contract import (
                 announce,
@@ -730,9 +734,11 @@ class NativeDamageHandler:
             base_uid=invocation.base_uid,
             armor_absorbed=result["armor_absorbed"],
             barrier_absorbed=result["barrier_absorbed"],
-            retained_payload=None
-            if pending_retained is None
-            else bytes.fromhex(pending_retained["payload"]),
+            retained_payload=(
+                None
+                if pending_retained is None
+                else bytes.fromhex(pending_retained["payload"])
+            ),
         )
         apply_damage_consumption(
             self.fight,

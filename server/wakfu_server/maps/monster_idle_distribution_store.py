@@ -1,17 +1,13 @@
-"""Durable once-per-empty-episode plans and atomic position-only outcomes.
+"""World-owned validation and atomic commit of frozen idle-distribution chunks.
 
-Planning performs no World calls. Commit callers hold the World presence fence,
-group lock and harvest lock before entering SQL; no callbacks run inside SQL.
-"""
+Callers hold the current World presence, group and harvest fences before SQL.
+No publication callback runs inside the position commit transaction."""
+
 from copy import deepcopy
-import json
-import logging
 
 from psycopg.types.json import Jsonb
 
 MAX_CHUNK_GROUPS = 8
-MAX_CHUNK_BYTES = 224 * 1024
-LOGGER = logging.getLogger(__name__)
 
 
 def _episode(epoch, scope, generation):
@@ -43,93 +39,6 @@ def _validate_move(move, scope):
             raise ValueError("Invalid idle distribution position")
 
 
-def freeze(store, *, epoch, scope, generation, moves):
-    """Persist the complete plan once, including an empty successful plan."""
-    episode = _episode(epoch, scope, generation)
-    moves = deepcopy(list(moves))
-    chunk_index = chunk_size = chunk_count = 0
-    rows, seen = [], set()
-    for ordinal, move in enumerate(moves):
-        _validate_move(move, scope)
-        if move["group_id"] in seen:
-            raise ValueError("Repeated idle distribution group")
-        seen.add(move["group_id"])
-        size = len(json.dumps(move, separators=(",", ":")).encode())
-        if size > MAX_CHUNK_BYTES:
-            rows.append((ordinal, chunk_index, move, "skipped", "group_byte_budget"))
-            continue
-        if chunk_count and (
-            chunk_count == MAX_CHUNK_GROUPS or chunk_size + size > MAX_CHUNK_BYTES
-        ):
-            chunk_index += 1
-            chunk_size = chunk_count = 0
-        rows.append((ordinal, chunk_index, move, "pending", None))
-        chunk_size += size
-        chunk_count += 1
-    has_pending = any(row[3] == "pending" for row in rows)
-    with store.connection() as db:
-        run = db.execute(
-            "INSERT INTO monster_idle_distribution_runs"
-            "(world_epoch,map_id,instance_id,empty_generation,status,finished_at) "
-            "VALUES(%s,%s,%s,%s,%s,CASE WHEN %s THEN clock_timestamp() END) "
-            "ON CONFLICT DO NOTHING RETURNING id",
-            (*episode, "pending" if has_pending else "completed", not has_pending),
-        ).fetchone()
-        if run is None:
-            return db.execute(
-                "SELECT id FROM monster_idle_distribution_runs WHERE world_epoch=%s "
-                "AND map_id=%s AND instance_id=%s AND empty_generation=%s",
-                episode,
-            ).fetchone()["id"]
-        for ordinal, chunk, move, status, reason in rows:
-            db.execute(
-                "INSERT INTO monster_idle_distribution_moves"
-                "(run_id,ordinal,chunk_index,group_id,expected_members,moved_members,"
-                "status,reason,finished_at) "
-                "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,"
-                "CASE WHEN %s THEN clock_timestamp() END)",
-                (
-                    run["id"],
-                    ordinal,
-                    chunk,
-                    move["group_id"],
-                    Jsonb(move["expected_members"]),
-                    Jsonb(move["moved_members"]),
-                    status,
-                    reason,
-                    status != "pending",
-                ),
-            )
-        return run["id"]
-
-
-def pending(store, *, epoch, scope, generation, limit=1):
-    """Return compact durable chunk identities; rosters stay in SQL."""
-    episode = _episode(epoch, scope, generation)
-    if type(limit) is not int or not 1 <= limit <= 256:
-        raise ValueError("Invalid idle distribution proposal limit")
-    with store.connection() as db:
-        rows = db.execute(
-            "SELECT r.id,m.chunk_index FROM monster_idle_distribution_runs r "
-            "JOIN monster_idle_distribution_moves m ON m.run_id=r.id "
-            "WHERE r.world_epoch=%s AND r.map_id=%s AND r.instance_id=%s "
-            "AND r.empty_generation=%s AND r.status='pending' AND m.status='pending' "
-            "GROUP BY r.id,m.chunk_index ORDER BY m.chunk_index LIMIT %s",
-            (*episode, limit),
-        ).fetchall()
-    return [
-        dict(
-            kind="idle_distribution",
-            world_epoch=epoch,
-            scope=list(scope),
-            empty_generation=generation,
-            run_id=r["id"],
-            chunk_index=r["chunk_index"],
-        )
-        for r in rows
-    ]
-
-
 def read_chunk(store, proposal):
     """Read immutable raw rosters for validation before acquiring World locks."""
     episode = _episode(
@@ -148,124 +57,6 @@ def read_chunk(store, proposal):
     return [dict(row) for row in rows]
 
 
-def prepare(store, snapshot, limit=1):
-    """Freeze each newly empty scope once; later ticks only resume its chunks."""
-    from .combat_terrain import map_geometry
-    from .monster_idle_distribution import plan, footprint_cells
-    from .monster_birth_home import ensure_homes, region_for_point
-
-    if type(limit) is not int or not 1 <= limit <= 256:
-        raise ValueError("Invalid idle distribution preparation limit")
-    epoch = snapshot["world_epoch"]
-    proposals = []
-    for empty in snapshot.get("empty_scopes", ()):
-        scope = (empty["map_id"], empty["instance_id"])
-        if scope[1] != 0:
-            continue
-        generation = empty["empty_generation"]
-        episode = _episode(epoch, scope, generation)
-        with store.connection() as db:
-            exists = db.execute(
-                "SELECT id FROM monster_idle_distribution_runs WHERE world_epoch=%s "
-                "AND map_id=%s AND instance_id=%s AND empty_generation=%s",
-                episode,
-            ).fetchone()
-            groups = (
-                None
-                if exists
-                else [
-                    dict(row)
-                    for row in db.execute(
-                        "SELECT group_id,status,members FROM combat_groups WHERE map_id=%s "
-                        "AND instance_id=%s ORDER BY group_id",
-                        scope,
-                    )
-                ]
-            )
-            if not exists:
-                from .monster_population_capacity import pending_growth_groups
-
-                reservations = pending_growth_groups(
-                    db, *scope, existing_group_ids=[g["group_id"] for g in groups]
-                )
-        if not exists:
-            try:
-                # Historical defeated groups are not placement candidates. Their
-                # old positions may no longer have a native territory and must
-                # not prevent the living population from being distributed.
-                homes = ensure_homes(
-                    store,
-                    *scope,
-                    [group for group in groups if group["status"] != "defeated"],
-                )
-                occupied = {
-                    cell
-                    for reservation in reservations
-                    for member in reservation["members"]
-                    for cell in footprint_cells(member)
-                }
-                moves = plan(
-                    groups,
-                    map_geometry(scope[0]),
-                    occupied=occupied,
-                    limit=max(1, len(groups)),
-                    home_regions=homes,
-                    region_at=lambda cell, _map=scope[0]: region_for_point(_map, cell),
-                )
-            except (ValueError, KeyError) as exc:
-                LOGGER.warning(
-                    "Idle distribution planning deferred for scope %s "
-                    "episode %s: %s",
-                    scope,
-                    generation,
-                    exc,
-                )
-                continue
-            freeze(store, epoch=epoch, scope=scope, generation=generation, moves=moves)
-        candidates = pending(
-            store,
-            epoch=epoch,
-            scope=scope,
-            generation=generation,
-            limit=limit - len(proposals),
-        )
-        for proposal in candidates:
-            if not home_chunk_allowed(store, proposal):
-                cancel(store, epoch=epoch, scope=scope, generation=generation)
-                break
-            proposals.append(proposal)
-        if len(proposals) >= limit:
-            break
-    return proposals
-
-
-def home_chunk_allowed(store, proposal):
-    """Fence frozen legacy plans before Ecology sends them to World."""
-    from .monster_birth_home import ensure_homes, home_destination_allowed
-    from .monster_idle_distribution import native_physical_radius
-
-    scope = tuple(proposal["scope"])
-    planned = read_chunk(store, proposal)
-    groups = [
-        dict(group_id=move["group_id"], members=move["expected_members"])
-        for move in planned
-    ]
-    homes = ensure_homes(store, *scope, groups)
-    for move in planned:
-        home = homes.get(move["group_id"])
-        if home is None:
-            return False
-        for member in move["moved_members"]:
-            if not home_destination_allowed(
-                scope[0],
-                home,
-                (member["x"], member["y"], member["z"]),
-                radii=(native_physical_radius(member["ref"]),),
-            ):
-                return False
-    return True
-
-
 def _cancel(db, run_id):
     db.execute(
         "UPDATE monster_idle_distribution_moves SET status='cancelled',"
@@ -277,18 +68,6 @@ def _cancel(db, run_id):
         "finished_at=clock_timestamp() WHERE id=%s AND status='pending'",
         (run_id,),
     )
-
-
-def cancel(store, *, epoch, scope, generation):
-    episode = _episode(epoch, scope, generation)
-    with store.connection() as db:
-        row = db.execute(
-            "SELECT id FROM monster_idle_distribution_runs WHERE world_epoch=%s "
-            "AND map_id=%s AND instance_id=%s AND empty_generation=%s FOR UPDATE",
-            episode,
-        ).fetchone()
-        if row is not None:
-            _cancel(db, row["id"])
 
 
 def validate_chunk(store, proposal):

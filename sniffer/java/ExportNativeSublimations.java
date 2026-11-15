@@ -43,7 +43,7 @@ public final class ExportNativeSublimations {
         + "\"compatibility\":\"BASIC: fpK.a(fpI,fpP) ordered contiguous colors, white item slots/NONE pattern entries wildcard; EPIC/RELIC: empty colors, fpR.ax(fnR) exact rarity predicate, independent special slot\"},"
         + "\"count\":" + rows.size() + ",\"items\":[" + String.join(",", rows)
         + "],\"export_errors\":[" + String.join(",", errors.stream().map(ExportNativeSublimations::quote).toList()) + "]}";
-    Path output = args.length > 0 ? Path.of(args[0]) : root.resolve("server/protocol/item-sublimations.json");
+    Path output = args.length > 0 ? Path.of(args[0]) : root.resolve("database/protocol/item-sublimations.json");
     Files.createDirectories(output.toAbsolutePath().getParent());
     Files.writeString(output, json + "\n");
     System.out.println("Exported native sublimation patterns: " + rows.size() + ", errors=" + errors.size());

@@ -39,11 +39,10 @@ def configure_domains(bridge, *, regional_bonuses=None):
         )
 
         identity, generation = proposal["character_id"], proposal["generation"]
-        with bridge.world.lock:
-            entry = bridge.world.players.get(identity)
-            character = (
-                dict(entry[2]) if entry is not None and entry[0] == generation else None
-            )
+        entry = bridge.world.players.get(identity)
+        character = (
+            dict(entry[2]) if entry is not None and entry[0] == generation else None
+        )
         if character is None:
             bridge.plantings.ecology_intents.cancel(identity, generation)
             return {"applied": False}

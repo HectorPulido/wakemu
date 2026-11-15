@@ -1,9 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor
-from threading import Barrier, Lock
+from threading import Barrier
 import unittest
 from unittest.mock import patch
 
 from postgres_case import PostgresCase
+from lifecycle_fixture import due_tickets, pending_tickets
 from psycopg.types.json import Jsonb
 from wakfu_server import monster_maturation
 from wakfu_server.combat_group_store import PersistentGroups
@@ -45,23 +46,37 @@ class MonsterMaturationAttemptTests(PostgresCase):
             z=0,
         )
 
+    def _prepared(self, ticket, reference=1):
+        """Explicit native target fixture; Rust owns candidate selection."""
+        members = self._group()["members"]
+        source = next(
+            member for member in members if member["id"] == ticket["monster_id"]
+        )
+        grown = (
+            None
+            if reference is None
+            else owned_instance(
+                reference,
+                REFERENCES[reference]["min_level"],
+                source["id"],
+                map_id=source["map_id"],
+                instance_id=source.get("instance_id", 0),
+                x=source["x"],
+                y=source["y"],
+                z=source["z"],
+                team=source["team"],
+            )
+        )
+        return dict(expected_members=members, grown=grown)
+
     def _ticket(self, monster_id=None):
         monster_id = self.monster_id if monster_id is None else monster_id
-        due = monster_maturation.observe(
+        due = due_tickets(
             self.store,
+            "maturation",
             self.map_id,
             self.instance_id,
-            present=True,
-            generation="maturation-run",
-            now_ms=0,
-        )
-        due = monster_maturation.observe(
-            self.store,
-            self.map_id,
-            self.instance_id,
-            present=True,
-            generation="maturation-run",
-            now_ms=60000,
+            self.group_id,
         )
         return next(row for row in due if row["monster_id"] == monster_id)
 
@@ -117,18 +132,13 @@ class MonsterMaturationAttemptTests(PostgresCase):
         ticket = self._ticket()
         before = self._group()
         old_by_id = {row["id"]: row for row in before["members"]}
-        with patch.object(
-            monster_maturation,
-            "choose_next",
-            return_value=dict(reference=1, min_level=REFERENCES[1]["min_level"]),
-        ):
-            result = monster_maturation.attempt(
-                self.store,
-                ticket,
-                present=True,
-                draw=0.0,
-                choose=lambda candidates: candidates[0],
-            )
+        result = monster_maturation.attempt(
+            self.store,
+            ticket,
+            present=True,
+            draw=0.1,
+            prepared=self._prepared(ticket),
+        )
         self.assertEqual(1, result["to_reference"])
         self.assertEqual(2, result["from_reference"])
         after = self._group()
@@ -144,7 +154,7 @@ class MonsterMaturationAttemptTests(PostgresCase):
         outbox = self._outbox(ticket)
         self.assertIsNotNone(receipt)
         self.assertEqual(1, receipt["to_reference"])
-        self.assertEqual(0.0, receipt["draw"])
+        self.assertEqual(0.1, receipt["draw"])
         self.assertEqual(receipt["cycle"], outbox["cycle"])
         self.assertEqual(after["revision"], outbox["revision"])
         self.assertFalse(outbox["published"])
@@ -176,7 +186,7 @@ class MonsterMaturationAttemptTests(PostgresCase):
             ticket,
             present=True,
             draw=0.9,
-            choose=lambda candidates: self.fail("No category should be selected"),
+            prepared=self._prepared(ticket, reference=None),
         )
         self.assertIsNone(result["to_reference"])
         self.assertEqual(2, result["from_reference"])
@@ -194,21 +204,17 @@ class MonsterMaturationAttemptTests(PostgresCase):
             ticket,
             present=True,
             draw=0.1,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(ticket),
         )
         revision = self._group()["revision"]
-        with patch.object(
-            monster_maturation.secrets,
-            "randbelow",
-            side_effect=AssertionError("redrew"),
-        ):
-            second = monster_maturation.attempt(
-                self.store,
-                ticket,
-                present=True,
-                draw=None,
-                choose=lambda candidates: self.fail("Replay called choose"),
-            )
+        # A conflicting proposal cannot redraw or overwrite the committed cycle.
+        second = monster_maturation.attempt(
+            self.store,
+            ticket,
+            present=True,
+            draw=0.9,
+            prepared=self._prepared(ticket, reference=None),
+        )
         self.assertTrue(second["duplicate"])
         self.assertEqual(first["to_reference"], second["to_reference"])
         self.assertEqual(first["draw"], second["draw"])
@@ -221,11 +227,17 @@ class MonsterMaturationAttemptTests(PostgresCase):
             ticket,
             present=True,
             draw=0.1,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(ticket),
         )
         foreign = {**ticket, "group_id": ticket["group_id"] + 1}
         with self.assertRaisesRegex(ValueError, "Foreign monster maturation cycle"):
-            monster_maturation.attempt(self.store, foreign, present=True, draw=0.5)
+            monster_maturation.attempt(
+                self.store,
+                foreign,
+                present=True,
+                draw=0.5,
+                prepared=self._prepared(foreign, reference=None),
+            )
 
     def test_absent_or_excluded_and_fighting_tickets_do_not_draw(self):
         ticket = self._ticket()
@@ -238,7 +250,6 @@ class MonsterMaturationAttemptTests(PostgresCase):
                 monster_maturation.attempt(self.store, ticket, present=False)
             )
 
-        choose = lambda candidates: self.fail("Ineligible attempt drew a candidate")
         self.assertIsNone(
             monster_maturation.attempt(
                 self.store,
@@ -246,7 +257,7 @@ class MonsterMaturationAttemptTests(PostgresCase):
                 present=True,
                 excluded_ids={self.monster_id},
                 draw=0.1,
-                choose=choose,
+                prepared=self._prepared(ticket, reference=None),
             )
         )
         with self.store.connection() as db:
@@ -256,7 +267,11 @@ class MonsterMaturationAttemptTests(PostgresCase):
         lease, _ = self.groups.claim(self.group_key, "fight-run", fight_id)
         self.assertIsNone(
             monster_maturation.attempt(
-                self.store, ticket, present=True, draw=0.1, choose=choose
+                self.store,
+                ticket,
+                present=True,
+                draw=0.1,
+                prepared=self._prepared(ticket, reference=None),
             )
         )
         self.assertIsNone(self._receipt(ticket))
@@ -270,10 +285,13 @@ class MonsterMaturationAttemptTests(PostgresCase):
                 "AND instance_id=%s AND monster_id=%s",
                 (self.map_id, self.instance_id, self.monster_id),
             )
-        choose = lambda candidates: self.fail("Stale clock drew a candidate")
         self.assertIsNone(
             monster_maturation.attempt(
-                self.store, ticket, present=True, draw=0.1, choose=choose
+                self.store,
+                ticket,
+                present=True,
+                draw=0.1,
+                prepared=self._prepared(ticket, reference=None),
             )
         )
         self.assertIsNone(self._receipt(ticket))
@@ -293,7 +311,11 @@ class MonsterMaturationAttemptTests(PostgresCase):
             )
         self.assertIsNone(
             monster_maturation.attempt(
-                self.store, ticket, present=True, draw=0.1, choose=choose
+                self.store,
+                ticket,
+                present=True,
+                draw=0.1,
+                prepared=self._prepared(ticket, reference=None),
             )
         )
         self.assertIsNone(self._receipt(ticket))
@@ -317,7 +339,7 @@ class MonsterMaturationAttemptTests(PostgresCase):
                 ticket,
                 present=True,
                 draw=0.1,
-                choose=lambda candidates: candidates[0],
+                prepared=self._prepared(ticket),
             )
         after_group = self._group()
         after_timer = dict(self._timer())
@@ -330,7 +352,9 @@ class MonsterMaturationAttemptTests(PostgresCase):
     def test_pending_due_cycle_survives_reopen_for_recovery(self):
         ticket = self._ticket()
         reopened = self.reopen()
-        recovered = monster_maturation.pending(reopened, self.map_id, self.instance_id)
+        recovered = pending_tickets(
+            reopened, "maturation", self.map_id, self.instance_id
+        )
         self.assertIn(ticket, recovered)
         self.assertEqual(
             {self.monster_id, self.other_id}, {row["monster_id"] for row in recovered}
@@ -340,34 +364,26 @@ class MonsterMaturationAttemptTests(PostgresCase):
     def test_concurrent_attempts_for_one_group_cycle_commit_once(self):
         ticket = self._ticket()
         barrier = Barrier(2)
-        count_lock = Lock()
-        draw_calls = []
-        choose_calls = []
+        prepared = self._prepared(ticket)
 
-        def counted_draw(_upper):
-            with count_lock:
-                draw_calls.append(1)
-            return 0  # Select the rare/boss category if present, otherwise ordinary.
+        def run_one():
+            barrier.wait(timeout=5)
+            return monster_maturation.attempt(
+                self.store,
+                ticket,
+                present=True,
+                draw=0.1,
+                prepared=prepared,
+            )
 
-        def choose(candidates):
-            with count_lock:
-                choose_calls.append(tuple(row["reference"] for row in candidates))
-            return candidates[0]
-
-        with patch.object(
-            monster_maturation.secrets, "randbelow", side_effect=counted_draw
-        ):
-
-            def run_one():
-                barrier.wait(timeout=5)
-                return monster_maturation.attempt(
-                    self.store, ticket, present=True, draw=None, choose=choose
-                )
-
+        # Only the winning transaction validates/constructs the native target;
+        # the matching replay returns its receipt before consuming the proposal.
+        with patch(
+            "wakfu_server.monsters.owned_instance", wraps=owned_instance
+        ) as validate:
             with ThreadPoolExecutor(max_workers=2) as executor:
                 results = list(executor.map(lambda _: run_one(), range(2)))
-        self.assertEqual(1, len(draw_calls))
-        self.assertEqual(1, len(choose_calls))
+        self.assertEqual(1, validate.call_count)
         self.assertEqual(1, sum(bool(result["duplicate"]) for result in results))
         after = self._group()
         changed = {row["id"]: row for row in after["members"]}
@@ -384,7 +400,7 @@ class MonsterMaturationAttemptTests(PostgresCase):
             ticket,
             present=True,
             draw=0.1,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(ticket),
         )
         first = monster_maturation.unpublished(
             self.store, self.map_id, self.instance_id
@@ -439,7 +455,7 @@ class MonsterMaturationAttemptTests(PostgresCase):
             ticket,
             present=True,
             draw=0.1,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(ticket),
         )
         event = monster_maturation.unpublished(
             self.store, self.map_id, self.instance_id
@@ -460,25 +476,25 @@ class MonsterMaturationAttemptTests(PostgresCase):
         first_ticket = self._ticket(self.monster_id)
         second_ticket = next(
             row
-            for row in monster_maturation.pending(
-                self.store, self.map_id, self.instance_id
+            for row in pending_tickets(
+                self.store, "maturation", self.map_id, self.instance_id
             )
             if row["monster_id"] == self.other_id
         )
-        # _ticket has already advanced both members to cycle one.
+        # _ticket installed both source members at the explicit due cycle.
         first_result = monster_maturation.attempt(
             self.store,
             first_ticket,
             present=True,
             draw=0.1,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(first_ticket),
         )
         second_result = monster_maturation.attempt(
             self.store,
             second_ticket,
             present=True,
             draw=0.1,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(second_ticket),
         )
         self.assertEqual(1, first_result["to_reference"])
         self.assertEqual(1, second_result["to_reference"])
@@ -530,7 +546,7 @@ class MonsterMaturationAttemptTests(PostgresCase):
             ticket,
             present=True,
             draw=0.1,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(ticket),
         )
         current = self._group()["members"]
         moved = [dict(member) for member in current]
@@ -550,24 +566,16 @@ class MonsterMaturationAttemptTests(PostgresCase):
             failed_ticket,
             present=True,
             draw=0.9,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(failed_ticket, reference=None),
         )
         self.assertIsNone(failed["to_reference"])
-        monster_maturation.observe(
+        due = due_tickets(
             self.store,
+            "maturation",
             self.map_id,
             self.instance_id,
-            present=True,
-            generation="maturation-run",
-            now_ms=70000,
-        )
-        due = monster_maturation.observe(
-            self.store,
-            self.map_id,
-            self.instance_id,
-            present=True,
-            generation="maturation-run",
-            now_ms=130000,
+            self.group_id,
+            cycle=2,
         )
         next_ticket = next(row for row in due if row["monster_id"] == self.monster_id)
         grown = monster_maturation.attempt(
@@ -575,7 +583,7 @@ class MonsterMaturationAttemptTests(PostgresCase):
             next_ticket,
             present=True,
             draw=0.1,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(next_ticket),
         )
         self.assertEqual(1, grown["to_reference"])
         receipts = self.store.connection()

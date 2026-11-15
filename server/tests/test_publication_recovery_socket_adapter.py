@@ -1,11 +1,12 @@
 """Actual socket recovery helpers preserve paused owners and restore world state."""
+
 import ast
 import struct
 import threading
 from copy import copy, deepcopy
 import symtable
 from contextlib import contextmanager, nullcontext
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -20,7 +21,6 @@ from wakfu_server.combat_instance_publication_recovery import (
 from wakfu_server.movement import Movement
 from wakfu_server.position_buffer import Positions, PositionOwnerBusy
 from wakfu_server.world import World
-
 
 HELPERS = (
     "recover_aborted_publication_cohort",
@@ -615,9 +615,9 @@ class PublicationRecoverySocketAdapterTests(unittest.TestCase):
                             funcs["complete_aborted_native_return"].__closure__,
                         )
                     )
-                    completion_cells[
-                        "execute_test_command"
-                    ].cell_contents = command_after_ack
+                    completion_cells["execute_test_command"].cell_contents = (
+                        command_after_ack
+                    )
                 store.busy = True
                 self.assertEqual(
                     funcs["receiver_native_return"](

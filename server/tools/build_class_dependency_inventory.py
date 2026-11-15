@@ -4,6 +4,7 @@
 Routes are source registrations, never semantic or client accreditation.
 The compact graph is a staged structural snapshot, not dynamic reachability.
 """
+
 import argparse
 import ast
 from collections import Counter, defaultdict
@@ -149,12 +150,12 @@ def build(graph, ledger, innate, routes, profiles=None, morph_profiles=None):
             condition_contracts="unknown",
             event_contracts="unknown",
             class_mechanic_semantics="unknown",
-            area_lifecycle="unknown"
-            if seen["area"]
-            else "not_observed_in_classified_graph",
-            summon_lifecycle="unknown"
-            if seen["summon"]
-            else "not_observed_in_classified_graph",
+            area_lifecycle=(
+                "unknown" if seen["area"] else "not_observed_in_classified_graph"
+            ),
+            summon_lifecycle=(
+                "unknown" if seen["summon"] else "not_observed_in_classified_graph"
+            ),
             complete_semantic_verification="unknown",
             complete_client_verification="unknown",
             historical_ledger_claims={
@@ -186,17 +187,17 @@ def main():
     ledger_path = (
         ROOT / "agents_docs/reports/combat-inventory/verification-ledger-20261007.json"
     )
-    innate_path = ROOT / "server/protocol/breed-innate-definitions.json"
+    innate_path = ROOT / "database/protocol/breed-innate-definitions.json"
     runtime_path = ROOT / "server/wakfu_server/combat/combat_effect_runtime.py"
-    registry_path = ROOT / "server/protocol/effect-characteristic-registry.json"
+    registry_path = ROOT / "database/protocol/effect-characteristic-registry.json"
     damage_path = ROOT / "server/wakfu_server/combat/combat_damage_contracts.py"
     displacement_path = (
         ROOT / "server/wakfu_server/combat/combat_displacement_geometry.py"
     )
     dispatch_path = ROOT / "server/wakfu_server/combat/combat_effect_dispatch.py"
-    profiles_path = ROOT / "server/protocol/native-class-summon-abilities.json"
+    profiles_path = ROOT / "database/protocol/native-class-summon-abilities.json"
     summon_closure_path = (
-        ROOT / "server/protocol/native-class-summon-effect-closure.json"
+        ROOT / "database/protocol/native-class-summon-effect-closure.json"
     )
     paths = [
         *operation_source_paths(),
@@ -304,9 +305,11 @@ def main():
         for row in rows:
             writer.writerow(
                 {
-                    key: json.dumps(value, ensure_ascii=False)
-                    if isinstance(value, (list, dict))
-                    else value
+                    key: (
+                        json.dumps(value, ensure_ascii=False)
+                        if isinstance(value, (list, dict))
+                        else value
+                    )
                     for key, value in row.items()
                 }
             )

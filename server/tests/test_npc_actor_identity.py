@@ -163,39 +163,50 @@ class NpcActorIdentityTests(unittest.TestCase):
                 return map_id, instance_id, group_id
 
         groups = Groups()
-        region = {
-            "monster_capacity": 4,
-            "monster_families": [{"family_id": 42}],
-        }
-        plan = [
-            {"reference": 6, "level": 4, "x": 3, "y": 8, "z": 0},
-            {"reference": 6, "level": 4, "x": 4, "y": 8, "z": 0},
-        ]
+        plan = dict(
+            map_id=1086,
+            instance_id=0,
+            region_id=1,
+            members=[
+                {"reference": 6, "level": 4, "x": 3, "y": 8, "z": 0},
+                {"reference": 6, "level": 4, "x": 4, "y": 8, "z": 0},
+            ],
+        )
+        policy = dict(version=1, enabled=True, members_per_zone=2)
+        original_execute = db.execute
 
-        def fake_execute(query, params=()):
-            db.calls.append((query, params))
-            if "nextval('lua_exact_npc_actor_ids')" in query:
-                value = db.next_id
-                db.next_id += 1
-                return _Row({"id": value})
-            if "FROM combat_group_members" in query:
-                return _Row(None)
-            if "SELECT * FROM monster_initial_population" in query:
-                return _Row(None)
+        def execute(query, params=()):
             if "SELECT value FROM settings" in query:
-                return _Row(
-                    {"value": {"version": 1, "enabled": True, "members_per_zone": 2}}
-                )
-            if "SELECT members FROM combat_groups" in query:
+                return _Row({"value": policy})
+            if (
+                "SELECT group_id,status,members FROM combat_groups" in query
+                or "SELECT resource_uid" in query
+            ):
                 return []
-            if "SELECT x,y,z FROM planted_resources" in query:
-                return []
-            return _Row(None)
+            return original_execute(query, params)
 
-        db.execute = fake_execute
+        db.execute = execute
+        proposal = dict(
+            plan=plan,
+            policy=policy,
+            catalog_revision="pinned",
+            scope_digest=monster_initial_population._scope_digest(([], [])),
+        )
         with (
-            patch.dict(
-                monster_initial_population.REGIONS, {(1086, 1): region}, clear=True
+            patch.object(
+                monster_initial_population.protocol_catalog,
+                "release",
+                return_value="pinned",
+            ),
+            patch.object(
+                monster_initial_population.protocol_catalog,
+                "load",
+                return_value={"plans": [plan]},
+            ),
+            patch.object(
+                monster_initial_population,
+                "_has_population_capacity",
+                return_value=True,
             ),
             patch.object(
                 monster_initial_population,
@@ -204,33 +215,15 @@ class NpcActorIdentityTests(unittest.TestCase):
                     id=identity, **fields
                 ),
             ),
-            patch.object(
-                monster_initial_population, "reference", return_value={"family_id": 42}
-            ),
-            patch.object(
-                monster_initial_population,
-                "snapshot",
-                return_value={"complete": True, "regions": {}},
-            ),
-            patch.object(
-                monster_initial_population,
-                "surface",
-                side_effect=lambda _map, x, y, z: {"region_id": 1},
-            ),
         ):
-            result = monster_initial_population.seed_zone(
-                Store(),
-                groups,
-                1086,
-                0,
-                1,
-                plan,
-                locate=lambda _map, _x, _y, _z: {"region_id": 1},
+            self.assertEqual(
+                monster_initial_population.apply_prepared(Store(), groups, proposal),
+                "applied",
             )
-        generated = [member["id"] for member in result["members"]]
+        generated = [member["id"] for member in groups.members]
         self.assertEqual(generated, [-(1 << 50) - 1, -(1 << 50) - 2])
         self.assertEqual(len({float(identity) for identity in generated}), 2)
-        self.assertEqual(result["key"][2], (1 << 50) + 1)
+        self.assertEqual(len([query for query, _ in db.calls if "nextval" in query]), 3)
 
 
 if __name__ == "__main__":

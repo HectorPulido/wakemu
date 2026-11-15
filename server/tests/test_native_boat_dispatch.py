@@ -1,6 +1,7 @@
 """Execute the current 13686 dispatcher without importing the game server."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import sys
 from types import ModuleType
@@ -10,7 +11,6 @@ from unittest.mock import Mock, patch
 from wakfu_server import native_boats
 from wakfu_server.performance_profiler import PerformanceProfiler
 from test_native_boat_catalog import seeded_indexes
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

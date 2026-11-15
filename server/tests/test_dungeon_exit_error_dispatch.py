@@ -1,11 +1,11 @@
 """The actual chat exit branch rejects transient database errors in-session."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import ModuleType
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
-
 
 SERVER_SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

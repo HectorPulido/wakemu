@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Scope native family307 descriptor exports from class roots and innates."""
+
 import argparse
 import hashlib
 import json
@@ -19,9 +20,9 @@ def main():
     paths = {
         "graph": review / "class-closure-compact-graph.json",
         "class_references": review / "level-zero/class-references.txt",
-        "innates": root / "server/protocol/breed-innate-definitions.json",
-        "zero": root / "server/protocol/native-class-spell-level-zero.json",
-        "profiles": root / "server/protocol/native-class-summon-abilities.json",
+        "innates": root / "database/protocol/breed-innate-definitions.json",
+        "zero": root / "database/protocol/native-class-spell-level-zero.json",
+        "profiles": root / "database/protocol/native-class-summon-abilities.json",
     }
     before = {str(path.relative_to(root)): sha256(path) for path in paths.values()}
     graph = json.loads(paths["graph"].read_text())

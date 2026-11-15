@@ -1,6 +1,7 @@
 """The real starter and joined-owner constructors admit identical Rift NPCs."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 

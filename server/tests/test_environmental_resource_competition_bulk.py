@@ -1,4 +1,5 @@
 """One complete public seed import and an actual original-sized competition."""
+
 import hashlib
 import struct
 import unittest
@@ -57,7 +58,7 @@ class EnvironmentalResourceCompetitionBulkTests(unittest.TestCase):
             # original event; use a genuine heartbeat, not a forged lease row.
             store.heartbeat(account, generation, ttl=1800)
 
-        seeds = Path(__file__).resolve().parents[1] / "seeds"
+        seeds = Path(__file__).resolve().parents[2] / "database" / "seeds"
         hashes = (
             (
                 "environmental_resource_profiles.sql",

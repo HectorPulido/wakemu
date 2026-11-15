@@ -3,6 +3,7 @@
 This does not qualify full publication completeness or Ready. Unprovided rows
 and whole enumerations fail rather than fabricating source definitions.
 """
+
 from collections import OrderedDict
 from contextlib import ExitStack
 import copy
@@ -10,7 +11,7 @@ import hashlib
 import importlib
 import json
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -740,9 +741,11 @@ class NativeCatalogDocumentGetterTests(unittest.TestCase):
                 count_before = len(requests)
                 started = time.perf_counter_ns()
                 results = [
-                    decoded_spell_levels(records, definitions)
-                    if authority == "decoded_owned"
-                    else monsters.native_abilities(5525, 1)
+                    (
+                        decoded_spell_levels(records, definitions)
+                        if authority == "decoded_owned"
+                        else monsters.native_abilities(5525, 1)
+                    )
                     for _ in range(6)
                 ]
                 elapsed_ns = time.perf_counter_ns() - started
@@ -1076,7 +1079,7 @@ class NativeCatalogDocumentGetterTests(unittest.TestCase):
             def get_many_bytes(self, keys):
                 return {key: self.record_bytes(key) for key in keys if key in self.rows}
 
-        manifest_path = Path("server/data/installation/catalogs/manifest.json")
+        manifest_path = Path("database/data/installation/catalogs/manifest.json")
         manifest_raw = manifest_path.read_bytes()
         manifest = json.loads(manifest_raw)
         small_sources = PublishedMetadataPack(

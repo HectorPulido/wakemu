@@ -1,8 +1,9 @@
 """Real child preparation leaves native reads and durable scope fences live."""
+
 import ast
 from contextlib import contextmanager
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import socket
 import struct
 import sys
@@ -46,7 +47,7 @@ class EcologyAdminJobsTests(PostgresCase):
 import os,pathlib,struct,sys,time
 from types import MappingProxyType
 from wakfu_server.ecology_admin_worker import decode,encode
-entered,release=map(pathlib.Path,sys.argv[1:3])
+entered,release=map(WorldSourcePath,sys.argv[1:3])
 revision=sys.argv[3]
 while header:=sys.stdin.buffer.read(4):
     size=struct.unpack('>I',header)[0]

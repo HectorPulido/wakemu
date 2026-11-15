@@ -1,9 +1,9 @@
 """Execute the actual idle retry block and inspect real worker commit boundaries."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from psycopg.errors import DeadlockDetected, SerializationFailure
-
 
 ROOT = Path(__file__).resolve().parent
 WORLD = ROOT / "candidate/local_game_server.py"

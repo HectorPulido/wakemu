@@ -3,6 +3,7 @@
 Event production and clone guards/criteria are supplied by the authority for
 an actual source running effect. This module never invents an event ID.
 """
+
 from dataclasses import dataclass, asdict, replace
 from contextvars import ContextVar
 from contextlib import contextmanager
@@ -13,7 +14,6 @@ from .combat_native_events import (
     subscription_actor_ids,
     activation_order_key,
 )
-
 
 # Only a source discriminator survives an event. No retained row, owner, Qf view
 # or condition result is kept. Charge includes key strings and container overhead;
@@ -389,8 +389,12 @@ class NativeCloneAuthority:
                 return value.function.__get__(owner, type(owner))
         return value
 
-    executable: object  # (effect, invocation, source) -> bool; eZR.i corpse/context guards
-    condition_context: object  # (effect, invocation, source) -> current native criterion context
+    executable: (
+        object  # (effect, invocation, source) -> bool; eZR.i corpse/context guards
+    )
+    condition_context: (
+        object  # (effect, invocation, source) -> current native criterion context
+    )
 
 
 _ACTIVE_TRIGGER_KEYS = ContextVar("native_qj_active_trigger_keys", default=frozenset())
@@ -953,6 +957,16 @@ class NativeEventReplay:
                 )
                 if scene_caster is not None:
                     caster = scene_caster
+                from .rii_lesson_start_source import start_caster as rii_start_caster
+
+                lesson_caster = rii_start_caster(
+                    self.retention.fight,
+                    source,
+                    entry=entry,
+                    original=original,
+                )
+                if lesson_caster is not None:
+                    caster = lesson_caster
                 from .combat_encounter_owned_start_binding import owned_start_caster
 
                 reconstructed_caster = owned_start_caster(
@@ -989,8 +1003,17 @@ class NativeEventReplay:
                 )
                 if npc_caster is not None:
                     caster = npc_caster
-                from .combat_external_turn_recipient import external_turn_recipient
+                from .combat_external_turn_recipient import (
+                    external_turn_recipient,
+                    external_turn_caster,
+                )
 
+                caster = external_turn_caster(
+                    self.retention.fight,
+                    source,
+                    caster_code=definition["event_caster_code"],
+                    original_caster=caster,
+                )
                 target = external_turn_recipient(
                     self.retention.fight,
                     source,
@@ -1051,9 +1074,9 @@ class NativeEventReplay:
                     from .combat_state_runner import NativeRunnerStateLevel
 
                     if isinstance(source.runner_modifier, NativeRunnerStateLevel):
-                        source_context[
-                            "native_apply_state_reference"
-                        ] = source.runner_modifier.reference
+                        source_context["native_apply_state_reference"] = (
+                            source.runner_modifier.reference
+                        )
                         source_context["native_source_is_eWu"] = True
                     elif source.runner_modifier is not None:
                         source_context["native_source_is_eWu"] = False

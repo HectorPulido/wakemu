@@ -29,7 +29,8 @@ class AptitudeCatalogCoverageTests(unittest.TestCase):
     def test_rules_effects_and_category_ownership_are_complete(self):
         native_audit = json.loads(
             native_catalog.read_text(
-                Path(__file__).parents[1]
+                Path(__file__).parents[2]
+                / "database"
                 / "protocol"
                 / "native-aptitude-catalog-audit.json"
             )

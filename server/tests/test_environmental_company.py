@@ -1,4 +1,5 @@
 """Real resource actions, loaded hero eligibility and durable native publication."""
+
 import base64
 import struct
 import unittest
@@ -167,7 +168,7 @@ class EnvironmentalCompanyPostgresTests(unittest.TestCase):
         # Execute only the actual server's pure captured-roster selector. The
         # unfiltered first captured character has a different layout digest.
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
 
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"
         tree = ast.parse(source.read_text())

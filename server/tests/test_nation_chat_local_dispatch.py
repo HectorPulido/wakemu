@@ -1,6 +1,7 @@
 """Execute native nation selection through the real local-chat dispatcher."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch

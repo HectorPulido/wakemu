@@ -1,9 +1,43 @@
 """Native surfaces remain required regardless of regional family ownership."""
+
 import unittest
+import json
+from contextlib import contextmanager, ExitStack
 from unittest.mock import patch
 
 from wakfu_server.monster_habitat_cells import habitat_destination_allowed
-from wakfu_server.monster_initial_population import REGIONS
+from wakfu_server import ecology_mobs
+from wakfu_server.spatial_geometry import ImmutableIndex
+
+
+@contextmanager
+def native_habitat_sources(map_id, points):
+    """Provide authored fixture source data to the actual shared Rust indexes."""
+    habitats = ImmutableIndex(
+        "geometry.load_habitats",
+        lambda: dict(
+            raw=json.dumps(
+                [
+                    dict(
+                        map_id=map_id,
+                        regions=[
+                            dict(region_id=7, monster_capacity=0, monster_families=[])
+                        ],
+                    )
+                ]
+            )
+        ),
+    )
+    surfaces = ImmutableIndex("geometry.index_points", lambda: dict(points=points))
+    with ExitStack() as stack:
+        for module in ("spatial_geometry", "monster_habitat_cells"):
+            stack.enter_context(
+                patch(f"wakfu_server.{module}.habitats", return_value=habitats)
+            )
+            stack.enter_context(
+                patch(f"wakfu_server.{module}.surfaces", return_value=surfaces)
+            )
+        yield
 
 
 class MonsterHabitatCellTests(unittest.TestCase):
@@ -21,22 +55,7 @@ class MonsterHabitatCellTests(unittest.TestCase):
         self.assertTrue(habitat_destination_allowed(999999, 0, (1, 2, 3)))
 
     def test_known_outdoor_cell_requires_height_but_ignores_region_and_family(self):
-        habitats = {
-            (527, 7): {"monster_capacity": 50, "monster_families": [{"family_id": 68}]},
-            (527, 8): {"monster_capacity": 50, "monster_families": [{"family_id": 68}]},
-        }
-
-        def surface(_map, x, _y, z):
-            if z != -4:
-                raise ValueError("Unknown native surface height")
-            return {"region_id": 7 if x < 10 else 8}
-
-        with patch.dict(REGIONS, habitats, clear=True), patch(
-            "wakfu_server.planting_cells.surface", side_effect=surface
-        ), patch(
-            "wakfu_server.territory_cells.region_at",
-            side_effect=lambda _map, x, _y: 7 if x < 10 else 8,
-        ):
+        with native_habitat_sources(527, [(2, 2, -4), (10, 2, -4)]):
             parent = dict(x=1, y=2, z=-4)
             self.assertTrue(
                 habitat_destination_allowed(
@@ -70,14 +89,34 @@ class MonsterHabitatCellTests(unittest.TestCase):
         )
 
     def test_unowned_native_surface_with_zero_capacity_is_allowed(self):
-        with patch.dict(
-            REGIONS,
-            {(527, 7): {"monster_capacity": 0, "monster_families": []}},
-            clear=True,
-        ), patch("wakfu_server.planting_cells.surface", return_value={"region_id": 0}):
+        # Zero ecological capacity does not remove a native walkable surface.
+        with native_habitat_sources(527, [(2, 2, -4)]):
             self.assertTrue(habitat_destination_allowed(527, 0, (2, 2, -4)))
 
     def test_invalid_coordinates_still_fail_surface_validation(self):
         for destination in ((1.0, 2, 3), (True, 2, 3), (1, 2), None):
             with self.subTest(destination=destination):
                 self.assertFalse(habitat_destination_allowed(527, 0, destination))
+
+    def test_batched_habitat_matches_single_cell_guards_for_every_native_step(self):
+        paths = {-1: [(2, 2, -4), (10, 2, -4)], -2: [(2, 2, -4)]}
+        with native_habitat_sources(527, [(2, 2, -4), (10, 2, -4)]):
+            self.assertTrue(ecology_mobs._native_habitat_paths_allowed((527, 0), paths))
+            paths[-2].append((10, 2, -3))
+            self.assertFalse(
+                ecology_mobs._native_habitat_paths_allowed((527, 0), paths)
+            )
+            self.assertEqual(
+                ecology_mobs._native_habitat_paths_allowed((527, 0), paths),
+                all(
+                    habitat_destination_allowed(527, 0, cell)
+                    for path in paths.values()
+                    for cell in path
+                ),
+            )
+            self.assertTrue(
+                ecology_mobs._native_habitat_paths_allowed((527, 12), paths)
+            )
+            self.assertTrue(
+                ecology_mobs._native_habitat_paths_allowed((999999, 0), paths)
+            )

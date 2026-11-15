@@ -1,8 +1,9 @@
 """All-owner transport recovery waits for real sources without advancing combat."""
+
 import ast
 import os
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 from unittest.mock import patch

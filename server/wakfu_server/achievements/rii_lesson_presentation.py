@@ -1,8 +1,8 @@
 """Native Airyna lesson presentations observed in the official session."""
+
 import struct
 
 from wakfu_server.dungeon_main_completion import presentation_packet
-
 
 # contract, objective, fight start event, successful objective event
 LESSONS = (
@@ -38,6 +38,38 @@ def begin(node_id, choice_id):
     }
     index = choices.get((node_id, choice_id))
     return _packet(LESSONS[index][2]) if index is not None else None
+
+
+def admission(fight, character_id, node_id, choice_id):
+    """Validate the guide against the encounter actually admitted for its owner."""
+    lesson = _lesson(fight)
+    packet = begin(node_id, choice_id)
+    if (
+        lesson is None
+        or getattr(fight, lesson[0]).get("owner") != character_id
+        or packet != _packet(lesson[2])
+    ):
+        raise ValueError("Lesson guide does not match its admitted owner and exercise")
+    return packet
+
+
+def claim_admission(db, fight, character_id, node_id, choice_id):
+    """Claim the presentation only after its owned placement is published.
+
+    Variant 1 repairs staged guides previously claimed before scene bootstrap
+    could dismiss them. It is an internal delivery revision, not a packet arg.
+    Valid earlier guides and all success presentations retain variant 0.
+    """
+    from . import tutorial_presentation_once
+
+    packet = admission(fight, character_id, node_id, choice_id)
+    event_id = _lesson(fight)[2]
+    variant = 1 if event_id in (22507, 22508, 22516, 22517) else 0
+    return (
+        [packet]
+        if tutorial_presentation_once.claim(db, character_id, 2543, event_id, variant)
+        else []
+    )
 
 
 def finish(fight, packets):

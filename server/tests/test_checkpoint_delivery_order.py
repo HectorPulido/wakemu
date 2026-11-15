@@ -1,6 +1,7 @@
 """Committed combat delivery and information precede asynchronous capture."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from threading import RLock
 from types import SimpleNamespace
 import time

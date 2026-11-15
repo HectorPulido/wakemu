@@ -163,7 +163,7 @@ def fight_report(
         or not 0 <= duration_ms < 2**63
         or type(fight_instance_id) is not int
         or fight_instance_id <= 0
-        or fight_model not in (2, 14)
+        or fight_model not in (2, 14, 71)
     ):
         raise ValueError("Invalid report duration, instance or model")
     if initiator_id not in fight.actors:

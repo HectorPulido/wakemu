@@ -1,9 +1,9 @@
 """Reconcile native exterior retries from actual loaded, selected World owners."""
+
 from contextlib import ExitStack, nullcontext
 from dataclasses import dataclass
 
 from wakfu_server.native_entry_authority import capture
-
 
 _FIELDS = ("map_id", "instance_id", "x", "y", "z", "direction")
 
@@ -458,9 +458,8 @@ def matches_loaded_source(
     if live is None or live[0] != generation or live[1]["account_id"] != account_id:
         return False
     key = (account_id, generation, character_id)
-    with positions.lock:
-        entry = positions.entries.get(key)
-        current = None if entry is None else dict(entry["current"])
+    entry = positions.entry_state(key)
+    current = None if entry is None else dict(entry["current"])
     if (
         current is None
         or not positions.lease_active(*key)

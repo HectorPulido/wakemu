@@ -8,7 +8,7 @@ mkdir -p .runtime/classes
 "$JAVA_HOME_TASK/bin/javac" -proc:none -source 21 -target 21 --add-exports java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED -cp 'client/lib/*' -d .runtime/classes sniffer/java/ProtocolCatalog.java
 "$JAVA_HOME_TASK/bin/java" --add-exports java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED -cp '.runtime/classes:client/lib/*' ProtocolCatalog client/lib/wakfu-client.jar .runtime/protocol-catalog.json
 "$JAVA_HOME_TASK/bin/javac" -proc:none --release 21 -cp 'client/lib/*' -d .runtime/classes sniffer/java/OfflineMessageDecoder.java sniffer/java/VerifyCapturedEncoders.java sniffer/java/ExportProtocolDescriptors.java
-"$JAVA_HOME_TASK/bin/java" -cp '.runtime/classes:client/lib/*' ExportProtocolDescriptors .runtime/protocol-catalog.json server/protocol/descriptors.pb server/protocol/descriptors.json
+"$JAVA_HOME_TASK/bin/java" -cp '.runtime/classes:client/lib/*' ExportProtocolDescriptors .runtime/protocol-catalog.json database/protocol/descriptors.pb database/protocol/descriptors.json
 python3 sniffer/decode-capture.py "$CAPTURE_TASK"
 python3 - "$CAPTURE_TASK" <<'PY'
 import json,sys

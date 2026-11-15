@@ -7,7 +7,7 @@ import json
 import os
 import struct
 import uuid
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import patch
 
 import unittest

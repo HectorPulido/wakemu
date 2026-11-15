@@ -1,8 +1,9 @@
 """Execute the production bridge branch and separate private inventory from scene."""
+
 import ast
 from contextlib import nullcontext
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 import unittest
@@ -144,7 +145,7 @@ class RanchBridgeMovementDispatchTests(unittest.TestCase):
             for node in ast.walk(tree)
             if isinstance(node, ast.If)
             and "ranch_session.owns(character)" in ast.unparse(node.test)
-            and "bridge_blockers" in ast.unparse(node)
+            and "haven_ranch_bridges" in ast.unparse(node)
         )
         db = object()
         connection = Mock(return_value=nullcontext(db))
@@ -152,12 +153,23 @@ class RanchBridgeMovementDispatchTests(unittest.TestCase):
             SimpleNamespace(owns=Mock(return_value=owns)) if session_present else None
         )
         points = set(approved if approved is not None else [start, (9, -9, 0)])
+        target = next((point for point in points if point != start), start)
         ns = dict(
             ranch_session=session,
             character=dict(id=41, instance_id=17),
             STORE=SimpleNamespace(connection=connection),
             approved=points,
-            movement=dict(start_position=start),
+            movement=dict(
+                start_position=start,
+                end_position=target,
+                steps=[
+                    dict(
+                        dx=target[0] - start[0],
+                        dy=target[1] - start[1],
+                        dz=target[2] - start[2],
+                    )
+                ],
+            ),
             movement_state=SimpleNamespace(key=lambda point: tuple(point)),
         )
         module = ast.fix_missing_locations(

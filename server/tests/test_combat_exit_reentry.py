@@ -1,10 +1,11 @@
 """Serving helpers over isolated PostgreSQL: exits cannot poison the next Ready."""
+
 import ast
 import struct
 import tempfile
 import test_combat_abandon as abandon_fixture
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from unittest.mock import patch
 import test_combat_rewards as reward_fixture
 from postgres_case import PostgresCase

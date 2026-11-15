@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Inventory native condition structure and guarded Python routes without combat imports."""
+
 import ast, csv, gzip, hashlib, importlib.util, io, json, re, subprocess, tokenize
 from collections import Counter, defaultdict, deque
 from pathlib import Path
@@ -22,9 +23,11 @@ def native_expression(expression):
         [
             (
                 t.type,
-                json.dumps(ast.literal_eval(t.string))
-                if t.type == tokenize.STRING
-                else t.string,
+                (
+                    json.dumps(ast.literal_eval(t.string))
+                    if t.type == tokenize.STRING
+                    else t.string
+                ),
             )
             for t in tokens
         ]
@@ -39,7 +42,7 @@ def build():
         ROOT / "server/wakfu_server/combat/combat_runtime_adapter.py",
         ROOT / "server/wakfu_server/combat/combat_local_criteria.py",
         OUT / "verification-ledger-20261007.json",
-        ROOT / "server/protocol/breed-innate-definitions.json",
+        ROOT / "database/protocol/breed-innate-definitions.json",
         ROOT / "sniffer/java/ExportNativeCriterionCallClasses.java",
         Path(__file__).resolve(),
     ]
@@ -115,9 +118,9 @@ def build():
                     dict(
                         function=fn.name,
                         line=branch.lineno,
-                        signature_guard=ast.unparse(branch.body[0])[:1200]
-                        if branch.body
-                        else "",
+                        signature_guard=(
+                            ast.unparse(branch.body[0])[:1200] if branch.body else ""
+                        ),
                         provider_fields=dependencies,
                         explicit_guard_messages=guards,
                     )
@@ -263,14 +266,18 @@ def build():
                 name=name,
                 entry_kind="textual_function",
                 status=status,
-                status_reason="Guarded Python route exists; exhaustive native argument/provider equivalence is not accredited."
-                if rs
-                else "No explicit Python function-name branch in the current evaluator/validator.",
+                status_reason=(
+                    "Guarded Python route exists; exhaustive native argument/provider equivalence is not accredited."
+                    if rs
+                    else "No explicit Python function-name branch in the current evaluator/validator."
+                ),
                 native_class=native.get("native_class"),
                 native_parse_error=native.get("error"),
-                native_mapping_authority="original eQb/eQd isolated parse"
-                if native.get("native_class")
-                else "unknown",
+                native_mapping_authority=(
+                    "original eQb/eQd isolated parse"
+                    if native.get("native_class")
+                    else "unknown"
+                ),
                 native_argument_contract="Native parsed sample signature only; full native null/PV/cell contract is unproved",
                 python_argument_contract=[r["signature_guard"] for r in rs],
                 observed_pv_selectors=sorted(
@@ -376,9 +383,11 @@ def build():
                 native_class=cls,
                 textual_names=mapped[cls],
                 status="partial" if mapped[cls] else "unknown",
-                role="textual call root"
-                if mapped[cls]
-                else "unclassified structural object: may be operator, literal, selector or predicate",
+                role=(
+                    "textual call root"
+                    if mapped[cls]
+                    else "unclassified structural object: may be operator, literal, selector or predicate"
+                ),
                 native_argument_contract="unknown unless linked to a separately proved contract",
                 effect_nodes=sorted(keys),
                 breeds=sorted({b for key in keys for b in owners[key]}),

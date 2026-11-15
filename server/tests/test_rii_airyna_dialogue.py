@@ -39,6 +39,31 @@ class AirynaReturnTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             session.choose(5787, 13322)
 
+    def test_native_repeat_entry_reruns_a_finished_lesson(self):
+        """Node 5787 offers 13330..13336 exactly once the lesson is done."""
+        session, _ = self.begin()
+        self.assertEqual(session.choose(5787, 13330), (12218, struct.pack(">i", 0)))
+        self.facts.pop(10574)
+        session, _ = self.begin()
+        with self.assertRaises(ValueError):
+            session.choose(5787, 13330)
+
+    def test_repeat_entries_are_all_native_and_one_per_lesson(self):
+        from wakfu_server.npc_dialogue import catalog
+
+        self.assertEqual(len(dialogue.REPEAT_OPTIONS), 7)
+        self.assertEqual(len(set(dialogue.LESSON_BY_REPEAT.values())), 7)
+        options = {choice["id"] for choice in catalog()["node_index"][5787]["choices"]}
+        self.assertTrue(dialogue.REPEAT_OPTIONS <= options)
+        for option in dialogue.REPEAT_OPTIONS:
+            criteria = next(
+                choice.get("criteria", "")
+                for choice in catalog()["node_index"][5787]["choices"]
+                if choice["id"] == option
+            )
+            self.assertIn("IsAchievementObjectiveComplete", criteria)
+            self.assertNotIn("not IsAchievementObjectiveComplete", criteria)
+
     def test_accepted_intro_survives_its_own_action_criterion_changing(self):
         self.facts.clear()
         session, _ = npc_world.begin(

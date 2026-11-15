@@ -1,4 +1,5 @@
 """Publish only original fKX/aZF roots for the class11 profile5900 book."""
+
 import argparse
 import hashlib
 import json
@@ -11,8 +12,8 @@ def sha(path):
 
 def run(source_path):
     source = json.loads(source_path.read_text())
-    casting_path = Path("server/protocol/native-spell-casting.json")
-    zero_path = Path("server/protocol/native-class-morph933-level-zero.json")
+    casting_path = Path("database/protocol/native-spell-casting.json")
+    zero_path = Path("database/protocol/native-class-morph933-level-zero.json")
     casting = json.load(open(casting_path, "rt"))["spells"]
     zero = json.load(open(zero_path, "rt"))["casting"]
     roots = set()
@@ -38,7 +39,7 @@ def run(source_path):
             "exporter_sha256": sha(Path("sniffer/java/ExportNativeCastingRoots.java")),
         },
     )
-    destination = Path("server/protocol/native-class-morph933-casting-roots.json")
+    destination = Path("database/protocol/native-class-morph933-casting-roots.json")
     destination.write_text(json.dumps(source, indent=2, allow_nan=False) + "\n")
     print(f"Published {len(roots)} original roots for three class morphology abilities")
 

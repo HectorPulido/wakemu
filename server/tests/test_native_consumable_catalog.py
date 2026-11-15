@@ -1,4 +1,5 @@
 """Native item-use descriptor boundary and representative catalog contracts."""
+
 import json
 from pathlib import Path
 import unittest
@@ -64,7 +65,12 @@ class ConsumableCatalogTests(unittest.TestCase):
                 load_plan(Database(None), reference)
 
     def test_native_catalog_preserves_duration_events_and_percentage_heals(self):
-        path = Path(__file__).parents[1] / "protocol" / "native-consumable-actions.json"
+        path = (
+            Path(__file__).parents[2]
+            / "database"
+            / "protocol"
+            / "native-consumable-actions.json"
+        )
         rows = json.loads(path.read_text())["items"]
         by_ref = {row["item_ref"]: row for row in rows}
         base = [row for row in rows if row["native_type"] != 738]
@@ -131,7 +137,12 @@ class ConsumableCatalogTests(unittest.TestCase):
         )
 
     def test_all_native_use_criteria_parse_with_the_shared_restricted_parser(self):
-        path = Path(__file__).parents[1] / "protocol" / "native-consumable-actions.json"
+        path = (
+            Path(__file__).parents[2]
+            / "database"
+            / "protocol"
+            / "native-consumable-actions.json"
+        )
         rows = json.loads(path.read_text())["items"]
         criteria = [
             (row["item_ref"], row["plan"]["criterion"])
@@ -159,7 +170,12 @@ class ConsumableCatalogTests(unittest.TestCase):
                 self.assertIsNotNone(parse_local_criterion(criterion))
 
     def test_outcome_expansion_preserves_native_contextual_children(self):
-        path = Path(__file__).parents[1] / "protocol" / "native-consumable-actions.json"
+        path = (
+            Path(__file__).parents[2]
+            / "database"
+            / "protocol"
+            / "native-consumable-actions.json"
+        )
         rows = {row["item_ref"]: row for row in json.loads(path.read_text())["items"]}
         for reference in (18351, 18355, 18401, 18406):
             self.assertTrue(rows[reference]["available"])
@@ -180,7 +196,12 @@ class ConsumableCatalogTests(unittest.TestCase):
         self.assertEqual(rows[18357]["plan"]["states"][0]["duration_ms"], 604800000)
 
     def test_xp_handoff_preserves_the_new_native_state_descriptor(self):
-        path = Path(__file__).parents[1] / "protocol" / "native-consumable-actions.json"
+        path = (
+            Path(__file__).parents[2]
+            / "database"
+            / "protocol"
+            / "native-consumable-actions.json"
+        )
         row = next(
             row
             for row in json.loads(path.read_text())["items"]

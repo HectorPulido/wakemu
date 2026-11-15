@@ -4,8 +4,8 @@ This module does not create encounters, mutate player decks, or publish world
 actors. A producer must first bind the owner and the target from an owned
 encounter receipt. The native combat transaction owns the returned changes.
 """
-from .lesson_elements import observe, resistance_profile
 
+from .lesson_elements import observe, resistance_profile
 
 SPELL_EFFECTS = {361189: 2, 361190: 4, 361191: 3, 361192: 5}
 WEAKNESSES = (2, 4, 3, 5)
@@ -24,6 +24,8 @@ def begin_turn(fight):
     """
     contract = getattr(fight, "rii_element_lesson_contract", None)
     if not isinstance(contract, dict) or fight.current is None:
+        return False
+    if contract.get("native_lesson") is True:
         return False
     if fight.current.id != contract.get("owner"):
         return False
@@ -62,6 +64,8 @@ def initialize(fight, packets, *, action_id):
     contract = getattr(fight, "rii_element_lesson_contract", None)
     if contract is None:
         return False
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return True
     if not isinstance(contract, dict) or fight.phase != "active":
         raise ValueError("Invalid elemental lesson start")
     owner = contract.get("owner")
@@ -119,6 +123,8 @@ def hit(fight, *, source_id, target_id, effect_reference, damage):
     hits even when a player's level or mastery would otherwise one-shot it.
     """
     contract = getattr(fight, "rii_element_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return None
     if not isinstance(contract, dict) or target_id != contract.get("target"):
         return None
     element = SPELL_EFFECTS.get(effect_reference)

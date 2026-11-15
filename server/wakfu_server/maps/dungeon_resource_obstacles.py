@@ -4,6 +4,7 @@ Numerical placement and one-item explosion costs are explicit reviewed Wakemu
 reconstruction data. Native cvH supplies item identity, never debit quantity.
 Ordinary resources, environmental authority and spell behavior are unchanged.
 """
+
 from hashlib import sha256
 import json
 import secrets
@@ -485,12 +486,11 @@ def validate_movement(db, configuration, instance_id, request):
             "Dungeon resource movement lacks its complete pinned obstacle set"
         )
     blocked = {(r["x"], r["y"]) for r in rows if r["current_stage"] != 0}
-    current = tuple(request["start_position"][k] for k in ("x", "y", "z"))
-    for step in request["steps"]:
-        current = tuple(
-            current[i] + step["d" + axis] for i, axis in enumerate(("x", "y", "z"))
-        )
-        if current[:2] in blocked:
-            raise ValueError(
-                "Destroy the visible resource before crossing its occupied cell"
-            )
+    from wakfu_server.spatial_native import get_spatial
+
+    get_spatial().call(
+        "navigation.blocked_columns",
+        request=request,
+        blocked=sorted(blocked),
+        error="Destroy the visible resource before crossing its occupied cell",
+    )

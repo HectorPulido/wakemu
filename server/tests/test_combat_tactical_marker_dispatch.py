@@ -1,7 +1,8 @@
 """Execute actual dispatcher branches against the shared tactical domain."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import struct
 import unittest

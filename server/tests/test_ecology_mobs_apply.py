@@ -1,9 +1,27 @@
 """Fresh world-side guards for externally prepared monster movement."""
+
 import unittest
 import struct
 from unittest.mock import patch
 
 from wakfu_server import ecology_mobs, monster_wander
+from wakfu_server.world import World
+
+
+def prepared_movement_packet(actor_id, origin, destination):
+    """Encode one explicit fixture edge; this helper does no path planning."""
+    from protocol_codec import DIRECTIONS
+
+    dx, dy = destination[0] - origin[0], destination[1] - origin[1]
+    direction = next(
+        index for index, (_, x, y) in DIRECTIONS.items() if (x, y) == (dx, dy)
+    )
+    dz = destination[2] - origin[2]
+    if not -16 <= dz <= 15:
+        raise ValueError("Fixture height delta exceeds native movement range")
+    return 13852, struct.pack(
+        ">qiihBB", actor_id, *origin, 1, direction << 5 | (dz & 31)
+    )
 
 
 class LockProbe:
@@ -42,13 +60,21 @@ class FakeHarvests:
         self.targets = set(targets)
 
 
-class FakeWorld:
+class FakeWorld(World):
     def __init__(self, players):
-        self.players = players
         self.emitted = []
-
-    def snapshot(self):
-        return self.players
+        super().__init__(lambda *_: (0, b""), lambda *_: (0, b""), lambda *_: None)
+        for player in players:
+            self.join(
+                "fixture-" + str(player["id"]),
+                object(),
+                dict(
+                    player,
+                    account_id=player.get("account_id", player["id"]),
+                    instance_id=player.get("instance_id", 0),
+                    direction=0,
+                ),
+            )
 
     def emit_location(self, *event):
         self.emitted.append(event)
@@ -67,7 +93,7 @@ class EcologyMobsApplyTests(unittest.TestCase):
     }
 
     def movement(self, actor_id=-7001, origin=(0, 0, 0), destination=(1, 0, 0)):
-        opcode, payload = monster_wander.movement_packet(actor_id, origin, destination)
+        opcode, payload = prepared_movement_packet(actor_id, origin, destination)
         return [[opcode, payload.hex()]]
 
     def proposal(self, *, packets=None):
@@ -114,6 +140,8 @@ class EcologyMobsApplyTests(unittest.TestCase):
         ), patch.object(ecology_mobs.time, "monotonic", return_value=0.0), patch(
             "wakfu_server.ecology_mobs.habitat_destination_allowed",
             return_value=True,
+        ), patch(
+            "wakfu_server.ecology_mobs._native_habitat_paths_allowed", return_value=True
         ):
             result = ecology_mobs.apply(
                 object(), groups, harvests, world, proposal, world_epoch="boot-a"
@@ -380,8 +408,10 @@ class EcologyMobsApplyTests(unittest.TestCase):
         with patch.object(
             monster_wander, "policy", return_value=self.configuration
         ), patch.object(ecology_mobs.time, "monotonic", return_value=0.0), patch(
-            "wakfu_server.ecology_mobs.habitat_destination_allowed",
-            side_effect=allowed,
+            "wakfu_server.ecology_mobs._native_habitat_paths_allowed",
+            side_effect=lambda scope, paths: all(
+                allowed(*scope, cell) for path in paths.values() for cell in path
+            ),
         ):
             result = ecology_mobs.apply(
                 object(),

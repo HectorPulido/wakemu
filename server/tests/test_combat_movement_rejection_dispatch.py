@@ -1,7 +1,8 @@
 """Rejected native movement receives an owned authoritative position correction."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import random
 import struct

@@ -13,7 +13,7 @@ def _payload(owner, actor_id):
     return {"kind": KIND, "owner": owner, "actor_id": actor_id, "ref": REF}
 
 
-def spawn(store, groups, account_id, generation, character):
+def spawn(store, groups, account_id, generation, character, *, repeat=False):
     """Create at most one available owned sack when the lesson is eligible."""
     import secrets
     from wakfu_server.monsters import owned_instance
@@ -39,23 +39,28 @@ def spawn(store, groups, account_id, generation, character):
         if (
             5143 not in state["running"]
             or 10574 not in state["objectives"]
-            or 10575 in state["objectives"]
+            or (10575 in state["objectives"] and not repeat)
         ):
             return None
         groups_here = groups.available(1388, 0)
-        active = [
-            -m["id"]
-            for group in groups_here
-            for m in group["members"]
-            if m.get("ref") == REF and m["id"] < 0
-        ]
-        if (
-            active
-            and db.execute(
-                "SELECT 1 FROM character_achievement_events WHERE character_id=%s AND event_key=ANY(%s) LIMIT 1",
-                (current["id"], [KEY + str(identity) for identity in active]),
-            ).fetchone()
-        ):
+        # Count only the sacks this owner created: the dojo can hold other
+        # players' training encounters and reusing one strands the auto-start.
+        active = []
+        for group in groups_here:
+            for member in group["members"]:
+                identity = member.get("id")
+                if (
+                    member.get("ref") != REF
+                    or type(identity) is not int
+                    or identity >= 0
+                ):
+                    continue
+                if db.execute(
+                    "SELECT 1 FROM character_achievement_events WHERE character_id=%s AND event_key=%s",
+                    (current["id"], KEY + str(-identity)),
+                ).fetchone():
+                    active.append(-identity)
+        if active and not repeat:
             return None
         occupied = {
             tuple(m[k] for k in ("x", "y", "z"))
@@ -151,6 +156,8 @@ def settle_participants(db, store, fight, members, monsters):
         or actors[owner].team == actors[target].team
         or fight.winner != actors[owner].team
     ):
+        return {}
+    if contract.get("native_lesson") is True and actors[target].hp > 0:
         return {}
     member = next((m for m in members if m.get("character_id") == owner), None)
     if (

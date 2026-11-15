@@ -1,7 +1,8 @@
 """Public storage hook ordering and shipped movement/recovery wiring."""
+
 import ast
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 
@@ -33,9 +34,9 @@ class OptionalGroundHookTests(unittest.TestCase):
                 54,
                 "lease",
                 76,
-                before_owner_lock=(lambda db: events.append("run"))
-                if preflight
-                else None,
+                before_owner_lock=(
+                    (lambda db: events.append("run")) if preflight else None
+                ),
             )
         return events
 

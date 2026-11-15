@@ -9,7 +9,7 @@ public class ExportMonsterEncyclopedia {
   return m;
  }
  public static void main(String[]args)throws Exception{
-  Path output=Path.of(args.length>0?args[0]:"server/protocol/monster-encyclopedia.json");
+  Path output=Path.of(args.length>0?args[0]:"database/protocol/monster-encyclopedia.json");
   apw.bGL().dd("jar:file:"+Path.of("client/contents/bdata").toAbsolutePath()+"/%d.jar!/%d.bin");
   List<Object>monsters=new ArrayList<>();
   apw.bGL().a(new aMb(),new apB<aMb>(){public void load(aMb r){try{

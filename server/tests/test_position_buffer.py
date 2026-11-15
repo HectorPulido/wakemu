@@ -90,7 +90,7 @@ class PositionBufferTests(PostgresCase):
                         "direction": direction,
                     },
                 )
-            self.assertEqual(before, entry["current"])
+            self.assertEqual(before, self.buffer.entries[(a, g, char["id"])]["current"])
 
     def test_manual_orientation_write_conflicts_with_unflushed_walk_direction_cas(self):
         from wakfu_server.world_orientation import save

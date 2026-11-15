@@ -1,7 +1,8 @@
 """PostgreSQL integration for native fixed, merge, kama and XP item actions."""
+
 import struct
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 
 from postgres_case import PostgresCase
 from wakfu_server.characters import heroes

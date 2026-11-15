@@ -3,10 +3,10 @@
 The official session shows 5145 completing before 5155 starts, and 5155
 completing before 5156 starts. Callers own authorization and event receipts.
 """
+
 from copy import deepcopy
 
-from .mission_progress import auto_track
-
+from .mission_progress import auto_track, seed_counters
 
 OBJECTIVES = {
     5145: (10597, 10579, 10578, 10620),
@@ -39,6 +39,7 @@ def plan(state, definitions):
             break
         after["running"] = sorted(set(after["running"]) | {identity})
         auto_track(after, identity)
+        seed_counters(after, definitions[identity])
         started.append(identity)
         break
     return after, started

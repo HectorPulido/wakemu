@@ -4,6 +4,7 @@ Only admitted policies can reselect the population of their original immediate
 criterion groups. Chosen-PV replay, event recipients and leaf effects retain
 their native contracts. Original selectors and criteria are never rewritten.
 """
+
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -129,6 +130,15 @@ def freeze_group_population_policy(fight, *, roles):
 
 
 def permits_fresh_group_population(fight, effect, invocation):
+    from .rii_lesson_start_source import (
+        permits_movement_marker_population,
+        permits_lesson_floor_retirement,
+    )
+
+    if permits_movement_marker_population(
+        fight, effect, invocation
+    ) or permits_lesson_floor_retirement(fight, effect, invocation):
+        return True
     record = getattr(fight, "native_encounter_group_population", None)
     if record is None:
         return False

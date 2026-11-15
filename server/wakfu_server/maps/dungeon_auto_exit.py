@@ -3,6 +3,7 @@
 Call after every fight participant has returned to exploration. Existing durable
 transition delivery owns network hydration; this module sends no client packets.
 """
+
 from psycopg.types.json import Jsonb
 from wakfu_server import player_parties
 
@@ -48,6 +49,10 @@ def complete(store, instance_id, fight_id, *, topology, in_fight):
         ]
 
         player_parties._lock_members(db, member_ids)
+        from wakfu_server.achievements.astrub_cat_story import defer_auto_exit
+
+        if defer_auto_exit(db, instance_id):
+            return None
         members = db.execute(
             "SELECT c.id,c.account_id,c.map_id,c.instance_id,c.x,c.y,c.z,"
             "s.generation,s.character_id AS selected_character_id,s.expires_at,"

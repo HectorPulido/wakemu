@@ -4,6 +4,7 @@
 This is an evidence index, not an executable mission policy. Text matches and
 item thresholds do not establish consumption, dialogue destinations, or NPCs.
 """
+
 import argparse
 from collections import Counter, defaultdict
 import gzip
@@ -105,7 +106,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     quest_path = ROOT / ".runtime/quest-extraction/native-quest-definitions.json"
-    dialogue_path = ROOT / "server/protocol/npc-dialogues.json.gz"
+    dialogue_path = ROOT / "database/protocol/npc-dialogues.json.gz"
     definitions = json.loads(quest_path.read_bytes())
     with gzip.open(dialogue_path, "rt") as source:
         dialogues = json.load(source)

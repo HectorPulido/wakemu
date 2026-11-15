@@ -114,7 +114,7 @@ public final class ExportRecipes {
         });
 
         JsonArray mapObjects = JsonParser.parseString(
-                Files.readString(Path.of("server/protocol/native-map-objects.json")))
+                Files.readString(Path.of("database/protocol/native-map-objects.json")))
                 .getAsJsonArray();
         for (JsonElement element : mapObjects) {
             JsonObject object = element.getAsJsonObject();
@@ -250,7 +250,7 @@ public final class ExportRecipes {
         output.put("craft_table_definition_errors", definitionErrors);
         output.put("craft_table_instance_errors", tableInstanceErrors);
 
-        Path outputPath = Path.of("server/protocol/craft-recipes.json");
+        Path outputPath = Path.of("database/protocol/craft-recipes.json");
         Files.writeString(outputPath, new GsonBuilder().setPrettyPrinting().create().toJson(output));
         System.out.println("recipes_seen=" + counts[0]
                 + " recipes_exported=" + recipes.size()

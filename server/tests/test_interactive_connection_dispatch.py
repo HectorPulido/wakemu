@@ -1,7 +1,8 @@
 """Exercise the production Connection serializer with native interactive frames."""
+
 import ast
 from contextlib import nullcontext
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import threading
 from types import SimpleNamespace

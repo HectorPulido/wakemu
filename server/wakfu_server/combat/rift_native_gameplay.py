@@ -36,7 +36,7 @@ def policy(fight):
     return document
 
 
-def apply_native_carrier(dispatcher, *, actor_id, reference, grade):
+def apply_native_carrier(dispatcher, *, actor_id, reference, grade, caster_id=None):
     """Apply an original indefinite state through the common retained runtime.
 
     Receipts and once-only admission belong to the caller's unpublished preview.
@@ -44,10 +44,12 @@ def apply_native_carrier(dispatcher, *, actor_id, reference, grade):
     """
     fight = dispatcher.native_retention.fight
     actor = fight.actors.get(actor_id)
+    source_id = actor_id if caster_id is None else caster_id
     handler = dispatcher.native_state_handler
     definition = handler.catalog["states"].get(str(reference))
     if (
         actor is None
+        or source_id not in fight.actors
         or type(grade) is not int
         or grade < 1
         or definition is None
@@ -62,9 +64,9 @@ def apply_native_carrier(dispatcher, *, actor_id, reference, grade):
     invocation = EffectInvocation(
         2226,
         grade,
+        source_id,
         actor_id,
-        actor_id,
-        actor.position,
+        fight.actors[source_id].position,
         native_retained_container={"present": False},
     )
     context = StateCarrierContext(
@@ -174,9 +176,11 @@ def register_artifact_group(fight, *, wave, area_uids):
     state = fight.rift_wave_state
     settings = document["artifacts"]
     count = settings[
-        "ultimate_count"
-        if state["catalog"]["type"] == "ULTIMATE_INFINITE_WAVE"
-        else "classic_count"
+        (
+            "ultimate_count"
+            if state["catalog"]["type"] == "ULTIMATE_INFINITE_WAVE"
+            else "classic_count"
+        )
     ]
     ids = tuple(area_uids)
     areas = getattr(fight, "native_effect_areas", {})

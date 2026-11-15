@@ -1,7 +1,8 @@
 """Focused native codec and authority tests for ordinary public doors."""
+
 import ast
 import hashlib
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import sys
 import time
@@ -566,9 +567,11 @@ class EnvironmentDoorTests(unittest.TestCase):
             ), patch.object(doors, "definition", return_value=rule()), patch.object(
                 doors,
                 "interact",
-                return_value={"packet": (12344, b"native-state")}
-                if outcome == "success"
-                else Mock(side_effect=ValueError("denied")),
+                return_value=(
+                    {"packet": (12344, b"native-state")}
+                    if outcome == "success"
+                    else Mock(side_effect=ValueError("denied"))
+                ),
             ) as interact, patch.object(
                 dispatcher_environment_interactions, "definition"
             ) as generic:
@@ -610,6 +613,7 @@ class EnvironmentDoorTests(unittest.TestCase):
             character=self.character,
             DUNGEON_ROOM_RUNTIME_AVAILABLE=False,
             is_dungeon_run=lambda _instance_id: False,
+            ranch_session=None,
             record=Mock(),
             send=Mock(),
             connection=object(),

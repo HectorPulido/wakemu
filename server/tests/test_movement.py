@@ -11,6 +11,17 @@ def request(start, steps):
 
 
 class MovementTests(unittest.TestCase):
+    def test_character_and_request_binary_metadata_stays_outside_native_command(self):
+        character = dict(
+            x=2, y=-11, z=1, achievement_section=b"\x00", inventory=[b"\x01"]
+        )
+        route = Movement(character)
+        self.assertEqual(Movement.key(character), (2, -11, 1))
+        movement = request(character, [dict(dx=1, dy=0, dz=0, metadata=b"\xff")])
+        movement["metadata"] = b"\x01"
+        route.commit(route.validate(movement))
+        self.assertEqual(route.approved, {(2, -11, 1), (3, -11, 1)})
+
     def test_replacement_from_intermediate_cell_and_height(self):
         route = Movement(dict(x=-12, y=-8, z=-1))
         first = request(dict(x=-12, y=-8, z=-1), [dict(dx=-1, dy=0, dz=0)] * 5)

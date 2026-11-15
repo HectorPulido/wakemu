@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "id": "fixture.non-rii-harvest-demo",
+  "evidence": [
+    "Test fixture only: synthetic non-Rii parent/child missions and explicit producer events; not a production gameplay binding."
+  ],
+  "bindings": [
+    {
+      "id": "fixture-child-harvest-counter",
+      "quest_id": 9002,
+      "objective_id": 9020,
+      "variable_id": 7001,
+      "event": {
+        "kind": "resource_harvest",
+        "reference": 40001
+      },
+      "maps": [527],
+      "count": "operation"
+    }
+  ],
+  "links": [
+    {
+      "parent_quest_id": 9001,
+      "objective_id": 9010,
+      "child_quest_id": 9002
+    }
+  ],
+  "activations": [
+    {
+      "id": "fixture-parent-dialogue-activation",
+      "quest_id": 9001,
+      "event": {
+        "kind": "dialogue",
+        "reference": 5001
+      },
+      "maps": [527]
+    },
+    {
+      "id": "fixture-child-dialogue-activation",
+      "quest_id": 9002,
+      "event": {
+        "kind": "dialogue",
+        "reference": 5001
+      },
+      "maps": [527]
+    }
+  ]
+}

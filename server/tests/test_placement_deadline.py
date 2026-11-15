@@ -1,9 +1,10 @@
 """Frozen placement timeout policy and session-dispatch regression checks."""
+
 import ast
 import copy
 import dis
 import os
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import types
 import unittest
@@ -11,7 +12,6 @@ from unittest.mock import patch
 
 from postgres_case import PostgresCase
 from wakfu_server.placement_deadline import Deadline
-
 
 SERVER_SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 
@@ -197,8 +197,7 @@ class PlacementDeadlinePolicyPostgresTests(PostgresCase):
 
         fight_id = create_fight(self.store, account, generation, character["id"])
         with self.store.connection() as db:
-            db.execute(
-                """
+            db.execute("""
                 CREATE FUNCTION reject_active_fight_for_test() RETURNS trigger
                 LANGUAGE plpgsql AS $$
                 BEGIN
@@ -207,15 +206,12 @@ class PlacementDeadlinePolicyPostgresTests(PostgresCase):
                     END IF;
                     RETURN NEW;
                 END $$
-            """
-            )
-            db.execute(
-                """
+            """)
+            db.execute("""
                 CREATE TRIGGER reject_active_fight_for_test
                 BEFORE UPDATE OF status ON combat_fights
                 FOR EACH ROW EXECUTE FUNCTION reject_active_fight_for_test()
-            """
-            )
+            """)
 
         original_fight = SimpleNamespace(id=fight_id, phase="placement")
         original_messages = SimpleNamespace(native_action_id=4)

@@ -11,7 +11,7 @@ public class ExportPlantResources {
   public static void main(String[] args) throws Exception {
     Path bdata = Path.of("client/contents/bdata").toAbsolutePath();
     Path output = args.length == 0
-        ? Path.of("server/protocol/plant-resources.json")
+        ? Path.of("database/protocol/plant-resources.json")
         : Path.of(args[0]);
     apw.bGL().dd("jar:file:" + bdata + "/%d.jar!/%d.bin");
 

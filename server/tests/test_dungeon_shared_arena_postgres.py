@@ -1,8 +1,9 @@
 """Isolated PostgreSQL lifecycle for Arena Danzante's native shared arena."""
+
 import json
 import os
 import struct
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 

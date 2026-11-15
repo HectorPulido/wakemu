@@ -1,9 +1,16 @@
+"""World publication consumes frozen Rust maturation proposals and receipts.
+
+Clock-only absence/restart coverage moved to lifecycle_contract/clock_cases.rs.
+"""
+
 import struct
 import unittest
-from unittest.mock import patch
+from threading import RLock
+from types import SimpleNamespace
 
 from postgres_case import PostgresCase
-from wakfu_server import monster_maturation
+from lifecycle_fixture import due_tickets
+from wakfu_server import monster_maturation, ecology_mobs
 from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import REFERENCES, owned_instance
 
@@ -65,17 +72,77 @@ class MonsterMaturationTickTests(PostgresCase):
         self.assertEqual(len(body), offset)
         return actor_ids
 
-    def _tick(self, now_ms, packets, *, locations=None, previous=(), excluded_ids=()):
-        if locations is None:
-            locations = {self.location}
-        return monster_maturation.tick(
+    def _prepared(self, ticket):
+        """Freeze the known regular target used by World publication fixtures."""
+        members = self._group()["members"]
+        source = next(
+            member for member in members if member["id"] == ticket["monster_id"]
+        )
+        grown = owned_instance(
+            1,
+            REFERENCES[1]["min_level"],
+            source["id"],
+            map_id=source["map_id"],
+            instance_id=source.get("instance_id", 0),
+            x=source["x"],
+            y=source["y"],
+            z=source["z"],
+            team=source["team"],
+        )
+        return dict(expected_members=members, grown=grown)
+
+    def _grow(self, *, member_ids=None):
+        tickets = due_tickets(
             self.store,
-            locations,
-            previous,
-            generation="maturation-world",
-            now_ms=now_ms,
-            excluded_ids=set(excluded_ids),
-            emit=self._emit_all(packets),
+            "maturation",
+            self.map_id,
+            self.instance_id,
+            self.group_id,
+            member_ids=member_ids,
+        )
+        for ticket in tickets:
+            monster_maturation.attempt(
+                self.store,
+                ticket,
+                present=True,
+                draw=0.1,
+                prepared=self._prepared(ticket),
+            )
+        return tickets
+
+    def _publish(self, packets, *, excluded_ids=(), emit=None):
+        """World consumes one explicit Rust publication proposal, not a tick."""
+        world = SimpleNamespace(
+            lock=RLock(),
+            snapshot=lambda: [
+                dict(
+                    id=1,
+                    map_id=self.map_id,
+                    instance_id=self.instance_id,
+                    x=100,
+                    y=100,
+                    z=0,
+                )
+            ],
+            emit_location=emit or self._emit_all(packets),
+        )
+        harvests = SimpleNamespace(
+            lock=RLock(), targets={identity: 1 for identity in excluded_ids}
+        )
+        proposal = dict(
+            kind="publish_maturation",
+            world_epoch="maturation-world",
+            scope=list(self.location),
+            group_id=self.group_id,
+            expected_members=self._group()["members"],
+        )
+        return ecology_mobs.apply(
+            self.store,
+            self.groups,
+            harvests,
+            world,
+            proposal,
+            world_epoch="maturation-world",
         )
 
     def _group(self):
@@ -87,10 +154,10 @@ class MonsterMaturationTickTests(PostgresCase):
 
     def test_active_growth_emits_remove_then_snapshot_once_for_whole_group(self):
         packets = []
-        self._tick(0, packets)
+        self._publish(packets)
         self.assertEqual([], packets)
-        with patch.object(monster_maturation.secrets, "randbelow", return_value=0):
-            self._tick(60000, packets)
+        self._grow()
+        self._publish(packets)
 
         self.assertEqual([12304, 12608], [packet[2] for packet in packets])
         self.assertEqual(
@@ -108,47 +175,20 @@ class MonsterMaturationTickTests(PostgresCase):
             monster_maturation.unpublished(self.store, self.map_id, self.instance_id),
         )
 
-    def test_absent_location_pauses_clock_without_charging_offline_gap(self):
-        packets = []
-        self._tick(0, packets)
-        self._tick(50000, packets, locations=set(), previous={self.location})
-        self._tick(100000, packets)
-        self.assertEqual([], packets)
-        with self.store.connection() as db:
-            row = db.execute(
-                "SELECT remaining_ms,last_active_ms FROM monster_maturation_timers "
-                "WHERE map_id=%s AND instance_id=%s AND monster_id=%s",
-                (*self.location, self.members[0]["id"]),
-            ).fetchone()
-        self.assertEqual(60000, row["remaining_ms"])
-        self.assertEqual(100000, row["last_active_ms"])
-        with patch.object(monster_maturation.secrets, "randbelow", return_value=0):
-            self._tick(160000, packets)
-        self.assertEqual([12304, 12608], [packet[2] for packet in packets])
-
     def test_fighting_group_keeps_unpublished_outbox_for_later_retry(self):
-        monster_maturation.observe(
+        tickets = due_tickets(
             self.store,
+            "maturation",
             self.map_id,
             self.instance_id,
-            present=True,
-            generation="maturation-world",
-            now_ms=0,
-        )
-        tickets = monster_maturation.observe(
-            self.store,
-            self.map_id,
-            self.instance_id,
-            present=True,
-            generation="maturation-world",
-            now_ms=60000,
+            self.group_id,
         )
         monster_maturation.attempt(
             self.store,
             tickets[0],
             present=True,
             draw=0.1,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(tickets[0]),
         )
         with self.store.connection() as db:
             fight_id = db.execute(
@@ -156,7 +196,7 @@ class MonsterMaturationTickTests(PostgresCase):
             ).fetchone()["id"]
         lease, _ = self.groups.claim(self.key, "fight-maturation", fight_id)
         packets = []
-        self._tick(70000, packets)
+        self._publish(packets)
         self.assertEqual([], packets)
         pending = monster_maturation.unpublished(
             self.store, self.map_id, self.instance_id
@@ -167,8 +207,7 @@ class MonsterMaturationTickTests(PostgresCase):
         self.assertEqual("fighting", pending[0]["status"])
 
         self.assertTrue(self.groups.finish(lease, defeated=False))
-        with patch.object(monster_maturation.secrets, "randbelow", return_value=0):
-            self._tick(80000, packets)
+        self._publish(packets)
         self.assertEqual([12304, 12608], [packet[2] for packet in packets])
         self.assertEqual(
             [],
@@ -177,9 +216,8 @@ class MonsterMaturationTickTests(PostgresCase):
 
     def test_sibling_harvest_defers_group_publication_until_member_is_free(self):
         packets = []
-        self._tick(0, packets, excluded_ids={self.members[1]["id"]})
-        with patch.object(monster_maturation.secrets, "randbelow", return_value=0):
-            self._tick(60000, packets, excluded_ids={self.members[1]["id"]})
+        self._grow(member_ids={self.members[0]["id"]})
+        self._publish(packets, excluded_ids={self.members[1]["id"]})
         self.assertEqual([], packets)
         pending = monster_maturation.unpublished(
             self.store, self.map_id, self.instance_id
@@ -192,7 +230,7 @@ class MonsterMaturationTickTests(PostgresCase):
         self.assertEqual(39, roster[self.members[1]["id"]]["ref"])
 
         # The committed growth waits while the sibling harvest remains active.
-        self._tick(61000, packets, excluded_ids={self.members[1]["id"]})
+        self._publish(packets, excluded_ids={self.members[1]["id"]})
         self.assertEqual([], packets)
         self.assertEqual(
             1,
@@ -204,7 +242,7 @@ class MonsterMaturationTickTests(PostgresCase):
         )
 
         # Once the occupation clears, publish the current complete roster and ack.
-        self._tick(62000, packets)
+        self._publish(packets)
         self.assertEqual([12304, 12608], [packet[2] for packet in packets])
         removed = self._unpack_ids(packets[0][3], remove=True)
         spawned = self._unpack_ids(packets[1][3], remove=False)
@@ -217,22 +255,13 @@ class MonsterMaturationTickTests(PostgresCase):
 
     def test_emit_failure_preserves_outbox_and_retry_republishes(self):
         packets = []
-        self._tick(0, packets)
+        self._grow()
 
         def fail_emit(*_packet):
             raise OSError("injected emitter failure")
 
-        with patch.object(monster_maturation.secrets, "randbelow", return_value=0):
-            with self.assertRaisesRegex(OSError, "injected emitter failure"):
-                monster_maturation.tick(
-                    self.store,
-                    {self.location},
-                    {self.location},
-                    generation="maturation-world",
-                    now_ms=60000,
-                    excluded_ids=set(),
-                    emit=fail_emit,
-                )
+        with self.assertRaisesRegex(OSError, "injected emitter failure"):
+            self._publish(packets, emit=fail_emit)
         self.assertEqual(
             2,
             len(
@@ -242,7 +271,7 @@ class MonsterMaturationTickTests(PostgresCase):
             ),
         )
         retry = []
-        self._tick(70000, retry)
+        self._publish(retry)
         self.assertEqual([12304, 12608], [packet[2] for packet in retry])
         self.assertEqual(
             [],
@@ -250,21 +279,12 @@ class MonsterMaturationTickTests(PostgresCase):
         )
 
     def test_register_seed_accepts_growth_and_movement_but_rejects_forged_stats(self):
-        monster_maturation.observe(
+        tickets = due_tickets(
             self.store,
+            "maturation",
             self.map_id,
             self.instance_id,
-            present=True,
-            generation="maturation-world",
-            now_ms=0,
-        )
-        tickets = monster_maturation.observe(
-            self.store,
-            self.map_id,
-            self.instance_id,
-            present=True,
-            generation="maturation-world",
-            now_ms=60000,
+            self.group_id,
         )
         ticket = next(
             row for row in tickets if row["monster_id"] == self.members[0]["id"]
@@ -274,7 +294,7 @@ class MonsterMaturationTickTests(PostgresCase):
             ticket,
             present=True,
             draw=0.1,
-            choose=lambda candidates: candidates[0],
+            prepared=self._prepared(ticket),
         )
         current = self._group()["members"]
         moved = [dict(member) for member in current]

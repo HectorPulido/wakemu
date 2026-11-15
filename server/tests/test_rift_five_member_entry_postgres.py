@@ -3,6 +3,7 @@
 This isolated PostgreSQL component covers admission, position buffering and
 pending transport; it does not claim native map hydration, Ready or combat.
 """
+
 import struct
 
 from postgres_case import PostgresCase
@@ -139,7 +140,7 @@ class RiftTwoOwnerBufferedProximityTests(PostgresCase):
     ):
         """All five are native-adjacent despite distant SQL and hero baselines."""
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
         from wakfu_server import rift_transition_delivery, rift_entry_adapter
 
         tree = ast.parse(

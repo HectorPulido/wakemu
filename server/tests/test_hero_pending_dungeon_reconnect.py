@@ -1,7 +1,8 @@
 """A pending native swap and dungeon reconnect retain authoritative ownership."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 from unittest.mock import Mock, patch

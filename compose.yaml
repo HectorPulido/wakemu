@@ -26,6 +26,8 @@ services:
     image: ${WAKFU_WORLD_IMAGE:-wakemu-world:systems-20261011}
     build:
       context: ./server
+      additional_contexts:
+        database: ./database
       args:
         CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde}
     init: true
@@ -202,10 +204,10 @@ services:
       retries: 3
       start_period: 30s
   ecology:
-    image: ${WAKFU_ECOLOGY_IMAGE:-wakemu-ecology:systems-20261011}
+    image: ${WAKFU_ECOLOGY_IMAGE:-wakemu-ecology:rust-local}
     build:
       context: ./server
-      dockerfile: ecology-service/Dockerfile
+      dockerfile: rust-services/crates/ecology-service/Dockerfile
       args:
         CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde}
     user: "${WAKFU_SERVICE_UID:-1000}:${WAKFU_SERVICE_GID:-1000}"
@@ -219,6 +221,7 @@ services:
         condition: service_healthy
     environment:
       WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION}
+      WAKFU_COMPILED_CATALOG_GENERATION: ${WAKFU_COMPILED_CATALOG_GENERATION:-}
       WAKFU_FISHING_CATALOG_REVISION: 20f2731c921701c025af2d8416696e5b01c7346fc9393408b47533c092cab5fa
       WAKFU_MINING_CATALOG_REVISION: 14b63a5b28014e455fd9910c99fe037e6d957ac9b40508335bfe130c2ee54518
       WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
@@ -242,7 +245,7 @@ services:
     mem_limit: 1g
     pids_limit: 64
     healthcheck:
-      test: [CMD, python3, -c, "import urllib.request,pathlib; token=pathlib.Path('/run/secrets/ecology-token').read_text().strip(); urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8093/health',headers={'Authorization':'Bearer '+token}),timeout=3)"]
+      test: [CMD, /usr/local/bin/wakemu-ecology, --health-check]
       interval: 15s
       timeout: 5s
       retries: 3

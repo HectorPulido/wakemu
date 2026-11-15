@@ -1,7 +1,8 @@
 """Execute actual join and ready replay functions against one native scene."""
+
 import ast
 from contextlib import ExitStack, nullcontext
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import threading
 import unittest

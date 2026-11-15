@@ -1,8 +1,8 @@
 """Integration boundaries for dungeon build profile publication and recovery."""
-import ast
-from pathlib import Path
-import unittest
 
+import ast
+from source_view import WorldSourcePath as Path
+import unittest
 
 _SERVER_SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

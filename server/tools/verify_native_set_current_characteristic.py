@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Compare the eWX kernel to original Java C/g/h for every fixed prototype."""
+
 import argparse, hashlib, json, random, subprocess
 from pathlib import Path
 from wakfu_server.combat_set_current_characteristic import (
@@ -98,7 +99,7 @@ def main():
     paths = [
         "sniffer/java/ProbeNativeSetCurrentCharacteristic.java",
         "server/wakfu_server/combat/combat_set_current_characteristic.py",
-        "server/protocol/native-set-current-characteristic.json",
+        "database/protocol/native-set-current-characteristic.json",
         "client/lib/wakfu-client.jar",
     ]
     report = dict(

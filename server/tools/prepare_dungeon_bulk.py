@@ -2,6 +2,7 @@
 
 This tool never activates a database configuration or restarts a service.
 """
+
 import argparse
 from collections import Counter
 import copy
@@ -156,7 +157,7 @@ def main():
         resolved_documents.get(p, json.loads(p.read_text()))
         for p in sorted(path(archive + "/compositions").glob("*.json"))
     ]
-    native = json.loads(path("server/protocol/monsters.json").read_text())["monsters"]
+    native = json.loads(path("database/protocol/monsters.json").read_text())["monsters"]
     routes = json.loads(path(args.routes).read_text())
     topologies = json.loads(path(args.topologies).read_text())
     updated, plans, configs, coverage = prepare_all(

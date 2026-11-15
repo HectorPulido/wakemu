@@ -66,7 +66,7 @@ class TriggerValueGroupTests(unittest.TestCase):
 
         path = (
             Path(__file__).resolve().parents[1]
-            / "test-fixtures/combat/trigger-value1103-context.bin"
+            / "tests/fixtures/combat/trigger-value1103-context.bin"
         )
         expected = _identity_fields(
             path.read_bytes(), integer_fields=(1, 2, 4, 5, 6, 7, 8, 9)

@@ -333,7 +333,7 @@ class NativeKillTests(unittest.TestCase):
     def test_native_bulk_oracle_matches_shared_parameter_and_resource_contract(self):
         path = (
             Path(__file__).resolve().parents[2]
-            / "server/test-fixtures/combat/kill-oracle.json"
+            / "server/tests/fixtures/combat/kill-oracle.json"
         )
         oracle = json.loads(path.read_text())
         self.assertEqual(oracle["events"], [0, 192])

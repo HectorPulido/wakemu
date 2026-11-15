@@ -4,6 +4,7 @@ The World owner chooses original operations and publishes the committed result.
 This module never starts a transaction, changes historical receipts, or forces
 an absolute character value. Frozen historical policy magnitudes are preserved.
 """
+
 import hashlib
 import json
 from .ecology_equilibrium import limits
@@ -42,9 +43,7 @@ def evaluate(receipt):
     expected = (
         policy["balance_delta"]
         if new_distance < old_distance
-        else policy["imbalance_delta"]
-        if new_distance > old_distance
-        else 0
+        else policy["imbalance_delta"] if new_distance > old_distance else 0
     )
     expected_applied = (
         max(-LIMIT, min(LIMIT, receipt["before_value"] + expected))
@@ -178,54 +177,6 @@ def apply_selected(db, character_id, *, operations):
         ecology_revision=actor["ecology_revision"],
         packet=packet(character_id, actor["ecology_value"]),
     )
-
-
-def prepare(store, snapshot, *, limit=1):
-    """Plan at most sixteen positive corrections for active owned characters."""
-    epoch = snapshot.get("world_epoch")
-    if (
-        not isinstance(epoch, str)
-        or not epoch
-        or type(limit) is not int
-        or not 1 <= limit <= 16
-    ):
-        raise ValueError("Invalid affinity reconciliation snapshot")
-    proposals = []
-    for player in snapshot.get("players", ()):
-        character_id, account_id = player.get("id"), player.get("account_id")
-        if any(
-            type(value) is not int or not 0 < value < 2**63
-            for value in (character_id, account_id)
-        ):
-            continue
-        with store.connection() as db:
-            owner = db.execute(
-                "SELECT account_id FROM characters WHERE id=%s AND deleted_at IS NULL",
-                (character_id,),
-            ).fetchone()
-            if owner is None or owner["account_id"] != account_id:
-                continue
-            candidates = plan(db, character_id)["corrections"][:16]
-        if not candidates:
-            continue
-        proposals.append(
-            dict(
-                kind="affinity_reconcile",
-                world_epoch=epoch,
-                character_id=character_id,
-                account_id=account_id,
-                original_operations=[
-                    dict(
-                        operation=row["original_operation"],
-                        receipt_sha256=row["original_receipt_sha256"],
-                    )
-                    for row in candidates
-                ],
-            )
-        )
-        if len(proposals) >= limit:
-            break
-    return proposals
 
 
 def apply(store, world, proposal):

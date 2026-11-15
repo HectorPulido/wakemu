@@ -6,6 +6,7 @@ provide unresolved server timing, objective-unit and reward authority before a
 candidate can become even a disabled runtime profile. Raw reward display values
 are evidence, not grant instructions. Output is private SQL, never auto-applied.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -36,11 +37,11 @@ DEFAULT_OUTPUT = (
     ROOT
     / ".runtime/parallel-readiness-20261021/environmental-resource-profile-compiler"
 )
-SEED_PATH = ROOT / "server/seeds/environmental_resource_profiles.sql"
-RACE_SEED_PATH = ROOT / "server/seeds/environmental_resource_races.sql"
-COMPETITIVE_SEED_PATH = ROOT / "server/seeds/environmental_resource_competitions.sql"
-RESULT_SEED_PATH = ROOT / "server/seeds/environmental_resource_results.sql"
-CRITERIA_SEED_PATH = ROOT / "server/seeds/environmental_resource_level_criteria.sql"
+SEED_PATH = ROOT / "database/seeds/environmental_resource_profiles.sql"
+RACE_SEED_PATH = ROOT / "database/seeds/environmental_resource_races.sql"
+COMPETITIVE_SEED_PATH = ROOT / "database/seeds/environmental_resource_competitions.sql"
+RESULT_SEED_PATH = ROOT / "database/seeds/environmental_resource_results.sql"
+CRITERIA_SEED_PATH = ROOT / "database/seeds/environmental_resource_level_criteria.sql"
 LOCATIONS = (
     ROOT
     / "agents_docs/reports/parallel-readiness-20261021/environmental-original-scenario-locations.csv"
@@ -382,9 +383,11 @@ def compile_profiles(
                     native["action_id"],
                     native["resource_step"],
                     policy["unit"],
-                    native["spawn_quantity"]
-                    if native["native_subtype"] == 4
-                    else native["required_quantity"],
+                    (
+                        native["spawn_quantity"]
+                        if native["native_subtype"] == 4
+                        else native["required_quantity"]
+                    ),
                 )
             ],
         )
@@ -1239,9 +1242,11 @@ def compile_result_policies(*, profile_rows, inventory_path=INVENTORY):
                         rewards[0]["id"],
                         "wakemu.original-resource-single-primary-base-result.v1",
                         0,
-                        "personal_progress"
-                        if scenario["subtype"] == 1
-                        else "global_progress",
+                        (
+                            "personal_progress"
+                            if scenario["subtype"] == 1
+                            else "global_progress"
+                        ),
                         "original-single-unconditional-primary-list",
                         "original-primary-result-index-zero",
                         "wakemu.simple-resource-completed-objective-score.v1",
@@ -1409,7 +1414,7 @@ def main():
         type=Path,
         nargs="?",
         const=SEED_PATH,
-        help="Explicitly persist the complete disabled SQL seed; defaults to server/seeds/environmental_resource_profiles.sql",
+        help="Explicitly persist the complete disabled SQL seed; defaults to database/seeds/environmental_resource_profiles.sql",
     )
     args = parser.parse_args()
     if args.policy_csv and args.generate_source_policies:
@@ -1444,17 +1449,21 @@ def main():
             args.output_dir = DEFAULT_OUTPUT.with_name(
                 "environmental-resource-level-criteria-compiler"
                 if args.evaluated_resource_level_criteria
-                else "environmental-resource-race-compiler"
-                if args.declared_character_races
-                else "environmental-resource-competition-compiler"
+                else (
+                    "environmental-resource-race-compiler"
+                    if args.declared_character_races
+                    else "environmental-resource-competition-compiler"
+                )
             )
         if args.seed_output == SEED_PATH:
             args.seed_output = (
                 CRITERIA_SEED_PATH
                 if args.evaluated_resource_level_criteria
-                else RACE_SEED_PATH
-                if args.declared_character_races
-                else COMPETITIVE_SEED_PATH
+                else (
+                    RACE_SEED_PATH
+                    if args.declared_character_races
+                    else COMPETITIVE_SEED_PATH
+                )
             )
     omissions = []
     rows = policies(args.policy_csv)
@@ -1489,11 +1498,15 @@ def main():
         pipeline = (
             compile_evaluated_resource_criteria
             if args.evaluated_resource_level_criteria
-            else compile_declared_competitions
-            if args.declared_resource_competitions
-            else compile_declared_races
-            if args.declared_character_races
-            else compile_pipeline
+            else (
+                compile_declared_competitions
+                if args.declared_resource_competitions
+                else (
+                    compile_declared_races
+                    if args.declared_character_races
+                    else compile_pipeline
+                )
+            )
         )
         sql, census, pipeline_manifest = pipeline(
             native_cell_rows=cells,
@@ -1586,15 +1599,21 @@ def main():
                         action_id=row["action_id"],
                         personal_threshold=row["required_quantity"],
                         global_spawn_count=row["spawn_quantity"],
-                        required_quantity=row["spawn_quantity"]
-                        if mode == "collaborative"
-                        else row["required_quantity"],
+                        required_quantity=(
+                            row["spawn_quantity"]
+                            if mode == "collaborative"
+                            else row["required_quantity"]
+                        ),
                         minimum_contribution=row["required_quantity"],
-                        runtime_support="disabled_candidate"
-                        if mode in ("solo", "collaborative")
-                        else "unqualified_winner_limit"
-                        if mode == "race"
-                        else "unqualified_rank_band_rewards",
+                        runtime_support=(
+                            "disabled_candidate"
+                            if mode in ("solo", "collaborative")
+                            else (
+                                "unqualified_winner_limit"
+                                if mode == "race"
+                                else "unqualified_rank_band_rewards"
+                            )
+                        ),
                     )
                 )
     print(json.dumps(summary, sort_keys=True))

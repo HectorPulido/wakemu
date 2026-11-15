@@ -1,6 +1,7 @@
 """Verify the actual production NPC callback preserves current scene authority."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock

@@ -1,4 +1,5 @@
 """Offline catalog capture/replay contract regressions."""
+
 import hashlib
 import importlib
 import json
@@ -117,14 +118,14 @@ class CatalogReproductionTests(unittest.TestCase):
             _, raw, _ = self.make_bundle(directory)
             path = Path(directory) / "catalog.json"
             value = json.loads(path.read_bytes())
-            value["data_root"] = "/app/server/protocol"
+            value["data_root"] = "/app/database/protocol"
             path.write_text(json.dumps(value))
             replay = ReplayCatalog(directory)
             self.assertEqual(
-                replay.read_bytes("/app/server/protocol/example.json"), raw
+                replay.read_bytes("/app/database/protocol/example.json"), raw
             )
             with self.assertRaises(ValueError):
-                replay.read_bytes("/app/server/protocol/../secret.json")
+                replay.read_bytes("/app/database/protocol/../secret.json")
 
     def test_direct_aliases_imported_inside_context_are_restored(self):
         with tempfile.TemporaryDirectory() as directory:

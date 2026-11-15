@@ -1,6 +1,7 @@
 """Initial map-ready must not tear down the scene being faded in."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 

@@ -6,7 +6,6 @@ from postgres_case import PostgresCase
 from wakfu_server import monster_reproduction
 from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import REFERENCES, owned_instance
-from wakfu_server.monster_wander import edge_index
 
 
 class DurableGroupsTests(PostgresCase):
@@ -91,9 +90,11 @@ class DurableGroupsTests(PostgresCase):
         )
         self.assertFalse(self.groups.move_members(key, expected, moved))
         moved_raw = [
-            member
-            if member["ref"] in (5403, 5404)
-            else next(updated for updated in moved if updated["id"] == member["id"])
+            (
+                member
+                if member["ref"] in (5403, 5404)
+                else next(updated for updated in moved if updated["id"] == member["id"])
+            )
             for member in members
         ]
 
@@ -340,7 +341,7 @@ class DurableGroupsTests(PostgresCase):
             ):
                 self.groups.snapshot(*args)
 
-    def test_failed_claim_and_reproduction_tick_never_revive_defeated_group(self):
+    def test_failed_claim_and_prepared_birth_never_revive_defeated_group(self):
         adult = owned_instance(
             4, REFERENCES[4]["min_level"], -203, map_id=1134, x=0, y=0, z=0
         )
@@ -355,16 +356,25 @@ class DurableGroupsTests(PostgresCase):
                 "(map_id,instance_id,monster_id,reference,remaining_ms,due,cycle) "
                 "VALUES(1134,0,-203,4,0,true,1)"
             )
-        monster_reproduction.tick(
-            self.store,
-            {(1134, 0)},
-            set(),
-            generation="after-defeat",
-            now_ms=10**9,
-            indexed_by_map={1134: edge_index([])},
-            players=[],
-            excluded_ids=set(),
-            emit=lambda *_: self.fail("defeated group emitted reproduction packets"),
+        # Rust lifecycle observation/attachment of defeated groups is covered
+        # by lifecycle_contract.rs; World independently refuses this due ticket.
+        self.assertIsNone(
+            monster_reproduction.attempt(
+                self.store,
+                dict(
+                    map_id=1134,
+                    instance_id=0,
+                    group_id=502,
+                    monster_id=-203,
+                    reference=4,
+                    cycle=1,
+                ),
+                present=True,
+                indexed=None,
+                draw=0.0,
+                group_draw=0.0,
+                prepared={"expected_members": [adult]},
+            )
         )
         with self.store.connection() as db:
             row = db.execute(

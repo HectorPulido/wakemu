@@ -158,7 +158,7 @@ public class ExportClassMechanicGraph {
     public static void main(String[] args) throws Exception {
         if(args.length!=2)throw new IllegalArgumentException("seed-json output-jsonl.gz");
         JsonObject seeds=JsonParser.parseString(Files.readString(Path.of(args[0]))).getAsJsonObject();
-        profiles=JsonParser.parseString(Files.readString(Path.of("server/protocol/native-class-summon-abilities.json"))).getAsJsonObject().getAsJsonObject("profiles");
+        profiles=JsonParser.parseString(Files.readString(Path.of("database/protocol/native-class-summon-abilities.json"))).getAsJsonObject().getAsJsonObject("profiles");
         apw.bGL().dd("jar:file:"+Path.of("client/contents/bdata").toAbsolutePath()+"/%d.jar!/%d.bin");
         apw.bGL().a(new aKX(),new apB<aKX>(){public void load(aKX record){GROUPS.put(record.d(),record.cku());}});
         apw.bGL().a(new aNw(),new apB<aNw>(){public void load(aNw record){CRITERIA.put(record.aZE(),record.cyi());}});

@@ -3,6 +3,7 @@
 This module does not infer yield, XP or stage transitions from client metadata.
 The occupation coordinator owns location, leases and reward transactions.
 """
+
 from copy import deepcopy
 import struct
 import uuid
@@ -392,6 +393,7 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
     if type(token) is not str or not 1 <= len(token) <= 128:
         raise ValueError("Invalid resource harvest identity")
     with store.connection() as db:
+        db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account,))
         _lease(store, db, account, generation, actor)
         db.execute(
             "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
@@ -676,16 +678,17 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
             ),
         )
         if product:
-            from wakfu_server.achievements.counter_missions import settle_rii_event
+            from wakfu_server.achievements import mission_toolkit
 
             packets.extend(
-                settle_rii_event(
+                mission_toolkit.settle(
                     db,
                     store,
                     character,
                     token=token,
                     kind="resource_harvest",
-                    item_reference=item_reference,
+                    reference=item_reference,
+                    quantity=quantity,
                 )
             )
             if resource["map_id"] == 1361 and resource["resource_reference"] == 824:
@@ -710,16 +713,20 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
             character_id=actor,
             token=token,
             resource=dict(resource),
-            region_id=environmental_action["region_id"]
-            if environmental_action is not None
-            else None,
+            region_id=(
+                environmental_action["region_id"]
+                if environmental_action is not None
+                else None
+            ),
         )
     return dict(
         applied=True,
         packets=packets,
-        world_packets=[]
-        if environmental_action is not None and not dungeon_action
-        else [state_packet(event, stage)],
+        world_packets=(
+            []
+            if environmental_action is not None and not dungeon_action
+            else [state_packet(event, stage)]
+        ),
         environmental_owned_publication=environmental_action is not None
         and not dungeon_action,
         dungeon_group=dungeon_group,

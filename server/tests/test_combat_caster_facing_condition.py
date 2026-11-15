@@ -1,4 +1,5 @@
 """Installed eNz vectors and actual registered fighter footprint lookup."""
+
 import json
 from pathlib import Path
 import unittest
@@ -18,7 +19,7 @@ class CasterFacingConditionTests(unittest.TestCase):
     def test_installed_vector_oracle_including_diagonals_and_overflow(self):
         path = (
             Path(__file__).resolve().parents[1]
-            / "test-fixtures/combat/caster-facing-direction.json"
+            / "tests/fixtures/combat/caster-facing-direction.json"
         )
         for row in json.loads(path.read_text()):
             self.assertEqual(

@@ -15,6 +15,25 @@ def grant_if_missing(db, store, character):
     seed = SEEDS.get(31007)
     if not seed or seed.get("resource_reference") != 825:
         raise ValueError("Celestial flower seed differs from native catalog")
+    prior = db.execute(
+        "SELECT payload FROM character_achievement_events "
+        "WHERE character_id=%s AND event_key=%s",
+        (character["id"], "rii-starter-flower-seed:5155"),
+    ).fetchone()
+    if prior is not None:
+        payload = prior["payload"]
+        if (
+            not isinstance(payload, dict)
+            or payload.get("kind") != "reconstructed_rii_starter_seed"
+            or payload.get("quest_id") != 5155
+            or payload.get("reference") != 31007
+            or type(payload.get("quantity")) is not int
+            or not 1 <= payload["quantity"] <= 3
+        ):
+            raise ValueError("Invalid Rii starter seed receipt")
+        # The original delivery owns its quantity. Inventory may legitimately
+        # shrink after planting; recomputing it would conflict with that receipt.
+        return []
     rows = db.execute(
         "SELECT quantity FROM inventory_items WHERE character_id=%s AND reference=%s "
         "AND quantity>0 FOR UPDATE",

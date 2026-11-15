@@ -1,4 +1,5 @@
 """Discover dungeon identities and room topology from native references only."""
+
 import argparse
 import hashlib
 import json
@@ -363,7 +364,7 @@ def build_bundle(
             row["reason"] = "No reviewed room count"
         else:
             geometry_path = (
-                root / f"server/protocol/combat-maps/{route['start_map_id']}.json"
+                root / f"database/protocol/combat-maps/{route['start_map_id']}.json"
             )
             try:
                 with open(geometry_path) as stream:
@@ -419,7 +420,7 @@ def build_bundle(
                         topology["room_count_official"] = False
                 if topology.get("policy") == "local_accessible_anchor_policy":
                     exterior_geometry_path = (
-                        root / f"server/protocol/combat-maps/{source['map_id']}.json"
+                        root / f"database/protocol/combat-maps/{source['map_id']}.json"
                     )
                     with open(exterior_geometry_path) as stream:
                         exterior_cells = set(map(tuple, json.load(stream)["cells"]))
@@ -446,16 +447,18 @@ def build_bundle(
                         approach_orientation=source["approach_orientation"],
                         provenance={
                             "policy": "native_entry_approved_walkable_approach",
-                            "catalog_path": "server/protocol/native-generic-teleporters.json",
+                            "catalog_path": "database/protocol/native-generic-teleporters.json",
                             "catalog_sha256": hashlib.sha256(
                                 (
                                     root
-                                    / "server/protocol/native-generic-teleporters.json"
+                                    / "database/protocol/native-generic-teleporters.json"
                                 ).read_bytes()
                             ).hexdigest(),
-                            "method": "approach_position"
-                            if source.get("approach_mask")
-                            else "walkable_source_zero_mask",
+                            "method": (
+                                "approach_position"
+                                if source.get("approach_mask")
+                                else "walkable_source_zero_mask"
+                            ),
                             "geometry_path": str(
                                 exterior_geometry_path.relative_to(root)
                             ),
@@ -513,7 +516,7 @@ if __name__ == "__main__":
         if args.native_index
         else archive / "native-dungeon-index.json"
     )
-    teleporter_path = root / "server/protocol/native-generic-teleporters.json"
+    teleporter_path = root / "database/protocol/native-generic-teleporters.json"
     documents = [
         json.loads(p.read_text())
         for p in sorted((archive / "compositions").glob("*.json"))
@@ -559,16 +562,18 @@ if __name__ == "__main__":
             ("local-legacy-topologies.json", bundle["topologies"]),
         ]
         if routes_path
-        else [
-            ("local-policy-topology-bundle.json", bundle),
-            ("local-policy-topologies.json", bundle["topologies"]),
-        ]
-        if drafts_path
-        else [
-            ("native-route-topology-bundle.json", bundle),
-            ("native-bulk-entry-routes.json", bundle["routes"]),
-            ("native-bulk-topologies.json", bundle["topologies"]),
-        ]
+        else (
+            [
+                ("local-policy-topology-bundle.json", bundle),
+                ("local-policy-topologies.json", bundle["topologies"]),
+            ]
+            if drafts_path
+            else [
+                ("native-route-topology-bundle.json", bundle),
+                ("native-bulk-entry-routes.json", bundle["routes"]),
+                ("native-bulk-topologies.json", bundle["topologies"]),
+            ]
+        )
     )
     for filename, value in outputs:
         (archive / filename).write_text(

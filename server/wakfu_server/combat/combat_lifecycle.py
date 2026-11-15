@@ -1,4 +1,5 @@
 """Own fight finish/reward/return orchestration; no dispatcher or GUI effects."""
+
 import os
 import struct
 from copy import deepcopy
@@ -102,9 +103,7 @@ def prepare_finish(
                 selected_policy = (
                     policy_resolver(db)
                     if policy_resolver is not None
-                    else policy_from_env()
-                    if policy is None
-                    else policy
+                    else policy_from_env() if policy is None else policy
                 )
                 reward = combat_rewards.award(
                     store,
@@ -271,7 +270,17 @@ def prepare_finish(
                 )
             )
             packets.extend(loot_packets)
-            packets.extend(progression_packets.get(account_id, ()))
+            from .combat_progression_delivery import defer
+
+            if progression_packets.get(account_id) and previous_fight is None:
+                previous_fight = deepcopy(fight.__dict__)
+            defer(
+                fight,
+                account_id,
+                generation,
+                character["id"],
+                progression_packets.get(account_id, ()),
+            )
             if reward is not None:
                 from .combat_xp_gain import notification
 
@@ -619,6 +628,14 @@ def prepare_finish_shared(
                 ]
                 for recipient_id, delivery in deliveries:
                     report[recipient_id]["loots"] = delivery["loots"]
+                report_initiator, report_model = actor_id, 2
+                from wakfu_server.achievements.rii_guardian_contract import (
+                    is_owned as is_owned_guardian,
+                )
+
+                if is_owned_guardian(candidate, actor_id):
+                    report_initiator = candidate.rii_guardian_contract["target"]
+                    report_model = 71
                 packets = list(outcome_packets)
                 if reward is not None:
                     from wakfu_server.wire import account_kamas_update
@@ -634,7 +651,8 @@ def prepare_finish_shared(
                         report,
                         duration_ms=duration_ms,
                         fight_instance_id=fight_instance_id,
-                        initiator_id=actor_id,
+                        initiator_id=report_initiator,
+                        fight_model=report_model,
                     )
                 )
                 packets.append((13420, struct.pack(">i", fight.id)))
@@ -652,7 +670,22 @@ def prepare_finish_shared(
                     packets.extend(delivery["packets"])
                 if ecology is not None and actor_id == character_id:
                     packets.extend(ecology.get("packets", ()))
-                packets.extend(progression_packets.get(owner, ()))
+                from .combat_progression_delivery import defer
+
+                if progression_packets.get(owner) and previous_fight is None:
+                    previous_fight = deepcopy(candidate.__dict__)
+                owner_generation = next(
+                    member["session_generation"]
+                    for member in owned_members
+                    if member["character_id"] == actor_id
+                )
+                defer(
+                    candidate,
+                    owner,
+                    owner_generation,
+                    actor_id,
+                    progression_packets.get(owner, ()),
+                )
                 packets_by_owner[owner] = tuple(packets)
         finally:
             runtime.awaiting_ack, runtime.pending = original_ack, original_pending
@@ -756,7 +789,12 @@ def return_to_world(
         saved = health_exit["character"]
         if not health_exit["applied"]:
             return dict(character=saved, packets=[], applied=False)
+        from .combat_progression_delivery import after_return
+
+        # Native format17(-1) clears big.doI before cEH/cEG choose between
+        # immediate quest updates and the now-disposed combat executor.
         packets = combat_results.outside_fight_updates(fight)
+        packets.extend(after_return(fight, account_id, generation, character["id"]))
         packets.extend(
             [
                 outside_progression(saved, wp=wp, ap=ap, mp=mp),

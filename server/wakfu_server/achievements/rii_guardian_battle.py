@@ -1,24 +1,20 @@
-"""Settlement for a qualified Rii guardian encounter.
+"""Owned native Grougaloragran admission and post-fight Rii progression.
 
-The native quest explicitly accepts an attempt. Its original encounter setup
-has not been recovered, so a separate producer must record an owned encounter
-    receipt before this adapter can ever advance the mission. An arbitrary fight
-against the same monster reference is insufficient.
+An exact producer receipt authorizes the model-71 native encounter; an arbitrary
+fight against the same monster reference is insufficient. Native state 8018
+owns summons and the lethal finisher, without a scripted loss or manual HP edit.
 """
 
 
 def spawn(store, groups, account_id, generation, character):
-    """Create an owned encounter after the captured guardian conversation.
-
-    Original encounter placement and scaling were not captured. A level-six
-    native guardian placed adjacent to the player is a local reconstruction.
-    """
+    """Admit the captured level-300 guardian after the native conversation."""
     import secrets
     from wakfu_server.monsters import owned_instance
     from wakfu_server.npc_actor_identity import allocate_block
     from wakfu_server.combat_terrain import published_geometry
     from wakfu_server.combat_monster_world import spawn_group
     from . import storage
+    from .rii_guardian_contract import LEVEL, WORLD_TARGET
 
     if (character.get("map_id"), character.get("instance_id")) != (1387, 0):
         return None
@@ -69,23 +65,30 @@ def spawn(store, groups, account_id, generation, character):
                         "SELECT 1 FROM character_achievement_events WHERE character_id=%s AND event_key=%s",
                         (current["id"], f"rii-guardian-actor:{-member['id']}"),
                     ).fetchone():
-                        return None, dict(member, map_id=1387, instance_id=0)
-        occupied = {
-            tuple(member[k] for k in ("x", "y", "z"))
-            for group in active_groups
-            for member in group["members"]
-        }
-        candidates = [
-            cell
-            for cell in published_geometry(1387).outgoing.get(origin, ())
-            if cell not in occupied
-        ]
-        if not candidates:
-            return None
+                        if (
+                            member.get("level") == LEVEL
+                            and tuple(member[key] for key in ("x", "y", "z"))
+                            == WORLD_TARGET
+                        ):
+                            # A reconnect may have only the dialogue NPC in
+                            # its actor cache. Re-publish the same owned actor
+                            # before retrying authenticated combat admission.
+                            scene = 12608, spawn_group(
+                                group["members"], group_id=group["key"][2]
+                            )
+                            return scene, dict(member, map_id=1387, instance_id=0)
+                        # Retire only an available, single-use owned actor from
+                        # the former level-six reconstruction; never an active
+                        # fight, unrelated group or completed player progress.
+                        _retire_lost_encounter(db, member["id"])
+        if WORLD_TARGET not in published_geometry(1387).cells:
+            raise ValueError(
+                "Captured guardian world cell is absent from native terrain"
+            )
         actor_id = -allocate_block(db, 1)
-        x, y, z = candidates[0]
+        x, y, z = WORLD_TARGET
         monster = owned_instance(
-            5458, 6, actor_id, map_id=1387, instance_id=0, x=x, y=y, z=z
+            5458, LEVEL, actor_id, map_id=1387, instance_id=0, x=x, y=y, z=z
         )
         if not storage.record_event(
             db,
@@ -105,7 +108,7 @@ def spawn(store, groups, account_id, generation, character):
 
 
 def start_request(monster):
-    """Build the ordinary server-owned attack request for the spawned guardian."""
+    """Use normal authenticated admission; the owner receipt selects model 71."""
     import struct
 
     if (
@@ -177,6 +180,7 @@ def settle(db, store, fight, members, monsters):
     checks precede all changes; this adapter never starts a fight.
     """
     from . import storage
+    from .rii_guardian_contract import is_owned
 
     if (
         fight.phase != "finished"
@@ -208,6 +212,8 @@ def settle(db, store, fight, members, monsters):
             or member.get("withdrawn", False)
             or identity not in actors
         ):
+            continue
+        if not is_owned(fight, identity):
             continue
         receipt_key = f"rii-guardian-actor:{-target}"
         receipt = db.execute(
@@ -276,6 +282,37 @@ def pending_cinematic(db, character):
         (character["id"],),
     ).fetchone()
     return row is not None
+
+
+def cinematic_packets():
+    """Replace the exploration NPC with the original Lua cinematic actor.
+
+    The official server uses one actor for dialogue and combat, then retires
+    it (frame13774). Our captured dialogue placement has its own stable ID;
+    remove that placement as well before Lua creates its cinematic dragon.
+    """
+    from wakfu_server.combat_monster_world import remove_message
+
+    return (
+        remove_message((-1706442035962340,)),
+        cinematic_packet(),
+    )
+
+
+def visible_dialogue_npcs(db, character, rows):
+    """Do not resurrect the replaced NPC in a pending-ending world bootstrap."""
+    if (character.get("map_id"), character.get("instance_id")) != (
+        1387,
+        0,
+    ) or not pending_cinematic(db, character):
+        return rows
+    from wakfu_server.rii_dialogue_gate import qualified_placement
+
+    return [
+        row
+        for row in rows
+        if not (row.get("reference_id") == 5458 and qualified_placement(row))
+    ]
 
 
 def cinematic_packet():

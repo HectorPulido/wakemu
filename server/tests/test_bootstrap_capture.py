@@ -1,7 +1,8 @@
 """Bootstrap authority integrity and explicit offline source import validation."""
+
 import hashlib
 import importlib.util
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import tempfile
 import unittest
 from wakfu_server.storage import bootstrap_capture as capture

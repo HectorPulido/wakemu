@@ -1,6 +1,7 @@
 """Recipient routing regression for the real World guild publication callback."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 

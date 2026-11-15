@@ -3,7 +3,9 @@
 Snapshots and commits never call the worker. Explicit read queries are allowed
 only outside gameplay locks; domain planners remain in the ecology process.
 """
+
 import hmac
+import os
 import threading
 import time
 import uuid
@@ -161,7 +163,7 @@ class EcologyWorldBridge:
             self.scope_offset = offset + MAX_SCOPES
         with self.harvests.lock:
             excluded = sorted(self.harvests.targets)
-        return {
+        snapshot = {
             "schema_version": SCHEMA_VERSION,
             "epoch": self.epoch,
             "world_epoch": self.epoch,
@@ -169,9 +171,7 @@ class EcologyWorldBridge:
             "scopes": [list(scope) for scope in scopes],
             "locations": [list(scope) for scope in scopes],
             "players": positions,
-            "empty_scopes": self.world.empty_scope_snapshot()
-            if hasattr(self.world, "empty_scope_snapshot")
-            else [],
+            "empty_scopes": self.world.empty_scope_snapshot(),
             "excluded_ids": excluded,
             "started_at_ms": started_at_ms,
             "now_ms": int(self.clock() * 1000),
@@ -179,6 +179,35 @@ class EcologyWorldBridge:
             "open_test_policy": self.plantings.open_test_policy,
             "open_planting": self.plantings.open_test_policy,
         }
+        for key, variable in (
+            ("catalog_revision", "WAKFU_CATALOG_REVISION"),
+            ("compiled_catalog_generation", "WAKFU_COMPILED_CATALOG_GENERATION"),
+        ):
+            identity = os.environ.get(variable)
+            if identity is not None:
+                if len(identity) != 64 or any(
+                    character not in "0123456789abcdef" for character in identity
+                ):
+                    raise ValueError("Invalid ecology snapshot catalog identity")
+                snapshot[key] = identity
+
+        # Private map9 gardens still use native equipment probability when the
+        # open world policy is enabled. Other open-policy scopes need no gear
+        # projection or Inventory reads.
+        if not self.plantings.open_test_policy or any(
+            player["map_id"] == 9 for player in positions
+        ):
+            from wakfu_server.planting_equipment_projection import (
+                pending_projection,
+            )
+
+            snapshot["planting_equipment"] = pending_projection(
+                self.store,
+                self.epoch,
+                started_at_ms,
+                gardens_only=self.plantings.open_test_policy,
+            )
+        return snapshot
 
     def apply(self, envelope):
         proposals = validate_proposals(envelope)
@@ -214,9 +243,11 @@ class EcologyWorldBridge:
                     admission_reason = (
                         "player_active"
                         if self.priority.interactive_active
-                        else "background_count"
-                        if background_count >= self.background_limit
-                        else "background_time"
+                        else (
+                            "background_count"
+                            if background_count >= self.background_limit
+                            else "background_time"
+                        )
                     )
                 else:
                     if not is_interactive(row):
@@ -282,9 +313,11 @@ class EcologyWorldBridge:
                             self.record(
                                 event="ecology_domain_status_rejected",
                                 domain=row["domain"],
-                                rejected_status=status[:64]
-                                if isinstance(status, str)
-                                else type(status).__name__,
+                                rejected_status=(
+                                    status[:64]
+                                    if isinstance(status, str)
+                                    else type(status).__name__
+                                ),
                             )
                             raise ValueError("Invalid ecology domain status")
                         failures = result.get("resource_failures", [])
@@ -309,9 +342,11 @@ class EcologyWorldBridge:
                             kind=row["payload"].get("kind"),
                             scope=row["payload"].get("scope"),
                             error_type=type(error).__name__,
-                            reason=str(error)[:256]
-                            if isinstance(error, ValueError)
-                            else None,
+                            reason=(
+                                str(error)[:256]
+                                if isinstance(error, ValueError)
+                                else None
+                            ),
                         )
                         result = {"status": "retry"}
                 results[row["id"]] = {"id": row["id"], **result}

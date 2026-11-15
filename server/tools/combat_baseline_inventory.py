@@ -17,7 +17,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 SCHEMA_VERSION = 1
 SNAPSHOT_VERIFIER_VERSION = 3
 DECLARED_INTERNAL_INPUTS = frozenset(
@@ -29,8 +28,8 @@ SOURCE_SCOPE = (
     "server/**/*.py (excluding hidden paths, caches and symlinks)",
     "server/**/requirements*.txt",
     "server/migrations/*.sql",
-    "server/protocol/**/*.json",
-    "server/{tests/fixtures,test-fixtures}/**/*.{json,gz,bin,csv,tsv,txt}",
+    "database/protocol/**/*.json",
+    "server/tests/fixtures/**/*.{json,gz,bin,csv,tsv,txt}",
     "server/**/*.{js,html,css,svg,png}",
     "server/**/Dockerfile and server/**/*.sh",
     "compose*.yml, compose*.yaml, docker-compose*.yml, docker-compose*.yaml",
@@ -93,13 +92,12 @@ def _source_paths(root):
     for pattern in ("*.py", "requirements*.txt", "Dockerfile", "*.sh"):
         candidates.update(server.rglob(pattern))
     candidates.update((server / "migrations").glob("*.sql"))
-    candidates.update((server / "protocol").rglob("*.json"))
-    for directory in ("tests/fixtures", "test-fixtures"):
-        candidates.update(
-            path
-            for path in (server / directory).rglob("*")
-            if path.suffix in (".json", ".gz", ".bin", ".csv", ".tsv", ".txt")
-        )
+    candidates.update((root / "database/protocol").rglob("*.json"))
+    candidates.update(
+        path
+        for path in (server / "tests/fixtures").rglob("*")
+        if path.suffix in (".json", ".gz", ".bin", ".csv", ".tsv", ".txt")
+    )
     for suffix in (".js", ".html", ".css", ".svg", ".png"):
         candidates.update(server.rglob("*" + suffix))
     for pattern in (
@@ -414,6 +412,7 @@ def route_inventory(root):
     """
     root = Path(root).resolve()
     paths = [root / "server/local_game_server.py"]
+    paths.extend(sorted((root / "server/wakfu_server/application").rglob("*.py")))
     paths.extend(sorted((root / "server/wakfu_server/combat").glob("*.py")))
     definitions = []
     parse_errors = []
@@ -516,9 +515,11 @@ def route_inventory(root):
                 "classification": (
                     "compatibility_name_candidate"
                     if compatibility
-                    else "referenced_static_candidate"
-                    if callers
-                    else "no_unqualified_caller_found"
+                    else (
+                        "referenced_static_candidate"
+                        if callers
+                        else "no_unqualified_caller_found"
+                    )
                 ),
             }
         )
@@ -533,7 +534,7 @@ def route_inventory(root):
             "Static candidates do not establish active runtime reachability or obsolescence.",
             "Dotted calls, imports, aliases, callback injection and dynamic dispatch are not resolved.",
             "No caller found means unknown usage; test-prefixed functions may serve live traffic.",
-            "Scope is combat modules and local_game_server, excluding AI decision making.",
+            "Scope is combat modules, the World application and its entry point, excluding AI decision making.",
         ],
     }
 

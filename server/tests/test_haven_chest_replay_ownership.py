@@ -1,7 +1,8 @@
 """Reference account chest state must never escape bootstrap replay."""
+
 import ast
 import base64
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock

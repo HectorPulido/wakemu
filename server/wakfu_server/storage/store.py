@@ -1,4 +1,5 @@
 """PostgreSQL persistence with explicit account and lease ownership."""
+
 from datetime import datetime, timezone
 import hashlib
 import hmac
@@ -201,31 +202,37 @@ class Store:
         reason = (
             "missing"
             if current is None
-            else "replaced"
-            if current != generation
-            else "expired"
-            if row["expires_at"] <= row["checked_at"]
-            else "renewal_failed"
-            if renew and row["renewed_until"] is None
-            else "valid"
+            else (
+                "replaced"
+                if current != generation
+                else (
+                    "expired"
+                    if row["expires_at"] <= row["checked_at"]
+                    else (
+                        "renewal_failed"
+                        if renew and row["renewed_until"] is None
+                        else "valid"
+                    )
+                )
+            )
         )
-        fingerprint = (
-            lambda value: None
-            if value is None
-            else hashlib.sha256(value.encode()).hexdigest()[:12]
+        fingerprint = lambda value: (
+            None if value is None else hashlib.sha256(value.encode()).hexdigest()[:12]
         )
         return dict(
             valid=reason == "valid",
             reason=reason,
             expected_generation_id=fingerprint(generation),
             observed_generation_id=fingerprint(current),
-            expires_at=None
-            if row["expires_at"] is None
-            else row["expires_at"].isoformat(),
+            expires_at=(
+                None if row["expires_at"] is None else row["expires_at"].isoformat()
+            ),
             db_now=row["db_now"].isoformat(),
-            renewed_until=None
-            if row["renewed_until"] is None
-            else row["renewed_until"].isoformat(),
+            renewed_until=(
+                None
+                if row["renewed_until"] is None
+                else row["renewed_until"].isoformat()
+            ),
         )
 
     def heartbeat(self, account_id, generation, ttl=300):
@@ -399,6 +406,17 @@ class Store:
                     zone_missions.enter_rii(db, self, created, previous_map=None)
                     rii_class_mission.start(db, self, created, previous_map=None)
                     created = self.character(account_id, character_id, db)
+                from wakfu_server.achievements import mission_toolkit
+
+                mission_toolkit.settle(
+                    db,
+                    self,
+                    created,
+                    token=f"character-created:{character_id}",
+                    kind="map_enter",
+                    reference=created["map_id"],
+                )
+                created = self.character(account_id, character_id, db)
                 return created
         except (UniqueViolation, ForeignKeyViolation):
             raise ValueError("Ese nombre ya existe o la cuenta es inválida.") from None

@@ -1,6 +1,7 @@
 """NPC actors remain visible while dialogue menus and stale sessions close."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import unittest
 

@@ -1,10 +1,10 @@
 """Exercise the real background dispatch fences without running service loops."""
+
 import ast
 from contextlib import contextmanager, ExitStack
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
-
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

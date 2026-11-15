@@ -1,10 +1,11 @@
 """PostgreSQL gate for the prepared four-stage native mixed Milubo route."""
+
 import json
 import hashlib
 import os
 import struct
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 
 from postgres_case import PostgresCase

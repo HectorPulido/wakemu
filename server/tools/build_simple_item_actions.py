@@ -5,6 +5,7 @@ The optional import inputs are offline exports from original aLO/aLQ rows, parse
 by bHM/w. No database, client or live server is accessed. By default regenerate
 migration 197 from the checked-in descriptor document.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -15,7 +16,8 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DOCUMENT = ROOT / "protocol/native-simple-item-actions.json"
+DATABASE_ROOT = (ROOT.parent if ROOT.name == "server" else ROOT) / "database"
+DOCUMENT = DATABASE_ROOT / "protocol/native-simple-item-actions.json"
 MIGRATION = ROOT / "migrations/197_native_simple_item_actions.sql"
 EXPECTED_COUNTS = {"bHI": 471, "bHS": 106, "bHy": 48, "bHK": 8}
 

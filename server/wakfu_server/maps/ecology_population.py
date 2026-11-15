@@ -1,8 +1,8 @@
-"""Region-local population snapshots from durable server entities.
+"""Authoritative population reads and World-owned ecology proposal commits.
 
-Unknown native surfaces remain explicit: callers must not use an incomplete
-snapshot to grant ecological rewards or certify equilibrium.
-"""
+Unknown native surfaces remain explicit; incomplete reads never certify
+equilibrium or grant ecological rewards."""
+
 from collections import Counter
 from .planting_cells import surface
 from .planting import RESOURCES
@@ -100,52 +100,6 @@ def snapshot(
                 tuple(member[key] for key in ("x", "y", "z")),
             )
     return {"regions": regions, "unresolved": unresolved, "complete": not unresolved}
-
-
-def prepare(store, world_snapshot, limit=16):
-    """External worker preparation; no live-world locks or mutations."""
-    if type(limit) is not int or not 1 <= limit <= 256:
-        raise ValueError("Invalid ecology population preparation limit")
-    epoch = world_snapshot.get("world_epoch")
-    if type(epoch) is not str or not epoch:
-        raise ValueError("Missing world epoch")
-    from .monster_corpses import due_expiries
-    from .monster_initial_population import pending_publications
-
-    with store.connection() as db:
-        proposals = [
-            dict(row, kind="corpse_expiry", world_epoch=epoch)
-            for row in due_expiries(db, limit=limit)
-        ]
-        if len(proposals) < limit:
-            proposals.extend(
-                dict(row, kind="initial_publish", world_epoch=epoch)
-                for row in pending_publications(db, limit=limit - len(proposals))
-            )
-        completed = {
-            (row["map_id"], row["instance_id"], row["region_id"])
-            for row in db.execute(
-                "SELECT map_id,instance_id,region_id FROM monster_initial_population"
-            )
-        }
-    if len(proposals) == limit:
-        return proposals
-    from .monster_initial_population import configured_plans, prepare_zone
-
-    # Seed configured native habitats even when no player is currently there.
-    # This preserves the one-time startup population semantics.
-    for plan in configured_plans(completed_habitats=completed):
-        scope = tuple(plan[key] for key in ("map_id", "instance_id", "region_id"))
-        if scope in completed:
-            continue
-        prepared = prepare_zone(store, plan)
-        if prepared is not None:
-            proposals.append(
-                dict(prepared, kind="initial_population", world_epoch=epoch)
-            )
-        if len(proposals) == limit:
-            break
-    return proposals
 
 
 def apply(store, groups, harvests, world, proposal, *, world_epoch):

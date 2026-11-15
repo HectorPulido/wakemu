@@ -1,7 +1,8 @@
 """Focused World gates for Ranch reward pickup and idle cycle settlement."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -10,7 +11,6 @@ import wakfu_server
 from wakfu_server import haven_ranch_building_knowledge
 from psycopg import DatabaseError
 from psycopg_pool import PoolTimeout
-
 
 WORLD_SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

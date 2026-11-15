@@ -4,8 +4,9 @@ Wave construction is isolated here; native births and GUI progression beyond
 32 successors belong to the separate full-flow matrix. No kill command, ID
 generator substitute, live player mutation or fake completed wave is used.
 """
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 from unittest.mock import patch
 

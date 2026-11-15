@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Minimal local TBinaryProtocol launcher bridge; never reads real credentials."""
+
 import os
 from pathlib import Path
 import secrets
@@ -17,6 +18,23 @@ ROOT = package_root()
 LOGIN = json.loads(Path(os.environ["WAKFU_GAME_LOGIN_FILE"]).read_text())
 HASH = secrets.token_hex(24)
 SESSION = secrets.token_hex(24)
+
+
+def user_info():
+    """Return the native Zaap user contract from the authenticated local account."""
+    account = LOGIN.get("account", {})
+    if not isinstance(account, dict):
+        raise ValueError("Launcher account information unavailable")
+    account_id = account.get("id")
+    nickname = account.get("username")
+    if (
+        type(account_id) is not int
+        or account_id <= 0
+        or not isinstance(nickname, str)
+        or not nickname.strip()
+    ):
+        raise ValueError("Launcher account information unavailable")
+    return json.dumps({"id": account_id, "nicknameWithTag": nickname})
 
 
 def receive(connection, count):
@@ -98,7 +116,7 @@ def serve(connection):
                         elif method == "zaapVersion_get":
                             result = "wakfu-local-python"
                         elif method == "userInfo_get":
-                            result = ""
+                            result = user_info()
                         else:
                             raise ValueError("Unsupported local RPC")
                     body = (

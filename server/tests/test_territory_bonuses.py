@@ -6,7 +6,6 @@ from unittest.mock import patch
 from wakfu_server import territory_bonuses, territory_cells
 from wakfu_server import native_catalog
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -33,10 +32,10 @@ class TerritoryBonusesTests(unittest.TestCase):
                 territory_bonuses.state_id(*args)
 
     def test_effect_rows_match_native_state_catalog(self):
-        source_path = ROOT / "server/protocol/combat-state-definitions.json"
-        protector_path = ROOT / "server/protocol/monster-encyclopedia.json"
-        regions_path = ROOT / "server/protocol/ecology-regions.json"
-        target_path = ROOT / "server/protocol/territory-protector-bonuses.json"
+        source_path = ROOT / "database/protocol/combat-state-definitions.json"
+        protector_path = ROOT / "database/protocol/monster-encyclopedia.json"
+        regions_path = ROOT / "database/protocol/ecology-regions.json"
+        target_path = ROOT / "database/protocol/territory-protector-bonuses.json"
         with native_catalog.open(source_path, "rt", encoding="utf-8") as stream:
             native = json.load(stream)
         exported = json.loads(native_catalog.read_text(target_path, encoding="utf-8"))

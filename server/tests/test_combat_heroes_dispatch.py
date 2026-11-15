@@ -1,6 +1,7 @@
 """Exercise the dispatcher’s real hero-conditional placement branch."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock

@@ -1,4 +1,5 @@
 """Bounded additive public eYk release reconstruction; no DB or client reads."""
+
 from copy import deepcopy
 import gzip
 import hashlib
@@ -15,7 +16,9 @@ class RiftCellGroupPublicPackTests(unittest.TestCase):
     def test_original_rows_getters_release_roles_and_cli_idempotence(self):
         from tools.stage_rift_cell_group_catalog import DOCUMENT, encoded
 
-        root = Path(__file__).resolve().parents[1] / "data" / "installation"
+        root = (
+            Path(__file__).resolve().parents[2] / "database" / "data" / "installation"
+        )
         proof_path = root.parent / "native-rift-cell-groups-v1.json"
         proof = json.loads(proof_path.read_bytes())
         public = json.loads((root / "manifest.json").read_bytes())

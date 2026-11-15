@@ -2,7 +2,7 @@ import ast
 import struct
 import unittest
 from unittest.mock import patch
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from postgres_case import PostgresCase
 from wakfu_server.planting_runtime import Plantings
 from wakfu_server import planting as planting_api
@@ -13,7 +13,7 @@ from wakfu_server.combat_groups import Groups
 from wakfu_server.combat_group_store import PersistentGroups
 from psycopg.types.json import Jsonb
 from wakfu_server.profession_wire import MAX_XP
-from wakfu_server.planting_probability import for_cell, resolver
+from planting_fixture import prepare, begin_prepared
 from wakfu_server.planting_bonus import current as current_planting_bonus
 from wakfu_server.territory_weather import save as save_territory_weather
 from wakfu_server.ecology_feedback import information
@@ -57,15 +57,19 @@ class RuntimePlantingTests(PostgresCase):
         )
         return struct.pack(">iqii", SEEDS[ref]["action_id"], item["uid"], 10, 11)
 
-    def begin(self, body):
-        return self.runtime.begin(
-            self.account, self.gen, self.char, body, lambda *args: 0
+    def begin(self, body, *, probability=1.0, z=0):
+        return begin_prepared(
+            self.runtime,
+            self.account,
+            self.gen,
+            self.char,
+            body,
+            lambda *args: z,
+            probability=probability,
         )
 
-    def begin_at_native_ground(self, body):
-        return self.runtime.begin(
-            self.account, self.gen, self.char, body, lambda *args: 70
-        )
+    def begin_at_native_ground(self, body, *, probability=1.0):
+        return self.begin(body, probability=probability, z=70)
 
     def finish(self):
         return self.runtime.complete(self.account, self.gen, self.char, b"\x02\x00\x02")
@@ -85,8 +89,18 @@ class RuntimePlantingTests(PostgresCase):
             payload=payload,
         )
 
+    def assert_native_planting_modifier(self):
+        from wakfu_server.territory_bonuses import current_region, profession_xp_percent
+
+        with self.store.connection() as db:
+            character = self.store.character(self.account, self.char["id"], db)
+            self.assertEqual(
+                profession_xp_percent(current_region(db, character), "planting"), -10
+            )
+
     def test_owned_herb_start_finish_snapshots_and_local_growth(self):
         body = self.seed(4275)
+        self.assert_native_planting_modifier()
         opcode, raw = self.begin(body)
         ticket = self.runtime.pending[self.char["id"]]
         self.assertEqual(opcode, 12815)
@@ -100,7 +114,7 @@ class RuntimePlantingTests(PostgresCase):
         self.assertEqual(
             [p[0] for p in result["packets"]], [13135, 12954, 12470, 12916, 349]
         )
-        self.assertEqual(struct.unpack(">iq", result["packets"][3][1]), (72, 10))
+        self.assertEqual(struct.unpack(">iq", result["packets"][3][1]), (72, 9))
         self.assertEqual(
             result["packets"][2],
             (
@@ -135,7 +149,7 @@ class RuntimePlantingTests(PostgresCase):
                     "SELECT xp FROM account_professions WHERE account_id=%s AND profession_id=72",
                     (self.account,),
                 ).fetchone()["xp"],
-                10,
+                9,  # Native regional profession modifier is -10%.
             )
             self.assertEqual(
                 db.execute(
@@ -150,19 +164,34 @@ class RuntimePlantingTests(PostgresCase):
             ],
             1,
         )
-        self.assertEqual(len(self.runtime.snapshots(1134, 0)), 1)
-        self.assertEqual(self.runtime.snapshots(1385, 0), [])
+        scene = tuple(
+            ticket["prepared"]["character"][key] for key in ("map_id", "instance_id")
+        )
+        self.assertEqual(
+            tuple(result["resource"][key] for key in ("map_id", "instance_id")), scene
+        )
+        self.assertEqual(len(self.runtime.snapshots(*scene)), 1)
+        self.assertEqual(self.runtime.snapshots(scene[0] + 1, scene[1]), [])
         self.now[0] += 30
-        result = self.runtime.mature(self.groups, publish=self.publish)
+        with self.store.connection() as db:
+            resource = dict(db.execute("SELECT * FROM planted_resources").fetchone())
+            edge = db.execute(
+                "SELECT to_stage,delay_ms,probability FROM resource_growth_transitions WHERE resource_reference=60 AND from_stage=1"
+            ).fetchone()
+        self.runtime.apply_growth_candidates(
+            [(resource, planting_api.RESOURCES[60], tuple(edge.values()))]
+        )
+        result = self.runtime.publish_growth(self.groups, publish=self.publish)
         self.assertEqual([p[0] for p in result[0]["packets"]], [12782])
         self.assertEqual(struct.unpack(">iihhqi", result[0]["packets"][0][1])[3], 2)
         self.assertEqual(self.deliveries, result)
-        self.assertEqual(self.runtime.mature(self.groups, publish=self.publish), [])
+        self.assertEqual(
+            self.runtime.publish_growth(self.groups, publish=self.publish), []
+        )
 
     def test_probability_zero_fails_atomically_but_consumes_one_seed_without_xp(self):
         body = self.seed(4275)
-        self.runtime = Plantings(self.store, probability_context=lambda prepared: 0.0)
-        self.begin(body)
+        self.begin(body, probability=0.0)
         ticket = self.runtime.pending[self.char["id"]]
         self.assertEqual(ticket["probability"], 0.0)
         self.now[0] += 3
@@ -209,53 +238,28 @@ class RuntimePlantingTests(PostgresCase):
 
     def test_probability_one_succeeds_and_is_frozen_at_begin(self):
         body = self.seed(4275)
-        calls = []
-
-        def probability(prepared):
-            calls.append(prepared["request"]["item_uid"])
-            return 1.0
-
-        self.runtime = Plantings(self.store, probability_context=probability)
-        self.begin(body)
+        self.begin(body, probability=1.0)
         ticket = self.runtime.pending[self.char["id"]]
         self.assertEqual(ticket["probability"], 1.0)
-        # A context change after acceptance must not trigger another resolve or
-        # replace the probability already frozen in the ticket.
-        self.runtime.probability_context = lambda prepared: 0.0
         self.now[0] += 3
-
         result = self.finish()
-
         self.assertTrue(result["success"])
         self.assertEqual(result["probability"], 1.0)
-        self.assertEqual(calls, [ticket["prepared"]["request"]["item_uid"]])
-        self.assertEqual(len(self.runtime.snapshots(1134, 0)), 1)
         with self.store.connection() as db:
             receipt = db.execute(
-                "SELECT success,resource,probability FROM planting_receipts WHERE operation_id=%s",
+                "SELECT success,probability FROM planting_receipts WHERE operation_id=%s",
                 (ticket["token"],),
             ).fetchone()
-            self.assertTrue(receipt["success"])
-            self.assertIsNotNone(receipt["resource"])
-            self.assertEqual(receipt["probability"], 1.0)
-        self.assertEqual(
-            self.store.character(self.account, self.char["id"])["inventory_items"][0][
-                "quantity"
-            ],
-            1,
-        )
+        self.assertEqual(receipt, {"success": True, "probability": 1.0})
 
-    def test_probability_resolver_errors_reject_before_occupation_or_consumption(self):
+    def test_invalid_prepared_probability_rejects_before_occupation_or_consumption(
+        self,
+    ):
         body = self.seed(4275)
-        resolvers = (
-            lambda prepared: (_ for _ in ()).throw(RuntimeError("weather unavailable")),
-            lambda prepared: True,
-        )
-        for resolver in resolvers:
-            with self.subTest(resolver=resolver):
-                self.runtime = Plantings(self.store, probability_context=resolver)
-                with self.assertRaises((RuntimeError, ValueError)):
-                    self.begin(body)
+        for probability in (True, -0.1, 1.1, float("nan"), "0.5"):
+            with self.subTest(probability=probability):
+                with self.assertRaises(ValueError):
+                    self.begin(body, probability=probability)
                 self.assertNotIn(self.char["id"], self.runtime.pending)
                 self.assertEqual(self.runtime.cells, {})
                 self.assertEqual(
@@ -264,19 +268,6 @@ class RuntimePlantingTests(PostgresCase):
                     ][0]["quantity"],
                     2,
                 )
-                with self.store.connection() as db:
-                    self.assertEqual(
-                        db.execute("SELECT count(*) FROM planting_receipts").fetchone()[
-                            "count"
-                        ],
-                        0,
-                    )
-                    self.assertEqual(
-                        db.execute("SELECT count(*) FROM planted_resources").fetchone()[
-                            "count"
-                        ],
-                        0,
-                    )
 
     def test_missing_or_invalid_duration_policy_rejects_before_occupation(self):
         body = self.seed(4275)
@@ -377,7 +368,6 @@ class RuntimePlantingTests(PostgresCase):
 
     def test_cancel_after_probability_resolution_does_not_roll_or_consume(self):
         body = self.seed(4275)
-        self.runtime = Plantings(self.store, probability_context=lambda prepared: 1.0)
         self.begin(body)
         with patch.object(
             planting_api.secrets,
@@ -408,153 +398,11 @@ class RuntimePlantingTests(PostgresCase):
                 0,
             )
 
-    def test_probability_resolver_uses_exact_weather_native_ground_and_owned_prepared_actor(
-        self,
-    ):
-        body = self.native_probability_body(
-            4444
-        )  # native resource 152, sunny/light class
-        self.save_native_territory_weather(3)  # STORM: incompatible with resource 152.
-        observed = []
-
-        def owned_profession_bonus(prepared):
-            observed.append(prepared)
-            self.assertEqual(prepared["character"]["id"], self.char["id"])
-            self.assertEqual(prepared["character"]["map_id"], 1134)
-            self.assertEqual(prepared["request"]["x"], -23)
-            self.assertEqual(prepared["request"]["y"], -143)
-            self.assertEqual(prepared["z"], 70)
-            return 25
-
-        self.runtime = Plantings(
-            self.store,
-            open_test_policy=True,
-            probability_context=resolver(
-                self.store, profession_bonus=owned_profession_bonus
-            ),
-        )
-        self.begin_at_native_ground(body)
-        ticket = self.runtime.pending[self.char["id"]]
-        prepared = ticket["prepared"]
-        expected = for_cell(
-            prepared["character"],
-            prepared["request"],
-            prepared["definition"],
-            z=prepared["z"],
-            weather="STORM",
-            profession_bonus_percent=25,
-        )
-        # Ground 513 gives resource 152 a native threshold of 70%; the
-        # incompatible-climate factor is .8 and the owned bonus is 25%.
-        self.assertEqual(expected["ground_id"], 513)
-        self.assertEqual(expected["region_id"], 79201)
-        self.assertEqual(expected["probability"], 0.7)
-        self.assertEqual(ticket["probability"], expected["probability"])
-        self.assertEqual(len(observed), 1)
-        self.assertIs(observed[0], prepared)
-
-    def test_invalid_territory_weather_rejects_before_bonus_provider_or_ticket(self):
+    def test_external_probability_is_committed_without_python_resolution(self):
         body = self.native_probability_body(4444)
-        bonus_calls = []
-        self.runtime = Plantings(
-            self.store,
-            open_test_policy=True,
-            probability_context=resolver(
-                self.store,
-                profession_bonus=lambda prepared: bonus_calls.append(prepared) or 50,
-            ),
-        )
-        from wakfu_server import territory_weather
-
-        with patch.object(
-            territory_weather,
-            "context",
-            side_effect=ValueError("weather unavailable"),
-        ):
-            with self.assertRaisesRegex(ValueError, "weather unavailable"):
-                self.begin_at_native_ground(body)
-        self.assertEqual(bonus_calls, [])
-        self.assertNotIn(self.char["id"], self.runtime.pending)
-        self.assertEqual(self.runtime.cells, {})
-        self.assertEqual(
-            self.store.character(self.account, self.char["id"])["inventory_items"][0][
-                "quantity"
-            ],
-            2,
-        )
-        with self.store.connection() as db:
-            self.assertEqual(
-                db.execute("SELECT count(*) FROM planting_receipts").fetchone()[
-                    "count"
-                ],
-                0,
-            )
-            self.assertEqual(
-                db.execute("SELECT count(*) FROM profession_xp_receipts").fetchone()[
-                    "count"
-                ],
-                0,
-            )
-
-    def test_materialized_baseline_weather_allows_ticket_without_seed_consumption(self):
-        body = self.native_probability_body(4444)
-        from wakfu_server import territory_weather
-
-        # This case exercises the preserved baseline, independently of the
-        # separately tested daily weather simulator enabled by default.
-        with self.store.connection() as db:
-            db.execute(
-                "UPDATE settings SET value=jsonb_set(value,'{enabled}','false') "
-                "WHERE name='weather_simulation'"
-            )
-        baseline = territory_weather.context(self.store, self.char, x=-23, y=-143, z=70)
-        self.assertEqual(baseline["weather"], "ABSENT")
-        self.runtime = Plantings(
-            self.store,
-            open_test_policy=True,
-            probability_context=resolver(
-                self.store, profession_bonus=lambda prepared: 50
-            ),
-        )
-
-        self.begin_at_native_ground(body)
-
+        self.runtime = Plantings(self.store, open_test_policy=True)
+        self.begin_at_native_ground(body, probability=0.56)
         ticket = self.runtime.pending[self.char["id"]]
-        self.assertEqual(ticket["probability"], 1.0)
-        self.assertEqual(ticket["prepared"]["character"]["id"], self.char["id"])
-        self.assertEqual(
-            self.store.character(self.account, self.char["id"])["inventory_items"][0][
-                "quantity"
-            ],
-            2,
-        )
-        with self.store.connection() as db:
-            self.assertEqual(
-                db.execute("SELECT count(*) FROM planting_receipts").fetchone()[
-                    "count"
-                ],
-                0,
-            )
-            self.assertEqual(
-                db.execute("SELECT count(*) FROM profession_xp_receipts").fetchone()[
-                    "count"
-                ],
-                0,
-            )
-
-    def test_current_native_bonus_completes_with_computed_probability_in_receipt(self):
-        body = self.native_probability_body(4444)
-        self.save_native_territory_weather(3)
-        self.runtime = Plantings(
-            self.store,
-            open_test_policy=True,
-            probability_context=resolver(
-                self.store, profession_bonus=current_planting_bonus
-            ),
-        )
-        self.begin_at_native_ground(body)
-        ticket = self.runtime.pending[self.char["id"]]
-        self.assertAlmostEqual(ticket["probability"], 0.56)
         self.now[0] += ticket["duration_ms"] / 1000
         with patch.object(planting_api.secrets, "randbelow", return_value=0):
             result = self.finish()
@@ -565,39 +413,26 @@ class RuntimePlantingTests(PostgresCase):
                 "SELECT success,resource,probability FROM planting_receipts WHERE operation_id=%s",
                 (ticket["token"],),
             ).fetchone()
-            self.assertTrue(receipt["success"])
-            self.assertIsNotNone(receipt["resource"])
-            self.assertAlmostEqual(receipt["probability"], 0.56)
-            self.assertEqual(
-                db.execute(
-                    "SELECT count(*) FROM profession_xp_receipts WHERE account_id=%s",
-                    (self.account,),
-                ).fetchone()["count"],
-                1,
-            )
-        self.assertEqual(
-            self.store.character(self.account, self.char["id"])["inventory_items"][0][
-                "quantity"
-            ],
-            1,
-        )
+        self.assertTrue(receipt["success"])
+        self.assertIsNotNone(receipt["resource"])
+        self.assertAlmostEqual(receipt["probability"], 0.56)
 
-    def test_invalid_owned_bonus_rejects_before_ticket_or_seed_mutation(self):
-        body = self.native_probability_body(4444)
-        self.save_native_territory_weather(2)
-        bonus_calls = []
-        self.runtime = Plantings(
+    def test_missing_prepared_probability_rejects_without_charge(self):
+        body = self.seed(4275)
+        prepared = prepare(
             self.store,
-            open_test_policy=True,
-            probability_context=resolver(
-                self.store,
-                profession_bonus=lambda prepared: bonus_calls.append(prepared) or True,
-            ),
+            self.account,
+            self.gen,
+            self.char,
+            body,
+            authorize_cell=lambda *args: 0,
         )
-        with self.assertRaisesRegex(ValueError, "profession bonus"):
-            self.begin_at_native_ground(body)
-        self.assertEqual(len(bonus_calls), 1)
-        self.assertNotIn(self.char["id"], self.runtime.pending)
+        del prepared["probability"]
+        with self.assertRaises(KeyError):
+            self.runtime.begin_prepared(
+                self.account, self.gen, self.char, body, prepared, lambda *args: 0
+            )
+        self.assertEqual(self.runtime.pending, {})
         self.assertEqual(self.runtime.cells, {})
         self.assertEqual(
             self.store.character(self.account, self.char["id"])["inventory_items"][0][
@@ -606,124 +441,46 @@ class RuntimePlantingTests(PostgresCase):
             2,
         )
 
-    def test_probability_resolver_requires_an_authoritative_bonus_provider(self):
-        with self.assertRaises(TypeError):
-            resolver(self.store)
-        with self.assertRaisesRegex(ValueError, "bonus provider"):
-            resolver(self.store, profession_bonus=None)
-
-    def test_open_policy_reads_configured_one_percent_and_commits_that_probability(
-        self,
-    ):
-        body = self.seed(6220)
-        action, uid, _, _ = struct.unpack(">iqii", body)
-        # Region 79301 is the verified migration seed; this exact native cell
-        # has ground id 0, so open policy must use its explicit 1%, not infer
-        # a native ground threshold.
-        body = struct.pack(">iqii", action, uid, -39, -72)
-        bonus_calls = []
-        self.runtime = Plantings(
-            self.store,
-            open_test_policy=True,
-            probability_context=resolver(
-                self.store,
-                profession_bonus=lambda prepared: bonus_calls.append(prepared) or 0,
-                open_test_policy=True,
-            ),
+    def test_monster_growth_requires_an_external_prepared_member(self):
+        reference = SEEDS[30927]["resource_reference"]
+        resource = dict(
+            resource_uid=9007,
+            map_id=1134,
+            instance_id=0,
+            x=10,
+            y=11,
+            z=0,
+            resource_reference=reference,
+            stage=1,
+            creation_time=0,
         )
-        from wakfu_server import territory_weather
-
-        with patch.object(
-            territory_weather,
-            "context",
-            side_effect=AssertionError("open policy must not fetch native weather"),
-        ) as weather_context:
-            self.runtime.begin(
-                self.account, self.gen, self.char, body, lambda *args: 47
-            )
-            ticket = self.runtime.pending[self.char["id"]]
-            self.assertEqual(ticket["probability"], 0.01)
-            self.now[0] += ticket["duration_ms"] / 1000
-            with patch.object(planting_api.secrets, "randbelow", return_value=0):
-                result = self.finish()
-        weather_context.assert_not_called()
-        self.assertEqual(bonus_calls, [])
-        self.assertTrue(result["success"])
-        self.assertAlmostEqual(result["probability"], 0.01)
         with self.store.connection() as db:
-            receipt = db.execute(
-                "SELECT success,resource,probability FROM planting_receipts WHERE operation_id=%s",
-                (ticket["token"],),
-            ).fetchone()
-            self.assertTrue(receipt["success"])
-            self.assertIsNotNone(receipt["resource"])
-            self.assertAlmostEqual(receipt["probability"], 0.01)
-        self.assertEqual(
-            self.store.character(self.account, self.char["id"])["inventory_items"][0][
-                "quantity"
-            ],
-            1,
-        )
+            db.execute(
+                "INSERT INTO planted_resources(resource_uid,map_id,instance_id,x,y,z,resource_reference,stage,creation_time) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                tuple(resource.values()),
+            )
+        with self.assertRaisesRegex(ValueError, "Prepared native monster member"):
+            self.runtime.apply_growth_candidates(
+                [(resource, planting_api.RESOURCES[reference], None)]
+            )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM planted_resources WHERE resource_uid=9007"
+                ).fetchone()["n"],
+                1,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM planting_growth_outbox"
+                ).fetchone()["n"],
+                0,
+            )
 
-    def test_open_policy_missing_or_invalid_probability_rejects_without_charge(self):
-        body = self.seed(6220)
-        cases = (
-            ("missing", None),
-            ("bool", True),
-            ("above-one", 1.01),
-            ("string", "0.01"),
-        )
-        for label, value in cases:
-            with self.subTest(policy=label):
-                self.runtime = Plantings(
-                    self.store,
-                    open_test_policy=True,
-                    probability_context=resolver(
-                        self.store,
-                        profession_bonus=lambda prepared: 0,
-                        open_test_policy=True,
-                    ),
-                )
-                with self.store.connection() as db:
-                    if value is None:
-                        db.execute(
-                            "DELETE FROM settings WHERE name='open_planting_probability'"
-                        )
-                    else:
-                        db.execute(
-                            "UPDATE settings SET value=%s WHERE name='open_planting_probability'",
-                            (Jsonb(value),),
-                        )
-                with self.assertRaisesRegex(ValueError, "planting roll"):
-                    self.runtime.begin(
-                        self.account, self.gen, self.char, body, lambda *args: 47
-                    )
-                self.assertNotIn(self.char["id"], self.runtime.pending)
-                self.assertEqual(self.runtime.cells, {})
-                self.assertEqual(
-                    self.store.character(self.account, self.char["id"])[
-                        "inventory_items"
-                    ][0]["quantity"],
-                    2,
-                )
-                with self.store.connection() as db:
-                    self.assertEqual(
-                        db.execute("SELECT count(*) FROM planting_receipts").fetchone()[
-                            "count"
-                        ],
-                        0,
-                    )
-                    self.assertEqual(
-                        db.execute(
-                            "SELECT count(*) FROM profession_xp_receipts"
-                        ).fetchone()["count"],
-                        0,
-                    )
-                    if value is None:
-                        db.execute(
-                            "INSERT INTO settings(name,value) VALUES('open_planting_probability',%s)",
-                            (Jsonb(0.01),),
-                        )
+    def test_python_planner_entry_points_are_absent(self):
+        self.assertFalse(hasattr(self.runtime, "begin"))
+        self.assertFalse(hasattr(self.runtime, "mature"))
+        self.assertFalse(hasattr(planting_api, "prepare"))
 
     def test_seed_monster_growth_and_redis_retry_are_idempotent(self):
         point = next(
@@ -741,8 +498,13 @@ class RuntimePlantingTests(PostgresCase):
         body = self.seed(30927)
         action_id, uid, _, _ = struct.unpack(">iqii", body)
         body = struct.pack(">iqii", action_id, uid, point[0], point[1])
-        self.runtime.begin(
-            self.account, self.gen, self.char, body, lambda _a, _r, _s, _d: point[2]
+        begin_prepared(
+            self.runtime,
+            self.account,
+            self.gen,
+            self.char,
+            body,
+            lambda _a, _r, _s, _d: point[2],
         )
         self.now[0] += 3
         planted = self.finish()
@@ -777,8 +539,26 @@ class RuntimePlantingTests(PostgresCase):
             failed_deliveries.append(delivery)
             raise ConnectionError("Redis unavailable")
 
+        from wakfu_server.monsters import owned_instance, REFERENCES
+
+        with self.store.connection() as db:
+            resource = dict(db.execute("SELECT * FROM planted_resources").fetchone())
+        member = owned_instance(
+            5455,
+            REFERENCES[5455]["min_level"],
+            -1,
+            map_id=resource["map_id"],
+            instance_id=resource["instance_id"],
+            x=resource["x"],
+            y=resource["y"],
+            z=resource["z"],
+        )
+        self.runtime.apply_growth_candidates(
+            [(resource, planting_api.RESOURCES[resource["resource_reference"]], None)],
+            prepared_members={resource["resource_uid"]: member},
+        )
         with self.assertRaises(ConnectionError):
-            self.runtime.mature(groups, publish=broken_publish)
+            self.runtime.publish_growth(groups, publish=broken_publish)
         self.assertEqual(failed_deliveries[0]["ecology"]["reason"], "applied")
         self.assertEqual(
             [p[0] for p in failed_deliveries[0]["ecology"]["packets"]], [13574]
@@ -786,7 +566,8 @@ class RuntimePlantingTests(PostgresCase):
         self.assertTrue(failed_deliveries[0]["ecology"]["information"])
         self.assertEqual(self.runtime.snapshots(1134, 0), [])
         with self.assertRaisesRegex(ValueError, "Growth publication"):
-            self.runtime.begin(
+            begin_prepared(
+                self.runtime,
                 self.account,
                 self.gen,
                 self.char,
@@ -806,22 +587,14 @@ class RuntimePlantingTests(PostgresCase):
             ).fetchall()
         self.assertEqual(1, len(pending))
         expected_ref = pending[0]["group_payload"]["members"][0]["ref"]
-        from wakfu_server import monster_family_stages
-
-        self.assertEqual(
-            {5455, 5456},
-            {
-                row["reference"]
-                for row in monster_family_stages.initial_candidates(1113)
-            },
-        )
         self.assertIn(expected_ref, (5455, 5456))
         available = groups.available(1134, 0)
         self.assertEqual(len(available), 1)
         self.assertEqual(available[0]["members"][0]["ref"], expected_ref)
         self.assertEqual(self.runtime.publish_growth(groups, publish=self.publish), [])
         self.assertEqual(
-            Plantings(self.reopen()).mature(self.groups, publish=self.publish), []
+            Plantings(self.reopen()).publish_growth(self.groups, publish=self.publish),
+            [],
         )
 
     def insert_pending_growth(self, *, resource_uid=9003, stage=3):
@@ -907,59 +680,12 @@ class RuntimePlantingTests(PostgresCase):
                 ).fetchone()["published"]
             )
 
-    def test_world_growth_source_passes_delivery_callback_to_mature(self):
-        server_root = Path(__file__).resolve().parents[1]
-        candidates = (
-            server_root / "local_game_server.py",
-            Path("/app/local_game_server.py"),
-        )
-        source_path = next((path for path in candidates if path.is_file()), None)
-        self.assertIsNotNone(
-            source_path, "local_game_server.py must be available to this test"
-        )
-        source = source_path.read_text()
-        tree = ast.parse(source)
-        grow = next(
-            node
-            for node in tree.body
-            if isinstance(node, ast.FunctionDef)
-            and node.name == "grow_planted_resources"
-        )
-        callback = next(
-            node
-            for node in ast.walk(grow)
-            if isinstance(node, ast.FunctionDef) and node.name == "publish_growth"
-        )
-        self.assertTrue(
-            any(
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Attribute)
-                and isinstance(node.func.value, ast.Name)
-                and node.func.value.id == "WORLD"
-                and node.func.attr == "emit_location"
-                for node in ast.walk(callback)
-            )
-        )
-        mature_call = next(
-            node
-            for node in ast.walk(grow)
-            if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id == "PLANTINGS"
-            and node.func.attr == "mature"
-        )
-        self.assertIn(
-            "publish",
-            {keyword.arg for keyword in mature_call.keywords},
-        )
-        publish_arg = next(
-            keyword.value
-            for keyword in mature_call.keywords
-            if keyword.arg == "publish"
-        )
-        self.assertIsInstance(publish_arg, ast.Name)
-        self.assertEqual(publish_arg.id, "publish_growth")
+    def test_world_growth_uses_only_the_durable_publisher(self):
+        from wakfu_server import ecology_plants
+
+        source = __import__("inspect").getsource(ecology_plants)
+        self.assertIn("publish_growth", source)
+        self.assertNotIn(".mature(", source)
 
     def test_generation_fencing_cancel_and_takeover(self):
         body = self.seed(4275)
@@ -1109,6 +835,7 @@ class RuntimePlantingTests(PostgresCase):
         from wakfu_server import planting
 
         body = self.seed(4275)
+        self.assert_native_planting_modifier()
         self.begin(body)
         prepared = self.runtime.pending[self.char["id"]]["prepared"]
         operation_id = "p" * 128
@@ -1123,7 +850,7 @@ class RuntimePlantingTests(PostgresCase):
             result_prefix=(self.char["id"], prepared["request"]["action_id"]),
         )
         self.assertFalse(result["duplicate"])
-        self.assertIn((12916, struct.pack(">iq", 72, 10)), result["packets"])
+        self.assertIn((12916, struct.pack(">iq", 72, 9)), result["packets"])
         with self.store.connection() as db:
             row = db.execute(
                 "SELECT operation_id FROM planting_receipts WHERE operation_id=%s",

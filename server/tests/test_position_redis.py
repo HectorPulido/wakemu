@@ -330,7 +330,7 @@ class RedisFailureTests(RedisFixture):
             )
         self.assertEqual((failures, renewals, waits), ([], [], []))
 
-    def test_memory_default_uses_original_backend(self):
+    def test_memory_configuration_uses_native_positions_without_redis(self):
         buffer, report = create(self.store, lease_active=lambda *args: True, url="")
         self.assertIs(type(buffer), Positions)
         self.assertIsNone(report)

@@ -3,12 +3,13 @@
 Migration198 remains the original bounded inventory. Read its emitted INSERT
 rows via the checked-in initial catalog before applying this expansion once.
 """
+
 import hashlib
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-CATALOG = ROOT / "server/protocol/native-consumable-actions.json"
+CATALOG = ROOT / "database/protocol/native-consumable-actions.json"
 OUTPUT = ROOT / "server/migrations/205_native_consumable_outcome_actions.sql"
 FLASKS = {
     18351: (114177, 113041),
@@ -30,9 +31,9 @@ def expand(payload):
         state = row["plan"]["states"][0]
         metadata = state["metadata"]
         metadata["combat_only_effect_ids"] = ROOTS[row["item_ref"]]
-        metadata[
-            "outcome_event_policy"
-        ] = "wakemu.owned-consumable-end1026-before-rewards-v1"
+        metadata["outcome_event_policy"] = (
+            "wakemu.owned-consumable-end1026-before-rewards-v1"
+        )
         if row["item_ref"] in FLASKS:
             _, control = FLASKS[row["item_ref"]]
             nodes = metadata["native_effects"]

@@ -1,4 +1,5 @@
 """Unpublished durable births reserve map/instance monster capacity."""
+
 from postgres_case import PostgresCase
 from psycopg.types.json import Jsonb
 from wakfu_server import monster_population_capacity as capacity
@@ -83,7 +84,7 @@ class MonsterPopulationCapacityTests(PostgresCase):
         self.assertEqual(result["capacity_skipped"], [99])
         self.assertEqual(result["applied"], [])
         from wakfu_server import ecology_plants
-        from wakfu_server.planting_runtime import monster_growth_member
+        from wakfu_server.monsters import owned_instance
         from wakfu_server.combat_groups import Groups
 
         runtime = Plantings(self.store)
@@ -95,7 +96,7 @@ class MonsterPopulationCapacityTests(PostgresCase):
             world_epoch="capacity-boot",
             expected=resource,
             transition=None,
-            member=monster_growth_member(resource, definition),
+            member=owned_instance(5455, 2, -99, map_id=1134, x=1, y=2, z=0),
         )
         deferred = ecology_plants.apply(
             runtime,

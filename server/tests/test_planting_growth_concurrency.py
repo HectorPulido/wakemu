@@ -28,7 +28,7 @@ class GrowthConcurrencyTests(unittest.TestCase):
             @contextmanager
             def connection(self):
                 self.calls += 1
-                if self.calls == 2:
+                if self.calls == 1:
                     entered.set()
                     if not release.wait(2):
                         raise TimeoutError("Test growth was not released")
@@ -38,11 +38,12 @@ class GrowthConcurrencyTests(unittest.TestCase):
                 return self.Result()
 
         plantings = Plantings(Store())
-        plantings.publish_growth = lambda *a, **kw: []
 
         def grow():
             try:
-                plantings.mature(None, publish=lambda *a: None)
+                # Prepared proposals still commit in World. Their SQL lock is
+                # independent from movement cancelling socket occupations.
+                plantings.apply_growth_candidates([])
             except Exception as error:
                 errors.append(error)
 
@@ -63,5 +64,9 @@ class GrowthConcurrencyTests(unittest.TestCase):
         release.set()
         growth.join(1)
         movement.join(1)
+        self.assertFalse(
+            growth.is_alive(), "Growth commit did not leave its SQL boundary"
+        )
+        self.assertFalse(movement.is_alive(), "Movement cancellation did not finish")
         self.assertTrue(completed, "Movement waited for unrelated growth SQL")
         self.assertEqual(errors, [])

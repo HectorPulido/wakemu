@@ -1,10 +1,9 @@
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from threading import RLock
 from types import SimpleNamespace
 from unittest.mock import patch
-
 
 SERVER_SOURCE = Path(__file__).resolve().parents[1] / "local_game_server.py"
 

@@ -23,7 +23,7 @@ public class ExportNativeTeleporterApproach {
     }
     public static void main(String[] args) throws Exception {
         JsonArray catalog = JsonParser.parseString(Files.readString(Path.of(args[0]))).getAsJsonArray();
-        JsonArray objects = JsonParser.parseString(Files.readString(Path.of("server/protocol/native-map-objects.json"))).getAsJsonArray();
+        JsonArray objects = JsonParser.parseString(Files.readString(Path.of("database/protocol/native-map-objects.json"))).getAsJsonArray();
         Map<String, JsonObject> sources = new HashMap<>();
         for (var element : catalog) {
             var row = element.getAsJsonObject();

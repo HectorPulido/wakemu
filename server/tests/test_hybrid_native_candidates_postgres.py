@@ -1,10 +1,11 @@
 """Isolated PostgreSQL traversal gate for the seven frozen hybrid routes."""
+
 import hashlib
 import json
 import os
 import struct
 import unittest
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 
 from postgres_case import PostgresCase

@@ -10,13 +10,14 @@ def group_owners(db, groups):
         (group, actor)
         for group in groups
         for actor in group["members"]
-        if actor.get("ref") in (2335, 5466, 5585)
+        if actor.get("ref") in (2335, 5458, 5466, 5585)
         and type(actor.get("id")) is int
         and actor["id"] < 0
     ]
     if not entries:
         return {}
     definitions = {
+        5458: (("rii-guardian-actor:", "reconstructed_rii_guardian_actor"),),
         5466: tuple(KEYS.values()),
         2335: ((PRACTICE_KEY, PRACTICE_KIND),),
         5585: ((PRACTICE_KEY, PRACTICE_KIND),),
@@ -76,3 +77,34 @@ def owned_actor_ids(db, actors, character_id):
         for group in groups
         if owners.get(group["key"]) == character_id
     ]
+
+
+def scene_cleanup(db, map_id, instance_id):
+    """Retire retained private actors before replaying an exploration scene.
+
+    Native world snapshots are additive. Omitting an unavailable or privately
+    owned sack cannot remove a descriptor published by an earlier marker.
+    Include historical groups, but retire only actors with exact receipts.
+    """
+    if map_id not in (1387, 1388) or instance_id != 0:
+        return ()
+    from wakfu_server.combat_monster_world import remove_message
+
+    rows = db.execute(
+        "SELECT members FROM combat_groups WHERE map_id=%s AND instance_id=%s "
+        "ORDER BY group_id",
+        (map_id, instance_id),
+    ).fetchall()
+    actors = [actor for row in rows for actor in row["members"]]
+    groups = [
+        {"key": (map_id, instance_id, index + 1), "members": [actor]}
+        for index, actor in enumerate(actors)
+    ]
+    owners = group_owners(db, groups)
+    identities = sorted(
+        {group["members"][0]["id"] for group in groups if group["key"] in owners}
+    )
+    return tuple(
+        remove_message(identities[offset : offset + 255])
+        for offset in range(0, len(identities), 255)
+    )

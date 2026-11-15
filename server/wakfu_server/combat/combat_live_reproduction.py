@@ -4,6 +4,7 @@ Sources are inputs; serialized outputs are independently recomputed by the real
 native serializers and compared to the observed bytes. This module never uses
 recorded packets as a substitute for running an effect or a serializer.
 """
+
 import random
 
 from .combat_input_observation import (
@@ -11,7 +12,6 @@ from .combat_input_observation import (
     replay_prepare_rng_argument,
     suspend_input_replay,
 )
-
 
 RECIPE = "observed-live-server-v1"
 SUPPORTED_ACTIONS = {
@@ -94,7 +94,15 @@ class LiveReplayContext:
                 module in ("__main__", "local_game_server")
                 and name in local_names[field]
             )
-            if not ready and not local:
+            application = (
+                module == "wakfu_server.application.session_combat"
+                and name
+                in {
+                    qualified.replace("session.<locals>.", "CombatSessionMixin.", 1)
+                    for qualified in local_names[field]
+                }
+            )
+            if not ready and not local and not application:
                 raise LiveProviderReplayError("Unqualified live provider: " + field)
 
     def _peek(self, label=None):
@@ -533,9 +541,9 @@ class LiveReplayContext:
                 action["body"],
                 self.serialize_current,
                 runtime_stats_serializer=self.serialize_current,
-                area_provider=self.movement
-                if self.inputs.get("area_callbacks") is True
-                else None,
+                area_provider=(
+                    self.movement if self.inputs.get("area_callbacks") is True else None
+                ),
             )
             packets = runtime.prepare_delivery(packets)
         elif kind == "end_turn":

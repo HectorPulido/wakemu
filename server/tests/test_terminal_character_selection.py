@@ -1,6 +1,7 @@
 """Exercise the actual selector dispatch branch for terminal shared PvE fights."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
@@ -283,9 +284,9 @@ class TerminalCharacterSelectionTests(unittest.TestCase):
             context["fight_messages"] = None
             context["group_lease"] = None
 
-        context[
-            "recover_pending_terminal_world"
-        ].side_effect = recover_proven_fresh_world
+        context["recover_pending_terminal_world"].side_effect = (
+            recover_proven_fresh_world
+        )
         self.selection_menu_context(context)
         # Restore the attached state and proof after preparing the post-return
         # menu dependencies; only the helper may consume this exact token.

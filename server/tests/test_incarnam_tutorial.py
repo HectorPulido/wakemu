@@ -1,4 +1,5 @@
 """Incarnam mission transitions follow the observed sequence and stay durable."""
+
 import unittest
 import struct
 from datetime import datetime, timezone
@@ -22,6 +23,55 @@ def empty():
 
 
 class TutorialTest(unittest.TestCase):
+    def test_reconnect_ready_does_not_rearm_the_arrival_cinematic(self):
+        from wakfu_server.intro_cinematic import private_instance_id
+
+        character = {"id": 7, "map_id": 1361, "instance_id": private_instance_id(7)}
+        for identity, _, _ in tutorial.STAGES:
+            state = {"running": [identity]}
+            self.assertTrue(
+                tutorial.is_resumed_scene_ready(character, state, 21800, None)
+            )
+            self.assertFalse(
+                tutorial.is_resumed_scene_ready(character, state, 22519, None)
+            )
+            self.assertFalse(
+                tutorial.is_resumed_scene_ready(character, state, 21800, (7, 21800))
+            )
+        self.assertFalse(
+            tutorial.is_resumed_scene_ready(character, {"running": []}, 21800, None)
+        )
+        self.assertFalse(
+            tutorial.is_resumed_scene_ready(
+                {**character, "instance_id": private_instance_id(8)},
+                {"running": [5135]},
+                21800,
+                None,
+            )
+        )
+        from wakfu_server.application.session_world import WorldSessionMixin
+        from wakfu_server.application.dispatch_result import DispatchResult
+
+        session = WorldSessionMixin()
+        session.state = SimpleNamespace(
+            body=struct.pack(">i", 21800),
+            character=character,
+            connection=SimpleNamespace(),
+        )
+        session.runtime = SimpleNamespace(STORE=Mock(), send=Mock())
+        session.runtime.STORE.connection.return_value.__enter__ = Mock(
+            return_value=object()
+        )
+        session.runtime.STORE.connection.return_value.__exit__ = Mock(
+            return_value=False
+        )
+        with patch.object(
+            tutorial.storage, "load_locked", return_value={"running": [5135]}
+        ):
+            self.assertIs(session.handle_world_loaded(), DispatchResult.FALLTHROUGH)
+        session.runtime.send.assert_not_called()
+        self.assertFalse(hasattr(session.state.connection, "pending_incarnam_arrival"))
+
     def test_arrival_camera_loads_observed_scene_then_returns_to_spawn(self):
         for callback, point in ((22519, (434, 362, 1)), (22521, (0, 0, 0))):
             packets = tutorial.cinematic_camera_travel(7, callback)

@@ -1,6 +1,7 @@
 """Native external portal retries reconcile retained instance ownership."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 from types import SimpleNamespace
 

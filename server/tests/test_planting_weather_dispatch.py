@@ -1,10 +1,9 @@
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from unittest.mock import patch
 
 from wakfu_server import ecology_context, territory_weather, territory_weather_forecast
-
 
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 SERVER_SOURCE = SERVER_ROOT / "local_game_server.py"

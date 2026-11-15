@@ -11,14 +11,22 @@
 !wakfu_server/*.json
 !wakfu_server/**/*.json.gz
 !wakfu_server/*.json.gz
-!protocol/
-!protocol/**
 wakfu_server/__pycache__/
 
 !requirements.txt
-!ecology-service/
-!ecology-service/Dockerfile
-!ecology-service/service.py
+
+# Native service sources only; target output and private fixtures stay excluded.
+!rust-services/crates/ecology-service/Dockerfile
+!rust-services/Cargo.toml
+!rust-services/Cargo.lock
+!rust-services/crates/ecology-service/Cargo.toml
+!rust-services/crates/world-spatial/Cargo.toml
+!rust-services/crates/ecology-service/src/*.rs
+!rust-services/crates/ecology-service/src/**/*.rs
+!rust-services/crates/ecology-service/src/bin/*.rs
+!rust-services/crates/ecology-service/src/planners/*.rs
+!rust-services/crates/world-spatial/src/*.rs
+!rust-services/crates/world-spatial/src/**/*.rs
 !objectives-service/
 !objectives-service/Dockerfile
 !objectives-service/service.py
@@ -27,8 +35,6 @@ wakfu_server/__pycache__/
 
 !migrations/
 !migrations/*.sql
-!seeds/
-!seeds/*.sql
 !tools/
 !tools/*.py
 !tools/*.json

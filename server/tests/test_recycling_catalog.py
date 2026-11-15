@@ -4,9 +4,11 @@ import unittest
 from pathlib import Path
 from wakfu_server import native_catalog
 
-
 CATALOG = (
-    Path(__file__).resolve().parents[1] / "protocol" / "item-recycling-metadata.json"
+    Path(__file__).resolve().parents[2]
+    / "database"
+    / "protocol"
+    / "item-recycling-metadata.json"
 )
 
 

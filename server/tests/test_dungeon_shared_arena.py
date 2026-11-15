@@ -1,4 +1,5 @@
 """Sequential shared-arena policy isolation and movement regressions."""
+
 import copy
 import json
 from pathlib import Path
@@ -19,7 +20,8 @@ class SharedArenaTests(unittest.TestCase):
     def setUp(self):
         self.config = json.loads(
             (
-                ROOT / "docs/reports/dungeons/shared-arena-v1/native_dungeon_11.json"
+                ROOT
+                / "agents_docs/reports/dungeons/shared-arena-v1/native_dungeon_11.json"
             ).read_text()
         )
         self.topology = self.config["topology"]

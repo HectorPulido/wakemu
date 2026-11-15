@@ -69,6 +69,12 @@ def _resolve_actor_spell_action(request, character, fight, actor, deck_blob, own
 
     temporary = grant_record(fight, actor_id, spell_id)
     granted = uid == spell_id and temporary is not None and temporary["uid"] == uid
+    from .rii_lesson_spellbook import accepts as lesson_accepts
+
+    if not lesson_accepts(fight, actor_id, spell_id):
+        error = ValueError("Training fight accepts only the guide's spells")
+        error.cast_validation_code = "lesson_spellbook"
+        raise error
     from .combat_morph_spellbook import morph_record, resolve_morph_action
 
     if morph_record(fight, actor_id) is not None:
@@ -141,9 +147,7 @@ def _resolve_actor_spell_action(request, character, fight, actor, deck_blob, own
     evaluation_level = (
         temporary["level"]
         if granted
-        else summon_level
-        if summon_level is not None
-        else actor.effective_level
+        else summon_level if summon_level is not None else actor.effective_level
     )
     return actor, spell_id, evaluation_level
 

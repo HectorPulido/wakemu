@@ -1,7 +1,8 @@
 """Actual World settlement dispatch preserves Fight -> Group lock ordering."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import threading
 import time
 from types import SimpleNamespace

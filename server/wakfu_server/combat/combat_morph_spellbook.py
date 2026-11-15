@@ -1,4 +1,5 @@
 """big.a/bPu: a separate temporary fyR, with actual raw-reference UIDs."""
+
 from wakfu_server import native_catalog as protocol_catalog
 from dataclasses import replace
 from functools import lru_cache
@@ -8,9 +9,8 @@ from pathlib import Path
 from wakfu_server.paths import DATA_ROOT
 from .combat_spell_level import NativeSpellBook
 
-
 _REVIEWED_MORPH_SHA256 = (
-    "18204e505d80c854441ab5dfaf9056d5e8f758cb1bcda1ff0cd70e4b6229d236"
+    "156326b0fac8c53b20586a473b88906c9bc84d190915401467d424404b63b78b"
 )
 
 

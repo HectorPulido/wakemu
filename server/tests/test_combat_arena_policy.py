@@ -87,7 +87,7 @@ class CombatArenaPolicyTests(unittest.TestCase):
 
     def test_gameplay_callers_pass_postgresql_automatic_budget(self):
         import ast
-        from pathlib import Path
+        from source_view import WorldSourcePath as Path
 
         root = Path(__file__).resolve().parents[1]
         for filename in (

@@ -1,4 +1,6 @@
 """PostgreSQL tests for original native administrator item30532 test spawns."""
+
+from prepared_mob_fixtures import prepared_birth
 import struct
 import unittest
 import uuid
@@ -320,27 +322,49 @@ class NativeItemTestSpawnsPostgresTests(PostgresCase):
             <= captured["occupied"]
         )
 
+        # Frozen Rust cleanup envelope: World removes only the selected ordinary
+        # actor, leaving the separate developer actor and its physical occupancy.
+        from threading import RLock
+        from types import SimpleNamespace
+
+        proposal = dict(
+            scope=[1134, 0],
+            group_id=ordinary_key[2],
+            expected_members=[ordinary],
+            actor_ids=[ordinary["id"]],
+            world_epoch="item30532-test",
+        )
+        sent = []
         with patch.object(
-            monster_initial_population,
-            "REGIONS",
-            {(1134, region_id): {"monster_capacity": 10}},
-        ), patch.object(monster_population_cleanup, "_SCAN_STATE", None), patch.object(
+            monster_initial_population, "REGIONS", {(1134, region_id): {}}
+        ), patch.object(
             monster_population_cleanup, "certified_unassigned", return_value=True
         ):
-            proposals = monster_population_cleanup.prepare(
+            result = monster_population_cleanup.apply(
                 self.store,
-                {"planning_tick": True, "world_epoch": "item30532-test"},
-                limit=16,
-                clock=lambda: 10.0,
+                self.groups,
+                SimpleNamespace(lock=RLock(), targets={}),
+                SimpleNamespace(
+                    emit_location_batch=lambda *args, **kwargs: sent.append(args)
+                ),
+                proposal,
+                world_epoch="item30532-test",
             )
-        proposed_ids = {proposal["group_id"] for proposal in proposals}
-        self.assertIn(ordinary_key[2], proposed_ids)
-        self.assertNotIn(test_group_id, proposed_ids)
+        self.assertEqual(result["status"], "applied")
+        self.assertEqual(result["removed"], 1)
+        self.assertEqual(len(sent), 1)
+        with self.store.connection() as db:
+            row = db.execute(
+                "SELECT members,status FROM combat_groups WHERE map_id=1134 AND instance_id=0 AND group_id=%s",
+                (test_group_id,),
+            ).fetchone()
+            self.assertEqual(row["status"], "available")
+            self.assertIn(
+                test_member["id"], {member["id"] for member in row["members"]}
+            )
 
-        # Exercise the legacy (unprepared) reproduction path against the same
-        # durable test actor. Its native edge list deliberately offers the
-        # occupied test cell first; the domain must filter it using actual
-        # physical_cells before selecting a destination.
+        # World rejects an explicit Rust-shaped birth onto the durable test
+        # actor, then accepts a separately prepared free native destination.
         from wakfu_server import monster_reproduction, npc_actor_identity
         from wakfu_server.monsters import owned_instance, reference as monster_reference
         from unittest.mock import patch
@@ -385,16 +409,35 @@ class NativeItemTestSpawnsPostgresTests(PostgresCase):
         }
         occupied_destination = (test_member["x"], test_member["y"], test_member["z"])
         free_destination = (test_member["x"] + 2, test_member["y"], test_member["z"])
-        selected = {}
-
-        def choose_destination(candidates):
-            selected.setdefault("calls", []).append(list(candidates))
-            return candidates[0]
-
+        with self.store.connection() as db:
+            child_identity = -npc_actor_identity.allocate_block(db, 1)
+        occupied_proposal = prepared_birth(
+            self.store,
+            ticket,
+            destination=occupied_destination,
+            actor_id=child_identity,
+        )
+        free_proposal = prepared_birth(
+            self.store, ticket, destination=free_destination, actor_id=child_identity
+        )
         with patch(
             "wakfu_server.monster_habitat_cells.habitat_destination_allowed",
             return_value=True,
         ):
+            rejected = monster_reproduction.attempt(
+                self.store,
+                ticket,
+                present=True,
+                indexed=(
+                    None,
+                    {parent_position: [occupied_destination, free_destination]},
+                ),
+                draw=0.0,
+                group_draw=0.5,
+                configuration=configuration,
+                prepared=occupied_proposal,
+            )
+            self.assertIsNone(rejected)
             receipt = monster_reproduction.attempt(
                 self.store,
                 ticket,
@@ -407,10 +450,9 @@ class NativeItemTestSpawnsPostgresTests(PostgresCase):
                 excluded_ids=(),
                 draw=0.0,
                 group_draw=0.5,
-                choose=choose_destination,
+                prepared=free_proposal,
                 configuration=configuration,
             )
-        self.assertEqual([free_destination], selected["calls"][0])
         self.assertEqual(
             free_destination,
             (receipt["child"]["x"], receipt["child"]["y"], receipt["child"]["z"]),

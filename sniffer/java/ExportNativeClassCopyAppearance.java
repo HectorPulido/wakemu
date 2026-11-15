@@ -12,7 +12,7 @@ public final class ExportNativeClassCopyAppearance {
     public static void main(String[] args) throws Exception {
         Path output = Path.of(args[0]);
         JsonObject source = JsonParser.parseString(Files.readString(
-            Path.of("server/protocol/breed-innate-definitions.json"))).getAsJsonObject();
+            Path.of("database/protocol/breed-innate-definitions.json"))).getAsJsonObject();
         Set<Integer> seeds = new TreeSet<>();
         for (JsonElement row : source.getAsJsonArray("breeds"))
             seeds.add(row.getAsJsonObject().get("breed").getAsInt());
@@ -47,7 +47,7 @@ public final class ExportNativeClassCopyAppearance {
         result.put("jar_sha256", sha(Path.of("client/lib/wakfu-client.jar")));
         result.put("bdata_bucket", bucket);
         result.put("bdata_sha256", sha(Path.of("client/contents/bdata/" + bucket + ".jar")));
-        result.put("class_seed_sha256", sha(Path.of("server/protocol/breed-innate-definitions.json")));
+        result.put("class_seed_sha256", sha(Path.of("database/protocol/breed-innate-definitions.json")));
         result.put("cloth_offset", -128);
         result.put("breeds", breeds);
         Files.writeString(output, new GsonBuilder().setPrettyPrinting().create().toJson(result));

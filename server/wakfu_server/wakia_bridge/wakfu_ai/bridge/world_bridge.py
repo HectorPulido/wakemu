@@ -4,6 +4,7 @@ Transport the complete catalogue, engine and native instance graph. No fields,
 assets, actors or history are selected away to satisfy a packet-size limit.
 Large objects are streamed as verified content-addressed blocks.
 """
+
 import base64
 from ..native.native_control import effective_affiliation
 import importlib.util
@@ -490,7 +491,7 @@ class CompleteContextExporter:
                 )
 
             signature = file_identity(stat)
-            # Aliases such as catalog/foo and server/protocol/foo describe
+            # Aliases such as catalog/foo and database/protocol/foo describe
             # the same physical file. Retain both manifest entries while
             # freezing that identical source only once per file signature.
             # stat already identifies the physical file across aliases and
@@ -1944,9 +1945,9 @@ class NativeSession:
             result = dict(
                 **self.describe(self.register(private)),
                 skippedActorIds=skipped,
-                unknownDependencies=["intervening_actor_actions_not_projected"]
-                if skipped
-                else []
+                unknownDependencies=(
+                    ["intervening_actor_actions_not_projected"] if skipped else []
+                )
             )
         else:
             raise ValueError("Unknown native oracle operation")

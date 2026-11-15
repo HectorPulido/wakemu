@@ -1,6 +1,7 @@
 """Exercise the actual server resolver without starting listeners or fixtures."""
+
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import unittest
 from wakfu_server.combat_groups import Groups
 from wakfu_server.monsters import owned_instance

@@ -6,6 +6,7 @@ This module owns request validation, durable occupation/version state and the
 atomic inventory + profession reward transaction. It does not handle artisan
 crafting or native criteria expressions whose semantics are not implemented.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -647,6 +648,7 @@ def complete(
     if not isinstance(token, uuid.UUID) or type(version) is not int or version <= 0:
         raise ValueError("Invalid crafting occupation version")
     with store.connection() as db:
+        db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
         row = _occupation(store, db, account_id, generation, character_id, token)
         if row["state"] == "completed":
             return dict(token=token, version=row["version"], replay=True, packets=[])
@@ -733,14 +735,17 @@ def complete(
         packets.extend(
             settle_craft(db, store, character, token, profession_level=level)
         )
-        from wakfu_server.achievements.rii_crafting import settle as settle_rii_crafting
+        from wakfu_server.achievements import mission_toolkit
 
         packets.extend(
-            settle_rii_crafting(
+            mission_toolkit.settle(
                 db,
                 store,
                 character,
-                {**row, "state": "completed", "products": products},
+                token=str(row["token"]),
+                kind="craft_completed",
+                reference=row["recipe_id"],
+                quantity=row["batch_count"],
             )
         )
         if row["map_id"] == 1361 and row["recipe_id"] == 9323:

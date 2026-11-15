@@ -11,7 +11,6 @@ from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from wakfu_server.combat_actor_snapshot import native_actor_catalog
 from wakfu_server.monsters import statistics as monster_statistics
 
-
 WISDOM_STAT_ID = 36
 
 
@@ -113,7 +112,17 @@ def build_context(
     actors = getattr(fight, "actors", None)
     if not isinstance(actors, dict) or not actors:
         raise ValueError("Fight has no authoritative actor roster")
-    monster_rows = _monster_index(monsters)
+    from wakfu_server.combat_encounter_scene_helpers import reward_excluded_actor_ids
+
+    excluded_helpers = reward_excluded_actor_ids(fight)
+    reward_sources = monsters
+    if excluded_helpers and isinstance(monsters, (list, tuple)):
+        reward_sources = tuple(
+            member
+            for member in monsters
+            if not isinstance(member, dict) or member.get("id") not in excluded_helpers
+        )
+    monster_rows = _monster_index(reward_sources)
     catalog = native_actor_catalog()
     from wakfu_server.combat_companions import registered_companion_ids
 
@@ -142,6 +151,8 @@ def build_context(
     for key, actor in sorted(actors.items()):
         if type(key) is not int or actor.id != key:
             raise ValueError("Fight actor identity mismatch")
+        if actor.id in excluded_helpers:
+            continue
         level = _integer(
             actor.effective_level,
             "actor level",

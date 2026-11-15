@@ -1,7 +1,9 @@
 """Exercise the real save dispatcher without starting network services."""
+
 import sys
 from types import SimpleNamespace
 import pathlib
+from source_view import WorldSourcePath as Path
 import textwrap
 import unittest
 from unittest.mock import Mock, patch
@@ -17,7 +19,7 @@ class BuildSaveDispatchTest(unittest.TestCase):
         save_error=None,
         real_response=False,
     ):
-        source = pathlib.Path(__file__).resolve().parents[1] / "local_game_server.py"
+        source = WorldSourcePath(__file__).resolve().parents[1] / "local_game_server.py"
         branch = source.read_text().split("elif opcode == 12772 and loaded:", 1)[1]
         branch = branch.split("elif opcode == 13578 and loaded:", 1)[0]
         branch = textwrap.dedent(branch).replace("continue", "return")

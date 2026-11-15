@@ -1,4 +1,5 @@
 """Explicit, versioned local dungeon configuration from reviewed JSON evidence."""
+
 import hashlib
 import json
 
@@ -357,4 +358,21 @@ def pinned_configuration(db, route_key, version, *, expected_plan_hash=None):
         or canonical_hash(config["route"]) != config["evidence_hashes"]["route"]
     ):
         raise ValueError("Frozen dungeon topology or route hash mismatch")
+    geometry = config["topology"].get("exploration_geometry")
+    if geometry is not None:
+        from wakfu_server.spatial_topology import freeze_geometry
+
+        authority = "pinned-v1:{}:{}:{}:{}".format(
+            route_key,
+            version,
+            config["topology"]["asset_map_id"],
+            config["evidence_hashes"]["topology"],
+        )
+        config = dict(
+            config,
+            topology=dict(
+                config["topology"],
+                exploration_geometry=freeze_geometry(geometry, authority),
+            ),
+        )
     return config

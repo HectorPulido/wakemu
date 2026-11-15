@@ -1,11 +1,9 @@
 """The reviewed initial group remains fixed outside combat, with native facing."""
+
 import gzip
 import json
 from pathlib import Path
 from postgres_case import PostgresCase
-from unittest.mock import patch
-
-from test_monster_wander import FixedRng
 
 
 class PohlFixedWorldWanderTests(PostgresCase):
@@ -15,7 +13,6 @@ class PohlFixedWorldWanderTests(PostgresCase):
         from wakfu_server.combat_monster_world import world_actor
         from wakfu_server.dungeon_encounters import room_members
         from wakfu_server.dungeon_runtime_config import level_selector
-        from wakfu_server.monster_wander import wander_location
 
         config = json.loads(
             gzip.decompress(
@@ -66,26 +63,9 @@ class PohlFixedWorldWanderTests(PostgresCase):
         )
         groups = PersistentGroups(self.store)
         key = groups.register(1369, instance, 991184, members)
-        player = dict(map_id=1369, instance_id=instance, x=-5, y=-55, z=-15)
-        rng = FixedRng(rolls=(0,) * 100, steps=1)
-        packets = []
-        moved = wander_location(
-            groups,
-            1369,
-            instance,
-            [player],
-            geometry["edges"],
-            lambda *p: packets.append(p),
-            rng=rng,
-            move_probability=1,
-            min_steps=1,
-            max_steps=1,
-            radius=100,
-        )
-        self.assertEqual(moved, [])
-        self.assertEqual(rng.random_calls, 0)
+        # Native autonomous admission is covered by
+        # legacy_wander_contract::fixed_native_roster_is_excluded_before_probability_or_planning.
         self.assertEqual(groups.available(1369, instance)[0]["members"], members)
-        self.assertEqual(packets, [])
         boss = next(m for m in members if m["ref"] == 5376)
         self.assertEqual(boss["fixed_actor_placement"]["direction"], 3)
         # Initial native world facing must follow source metadata even when the
@@ -114,19 +94,17 @@ class PohlFixedWorldWanderTests(PostgresCase):
             dict(native_member_fields(m), instance_id=instance + 1) for m in members
         ]
         ordinary_key = ordinary.register(1369, instance + 1, 991185, ordinary_members)
-        rng = FixedRng(rolls=(0,) * 100, steps=1)
-        ordinary_moved = wander_location(
-            ordinary,
-            1369,
-            instance + 1,
-            [dict(player, instance_id=instance + 1)],
-            geometry["edges"],
-            lambda *p: None,
-            rng=rng,
-            move_probability=1,
-            min_steps=1,
-            max_steps=1,
-            radius=100,
+        # Explicit worker movement still obeys the retained World validator:
+        # authored placement metadata forbids displacement, ordinary actors do not.
+        changed_roster = [dict(m) for m in members]
+        fixed_index = next(
+            i for i, member in enumerate(members) if member["ref"] == 5376
         )
-        self.assertGreater(rng.random_calls, 0)
-        self.assertEqual(ordinary_moved, [ordinary_key])
+        changed_roster[fixed_index]["x"] += 1
+        with self.assertRaises(ValueError):
+            groups.move_members(key, members, changed_roster)
+        ordinary_after = [dict(m) for m in ordinary_members]
+        ordinary_after[0]["x"] += 1
+        self.assertTrue(
+            ordinary.move_members(ordinary_key, ordinary_members, ordinary_after)
+        )

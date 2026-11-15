@@ -10,7 +10,7 @@ public class ExportActorCharacteristics {
         return Map.of("current",v.aYS(),"raw_current",v.aYT(),"minimum",v.aYW(),"maximum",v.aYU(),"frozen",frozen.getBoolean(v));
     }
     public static void main(String[] args)throws Exception{
-        Path output=Path.of(args.length==0?"server/protocol/native-actor-characteristics.json":args[0]);
+        Path output=Path.of(args.length==0?"database/protocol/native-actor-characteristics.json":args[0]);
         Map<String,Object> definitions=new TreeMap<>();ffh fresh=new ffh();
         for(ffw s:ffw.values()){
             Map<String,Object> row=new LinkedHashMap<>(value(fresh.e(s)));

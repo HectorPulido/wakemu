@@ -1,9 +1,10 @@
 """Source-backed encounter actions cannot turn arbitrary INTERACT into a fight."""
+
 import ast
 from copy import deepcopy
 import importlib.util
 import json
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import sys
 import unittest

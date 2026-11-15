@@ -3,6 +3,7 @@
 No database access, SQL execution, activation or player data is involved.
 The public manifest describes data artifacts only; it cannot supply commands.
 """
+
 import argparse
 import gzip
 import hashlib
@@ -12,6 +13,11 @@ import re
 import shutil
 import sys
 import tempfile
+
+SERVER_ROOT = Path(__file__).resolve().parents[1]
+DATABASE_ROOT = (
+    SERVER_ROOT.parent if SERVER_ROOT.name == "server" else SERVER_ROOT
+) / "database"
 
 
 FORMAT = "wakemu-public-installation-v1"
@@ -229,7 +235,7 @@ def main():
     parser.add_argument(
         "--pack",
         type=Path,
-        default=Path(__file__).resolve().parents[1] / "data" / "installation",
+        default=DATABASE_ROOT / "data" / "installation",
     )
     parser.add_argument("--output", type=Path)
     parser.add_argument("--verify-only", action="store_true")

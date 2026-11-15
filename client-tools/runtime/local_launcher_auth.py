@@ -1,4 +1,5 @@
 """Revocable-token renewal for the local launcher session file."""
+
 import json
 import os
 from pathlib import Path
@@ -30,6 +31,26 @@ class LauncherAuthentication:
             raise LauncherAuthenticationError(
                 "Local login session unavailable; sign in again"
             ) from None
+
+    def user_info(self):
+        """Expose authenticated account identity in the native Zaap JSON format."""
+        account = self._login().get("account", {})
+        if not isinstance(account, dict):
+            raise LauncherAuthenticationError(
+                "Launcher account information unavailable"
+            )
+        account_id = account.get("id")
+        nickname = account.get("username")
+        if (
+            type(account_id) is not int
+            or account_id <= 0
+            or not isinstance(nickname, str)
+            or not nickname.strip()
+        ):
+            raise LauncherAuthenticationError(
+                "Launcher account information unavailable"
+            )
+        return json.dumps({"id": account_id, "nicknameWithTag": nickname})
 
     def _request(self, route, body, token=None):
         headers = {"Content-Type": "application/json"}

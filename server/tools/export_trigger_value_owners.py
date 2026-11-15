@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Export original Qe.a owners, including overrides inherited by eVi runners."""
+
 import argparse
 import json
 import os
@@ -14,10 +15,10 @@ def main():
     parser.add_argument(
         "--output",
         type=Path,
-        default=ROOT / "server/protocol/native-trigger-value-owners.json",
+        default=ROOT / "database/protocol/native-trigger-value-owners.json",
     )
     args = parser.parse_args()
-    source = ROOT / "server/protocol/native-runner-corpse-policy.json"
+    source = ROOT / "database/protocol/native-runner-corpse-policy.json"
     rows = json.loads(source.read_text())["effects"]
     classes = sorted({row["runner"] for row in rows.values()})
     compiled = ROOT / ".runtime/local"

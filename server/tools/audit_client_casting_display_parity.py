@@ -4,6 +4,7 @@
 Branch tables and synthetic input snapshots expose contract differences, not
 reachability of a particular equipment/state/carry configuration.
 """
+
 import argparse
 from collections import Counter
 import hashlib
@@ -24,8 +25,8 @@ def read(path):
 
 def run(output):
     paths = [
-        ROOT / "server/protocol/native-spell-casting.json",
-        ROOT / "server/protocol/native-class-spell-level-zero.json",
+        ROOT / "database/protocol/native-spell-casting.json",
+        ROOT / "database/protocol/native-class-spell-level-zero.json",
         ROOT
         / "docs/reports/combat-inventory/class-native-mechanic-components-20261007.json",
     ]
@@ -86,11 +87,15 @@ def run(output):
                         reason = (
                             "property2_cap"
                             if capped
-                            else "carried_bonus"
-                            if carried
-                            else "maximum_below_one_gate"
-                            if effective_base < 1
-                            else "minimum_clamp"
+                            else (
+                                "carried_bonus"
+                                if carried
+                                else (
+                                    "maximum_below_one_gate"
+                                    if effective_base < 1
+                                    else "minimum_clamp"
+                                )
+                            )
                         )
                         key = "equal" if tooltip == mask else reason
                         counts[key] += 1

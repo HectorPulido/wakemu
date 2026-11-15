@@ -5,11 +5,11 @@ The installed client identifies the target spell but does not preserve the
 original server's encounter constructor. These helpers are not enabled until
 the dispatcher wires the complete fight, grants and quest settlement together.
 """
+
 from collections import deque
 from itertools import combinations
 
 from .rii_owned_lesson import Lesson
-
 
 LOS = Lesson("rii-los-sack:", "reconstructed_rii_los_sack", 5466, 10608, 10576)
 ROCK_REFERENCE = 4528
@@ -95,6 +95,8 @@ def admit(db, owner, monsters):
 def initialize(fight, packets, *, action_id):
     """Grant only the owner the installed native line-of-sight spell."""
     contract = getattr(fight, "rii_los_lesson_contract", None)
+    if isinstance(contract, dict) and contract.get("native_lesson") is True:
+        return True
     if contract is None:
         return False
     if (
@@ -522,14 +524,16 @@ def next_rock_step(
     return None
 
 
-def spawn(store, groups, account_id, generation, character):
+def spawn(store, groups, account_id, generation, character, *, repeat=False):
     """Start the native roster; retain the historical path as an explicit fallback."""
     import os
 
     if os.environ.get("WAKFU_RII_NATIVE_LOS_ENABLED", "1") == "1":
         from .rii_los_native import spawn as spawn_native
 
-        return spawn_native(store, groups, account_id, generation, character)
+        return spawn_native(
+            store, groups, account_id, generation, character, repeat=repeat
+        )
     return _spawn_legacy(store, groups, account_id, generation, character)
 
 

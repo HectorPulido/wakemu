@@ -1,4 +1,5 @@
 """Actual native-runtime qualification for boss-carried dungeon stele states."""
+
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -62,7 +63,7 @@ class DungeonSteleNativeRuntimeTests(PostgresCase):
         self.assertIsNotNone(supplement)
         rooms = json.loads(
             Path(
-                "server/test-fixtures/dungeons/jalato-runtime-config-v1.json"
+                "server/tests/fixtures/dungeons/jalato-runtime-config-v1.json"
             ).read_text()
         )["compiled_plan"]["rooms"]
         with patch.object(Fight, "ready"):
@@ -186,7 +187,7 @@ class DungeonSteleNativeRuntimeTests(PostgresCase):
         }
         rooms = json.loads(
             Path(
-                "server/test-fixtures/dungeons/jalato-runtime-config-v1.json"
+                "server/tests/fixtures/dungeons/jalato-runtime-config-v1.json"
             ).read_text()
         )["compiled_plan"]["rooms"]
         deck = encode_deck(())

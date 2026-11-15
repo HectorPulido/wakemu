@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 import ast
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import threading
 import unittest
 import uuid

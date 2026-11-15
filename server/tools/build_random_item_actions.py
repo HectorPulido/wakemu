@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Regenerate migration 200 from the frozen original random-box action tables."""
+
 import argparse
 import collections
 import hashlib
@@ -7,7 +8,8 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DOCUMENT = ROOT / "protocol/native-random-item-actions.json"
+DATABASE_ROOT = (ROOT.parent if ROOT.name == "server" else ROOT) / "database"
+DOCUMENT = DATABASE_ROOT / "protocol/native-random-item-actions.json"
 MIGRATION = ROOT / "migrations/200_native_random_item_actions.sql"
 
 

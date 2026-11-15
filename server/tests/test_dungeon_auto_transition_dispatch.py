@@ -1,12 +1,12 @@
 """Exercise the session-owned auto-transition handoff without loading server.py."""
+
 import ast
 import copy
 from contextlib import contextmanager
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import time
 import unittest
 from unittest.mock import Mock, patch
-
 
 ROOT = Path(__file__).resolve().parents[2]
 HOST_SOURCES = (ROOT / "server/local_game_server.py",)

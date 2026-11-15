@@ -3,6 +3,7 @@
 Recovery marks interrupted fights aborted; it never reconstructs a client fight
 or silently resumes a timeline. Runtime callbacks and network peers are omitted.
 """
+
 import json
 import hashlib
 import time
@@ -21,6 +22,9 @@ EPHEMERAL_FIGHT_FIELDS = frozenset(
         # A live session fence, invalidated on disconnect; interrupted fights
         # are aborted rather than resumed with this authority.
         "native_instance_publication_lease",
+        # Original-socket notifications follow its native 12925 callback.
+        # Reconnect receives durable quest state in the normal bootstrap.
+        "post_combat_progression",
     }
 )
 

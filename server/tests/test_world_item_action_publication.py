@@ -1,7 +1,8 @@
 """Exercise the actual World adapters after committed inventory operations."""
+
 import ast
 from copy import deepcopy
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import struct
 import time
 import threading
@@ -355,7 +356,12 @@ class WorldItemActionPublicationTests(unittest.TestCase):
             b["position"],
             {key: activate.call_args.kwargs["location"][key] for key in b["position"]},
         )
-        self.assertIs(stale, b["WORLD"].players[40])
+        self.assertEqual(stale[0], b["WORLD"].players[40][0])
+        self.assertIs(stale[1], b["WORLD"].players[40][1])
+        self.assertEqual(stale[2], b["WORLD"].players[40][2])
+        b["WORLD"].refresh_projection.assert_called_once_with(
+            b["generation"], b["character"]
+        )
         b["WORLD"].update.assert_not_called()
         b["send"].assert_not_called()
         b["record"].assert_called_once_with(
@@ -696,10 +702,8 @@ class WorldItemActionPublicationTests(unittest.TestCase):
             join_world=lambda *_: events.append("join"),
             mark_static_sync_pending=Mock(),
         )
-        b[
-            "send"
-        ].side_effect = lambda _connection, _service, opcode, _body: events.append(
-            opcode
+        b["send"].side_effect = (
+            lambda _connection, _service, opcode, _body: events.append(opcode)
         )
         with patch(
             "wakfu_server.item_teleports.action_class", return_value="bIr"

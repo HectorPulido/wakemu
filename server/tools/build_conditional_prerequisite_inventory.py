@@ -1,4 +1,5 @@
 """All scoped conditional prerequisite signatures from existing typed matrix only."""
+
 import hashlib
 import json
 from collections import Counter, defaultdict
@@ -134,7 +135,7 @@ def run():
         ) != metadata.get("source_after"):
             raise ValueError("Unstable compact normal commit provenance")
         contract_hash = metadata["source_before"].get(
-            "server/protocol/native-spell-casting.json.gz"
+            "database/protocol/native-spell-casting.json.gz"
         )
         if not contract_hash:
             raise ValueError("Missing native casting source identity")
@@ -172,16 +173,16 @@ def run():
             )
         ]
         baseline_proof["matrix_casting_source_sha256"] = matrix["sources"][
-            "server/protocol/native-spell-casting.json.gz"
+            "database/protocol/native-spell-casting.json.gz"
         ]
         baseline_proof["executed_casting_source_sha256"] = contract_hash
         baseline_proof["source_contract_identity_matches_frozen_matrix"] = (
             contract_hash
-            == matrix["sources"]["server/protocol/native-spell-casting.json.gz"]
+            == matrix["sources"]["database/protocol/native-spell-casting.json.gz"]
         )
-        baseline_proof[
-            "identity_limit"
-        ] = "Exact current reference/index/raw criterion matched; native whole-table hash divergence remains explicit, no silent flags equivalence inferred"
+        baseline_proof["identity_limit"] = (
+            "Exact current reference/index/raw criterion matched; native whole-table hash divergence remains explicit, no silent flags equivalence inferred"
+        )
         for observation in (
             baseline_proof["unique_selected_committed"]
             + baseline_proof["known_matched_committed"]
@@ -250,9 +251,9 @@ def run():
                 )
             )
             if key in proved:
-                entry[
-                    "execution_proof"
-                ] = "at least one exact branch/level observed; other callers/levels remain unknown"
+                entry["execution_proof"] = (
+                    "at least one exact branch/level observed; other callers/levels remain unknown"
+                )
             if call.get("source_candidates"):
                 entry["producer_candidates"].append(call["source_candidates"])
     all_keys = {(r["spell"], r["branch"]) for r in matrix["rows"]}
@@ -287,9 +288,7 @@ def run():
         path: (
             "matched"
             if current_hashes.get(path) == value
-            else "different"
-            if path in current_hashes
-            else "missing"
+            else "different" if path in current_hashes else "missing"
         )
         for path, value in matrix["sources"].items()
     }

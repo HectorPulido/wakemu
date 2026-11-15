@@ -1,4 +1,5 @@
 """Create a verified offline source/data copy while implementation continues."""
+
 import argparse
 import ast
 import datetime
@@ -25,14 +26,11 @@ def files(root, *, full_server=False):
                 result.add(path.relative_to(root))
     # The World-owned WakIA bridge and server-owned fixtures are captured by
     # the directories above. Legacy planner sources are not validation inputs.
-    for path in (root / "server/protocol").rglob("*"):
+    for path in (root / "database/protocol").rglob("*"):
         if path.is_file() and path.suffix in (".json", ".gz", ".csv", ".tsv", ".txt"):
             result.add(path.relative_to(root))
     for path in (root / "server/migrations").glob("*.sql"):
         if path.is_file():
-            result.add(path.relative_to(root))
-    for path in (root / "server/test-fixtures").rglob("*"):
-        if path.is_file() and path.suffix in (".json", ".gz", ".bin", ".csv", ".tsv"):
             result.add(path.relative_to(root))
     # Optional, version-assessed guide input used by impact observation. Freeze
     # this one declared input without copying unrelated internal reports.

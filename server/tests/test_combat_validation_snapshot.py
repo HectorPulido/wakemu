@@ -1,9 +1,9 @@
 """Frozen validation includes declared report inputs without private data."""
+
 import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
-
 
 tool_path = Path(__file__).resolve().parents[1] / "tools/snapshot_combat_validation.py"
 spec = importlib.util.spec_from_file_location("combat_validation_snapshot", tool_path)
@@ -127,7 +127,7 @@ class ValidationSnapshotTests(unittest.TestCase):
                 "server/migrations/001_initial.sql": "CREATE TABLE example(id integer);\n",
                 "server/admin-service/service.py": "SERVICE = True\n",
                 "server/admin-service/static/index.html": "<main>Example</main>\n",
-                "server/test-fixtures/combat/example.json": "{}\n",
+                "server/tests/fixtures/combat/example.json": "{}\n",
                 "sniffer/audit-capture.py": "AUDIT = True\n",
                 "client-tools/local-client.sh": "#!/bin/sh\n",
                 "compose.yaml": "services: {}\n",

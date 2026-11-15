@@ -2,11 +2,10 @@
 
 import importlib.util
 import json
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import tempfile
 import unittest
 from unittest.mock import patch
-
 
 _SPEC = importlib.util.spec_from_file_location(
     "combat_baseline_inventory",
@@ -84,7 +83,7 @@ class CombatBaselineInventoryTests(unittest.TestCase):
     def test_fixture_inputs_and_service_assets_change_source_identity(self):
         names = (
             "server/tests/fixtures/scenario.json",
-            "server/test-fixtures/combat/action.bin",
+            "server/tests/fixtures/combat/action.bin",
             "server/tests/fixtures/wakia/oracle.json.gz",
             "server/admin-service/static/app.js",
             "server/admin-service/templates/fight.html",
@@ -302,6 +301,25 @@ def orphan_spell():
             ["execute_spell", "service.move_actor"],
         )
         self.assertEqual(routes["handle_spell"]["calls"][1]["candidate_targets"], [])
+
+    def test_route_inventory_keeps_extracted_application_handlers_in_scope(self):
+        name = "server/wakfu_server/application/session_combat.py"
+        self.write(
+            name,
+            "class CombatSessionMixin:\n"
+            "    def handle_spell_cast(self):\n"
+            "        return self.runtime.execute_spell()\n",
+        )
+        self.write("server/local_game_server.py", "def main():\n    pass\n")
+        result = inventory.route_inventory(self.root)
+        route = next(
+            row
+            for row in result["routes"]
+            if row["symbol"] == "CombatSessionMixin.handle_spell_cast"
+        )
+        self.assertEqual(route["path"], name)
+        self.assertEqual(route["calls"][0]["expression"], "self.runtime.execute_spell")
+        self.assertEqual(route["calls"][0]["candidate_targets"], [])
 
     def test_inventory_detects_sources_changing_during_capture(self):
         first = {

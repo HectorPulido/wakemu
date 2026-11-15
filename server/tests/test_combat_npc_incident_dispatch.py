@@ -1,7 +1,8 @@
 """Common incident dispatch keeps chosen NPC replay summaries payload-free."""
+
 import hashlib
 import json
-from pathlib import Path
+from source_view import WorldSourcePath as Path
 import tempfile
 import unittest
 from unittest.mock import patch

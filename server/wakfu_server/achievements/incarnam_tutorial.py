@@ -3,6 +3,7 @@
 Producers must authenticate and qualify their gameplay event before calling
 ``settle``. The event names are internal server facts, never client input.
 """
+
 from copy import deepcopy
 import struct
 
@@ -39,6 +40,7 @@ def scenario_packet(event, *arguments):
     """Encode one native Incarnam presentation event with integer arguments."""
     if event not in (
         21800,
+        22500,
         22505,
         22519,
         22521,
@@ -61,6 +63,20 @@ def scenario_packet(event, *arguments):
         struct.pack(">BiiB", 0, event, 2500, len(arguments))
         + b"".join(struct.pack(">q", value) for value in arguments),
     )
+
+
+def interface_recovery_packet():
+    """Restore native interface shortcuts after leaving the tutorial scene.
+
+    Installed Lua2500's end event22500 calls prepareUI before restoring its
+    shortcuts. Its obsolete extraInterfaceBarDrawerButton lookup throws, so
+    inventory and quest shortcuts remain disabled. Native2071/16608 restores
+    the individual interface shortcuts before touching widgets, without
+    changing quest visibility, starting a cinematic or publishing actors.
+    Call only after Incarnam exit or on a completed/skipped Rii login; active
+    tutorial scenes intentionally restrict these shortcuts.
+    """
+    return 13411, struct.pack(">BiiB", 0, 16608, 2071, 0)
 
 
 def initial_packets(state, *, planting_guide_seen=False):
@@ -87,6 +103,25 @@ def initial_packets(state, *, planting_guide_seen=False):
     if step == 25:
         packets.append(scenario_packet(22566))
     return packets
+
+
+def is_resumed_scene_ready(character, state, callback, pending):
+    """Accept the native load callback after an existing scene is restored.
+
+    Lua 2500 always answers 21800 when loaded. Only the fresh cinematic
+    transition arms the arrival chain; reconnect restores the saved step.
+    """
+    from wakfu_server.intro_cinematic import private_instance_id
+
+    return (
+        callback == 21800
+        and pending is None
+        and character.get("map_id") == MAP_ID
+        and type(character.get("id")) is int
+        and character["id"] > 0
+        and character.get("instance_id") == private_instance_id(character["id"])
+        and any(identity in state.get("running", ()) for identity, _, _ in STAGES)
+    )
 
 
 def cinematic_camera_travel(character_id, callback):

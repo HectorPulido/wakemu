@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Generate the additive native random-item USE admission snapshot."""
+
 import argparse
 import hashlib
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
-DOCUMENT = ROOT / "protocol/native-random-item-use-criteria.json"
-BASE_DOCUMENT = ROOT / "protocol/native-random-item-actions.json"
+DATABASE_ROOT = (ROOT.parent if ROOT.name == "server" else ROOT) / "database"
+DOCUMENT = DATABASE_ROOT / "protocol/native-random-item-use-criteria.json"
+BASE_DOCUMENT = DATABASE_ROOT / "protocol/native-random-item-actions.json"
 MIGRATION = ROOT / "migrations/227_native_random_item_use_criteria.sql"
 
 

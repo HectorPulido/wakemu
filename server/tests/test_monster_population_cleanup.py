@@ -1,7 +1,7 @@
 """Certified native unassigned actors are pruned safely with durable retry."""
+
 from threading import RLock
 from types import SimpleNamespace
-from unittest.mock import patch
 
 from psycopg.types.json import Jsonb
 from postgres_case import PostgresCase
@@ -13,8 +13,6 @@ from wakfu_server.monsters import REFERENCES, owned_instance
 class MonsterPopulationCleanupTests(PostgresCase):
     def setUp(self):
         super().setUp()
-        subject._SCAN_STATE = None
-        self.addCleanup(setattr, subject, "_SCAN_STATE", None)
         self.groups = PersistentGroups(self.store)
         self.harvests = SimpleNamespace(lock=RLock(), targets={})
         self.events = []
@@ -46,7 +44,16 @@ class MonsterPopulationCleanupTests(PostgresCase):
         )
 
     def proposal(self):
-        return subject.prepare(self.store, self.snapshot, clock=lambda: 0)[0]
+        # Explicit Rust-shaped result; planner selection/cadence/ownership
+        # execute in Rust mob_idle::cleanup_contract against the native catalog.
+        return dict(
+            kind="cleanup_unassigned",
+            world_epoch="cleanup-test",
+            scope=[527, 0],
+            group_id=8101,
+            expected_members=self.members,
+            actor_ids=[-8102],
+        )
 
     def apply(self, proposal):
         return subject.apply(
@@ -58,45 +65,17 @@ class MonsterPopulationCleanupTests(PostgresCase):
             world_epoch="cleanup-test",
         )
 
-    def test_prepare_only_exact_unassigned_native_cells_and_runs_without_players(self):
-        proposal = self.proposal()
-        self.assertEqual(proposal["actor_ids"], [-8102])
-        self.assertEqual(proposal["expected_members"], self.members)
+    def test_world_certifies_only_exact_unassigned_native_cells(self):
+        self.assertTrue(subject.certified_unassigned(527, self.members[1]))
         self.assertFalse(subject.certified_unassigned(527, self.members[0]))
         self.assertFalse(subject.certified_unassigned(527, self.members[2]))
-        with patch.object(
-            self.store,
-            "connection",
-            side_effect=AssertionError("must not rescan before one minute"),
-        ):
-            self.assertEqual(
-                subject.prepare(self.store, self.snapshot, clock=lambda: 59.9), []
-            )
-        self.assertEqual(
-            subject.prepare(self.store, self.snapshot, clock=lambda: 60)[0][
-                "actor_ids"
-            ],
-            [-8102],
-        )
 
-    def test_prepare_excludes_private_fighting_and_harvested_actors(self):
-        self.groups.register(
-            527, 17, 8102, [dict(self.member(-8104, -163, -125, -4), instance_id=17)]
-        )
-        self.snapshot["excluded_ids"] = [-8102]
-        self.assertEqual(
-            subject.prepare(self.store, self.snapshot, clock=lambda: 0), []
-        )
-        subject._SCAN_STATE = None
-        self.snapshot["excluded_ids"] = []
-        with self.store.connection() as db:
-            fight_id = db.execute(
-                "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
-            ).fetchone()["id"]
-        self.groups.claim(self.key, "cleanup-fight", fight_id)
-        self.assertEqual(
-            subject.prepare(self.store, self.snapshot, clock=lambda: 0), []
-        )
+    def test_private_cleanup_scope_is_rejected_without_mutation(self):
+        proposal = self.proposal()
+        proposal["scope"] = [527, 17]
+        with self.assertRaisesRegex(ValueError, "Invalid cleanup scope"):
+            self.apply(proposal)
+        self.assertEqual(self.events, [])
 
     def test_cleanup_commit_survives_delivery_failure_and_replay_preserves_survivors(
         self,
