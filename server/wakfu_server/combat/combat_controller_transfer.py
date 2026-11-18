@@ -231,7 +231,31 @@ class NativeControllerTransferHandler:
             caster = self.fight.actors.get(invocation.caster_id)
             target = self.fight.actors.get(invocation.target_id)
             if caster is None or target is None:
-                raise ValueError("Missing actual eWD fighters")
+                from .combat_state_managers import registered_area_pv
+
+                source_pv = (
+                    caster
+                    if caster is not None
+                    else registered_area_pv(self.fight, invocation.caster_id)
+                )
+                target_pv = (
+                    target
+                    if target is not None
+                    else registered_area_pv(self.fight, invocation.target_id)
+                )
+                if source_pv is None or target_pv is None:
+                    raise ValueError("Missing actual eWD fighters")
+                # eWD.c returns for an actual PV which is not an eGj. Point
+                # selection may include a glyph beside a newly created fighter.
+                runner = self.runners[uid][0]
+                runner.notification_suppressed = True
+                runner.finish_application()
+                self._phase(effect, invocation, uid, 3)
+                self._phase(effect, invocation, uid, 4)
+                from .combat_runner_callbacks import notify_runner_value
+
+                notify_runner_value(invocation, runner.value)
+                return True
             # Fresh Qe constructor bfD=true. Hydrated runners are not admitted
             # through this fresh-only entry point without their actual flag.
             selection = self.runners[uid][1]

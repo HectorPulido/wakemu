@@ -79,6 +79,40 @@ class NativeAIControlTests(unittest.TestCase):
         self.assertTrue(actor.native_controlled_by_ai)
         self.assertEqual(handler.runners, {})
 
+    def test_registered_area_has_no_retained_fighter_state(self):
+        from unittest.mock import patch
+
+        from wakfu_server.combat_effect_dispatch import EffectInvocation
+        from wakfu_server.combat_stat_handler import StatExecutionContext
+
+        fight = SimpleNamespace(actors={}, owned_stat_effects={})
+        packets = []
+        handler = NativeAIControlHandler(
+            fight,
+            packets,
+            allocate_uid=lambda: 1,
+            context=lambda e, i: StatExecutionContext(True, True, None, True, b""),
+            authority=lambda f, a: self.fail("Area is not a fighter"),
+            rng=lambda: 0.5,
+            delivery=lambda e, i, **kwargs: ((12613, b"delivery"), b"payload"),
+        )
+        effect = dict(effect_class=325, parameters=[1, 0])
+        invocation = EffectInvocation(
+            22,
+            1,
+            7,
+            -10,
+            (0, 0, 0),
+            native_context_hex="0800100020ffffffffffffffffff0128013000380040004800",
+        )
+        with patch(
+            "wakfu_server.combat_state_managers.registered_area_pv",
+            return_value=SimpleNamespace(native_running_effect_manager=False),
+        ):
+            self.assertTrue(handler(effect, {}, invocation))
+        self.assertEqual(packets, [(12613, b"delivery")])
+        self.assertEqual(fight.owned_stat_effects, {})
+
     def test_missing_context_rejects_before_uid_or_mutation(self):
         from wakfu_server.combat_effect_dispatch import EffectInvocation
         from wakfu_server.combat_stat_handler import StatExecutionContext

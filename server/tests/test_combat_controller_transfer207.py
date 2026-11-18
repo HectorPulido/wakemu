@@ -148,6 +148,24 @@ class ControllerTransferRunner207Tests(unittest.TestCase):
         self.assertFalse(hasattr(fight.actors[-7], "native_summon_action_book"))
         self.assertEqual(handler.runners, {})
 
+    def test_registered_area_keeps_phases_without_transferring_control(self):
+        from dataclasses import replace
+
+        handler, fight, packets, effect, invocation, _ = self.fixture()
+        phases = []
+        handler.event_lifecycle = SimpleNamespace(
+            phase=lambda e, i, **kwargs: phases.append(kwargs["channel"])
+        )
+        area_invocation = replace(invocation, target_id=-10)
+        with patch(
+            "wakfu_server.combat_state_managers.registered_area_pv",
+            return_value=SimpleNamespace(native_is_area=True),
+        ):
+            self.assertTrue(handler(effect, {}, area_invocation))
+        self.assertEqual(phases, [1, 2, 3, 4])
+        self.assertEqual(packets, [])
+        self.assertEqual(current_native_controller(fight, -7), -7)
+
     def test_player_ai_without_real_class_executor_rejects_before_any_mutation(self):
         import pickle
 
